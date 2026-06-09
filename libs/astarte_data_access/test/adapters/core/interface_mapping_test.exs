@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataAccess.Adapters.Core.InterfaceMappingTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use ExUnitProperties
 
   import Astarte.Core.Generators.Interface

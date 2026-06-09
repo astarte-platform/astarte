@@ -17,11 +17,10 @@
 #
 
 defmodule Astarte.DataAccess.Interfaces.XandraTest do
-  use ExUnit.Case
+  use Astarte.DataAccess.Cases.Database, async: true
 
   alias Astarte.Core.InterfaceDescriptor
 
-  alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
 
@@ -57,30 +56,6 @@ defmodule Astarte.DataAccess.Interfaces.XandraTest do
     storage_type: :multi_interface_individual_datastream_dbtable,
     type: :datastream
   }
-
-  @test_realm "autotestrealm"
-
-  setup do
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.seed_data(conn)
-    end)
-  end
-
-  setup_all do
-    on_exit(fn ->
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.destroy_local_test_keyspace(conn)
-      end)
-    end)
-
-    DatabaseTestHelper.await_cluster_connected!(:astarte_data_access_xandra)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-    end)
-
-    :ok
-  end
 
   describe "storage/1" do
     test "returns individual_properties if aggregation = individual and type = properties" do
@@ -130,61 +105,73 @@ defmodule Astarte.DataAccess.Interfaces.XandraTest do
     end
   end
 
-  test "check if interfaces exists" do
-    assert Interface.check_if_interface_exists(
-             @test_realm,
-             "com.test.SimpleStreamTest",
-             0
-           ) ==
-             {:error, :interface_not_found}
+  describe "check_if_interface_exists/3" do
+    setup :seed_data
 
-    assert Interface.check_if_interface_exists(
-             @test_realm,
-             "com.test.SimpleStreamTest",
-             1
-           ) == :ok
+    test "returns expected values", %{realm_name: realm_name} do
+      assert Interface.check_if_interface_exists(
+               realm_name,
+               "com.test.SimpleStreamTest",
+               0
+             ) ==
+               {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(
-             @test_realm,
-             "com.test.SimpleStreamTest",
-             2
-           ) ==
-             {:error, :interface_not_found}
+      assert Interface.check_if_interface_exists(
+               realm_name,
+               "com.test.SimpleStreamTest",
+               1
+             ) == :ok
 
-    assert Interface.check_if_interface_exists(@test_realm, "com.Missing", 1) ==
-             {:error, :interface_not_found}
+      assert Interface.check_if_interface_exists(
+               realm_name,
+               "com.test.SimpleStreamTest",
+               2
+             ) ==
+               {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(
-             @test_realm,
-             "com.example.TestObject",
-             0
-           ) ==
-             {:error, :interface_not_found}
+      assert Interface.check_if_interface_exists(realm_name, "com.Missing", 1) ==
+               {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(
-             @test_realm,
-             "com.example.TestObject",
-             1
-           ) == :ok
+      assert Interface.check_if_interface_exists(
+               realm_name,
+               "com.example.TestObject",
+               0
+             ) ==
+               {:error, :interface_not_found}
+
+      assert Interface.check_if_interface_exists(
+               realm_name,
+               "com.example.TestObject",
+               1
+             ) == :ok
+    end
   end
 
-  test "fetch_interface_descriptor returns an InterfaceDescriptor struct" do
-    assert Interface.fetch_interface_descriptor(
-             @test_realm,
-             "com.test.SimpleStreamTest",
-             1
-           ) ==
-             {:ok, @simplestreamtest_interface_descriptor}
+  describe "fetch_interface_descriptor/3" do
+    setup :seed_data
+
+    test "returns an InterfaceDescriptor", %{realm_name: realm_name} do
+      assert Interface.fetch_interface_descriptor(
+               realm_name,
+               "com.test.SimpleStreamTest",
+               1
+             ) ==
+               {:ok, @simplestreamtest_interface_descriptor}
+    end
   end
 
-  test "retrieve_interface_row returns a row with expected values" do
-    {:ok, row} = Interface.retrieve_interface_row(@test_realm, "com.test.SimpleStreamTest", 1)
+  describe "retrieve_interface_row/3" do
+    setup :seed_data
 
-    assert is_map(row) == true
+    test "returns a row with expected values", %{realm_name: realm_name} do
+      {:ok, row} = Interface.retrieve_interface_row(realm_name, "com.test.SimpleStreamTest", 1)
 
-    assert Map.fetch(row, :name) == {:ok, "com.test.SimpleStreamTest"}
-    assert Map.fetch(row, :interface_id) == {:ok, @simplestreamtest_interface_id}
-    assert Map.fetch(row, :major_version) == {:ok, 1}
-    assert Map.fetch(row, :minor_version) == {:ok, 0}
+      assert is_map(row) == true
+
+      assert Map.fetch(row, :name) == {:ok, "com.test.SimpleStreamTest"}
+      assert Map.fetch(row, :interface_id) == {:ok, @simplestreamtest_interface_id}
+      assert Map.fetch(row, :major_version) == {:ok, 1}
+      assert Map.fetch(row, :minor_version) == {:ok, 0}
+    end
   end
 end

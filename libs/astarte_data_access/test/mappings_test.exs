@@ -17,12 +17,10 @@
 #
 
 defmodule Astarte.DataAccess.Mappings.XandraTest do
-  use ExUnit.Case
-  alias Astarte.Core.Mapping
-  alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Mappings
+  use Astarte.DataAccess.Cases.Database, async: true
 
-  @test_realm "autotestrealm"
+  alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Mappings
 
   @test_interface_id <<83, 208, 155, 48, 103, 205, 220, 243, 222, 30, 40, 112, 234, 210, 31, 19>>
 
@@ -166,41 +164,23 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
     }
   }
 
-  setup do
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.seed_data(conn)
-    end)
-  end
+  setup :seed_data
 
-  setup_all do
-    on_exit(fn ->
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.destroy_local_test_keyspace(conn)
-      end)
-    end)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-    end)
-
-    :ok
-  end
-
-  test "fetch interface mappings" do
+  test "fetch interface mappings", %{realm_name: realm_name} do
     assert Mappings.fetch_interface_mappings_map(
-             @test_realm,
+             realm_name,
              @simplestreamtest_interface_id
            ) ==
              {:ok, @simplestreamtest_mappings}
 
-    assert Mappings.fetch_interface_mappings_map(@test_realm, @test_interface_id,
+    assert Mappings.fetch_interface_mappings_map(realm_name, @test_interface_id,
              include_docs: true
            ) ==
              {:ok, @test_mapping}
 
     missing_interface_id = :crypto.strong_rand_bytes(16)
 
-    assert Mappings.fetch_interface_mappings_map(@test_realm, missing_interface_id) ==
+    assert Mappings.fetch_interface_mappings_map(realm_name, missing_interface_id) ==
              {:error, :interface_not_found}
   end
 end

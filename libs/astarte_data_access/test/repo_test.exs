@@ -1,35 +1,11 @@
 defmodule Astarte.DataAccess.RepoTest do
-  use ExUnit.Case
-
-  alias Astarte.DataAccess.DatabaseTestHelper
+  use Astarte.DataAccess.Cases.Database, async: true
 
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
   import Ecto.Query
   use Mimic
-
-  setup_all do
-    on_exit(fn ->
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.destroy_local_test_keyspace(conn)
-        DatabaseTestHelper.destroy_astarte_keyspace(conn)
-      end)
-    end)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-      DatabaseTestHelper.create_astarte_keyspace(conn)
-    end)
-
-    :ok
-  end
-
-  setup do
-    realm = "testrealm#{System.unique_integer([:positive])}"
-
-    {:ok, realm: realm}
-  end
 
   describe "safe_fetch_one" do
     test "queries keyspaces returns ok" do
@@ -100,177 +76,149 @@ defmodule Astarte.DataAccess.RepoTest do
   end
 
   describe "safe_insert_all" do
-    test "realm returns ok", %{realm: realm} do
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: realm}],
-                 prefix: "astarte"
-               )
+    test "inserts entries", %{realm_name: realm_name} do
+      new_realm_name = "newrealm#{System.unique_integer([:positive])}"
+      params = [%{realm_name: realm_name}]
+      opts = [prefix: Realm.astarte_keyspace_name()]
+
+      on_exit(fn ->
+        Repo.delete(%Realm{realm_name: new_realm_name}, opts)
+      end)
+
+      assert {:ok, {1, _}} = Repo.safe_insert_all(Realm, params, opts)
     end
 
-    test "realm returns connection error", %{realm: realm} do
+    test "realm returns connection error", %{realm_name: realm_name} do
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert {:error, :database_connection_error} =
                Repo.safe_insert_all(
                  Realm,
-                 [%{realm_name: realm}],
-                 prefix: "astarte"
+                 [%{realm_name: realm_name}],
+                 prefix: Realm.astarte_keyspace_name()
                )
     end
 
-    test "realm returns db error", %{realm: realm} do
+    test "realm returns db error", %{realm_name: realm_name} do
       Xandra
       |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: "generic error"}} end)
 
       assert {:error, :database_error} =
                Repo.safe_insert_all(
                  Realm,
-                 [%{realm_name: realm}],
-                 prefix: "astarte"
+                 [%{realm_name: realm_name}],
+                 prefix: Realm.astarte_keyspace_name()
                )
     end
   end
 
   describe "safe_update_all" do
-    test "realm returns ok", %{realm: realm} do
-      old_realm_name = realm
+    test "updates entries", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
+      opts = [prefix: astarte_keyspace]
 
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
+      on_exit(fn ->
+        %Realm{realm_name: realm_name, device_registration_limit: nil}
+        |> Repo.insert(opts)
+      end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name],
+          where: [realm_name: ^realm_name],
           update: [set: [device_registration_limit: 10]]
 
-      assert {:ok, _} = Repo.safe_update_all(realm, [])
+      assert {:ok, {1, _}} = Repo.safe_update_all(query, [], opts)
+      assert %Realm{device_registration_limit: 10} = Repo.get(Realm, realm_name, opts)
     end
 
-    test "realm returns connection error", %{realm: realm} do
-      old_realm_name = realm
-
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
-
+    test "realm returns connection error", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name],
+          prefix: ^astarte_keyspace,
+          where: [realm_name: ^realm_name],
           update: [set: [device_registration_limit: 10]]
 
-      assert {:error, :database_connection_error} = Repo.safe_update_all(realm, [])
+      assert {:error, :database_connection_error} = Repo.safe_update_all(query, [])
     end
 
-    test "realm returns db error", %{realm: realm} do
-      old_realm_name = realm
-
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
+    test "realm returns db error", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
 
       Xandra
       |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: "generic error"}} end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name],
+          prefix: ^astarte_keyspace,
+          where: [realm_name: ^realm_name],
           update: [set: [device_registration_limit: 10]]
 
-      assert {:error, :database_error} = Repo.safe_update_all(realm, [])
+      assert {:error, :database_error} = Repo.safe_update_all(query, [])
     end
   end
 
   describe "safe_delete_all" do
-    test "realm returns ok", %{realm: realm} do
-      old_realm_name = realm
+    test "deletes entries", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
 
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
+      on_exit(fn ->
+        %Realm{realm_name: realm_name}
+        |> Repo.insert(prefix: astarte_keyspace)
+      end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name]
+          prefix: ^astarte_keyspace,
+          where: [realm_name: ^realm_name]
 
-      assert {:ok, _} = Repo.safe_delete_all(realm, [])
+      assert {:ok, {1, _}} = Repo.safe_delete_all(query)
+
+      assert {:error, :not_found} = Repo.fetch(Realm, realm_name, prefix: astarte_keyspace)
     end
 
-    test "realm returns connection error", %{realm: realm} do
-      old_realm_name = realm
-
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
-
+    test "realm returns connection error", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name]
+          prefix: ^astarte_keyspace,
+          where: [realm_name: ^realm_name]
 
-      assert {:error, :database_connection_error} = Repo.safe_delete_all(realm, [])
+      assert {:error, :database_connection_error} = Repo.safe_delete_all(query, [])
     end
 
-    test "realm returns db error", %{realm: realm} do
-      old_realm_name = realm
-
-      assert {:ok, _} =
-               Repo.safe_insert_all(
-                 Realm,
-                 [%{realm_name: old_realm_name}],
-                 prefix: "astarte"
-               )
+    test "realm returns db error", %{realm_name: realm_name} do
+      astarte_keyspace = Realm.astarte_keyspace_name()
 
       Xandra
       |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: "generic error"}} end)
 
-      realm =
+      query =
         from r in Realm,
-          prefix: "astarte",
-          where: [realm_name: ^old_realm_name]
+          prefix: ^astarte_keyspace,
+          where: [realm_name: ^realm_name]
 
-      assert {:error, :database_error} = Repo.safe_delete_all(realm, [])
+      assert {:error, :database_error} = Repo.safe_delete_all(query, [])
     end
   end
 
   describe "insert_to_sql from struct" do
-    test "generates correct SQL and params", %{realm: realm} do
-      struct = %Realm{realm_name: realm, device_registration_limit: nil}
+    test "generates correct SQL and params", %{realm_name: realm_name} do
+      struct = %Realm{realm_name: realm_name, device_registration_limit: nil}
       {sql, params} = Repo.insert_to_sql(struct, [])
       assert sql =~ "INSERT INTO realms"
       assert sql =~ "VALUES"
       assert is_list(params)
     end
 
-    test "generates SQL with prefix from opts", %{realm: realm} do
-      struct = %Realm{realm_name: realm, device_registration_limit: nil}
-      {sql, _params} = Repo.insert_to_sql(struct, prefix: "astarte")
-      assert sql =~ "astarte"
+    test "generates SQL with prefix from opts", %{realm_name: realm_name} do
+      struct = %Realm{realm_name: realm_name, device_registration_limit: nil}
+      {sql, _params} = Repo.insert_to_sql(struct, prefix: Realm.astarte_keyspace_name())
+      assert sql =~ Realm.astarte_keyspace_name()
       assert sql =~ "realms"
     end
   end
@@ -337,85 +285,68 @@ defmodule Astarte.DataAccess.RepoTest do
         Repo.safe_insert_all(
           Realm,
           [%{realm_name: realm_name}],
-          prefix: "astarte"
+          prefix: Realm.astarte_keyspace_name()
         )
 
       Map.merge(context, %{realm_name: realm_name})
     end
 
     test "returns {:ok, record} when record exists", %{realm_name: realm_name} do
-      query = from(r in Realm, prefix: "astarte")
-      assert {:ok, %Realm{realm_name: ^realm_name}} = Repo.fetch(query, realm_name)
+      assert {:ok, %Realm{realm_name: ^realm_name}} =
+               Repo.fetch(Realm, realm_name, prefix: Realm.astarte_keyspace_name())
     end
 
     test "returns {:error, :not_found} when record does not exist" do
-      query = from(r in Realm, prefix: "astarte")
-      assert {:error, :not_found} = Repo.fetch(query, "non_existing_realm_xyz")
+      assert {:error, :not_found} =
+               Repo.fetch(Realm, "non_existing_realm_xyz", prefix: Realm.astarte_keyspace_name())
     end
   end
 
   describe "fetch_by" do
-    setup context do
-      realm_name = "fetch_by_test_#{System.unique_integer([:positive])}"
-
-      {:ok, _} =
-        Repo.safe_insert_all(
-          Realm,
-          [%{realm_name: realm_name}],
-          prefix: "astarte"
-        )
-
-      Map.merge(context, %{realm_name: realm_name})
-    end
-
     test "returns {:ok, record} when matching record exists", %{realm_name: realm_name} do
       assert {:ok, %Realm{realm_name: ^realm_name}} =
-               Repo.fetch_by(from(r in Realm, prefix: "astarte"), realm_name: realm_name)
+               Repo.fetch_by(Realm, [realm_name: realm_name],
+                 prefix: Realm.astarte_keyspace_name()
+               )
     end
 
     test "returns {:error, :not_found} when no matching record" do
       assert {:error, :not_found} =
                Repo.fetch_by(
-                 from(r in Realm, prefix: "astarte"),
-                 realm_name: "non_existing"
+                 Realm,
+                 [realm_name: "non_existing"],
+                 prefix: Realm.astarte_keyspace_name()
                )
     end
 
     test "returns custom error when option is provided" do
+      opts = [error: :my_custom_error, prefix: Realm.astarte_keyspace_name()]
+
       assert {:error, :my_custom_error} =
-               Repo.fetch_by(
-                 from(r in Realm, prefix: "astarte"),
-                 [realm_name: "non_existing"],
-                 error: :my_custom_error
-               )
+               Repo.fetch_by(Realm, [realm_name: "non_existing"], opts)
     end
   end
 
   describe "safe_update" do
     setup context do
-      realm_name = "update_test_#{System.unique_integer([:positive])}"
+      %{realm_name: realm_name} = context
+      realm = %Realm{realm_name: realm_name}
 
-      {:ok, _} =
-        Repo.safe_insert_all(
-          Realm,
-          [%{realm_name: realm_name}],
-          prefix: "astarte"
-        )
-
-      {:ok, realm} = Repo.fetch(from(r in Realm, prefix: "astarte"), realm_name)
-      Map.merge(context, %{realm: realm})
+      %{realm: realm}
     end
 
     test "updates a record successfully", %{realm: realm} do
       changeset = Ecto.Changeset.change(realm, device_registration_limit: 99)
-      assert {:ok, updated} = Repo.safe_update(changeset)
+      assert {:ok, updated} = Repo.safe_update(changeset, prefix: Realm.astarte_keyspace_name())
       assert updated.device_registration_limit == 99
     end
 
     test "returns database_connection_error on connection failure", %{realm: realm} do
       changeset = Ecto.Changeset.change(realm, device_registration_limit: 5)
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-      assert {:error, :database_connection_error} = Repo.safe_update(changeset)
+
+      assert {:error, :database_connection_error} =
+               Repo.safe_update(changeset, prefix: Realm.astarte_keyspace_name())
     end
 
     test "returns database_error on db failure", %{realm: realm} do
@@ -429,22 +360,15 @@ defmodule Astarte.DataAccess.RepoTest do
   end
 
   describe "some?" do
-    test "returns {:ok, true} when a matching record exists", %{realm: realm} do
-      {:ok, _} =
-        Repo.safe_insert_all(
-          Realm,
-          [%{realm_name: realm}],
-          prefix: "astarte"
-        )
+    test "returns {:ok, true} when a matching record exists", %{realm_name: realm_name} do
+      query = from(r in Realm, where: [realm_name: ^realm_name])
 
-      query = from(r in Realm, prefix: "astarte", where: [realm_name: ^realm])
-
-      assert {:ok, true} = Repo.some?(query)
+      assert {:ok, true} = Repo.some?(query, prefix: Realm.astarte_keyspace_name())
     end
 
     test "returns {:ok, false} when no matching record exists" do
-      query = from(r in Realm, prefix: "astarte", where: [realm_name: "non_existing_realm"])
-      assert {:ok, false} = Repo.some?(query)
+      query = from(r in Realm, where: [realm_name: "non_existing_realm"])
+      assert {:ok, false} = Repo.some?(query, prefix: Realm.astarte_keyspace_name())
     end
   end
 end
