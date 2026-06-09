@@ -48,8 +48,7 @@ defmodule Astarte.TestSuite.MixProject do
   defp astarte_required_modules() do
     [
       {:astarte_generators, path: astarte_lib("astarte_generators")},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_data_access_generators, path: astarte_lib("astarte_data_access_generators")}
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")}
     ]
   end
 

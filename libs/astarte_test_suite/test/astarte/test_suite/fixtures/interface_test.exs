@@ -20,12 +20,15 @@ defmodule Astarte.TestSuite.Fixtures.InterfaceTest do
   use ExUnit.Case, async: false
 
   import Astarte.Core.Generators.Interface, only: [interface: 0]
+  import Astarte.Core.Generators.Realm, only: [realm_name: 0]
 
   import Astarte.TestSuite.CaseContext
 
   alias Astarte.TestSuite.Fixtures.Instance, as: InstanceFixtures
   alias Astarte.TestSuite.Fixtures.Interface, as: InterfaceFixtures
   alias Astarte.TestSuite.Fixtures.Realm, as: RealmFixtures
+
+  @moduletag :interface
 
   test "interface fixture handles empty interfaces" do
     {:ok, context} = InterfaceFixtures.data(%{interfaces: %{}})
@@ -39,7 +42,7 @@ defmodule Astarte.TestSuite.Fixtures.InterfaceTest do
 
   defp context do
     instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
-    realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
+    realm_id = realm_name() |> Enum.at(0)
 
     base =
       %{

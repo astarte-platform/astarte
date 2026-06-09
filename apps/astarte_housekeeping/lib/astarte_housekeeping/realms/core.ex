@@ -96,7 +96,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
     do_create_realm(
       realm_name,
       pem,
-      replication_factor,
+      {:simple_strategy, replication_factor},
       device_registration_limit,
       datastream_maximum_storage_retention,
       opts
@@ -119,7 +119,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
     do_create_realm(
       realm_name,
       pem,
-      datacenter_replication_factors_map,
+      {:network_topology_strategy, datacenter_replication_factors_map},
       device_registration_limit,
       datastream_maximum_storage_retention,
       opts

@@ -78,7 +78,8 @@ defmodule Astarte.Housekeeping.Config do
           :astarte_housekeeping,
           :astarte_keyspace_replication_factor,
           os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
-          type: :integer
+          type: :pos_integer,
+          default: 1
 
   @envdoc "Replication map for the astarte keyspace, used when network topology strategy is used for the astarte keyspace."
   app_env :astarte_keyspace_network_replication_map,

@@ -46,7 +46,6 @@ allowed_scopes = [
   "fdo",
   "fdo_core",
   "generators",
-  "data_access_generators",
   "secrets",
   "test_suite",
   "ts",
