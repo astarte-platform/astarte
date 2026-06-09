@@ -23,9 +23,14 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Migrator
+  alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.ReleaseTasks
+
+  import Ecto.Query
 
   use Mimic
 
@@ -60,6 +65,32 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
 
       assert :ok = ReleaseTasks.ensure_migrated!()
     end
+
+    test "creates the astarte keyspace with network topology strategy by default" do
+      :ok = ReleaseTasks.ensure_migrated!()
+      assert astarte_replication_class() == :network_topology_strategy
+    end
+
+    test "creates the astarte keyspace with simple strategy if so configured" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :simple_strategy end)
+      |> expect(:astarte_keyspace_replication_factor!, fn -> 1 end)
+      |> reject(:astarte_keyspace_network_replication_map!, 0)
+
+      :ok = ReleaseTasks.ensure_migrated!()
+      assert astarte_replication_class() == :simple_strategy
+    end
+
+    test "the astarte keyspace replication is independent from realm default replication" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :simple_strategy end)
+      |> expect(:astarte_keyspace_replication_factor!, fn -> 1 end)
+      |> reject(:astarte_keyspace_network_replication_map!, 0)
+
+      :ok = ReleaseTasks.ensure_migrated!()
+      assert astarte_replication_class() == :simple_strategy
+      assert realm_default_replication_strategy() == :network_topology
+    end
   end
 
   defp assert_initialized do
@@ -82,5 +113,23 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
       {:error, :not_found} -> {:ok, 0}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp astarte_replication_class do
+    astarte_keyspace = Realm.astarte_keyspace_name()
+
+    replication =
+      from(k in "system_schema.keyspaces", select: k.replication)
+      |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+    case replication["class"] do
+      "org.apache.cassandra.locator.SimpleStrategy" -> :simple_strategy
+      "org.apache.cassandra.locator.NetworkTopologyStrategy" -> :network_topology_strategy
+    end
+  end
+
+  defp realm_default_replication_strategy do
+    {:ok, %{strategy: strategy}} = Queries.fetch_keyspace_replication()
+    strategy
   end
 end

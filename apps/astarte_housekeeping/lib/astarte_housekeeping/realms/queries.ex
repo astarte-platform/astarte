@@ -32,7 +32,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   require Logger
 
-  @default_replication_factor 1
+  @default_replication_factor {:simple_strategy, 1}
 
   def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
@@ -379,8 +379,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp build_replication_map_str(replication_factor)
-       when is_integer(replication_factor) and replication_factor > 0 do
+  defp build_replication_map_str({:simple_strategy, replication_factor}) do
     with :ok <- check_replication(replication_factor) do
       replication_map_str =
         "{'class': 'SimpleStrategy', 'replication_factor': #{replication_factor}}"
@@ -389,8 +388,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp build_replication_map_str(datacenter_replication_factors)
-       when is_map(datacenter_replication_factors) do
+  defp build_replication_map_str({:network_topology_strategy, datacenter_replication_factors}) do
     with :ok <- check_replication(datacenter_replication_factors) do
       datacenter_replications_str =
         Enum.map_join(datacenter_replication_factors, ",", fn {datacenter, replication_factor} ->
@@ -1182,13 +1180,15 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     :ok
   end
 
-  def initialize_database do
+  def initialize_database(default_replication \\ {:simple_strategy, 1}) do
     Logger.info("Starting Astarte keyspace initialization")
 
-    with :ok <- create_astarte_keyspace(),
+    with :ok <- create_astarte_keyspace(default_replication),
          :ok <- create_realms_table(),
          :ok <- create_astarte_kv_store(),
-         :ok <- insert_astarte_schema_version() do
+         :ok <- insert_astarte_schema_version(),
+         keyspace_replication_map = keyspace_replication_map(default_replication),
+         :ok <- save_keyspace_replication(keyspace_replication_map) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -1217,28 +1217,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  @doc """
-  Returns the replication strategy and factor for a given keyspace.
-  Returns {:ok, %{strategy: :network_topology, dc_factors: %{"dc1" => 3}}}
-  or {:ok, %{strategy: :simple, factor: 3}}
-  """
-  def get_keyspace_replication(keyspace_name, opts \\ []) do
-    query =
-      from k in "system_schema.keyspaces",
-        where: k.keyspace_name == ^keyspace_name,
-        select: k.replication
+  defp keyspace_replication_map({:simple_strategy, replication_factor}) do
+    %{
+      strategy: :simple,
+      factor: replication_factor
+    }
+  end
 
-    case Repo.safe_fetch_one(query, opts) do
-      {:ok, %{"class" => class} = replication} ->
-        parse_replication(class, replication)
-
-      {:error, :not_found} ->
-        {:error, :keyspace_not_found}
-
-      {:error, reason} ->
-        Logger.error("Failed to fetch keyspace replication: #{inspect(reason)}")
-        {:error, reason}
-    end
+  defp keyspace_replication_map({:network_topology_strategy, network_topology}) do
+    %{
+      strategy: :network_topology,
+      dc_factors: network_topology
+    }
   end
 
   def save_keyspace_replication(replication) do
@@ -1263,32 +1253,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp parse_replication("org.apache.cassandra.locator.NetworkTopologyStrategy", map) do
-    # Filter out the 'class' key to leave only the DC names and their factors
-    dc_factors =
-      map
-      |> Map.delete("class")
-      |> Map.new(fn {dc, factor} -> {dc, String.to_integer(factor)} end)
-
-    {:ok, %{strategy: :network_topology, dc_factors: dc_factors}}
-  end
-
-  defp parse_replication("org.apache.cassandra.locator.SimpleStrategy", %{
-         "replication_factor" => rf
-       }) do
-    {:ok, %{strategy: :simple, factor: String.to_integer(rf)}}
-  end
-
-  defp parse_replication(unknown_class, _map) do
-    {:error, {:unknown_strategy, unknown_class}}
-  end
-
-  defp create_astarte_keyspace do
+  defp create_astarte_keyspace(default_replication) do
     keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:write)
+    replication = astarte_keyspace_replication(default_replication)
 
-    with {:ok, replication} <- astarte_keyspace_replication(),
-         {:ok, replication_map_str} <- build_replication_map_str(replication),
+    with {:ok, replication_map_str} <- build_replication_map_str(replication),
          :ok <- do_create_astarte_keyspace(keyspace, replication_map_str, consistency) do
       :ok
     else
@@ -1301,18 +1271,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp astarte_keyspace_replication do
+  defp astarte_keyspace_replication(default_replication) do
     case Config.astarte_keyspace_replication_strategy!() do
       :simple_strategy ->
-        {:ok, Config.astarte_keyspace_replication_factor!()}
+        {:simple_strategy, Config.astarte_keyspace_replication_factor!()}
 
       :network_topology_strategy ->
-        {:ok, Config.astarte_keyspace_network_replication_map!()}
+        {:network_topology_strategy, Config.astarte_keyspace_network_replication_map!()}
 
       nil ->
         # No explicit replication has been configured, so the replication
         # map is derived from the current ScyllaDB network topology
-        fetch_network_topology()
+        default_replication
     end
   end
 

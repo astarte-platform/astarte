@@ -66,10 +66,27 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
   end
 
   @tag :real_db
-  test "interface helper raises when interface persistence fails" do
-    assert_raise RuntimeError, ~r/failed to insert interfaces into missing/, fn ->
-      failing_persisted_context()
-    end
+  test "interface helper persists multiple interfaces in same keyspace" do
+    context = persisted_context_multiple_interfaces()
+
+    results = context.interface_database_results
+    assert length(results) == 1
+
+    result = hd(results)
+    assert Map.has_key?(result, :keyspace)
+    assert Map.has_key?(result, :result)
+  end
+
+  @tag :real_db
+  test "interface helper records endpoint and interface results" do
+    context = persisted_context()
+
+    result = context.interface_database_results |> hd() |> Map.fetch!(:result)
+    {endpoint_result, interface_result} = result
+
+    assert is_list(endpoint_result)
+    assert is_list(interface_result)
+    assert interface_result != []
   end
 
   defp persisted_context do
@@ -77,20 +94,30 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     |> InterfaceHelper.data()
   end
 
+  defp persisted_context_multiple_interfaces do
+    instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
+    realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
+
+    interface1 = interface() |> Enum.at(0)
+    interface2 = interface() |> Enum.at(1)
+
+    %{
+      instance_cluster: :xandra,
+      instances: %{instance_id => {instance_id, nil}},
+      realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
+    }
+    |> InstanceHelper.setup()
+    |> InstanceHelper.data()
+    |> RealmHelper.data()
+    |> put!(:interfaces, interface1.name, interface1, realm_id)
+    |> put!(:interfaces, interface2.name, interface2, realm_id)
+    |> InterfaceHelper.data()
+  end
+
   defp missing_realm_context do
     interface = core_interface()
 
     %{realms: %{}, interfaces: %{interface.name => {interface, "missing"}}}
-    |> InterfaceHelper.data()
-  end
-
-  defp failing_persisted_context do
-    interface = core_interface()
-
-    %{
-      realms: %{"realm1" => {%{id: "realm1", instance_id: "missing"}, "missing"}},
-      interfaces: %{interface.name => {interface, "realm1"}}
-    }
     |> InterfaceHelper.data()
   end
 
