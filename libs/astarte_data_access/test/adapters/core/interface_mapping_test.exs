@@ -121,6 +121,9 @@ defmodule Astarte.DataAccess.Adapters.Core.InterfaceMappingTest do
           assert mapping_core.allow_unset ==
                    Changeset.get_field(endpoint_changeset, :allow_unset)
 
+          assert mapping_core.encrypted ==
+                   Changeset.get_field(endpoint_changeset, :encrypted)
+
           assert mapping_core.explicit_timestamp ==
                    Changeset.get_field(endpoint_changeset, :explicit_timestamp)
 

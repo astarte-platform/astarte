@@ -871,11 +871,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       database_retention_ttl int,
       database_retention_policy int,
       allow_unset boolean,
+      encrypted boolean,
       explicit_timestamp boolean,
       description varchar,
       doc varchar,
       required boolean,
-      encrypted boolean,
 
       PRIMARY KEY ((interface_id), endpoint_id)
     );
