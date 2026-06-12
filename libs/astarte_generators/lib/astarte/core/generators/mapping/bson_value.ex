@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,11 @@ defmodule Astarte.Core.Generators.Mapping.BSONValue do
   """
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Mapping.Payload, as: PayloadGenerator
+  import Astarte.Core.Generators.Mapping.Payload
+  import Astarte.Core.Generators.Mapping.Value
+  import Astarte.Core.Generators.Mapping.ValueType
+
+  # strictly for typing
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
@@ -31,10 +35,10 @@ defmodule Astarte.Core.Generators.Mapping.BSONValue do
   """
   @spec bson_value() :: StreamData.t(Cyanide.bson_type())
   @spec bson_value(params :: keyword()) :: StreamData.t(Cyanide.bson_type())
-  def bson_value(params \\ []), do: ValueGenerator.value(params) |> to_bson()
+  def bson_value(params \\ []), do: value(params) |> to_bson()
 
   @spec bson_value_type(type :: ValueTypeGenerator.valid_t()) :: StreamData.t(Cyanide.bson_type())
-  def bson_value_type(type), do: ValueTypeGenerator.value_from_type(type) |> to_bson(type)
+  def bson_value_type(type), do: value_from_type(type) |> to_bson(type)
 
   @doc """
   Convert a Value or ValueType to a valid bson value type
@@ -79,7 +83,7 @@ defmodule Astarte.Core.Generators.Mapping.BSONValue do
   defp package_and_encode(gen),
     do:
       gen
-      |> bind(&PayloadGenerator.payload(v: &1))
+      |> bind(&payload(v: &1))
       |> map(&encode/1)
 
   defp preprocess_type(value, :binaryblob), do: wrap(value)

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,24 +19,26 @@
 defmodule AstarteE2E.Interface do
   require Logger
 
+  import Astarte.Core.Adapters.Interface, only: [from_core_interface_to_change: 1]
+  import Astarte.Core.Generators.Interface
+
   alias AstarteE2E.Config
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   def generate_interfaces!() do
     [
-      InterfaceGenerator.interface(
+      interface(
         aggregation: :individual,
         type: :datastream,
         ownership: :device
       ),
-      InterfaceGenerator.interface(
+      interface(
         aggregation: :individual,
         type: :properties,
         ownership: :device
       )
     ]
-    |> Enum.map(&InterfaceGenerator.to_changes/1)
-    |> Enum.map(&Enum.at(&1, 0))
+    |> Stream.map(&from_core_interface_to_change/1)
+    |> Stream.map(&Enum.at(&1, 0))
     |> Enum.map(&update_value_type/1)
   end
 

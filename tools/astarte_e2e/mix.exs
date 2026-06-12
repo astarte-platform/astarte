@@ -43,6 +43,7 @@ defmodule AstarteE2E.MixProject do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_adapters, path: astarte_lib("astarte_adapters")},
       {:astarte_generators, path: astarte_lib("astarte_generators")},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:amqp, "~> 4.0"},

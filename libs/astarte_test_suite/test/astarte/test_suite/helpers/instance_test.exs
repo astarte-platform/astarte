@@ -21,6 +21,12 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
 
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
 
+  test "format_instance_name maps 1 to default astarte and others dynamically" do
+    assert InstanceHelper.format_instance_name(1) == "astarte"
+    assert InstanceHelper.format_instance_name(2) == "astarte2"
+    assert InstanceHelper.format_instance_name(99) == "astarte99"
+  end
+
   test "instance helper sets setup flag" do
     assert setup_context().instance_setup?
   end

@@ -28,8 +28,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
 
   use Mimic
 
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Core.Device, as: CoreDevice
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Device.UnconfirmedDevice
@@ -48,9 +49,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   # Scheduler. The rest of the logic consists in calling itself after a
   # pre-determined timeout and running a task.
   property "Test device removal happens only when all ACKs are available", %{realm: realm} do
-    check all ackd_devices <- DeviceGenerator.id() |> list_of(length: 1..10),
+    check all ackd_devices <- device_id() |> list_of(length: 1..10),
               non_ackd_devices <-
-                DeviceGenerator.id()
+                device_id()
                 |> filter(&(&1 not in ackd_devices))
                 |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
                 |> filter(&(not DeletionInProgress.all_ack?(&1)))
@@ -119,7 +120,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
     end
   end
 
-  defp assert_removal(realm_name, device_ids) do
+  defp assert_removal(_realm_name, device_ids) do
     for device_id <- device_ids do
       assert_receive {:received_device, ^device_id}
     end

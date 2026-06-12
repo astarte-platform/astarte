@@ -20,7 +20,12 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
+  import Astarte.Generators.InterfaceUpdate
   import Astarte.Helpers.Device
+
+  alias COSE.Keys.Symmetric
+
+  alias Astarte.Secrets.EncryptedMessages
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
@@ -33,12 +38,6 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
-
-  alias Astarte.Secrets.EncryptedMessages
-
-  alias COSE.Keys.Symmetric
 
   describe "get_interface_value" do
     setup context do
@@ -59,9 +58,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
-      check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+      check all(
+              interface_to_update <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_mapping_update_for(interface_to_update)
+            ) do
         %{
           interface_to_update: interface_to_update,
           read_path: read_path,
@@ -90,9 +90,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
-      check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+      check all(
+              interface_to_update <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_mapping_update_for(interface_to_update)
+            ) do
         %{
           interface_to_update: interface_to_update,
           expected_read_value: expected_read_value,
@@ -152,9 +153,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
         {:ok, :binary.copy(<<1>>, 32)}
       end)
 
-      check all interface_to_update <- member_of(encrypted_server_interfaces),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+      check all(
+              interface_to_update <- member_of(encrypted_server_interfaces),
+              mapping_update <- valid_mapping_update_for(interface_to_update)
+            ) do
         if mapping_update.value_type != %{} do
           %{
             interface_to_update: interface_to_update,
@@ -203,7 +205,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
-      check all interface_to_update <- member_of(valid_interfaces_for_update) do
+      check all(interface_to_update <- member_of(valid_interfaces_for_update)) do
         {:ok, %InterfaceValues{data: result}} =
           Device.get_interface_values!(
             realm_name,
@@ -225,10 +227,11 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
-      check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update),
-                limit_n <- integer(1..400) do
+      check all(
+              interface_to_update <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_mapping_update_for(interface_to_update),
+              limit_n <- integer(1..400)
+            ) do
         %{
           interface_to_update: interface_to_update,
           expected_read_value: expected_read_value,

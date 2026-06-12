@@ -23,10 +23,10 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
   import ExUnit.CaptureLog
 
+  import Astarte.Core.Generators.Interface
+
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
@@ -71,7 +71,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
   describe "list_interfaces/2" do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
       interfaces =
-        InterfaceGenerator.interface()
+        interface()
         |> StreamData.list_of(length: 3..10)
         |> Enum.at(0)
         |> Enum.uniq_by(& &1.interface_name)
@@ -118,7 +118,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
   describe "list_interface_major_versions/2" do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
-      interface = InterfaceGenerator.interface() |> Enum.at(0)
+      interface = interface() |> Enum.at(0)
 
       {:ok, installed_interface} = insert_interface_cleanly(realm_name, interface)
 
@@ -497,9 +497,9 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     end
 
     property "does not allow major version changes", %{realm: realm} do
-      check all interface <- InterfaceGenerator.interface(major_version: integer(0..8)),
+      check all interface <- interface(major_version: integer(0..8)),
                 updated_interface <-
-                  InterfaceGenerator.interface(
+                  interface(
                     name: interface.name,
                     major_version: interface.major_version + 1
                   ),
@@ -524,10 +524,9 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     end
 
     property "does not allow downgrade", %{realm: realm} do
-      check all interface <-
-                  InterfaceGenerator.interface(minor_version: integer(2..255)),
+      check all interface <- interface(minor_version: integer(2..255)),
                 updated_interface <-
-                  InterfaceGenerator.interface(
+                  interface(
                     name: interface.name,
                     major_version: interface.major_version,
                     minor_version: interface.minor_version - 1,

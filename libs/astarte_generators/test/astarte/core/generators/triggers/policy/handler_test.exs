@@ -23,7 +23,8 @@ defmodule Astarte.Core.Generators.Triggers.Policy.HandlerTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Triggers.Policy.Handler, as: HandlerGenerator
+  import Astarte.Core.Generators.Triggers.Policy.Handler
+
   alias Astarte.Core.Triggers.Policy.Handler
 
   @moduletag :trigger
@@ -35,25 +36,8 @@ defmodule Astarte.Core.Generators.Triggers.Policy.HandlerTest do
     @describetag :success
     @describetag :ut
 
-    property "validate triggers policy handler using to_changes (gen)" do
-      gen_handler_changes = HandlerGenerator.handler() |> HandlerGenerator.to_changes()
-
-      check all changes <- gen_handler_changes,
-                changeset = Handler.changeset(%Handler{}, changes) do
-        assert changeset.valid?, "Invalid handler: #{inspect(changeset.errors)}"
-      end
-    end
-
-    property "validate triggers policy handler using to_changes (struct)" do
-      check all handler <- HandlerGenerator.handler(),
-                changes <- HandlerGenerator.to_changes(handler),
-                changeset = Handler.changeset(%Handler{}, changes) do
-        assert changeset.valid?, "Invalid handler: #{inspect(changeset.errors)}"
-      end
-    end
-
     property "validate triggers policy handler error_set" do
-      check all handler <- HandlerGenerator.handler() do
+      check all handler <- handler() do
         refute MapSet.new([]) == handler |> Handler.error_set()
       end
     end

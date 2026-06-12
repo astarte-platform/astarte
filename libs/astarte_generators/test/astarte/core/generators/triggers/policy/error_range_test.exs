@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,45 +22,23 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
   """
   use ExUnit.Case, async: true
   use ExUnitProperties
-  use Astarte.Support.Cases.Validator
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorRange, as: ErrorRangeGenerator
+  import Astarte.Core.Generators.Triggers.Policy.ErrorRange
+
   alias Astarte.Core.Triggers.Policy.ErrorRange
 
   @moduletag :trigger
   @moduletag :policy
   @moduletag :error_range
-  # Fixtures params
-  @moduletag validation_module: ErrorRange
 
   @doc false
   describe "triggers policy error_range generator" do
     @describetag :success
     @describetag :ut
 
-    property "validate triggers policy error_range using Changeset", %{
-      changeset_validate: changeset_validate
-    } do
-      check all(
-              error_range <- ErrorRangeGenerator.error_range(),
-              changeset = changeset_validate.(error_range)
-            ) do
-        assert changeset.valid?, "Invalid error_range: #{inspect(changeset.errors)}"
-      end
-    end
-
-    property "validate using to_change (gen)" do
-      gen_change = ErrorRangeGenerator.error_range() |> ErrorRangeGenerator.to_changes()
-
-      check all %{"error_codes" => error_codes} <- gen_change do
-        assert Enum.all?(error_codes, &is_integer/1)
-      end
-    end
-
-    property "validate using to_change (struct)" do
-      check all error_range <- ErrorRangeGenerator.error_range(),
-                %{"error_codes" => error_codes} <- ErrorRangeGenerator.to_changes(error_range) do
-        assert Enum.all?(error_codes, &is_integer/1)
+    property "triggers policy error_range" do
+      check all error_range <- error_range() do
+        assert %ErrorRange{} = error_range
       end
     end
   end

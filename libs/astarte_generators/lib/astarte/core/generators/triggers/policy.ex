@@ -21,30 +21,26 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
 
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
+  use Astarte.Generators.Utilities.ParamsGen
 
-  use ExUnitProperties
-
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Triggers.Policy.ErrorKeyword
+  import Astarte.Core.Generators.Triggers.Policy.Handler
 
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.Handler
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
-  alias Astarte.Core.Generators.Triggers.Policy.Handler, as: HandlerGenerator
-
-  alias Astarte.Utilities.Map, as: MapUtilities
-
   # \n: 10
   # @: 0x40
   @utf8_except_newline_and_atsign [0..9, 11..0x39, 0x41..0xD7FF, 0xE000..0x10FFFF]
   @utf8_except_newline [?@ | @utf8_except_newline_and_atsign]
 
-  @any_error ErrorKeywordGenerator.any_error()
+  @any_error any_error()
 
   @spec policy() :: StreamData.t(Policy.t())
   @spec policy(keyword :: keyword()) :: StreamData.t(Policy.t())
+
   def policy(params \\ []) do
     params gen all name <- name(),
                    maximum_capacity <- maximum_capacity(),
@@ -54,48 +50,16 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
                    prefetch_count <- prefetch_count(),
                    params: params do
       fields =
-        MapUtilities.clean(%{
+        %{
           name: name,
           maximum_capacity: maximum_capacity,
           error_handlers: error_handlers,
           retry_times: retry_times,
           event_ttl: event_ttl,
           prefetch_count: prefetch_count
-        })
+        }
 
       struct(Policy, fields)
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(Policy.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(Policy.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %Policy{
-              name: name,
-              maximum_capacity: maximum_capacity,
-              error_handlers: error_handlers,
-              retry_times: retry_times,
-              event_ttl: event_ttl,
-              prefetch_count: prefetch_count
-            } <- gen,
-            error_handlers <-
-              error_handlers
-              |> Enum.map(&HandlerGenerator.to_changes(constant(&1)))
-              |> fixed_list() do
-      MapUtilities.clean(%{
-        name: name,
-        maximum_capacity: maximum_capacity,
-        error_handlers: error_handlers,
-        retry_times: retry_times,
-        event_ttl: event_ttl,
-        prefetch_count: prefetch_count
-      })
     end
   end
 
@@ -115,7 +79,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   defp error_handlers do
     # TODO try to use
     # https://hexdocs.pm/elixir/Stream.html#scan/3
-    gen all handlers <- list_of(HandlerGenerator.handler(), min_length: 1) do
+    gen all handlers <- list_of(handler(), min_length: 1) do
       handlers |> Enum.sort(&sort_handlers/2) |> filter_handle([], MapSet.new())
     end
   end

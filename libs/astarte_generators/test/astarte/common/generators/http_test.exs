@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ defmodule Astarte.Common.Generators.HTTPTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.HTTP, as: HTTPGenerator
+  import Astarte.Common.Generators.HTTP
 
   @moduletag :common
   @moduletag :http
@@ -41,7 +41,7 @@ defmodule Astarte.Common.Generators.HTTPTest do
     @describetag :success
     @describetag :ut
     property "generate valid RFC3986 URI" do
-      check all url <- HTTPGenerator.url() do
+      check all url <- http_url(), max_runs: 100 do
         assert {:ok, _} = URI.new(url), "URL not valid RFC3986: #{url}"
       end
     end
@@ -51,7 +51,7 @@ defmodule Astarte.Common.Generators.HTTPTest do
     @describetag :success
     @describetag :ut
     property "generate valid HTTP methods" do
-      check all method <- HTTPGenerator.method() do
+      check all method <- http_method() do
         assert method in @valid_http_methods
       end
     end

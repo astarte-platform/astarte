@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ defmodule Astarte.InterfaceUpdateGenerators do
   """
 
   # TODO: move all these generators to astarte_generators
+  use Astarte.Generators.Utilities.ParamsGen
 
-  use ExUnitProperties
-  import Astarte.Generators.Utilities.ParamsGen
   import Astarte.Helpers.Device
+
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping
 
@@ -53,14 +53,12 @@ defmodule Astarte.InterfaceUpdateGenerators do
         types -> member_of(types) |> list_of()
       end
 
-    gen all(
-          fallible_value_types <- fallible_value_types |> member_of() |> list_of(min_length: 1),
-          other_value_types <- infallible_value_types_gen,
-          types_to_keep = fallible_value_types ++ other_value_types,
-          value_type <- fixed_map(value_types) |> map(&Map.take(&1, types_to_keep)),
-          path <- path_from_endpoint(endpoint),
-          value <- valid_update_value_for(value_type)
-        ) do
+    gen all fallible_value_types <- fallible_value_types |> member_of() |> list_of(min_length: 1),
+            other_value_types <- infallible_value_types_gen,
+            types_to_keep = fallible_value_types ++ other_value_types,
+            value_type <- fixed_map(value_types) |> map(&Map.take(&1, types_to_keep)),
+            path <- path_from_endpoint(endpoint),
+            value <- valid_update_value_for(value_type) do
       %{
         path: path,
         aggregation: :object,
@@ -81,12 +79,10 @@ defmodule Astarte.InterfaceUpdateGenerators do
 
     value_type_keys = Map.keys(value_types)
 
-    gen all(
-          value_type <- fixed_map(value_types),
-          value_types_to_keep <- list_of(member_of(value_type_keys), min_length: 1),
-          path <- path_from_endpoint(endpoint),
-          value <- valid_update_value_for(value_type)
-        ) do
+    gen all value_type <- fixed_map(value_types),
+            value_types_to_keep <- list_of(member_of(value_type_keys), min_length: 1),
+            path <- path_from_endpoint(endpoint),
+            value <- valid_update_value_for(value_type) do
       value_type = Map.take(value_type, value_types_to_keep)
 
       %{
@@ -107,11 +103,9 @@ defmodule Astarte.InterfaceUpdateGenerators do
     value_types = object_interface_value_types(interface)
     reliability = object_interface_reliability(interface)
 
-    gen all(
-          value_type <- fixed_map(value_types),
-          path <- path_from_endpoint(endpoint),
-          value <- valid_update_value_for(value_type)
-        ) do
+    gen all value_type <- fixed_map(value_types),
+            path <- path_from_endpoint(endpoint),
+            value <- valid_update_value_for(value_type) do
       %{
         path: path,
         aggregation: :object,
@@ -240,19 +234,17 @@ defmodule Astarte.InterfaceUpdateGenerators do
       |> Enum.filter(fn {_key, value_type} -> value_type in fallible_value_types() end)
       |> Enum.map(fn {key, _value_type} -> key end)
 
-    gen all(
-          invalid_keys <- list_of(member_of(invalid_keys), min_length: 1),
-          invalid_keys = Enum.uniq(invalid_keys),
-          {invalid, other} = object_aggregate |> Map.split(invalid_keys),
-          invalid <-
-            invalid
-            |> Map.new(fn {key, value_type} -> {key, invalid_value(value_type)} end)
-            |> fixed_map(),
-          other <-
-            other
-            |> Map.new(fn {key, value_type} -> {key, random_value(value_type)} end)
-            |> fixed_map()
-        ) do
+    gen all invalid_keys <- list_of(member_of(invalid_keys), min_length: 1),
+            invalid_keys = Enum.uniq(invalid_keys),
+            {invalid, other} = object_aggregate |> Map.split(invalid_keys),
+            invalid <-
+              invalid
+              |> Map.new(fn {key, value_type} -> {key, invalid_value(value_type)} end)
+              |> fixed_map(),
+            other <-
+              other
+              |> Map.new(fn {key, value_type} -> {key, random_value(value_type)} end)
+              |> fixed_map() do
       Map.merge(invalid, other)
     end
   end
@@ -283,16 +275,14 @@ defmodule Astarte.InterfaceUpdateGenerators do
       |> member_of()
       |> list_of(min_length: 1)
 
-    gen all(
-          invalid_keys <- invalid_key_subset,
-          invalid_keys = Enum.dedup(invalid_keys),
-          invalid_values <-
-            value_types
-            |> Map.take(invalid_keys)
-            |> Map.new(fn {key, value_type} -> {key, invalid_type(value_type)} end)
-            |> fixed_map(),
-          valid_values <- valid_update_value_for(value_types)
-        ) do
+    gen all invalid_keys <- invalid_key_subset,
+            invalid_keys = Enum.dedup(invalid_keys),
+            invalid_values <-
+              value_types
+              |> Map.take(invalid_keys)
+              |> Map.new(fn {key, value_type} -> {key, invalid_type(value_type)} end)
+              |> fixed_map(),
+            valid_values <- valid_update_value_for(value_types) do
       Map.merge(valid_values, invalid_values)
     end
   end

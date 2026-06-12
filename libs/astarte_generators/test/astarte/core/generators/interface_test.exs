@@ -23,11 +23,11 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping
+
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
 
   @moduletag :core
   @moduletag :interface
@@ -95,7 +95,7 @@ defmodule Astarte.Core.Generators.InterfaceTest do
             %Mapping{endpoint: endpoint}
           end
 
-        uniq_mappings = InterfaceGenerator.uniq_endpoints(mappings)
+        uniq_mappings = uniq_endpoints(mappings)
 
         uniq_endpoints =
           for %Mapping{endpoint: endpoint} <- uniq_mappings do
@@ -107,99 +107,49 @@ defmodule Astarte.Core.Generators.InterfaceTest do
     end
 
     property "endpoint_by_aggregation/2 returns the expected endpoint for :individual aggregation" do
-      check all endpoint <- MappingGenerator.endpoint() do
+      check all endpoint <- endpoint() do
         expected_endpoint = endpoint
 
         assert expected_endpoint ==
-                 InterfaceGenerator.endpoint_by_aggregation(:individual, endpoint)
+                 endpoint_by_aggregation(:individual, endpoint)
       end
     end
 
     property "endpoint_by_aggregation/2 returns the expected endpoint for :object aggregation" do
-      check all endpoint <- MappingGenerator.endpoint() do
+      check all endpoint <- endpoint() do
         expected_endpoint = endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
-        assert expected_endpoint == InterfaceGenerator.endpoint_by_aggregation(:object, endpoint)
+        assert expected_endpoint == endpoint_by_aggregation(:object, endpoint)
       end
     end
   end
 
-  @doc false
-  describe "interface generator" do
-    @describetag :success
-    @describetag :ut
-
-    property "validate interface using Changeset and to_change (gen)" do
-      gen_interface_changes = InterfaceGenerator.interface() |> InterfaceGenerator.to_changes()
-
-      check all changes <- gen_interface_changes,
-                changeset = Interface.changeset(%Interface{}, changes) do
-        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
-      end
-    end
-
-    property "validate interface using Changeset and to_change (struct)" do
-      check all interface <- InterfaceGenerator.interface(),
-                changes <- InterfaceGenerator.to_changes(interface),
-                changeset = Interface.changeset(%Interface{}, changes) do
-        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
-      end
-    end
-
-    property "validate endpoints in aggregation :object must be the same" do
-      check all %Interface{mappings: mappings} <-
-                  InterfaceGenerator.interface(aggregation: :object),
-                endpoints =
-                  mappings
-                  |> Enum.map(fn %Mapping{endpoint: endpoint} -> endpoint end)
-                  |> Enum.map(&Regex.replace(~r"/[^/]+$", &1, "")) do
-        assert 1 == endpoints |> Enum.uniq() |> length()
-      end
-    end
-
-    @tag issue: 45
-    property "custom interface creation" do
-      gen_interface_changes =
-        InterfaceGenerator.interface(
-          type: :datastream,
-          aggregation: :object,
-          explicit_timestamp: true
-        )
-        |> InterfaceGenerator.to_changes()
-
-      check all changes <- gen_interface_changes,
-                changeset = Interface.changeset(%Interface{}, changes) do
-        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
-      end
-    end
-
-    @tag issue: 1072
-    property "validate database retention opts in interface aggregate mappings are consistent" do
-      check all interface <- InterfaceGenerator.interface(), max_runs: 100 do
-        %Mapping{
-          database_retention_policy: reference_database_retention_policy,
-          database_retention_ttl: reference_database_retention_ttl
-        } = Enum.at(interface.mappings, 0)
-
-        assert Enum.all?(interface.mappings, fn
-                 %Mapping{
-                   database_retention_policy: mapping_database_retention_policy,
-                   database_retention_ttl: mapping_database_retention_ttl
-                 } ->
-                   mapping_database_retention_policy == reference_database_retention_policy and
-                     mapping_database_retention_ttl == reference_database_retention_ttl
-               end)
-      end
+  property "validate endpoints in aggregation :object must be the same" do
+    check all %Interface{mappings: mappings} <-
+                interface(aggregation: :object),
+              endpoints =
+                mappings
+                |> Enum.map(& &1.endpoint)
+                |> Enum.map(&Regex.replace(~r"/[^/]+$", &1, "")) do
+      assert 1 == endpoints |> Enum.uniq() |> length()
     end
   end
 
-  describe "to_changes/1" do
-    @describetag :success
-    @describetag :ut
-    property "allows the resulting map to be json encoded" do
-      check all interface <- InterfaceGenerator.interface(),
-                changes <- InterfaceGenerator.to_changes(interface) do
-        assert {:ok, _json} = Jason.encode(changes)
-      end
+  @tag issue: 1072
+  property "validate database retention opts in interface aggregate mappings are consistent" do
+    check all interface <- interface(), max_runs: 100 do
+      %Mapping{
+        database_retention_policy: reference_database_retention_policy,
+        database_retention_ttl: reference_database_retention_ttl
+      } = Enum.at(interface.mappings, 0)
+
+      assert Enum.all?(interface.mappings, fn
+               %Mapping{
+                 database_retention_policy: mapping_database_retention_policy,
+                 database_retention_ttl: mapping_database_retention_ttl
+               } ->
+                 mapping_database_retention_policy == reference_database_retention_policy and
+                   mapping_database_retention_ttl == reference_database_retention_ttl
+             end)
     end
   end
 end

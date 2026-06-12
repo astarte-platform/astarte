@@ -21,7 +21,8 @@ defmodule Astarte.Events.Triggers.QueriesTests do
 
   import Mimic
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Events.Triggers.Queries
 
   setup :verify_on_exit!
@@ -102,7 +103,7 @@ defmodule Astarte.Events.Triggers.QueriesTests do
     setup context do
       %{realm_name: realm_name} = context
 
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       groups = ["group1", "group2", "group3"]
 
       {:ok, device} = insert_device(device_id, realm_name, groups: groups)

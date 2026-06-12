@@ -22,12 +22,15 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   @moduledoc """
   Tests for the device remover scheduler.
   """
+  use ExUnitProperties
 
   use Astarte.Cases.Data
-  use ExUnitProperties
   use Mimic
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
+
+  import Astarte.Helpers.Device
+  import Astarte.RealmManagement.Generators.DeletionInProgress
 
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
@@ -35,10 +38,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   alias Astarte.DataAccess.Repo
 
   alias Astarte.RealmManagement.DeviceRemoval.Scheduler
-  alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
-  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
 
-  import Astarte.Helpers.Device
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
 
   setup :set_mimic_global
 
@@ -61,11 +62,11 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
 
   describe "reschedule_pending_deletions/0" do
     property "re-sends the RPC only for devices missing at least one ack", %{realm: realm} do
-      check all ackd_devices <- DeviceGenerator.id() |> list_of(length: 1..5),
+      check all ackd_devices <- device_id() |> list_of(length: 1..5),
                 non_ackd_devices <-
-                  DeviceGenerator.id()
+                  device_id()
                   |> filter(&(&1 not in ackd_devices))
-                  |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
+                  |> bind(&deletion_in_progress(device_id: &1))
                   |> filter(&(not DeletionInProgress.all_ack?(&1)))
                   |> list_of(length: 1..5),
                 max_runs: 10 do
@@ -110,7 +111,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   defp seed_device(context) do
     %{realm: realm_name} = context
     keyspace = Realm.keyspace_name(realm_name)
-    device = DeviceGenerator.device() |> Enum.at(0)
+    device = device() |> Enum.at(0)
 
     on_exit(fn ->
       %Device{device_id: device.device_id}

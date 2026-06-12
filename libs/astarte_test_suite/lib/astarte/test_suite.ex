@@ -189,7 +189,7 @@ defmodule Astarte.TestSuite do
     external_modules = expanded_external_modules(plan.external_cases, caller)
 
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: true
 
       unquote_splicing(graph_uses)
       unquote_splicing(external_uses)

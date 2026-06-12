@@ -21,11 +21,11 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
+  import Astarte.Generators.InterfaceValuesRetrieveal
   import Astarte.Helpers.Device
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.Generators.InterfaceValuesRetrieveal, as: InterfaceValuesRetrievealGenerator
 
   setup_all :populate_interfaces
 
@@ -56,10 +56,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
       check all interface <- member_of(downsampable_interfaces),
                 "/" <> path <- member_of(downsampable_paths[interface]),
                 downsample_to <- integer(3..100),
-                opts <-
-                  InterfaceValuesRetrievealGenerator.interface_values_options(
-                    downsample_to: downsample_to
-                  ) do
+                opts <- interface_values_options(downsample_to: downsample_to) do
         {:ok, %InterfaceValues{data: result}} =
           Device.get_interface_values!(
             realm_name,
@@ -92,7 +89,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
                 downsample_key <- member_of(object_keys),
                 downsample_to <- integer(3..100),
                 opts <-
-                  InterfaceValuesRetrievealGenerator.interface_values_options(
+                  interface_values_options(
                     downsample_to: downsample_to,
                     downsample_key: downsample_key
                   ) do
@@ -129,8 +126,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
               lower_limit <- optional(timestamp_at_least(timings.initial_time)),
               to <- optional(timestamp_at_most(timings.last_time)),
               params = [{since_or_after, lower_limit}, to: to],
-              opts <-
-                InterfaceValuesRetrievealGenerator.interface_values_options(params, interface) do
+              opts <- interface_values_options(params, interface) do
       result =
         Device.get_interface_values!(
           realm_name,

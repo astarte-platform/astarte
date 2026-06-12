@@ -17,7 +17,9 @@
 #
 
 defmodule Astarte.TestSuite.Helpers.InterfaceTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
+
+  import Astarte.Core.CQLUtils, only: [interface_name_to_table_name: 2]
 
   import Astarte.TestSuite.CaseContext
 
@@ -89,6 +91,26 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     assert interface_result != []
   end
 
+  # TODO: use the procedure in `astarte_data_access` asap
+  # TODO: make test properly
+  # @tag :real_db
+  # test "interface helper raises when interface insertion fails" do
+  #   assert_raise RuntimeError, ~r/failed to insert interface into/, fn ->
+  #     invalid_interface_context()
+  #     |> InterfaceHelper.data()
+  #   end
+  # end
+
+  # TODO: use the procedure in `astarte_data_access` asap
+  # TODO: make test properly
+  # @tag :real_db
+  # test "interface helper raises when endpoint insertion fails" do
+  #   assert_raise RuntimeError, ~r/failed to insert endpoint into/, fn ->
+  #     invalid_endpoint_context()
+  #     |> InterfaceHelper.data()
+  #   end
+  # end
+
   defp persisted_context do
     persisted_graph_context()
     |> InterfaceHelper.data()
@@ -132,6 +154,11 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
     realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
 
+    interface = core_interface()
+
+    interface_key =
+      interface_name_to_table_name(interface.name, interface.major_version)
+
     %{
       instance_cluster: :xandra,
       instances: %{instance_id => {instance_id, nil}},
@@ -140,8 +167,58 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     |> InstanceHelper.setup()
     |> InstanceHelper.data()
     |> RealmHelper.data()
-    |> put!(:interfaces, core_interface().name, core_interface(), realm_id)
+    |> put!(:interfaces, interface_key, interface, realm_id)
   end
+
+  # TODO: use the procedure in `astarte_data_access` asap
+  # TODO: make context properly
+  # defp invalid_interface_context do
+  #   instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
+  #   realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
+
+  #   valid_interface = core_interface()
+
+  #   invalid_interface = %{valid_interface | name: ""}
+
+  #   invalid_interface_key =
+  #     interface_name_to_table_name(invalid_interface.name, invalid_interface.major_version)
+
+  #   %{
+  #     instance_cluster: :xandra,
+  #     instances: %{instance_id => {instance_id, nil}},
+  #     realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
+  #   }
+  #   |> InstanceHelper.setup()
+  #   |> InstanceHelper.data()
+  #   |> RealmHelper.data()
+  #   |> put!(:interfaces, invalid_interface_key, invalid_interface, realm_id)
+  # end
+
+  # TODO: use the procedure in `astarte_data_access` asap
+  # TODO: make context properly
+  # defp invalid_endpoint_context do
+  #   instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
+  #   realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
+
+  #   valid_interface = core_interface()
+
+  #   valid_mapping = hd(valid_interface.mappings)
+  #   invalid_mappings = [%{valid_mapping | endpoint: ""}]
+  #   invalid_interface = %{valid_interface | mappings: invalid_mappings}
+
+  #   valid_interface_key =
+  #     interface_name_to_table_name(valid_interface.name, valid_interface.major_version)
+
+  #   %{
+  #     instance_cluster: :xandra,
+  #     instances: %{instance_id => {instance_id, nil}},
+  #     realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
+  #   }
+  #   |> InstanceHelper.setup()
+  #   |> InstanceHelper.data()
+  #   |> RealmHelper.data()
+  #   |> put!(:interfaces, valid_interface_key, invalid_interface, realm_id)
+  # end
 
   defp core_interface, do: interface() |> Enum.at(0)
 end

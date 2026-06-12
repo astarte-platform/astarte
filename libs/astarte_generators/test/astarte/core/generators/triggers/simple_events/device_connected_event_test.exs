@@ -17,13 +17,12 @@
 #
 
 defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEventTest do
-  use ExUnit.Case, async: true
   use ExUnitProperties
+  use ExUnit.Case, async: true
+
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent
 
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent,
-    as: DeviceConnectedEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,7 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEventTest
     @describetag :success
     @describetag :ut
     property "generates valid device_connected_event" do
-      check all device_connected_event <- DeviceConnectedEventGenerator.device_connected_event() do
+      check all device_connected_event <- device_connected_event() do
         assert %DeviceConnectedEvent{} = device_connected_event
       end
     end
@@ -42,7 +41,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEventTest
     property "device_connected_event generates valid ip address ipv4" do
       check all %DeviceConnectedEvent{
                   device_ip_address: device_ip_address
-                } <- DeviceConnectedEventGenerator.device_connected_event(),
+                } <- device_connected_event(),
                 ipv4_address = String.to_charlist(device_ip_address) do
         assert {:ok, _} = :inet.parse_ipv4_address(ipv4_address)
       end

@@ -1,12 +1,7 @@
-#   field :interface_minor_updated_event, 17,
-#     type: Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent,
-#     json_name: "interfaceMinorUpdatedEvent",
-#     oneof: 0
-
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,57 +26,25 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent,
-    as: DeviceConnectedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionFinishedEvent,
-    as: DeviceDeletionFinishedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionStartedEvent,
-    as: DeviceDeletionStartedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDisconnectedEvent,
-    as: DeviceDisconnectedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent,
-    as: DeviceErrorEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceRegisteredEvent,
-    as: DeviceRegisteredEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
-    as: IncomingDataEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEvent,
-    as: IncomingIntrospectionEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceAddedEvent,
-    as: InterfaceAddedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent,
-    as: InterfaceMinorUpdatedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent,
-    as: InterfaceRemovedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent,
-    as: PathCreatedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent,
-    as: PathRemovedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent,
-    as: ValueChangeAppliedEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEvent,
-    as: ValueChangeEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent,
-    as: ValueStoredEventGenerator
+  import Astarte.Common.Generators.Timestamp
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Realm
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionFinishedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionStartedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDisconnectedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceRegisteredEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceAddedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent
 
   @spec simple_event() :: StreamData.t(SimpleEvent.t())
   @spec simple_event(keyword :: keyword()) :: StreamData.t(SimpleEvent.t())
@@ -89,9 +52,12 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
     params gen all event <- event(),
                    simple_trigger_id <- simple_trigger_id(),
                    parent_trigger_id <- parent_trigger_id(),
-                   realm <- realm(),
-                   device_id <- device_id(),
-                   timestamp <- timestamp(),
+                   realm <- realm_name(),
+                   device_id <- device_encoded_id(),
+                   # In the astarte documentation, the `timestamp` field is incorrectly indicated
+                   # as being of type DateTime, despite being :int64 on protobuf.
+                   # https://docs.astarte-platform.org/astarte/latest/060-triggers.html#simpleevent-payloads
+                   timestamp <- timestamp(unit: :microsecond),
                    params: params do
       %SimpleEvent{
         event: event,
@@ -106,27 +72,22 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
 
   defp event do
     [
-      {:device_connected_event, DeviceConnectedEventGenerator.device_connected_event()},
-      {:device_disconnected_event, DeviceDisconnectedEventGenerator.device_disconnected_event()},
-      {:device_deletion_started_event,
-       DeviceDeletionStartedEventGenerator.device_deletion_started_event()},
-      {:device_deletion_finished_event,
-       DeviceDeletionFinishedEventGenerator.device_deletion_finished_event()},
-      {:device_registered_event, DeviceRegisteredEventGenerator.device_registered_event()},
-      {:incoming_data_event, IncomingDataEventGenerator.incoming_data_event()},
-      {:value_change_event, ValueChangeEventGenerator.value_change_event()},
-      {:value_change_applied_event,
-       ValueChangeAppliedEventGenerator.value_change_applied_event()},
-      {:path_created_event, PathCreatedEventGenerator.path_created_event()},
-      {:path_removed_event, PathRemovedEventGenerator.path_removed_event()},
-      {:value_stored_event, ValueStoredEventGenerator.value_stored_event()},
-      {:incoming_introspection_event,
-       IncomingIntrospectionEventGenerator.incoming_introspection_event()},
-      {:interface_added_event, InterfaceAddedEventGenerator.interface_added_event()},
-      {:interface_removed_event, InterfaceRemovedEventGenerator.interface_removed_event()},
-      {:interface_minor_updated_event,
-       InterfaceMinorUpdatedEventGenerator.interface_minor_updated_event()},
-      {:device_error_event, DeviceErrorEventGenerator.device_error_event()}
+      {:device_connected_event, device_connected_event()},
+      {:device_disconnected_event, device_disconnected_event()},
+      {:device_deletion_started_event, device_deletion_started_event()},
+      {:device_deletion_finished_event, device_deletion_finished_event()},
+      {:device_registered_event, device_registered_event()},
+      {:incoming_data_event, incoming_data_event()},
+      {:value_change_event, value_change_event()},
+      {:value_change_applied_event, value_change_applied_event()},
+      {:path_created_event, path_created_event()},
+      {:path_removed_event, path_removed_event()},
+      {:value_stored_event, value_stored_event()},
+      {:incoming_introspection_event, incoming_introspection_event()},
+      {:interface_added_event, interface_added_event()},
+      {:interface_removed_event, interface_removed_event()},
+      {:interface_minor_updated_event, interface_minor_updated_event()},
+      {:device_error_event, device_error_event()}
     ]
     # NOTE
     # Using `one_of()` would be the right solution, but StreamData's `specs` do not recognise
@@ -138,11 +99,4 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
 
   defp simple_trigger_id, do: repeatedly(fn -> UUID.uuid4(:raw) end)
   defp parent_trigger_id, do: repeatedly(fn -> UUID.uuid4(:raw) end)
-  defp device_id, do: DeviceGenerator.encoded_id()
-  defp realm, do: RealmGenerator.realm_name()
-
-  # In the astarte documentation, the `timestamp` field is incorrectly indicated
-  # as being of type DateTime, despite being :int64 on protobuf.
-  # https://docs.astarte-platform.org/astarte/latest/060-triggers.html#simpleevent-payloads
-  defp timestamp, do: TimestampGenerator.timestamp(unit: :microsecond)
 end

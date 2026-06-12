@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,9 @@ defmodule Astarte.Common.Generators.MQTT do
   @moduledoc """
   A Generator for a standard MQTT stuff.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
-
-  alias Astarte.Generators.Utilities
+  import Moar.String, only: [surround: 3]
 
   @type mqtt_topic() :: String.t()
 
@@ -33,8 +31,8 @@ defmodule Astarte.Common.Generators.MQTT do
   @doc """
   Valid characters used by mqtt topics
   """
-  @spec valid_chars() :: [Range.t(), ...]
-  def valid_chars, do: @utf8_except_slash_and_null
+  @spec mqtt_valid_chars() :: [Range.t(), ...]
+  def mqtt_valid_chars, do: @utf8_except_slash_and_null
 
   @doc """
   Generates a MQTT topic.
@@ -56,14 +54,14 @@ defmodule Astarte.Common.Generators.MQTT do
   @spec mqtt_topic() :: StreamData.t(mqtt_topic())
   @spec mqtt_topic(params :: keyword()) :: StreamData.t(mqtt_topic())
   def mqtt_topic(params \\ []) do
-    params gen all chars <- constant(valid_chars()),
+    params gen all chars <- mqtt_valid_chars() |> constant(),
                    allow_empty <- constant(false),
                    pre <- constant(""),
                    topic <-
                      string(chars, min_length: 1, max_length: 20)
                      |> list_of(min_length: allow_empty_to_length(allow_empty), max_length: 10)
                      |> map(&Enum.join(&1, "/"))
-                     |> Utilities.print(pre: pre),
+                     |> map(&surround(&1, pre, "")),
                    params: params,
                    exclude: [:topic] do
       topic

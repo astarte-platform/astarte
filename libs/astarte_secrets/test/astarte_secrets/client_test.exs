@@ -20,13 +20,13 @@ defmodule Astarte.Secrets.ClientTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  import Astarte.Common.Generators.HTTP
+
   alias Astarte.Secrets.Client
   alias Astarte.Secrets.Config
 
-  import Astarte.Common.Generators.HTTP
-
   setup do
-    bao_url = url(path: "", query: "", fragment: "") |> Enum.at(0)
+    bao_url = http_url(path: "", query: "", fragment: "") |> Enum.at(0)
     stub(Config, :bao_url!, fn -> bao_url end)
 
     %{bao_url: bao_url}

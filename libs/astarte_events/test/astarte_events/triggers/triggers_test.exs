@@ -20,7 +20,8 @@ defmodule Astarte.Events.TriggersTest do
   use Astarte.Cases.Data, async: true
   import Mimic
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.DataAccess.UUID, as: AstarteUUID
@@ -78,7 +79,7 @@ defmodule Astarte.Events.TriggersTest do
 
   describe "install_triggers" do
     test "installs and deletes a simple trigger", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       trigger_container = %{
         simple_trigger: {:device_trigger, %{device_event_type: :DEVICE_CONNECTED}}
@@ -114,7 +115,7 @@ defmodule Astarte.Events.TriggersTest do
     end
 
     test "installs and deletes volatile triggers", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       event_key = :on_device_connection
       default_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
       simple_trigger = Triggers.deserialize_simple_trigger(default_trigger)
@@ -150,7 +151,7 @@ defmodule Astarte.Events.TriggersTest do
 
   describe "fetch_triggers" do
     test "fetch_triggers/2 returns device triggers", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       simple_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
 
       deserialized = Triggers.deserialize_simple_trigger(simple_trigger)
@@ -173,7 +174,7 @@ defmodule Astarte.Events.TriggersTest do
 
   describe "find_data_triggers" do
     test "loads data triggers from DB", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       interface = install_interface(realm)
 
       _trigger =
@@ -201,7 +202,7 @@ defmodule Astarte.Events.TriggersTest do
 
   describe "find_interface_event_device_trigger_targets" do
     test "returns targets", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       interface = install_interface(realm)
       {:ok, interface_id} = AstarteUUID.cast(interface.interface_id)
 
@@ -225,7 +226,7 @@ defmodule Astarte.Events.TriggersTest do
 
   describe "find_all_data_triggers" do
     test "returns targets", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       interface = install_interface(realm)
 
       _trigger =

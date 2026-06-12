@@ -18,6 +18,7 @@
 
 defmodule Astarte.TestSuiteRealRealmContextTest do
   use Astarte.TestSuite,
+    instance: [instances: %{"astarte_realm_test" => {"astarte_realm_test", nil}}],
     realm: [realm_names: ["realm1"]]
 
   @moduletag :real_db
@@ -29,19 +30,22 @@ defmodule Astarte.TestSuiteRealRealmContextTest do
     assert context.common_booted?
   end
 
-  test "writes default instance into canonical graph context", context do
-    assert context.instances == %{"astarte" => {"astarte", nil}}
+  test "writes isolated instance into canonical graph context", context do
+    assert context.instances == %{"astarte_realm_test" => {"astarte_realm_test", nil}}
   end
 
   test "writes explicit realm into canonical graph context", context do
     assert context.realms == %{
-             "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte"}, "astarte"}
+             "realm1" =>
+               {%{id: "realm1", name: "realm1", instance_id: "astarte_realm_test"},
+                "astarte_realm_test"}
            }
   end
 end
 
 defmodule Astarte.TestSuiteRealInterfaceContextTest do
   use Astarte.TestSuite,
+    instance: [instances: %{"astarte_iface_test" => {"astarte_iface_test", nil}}],
     interface: [interface_number: 1]
 
   @moduletag :real_db
@@ -64,7 +68,7 @@ end
 
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
-    instance: true,
+    instance: [instances: %{"astarte_ext_test" => {"astarte_ext_test", nil}}],
     external_cases: [
       Astarte.TestSuiteTest.Cases.NoParamsCase,
       {Astarte.TestSuiteTest.Cases.ParamsCase, [value: 7]}
