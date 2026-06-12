@@ -36,10 +36,10 @@ defmodule Astarte.Cases.FDOSession do
 
   alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 

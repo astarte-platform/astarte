@@ -25,8 +25,8 @@ defmodule Astarte.FDO.ServiceInfoTest do
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
   alias COSE.Keys.ECC
 

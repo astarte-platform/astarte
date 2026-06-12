@@ -37,10 +37,10 @@ defmodule Astarte.Cases.FDOSession do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
@@ -158,6 +158,7 @@ defmodule Astarte.Cases.FDOSession do
 
     %{
       hello_device: hello_device,
+      guid: hello_device.guid,
       session: session,
       token: token,
       device_random: device_random,

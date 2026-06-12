@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
+defmodule Astarte.FDO.OwnerOnboarding.Session do
   @moduledoc """
   Represents an active FDO TO2 (Transfer of Ownership 2) session.
 
@@ -31,9 +31,9 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
   alias Astarte.FDO.Core.Helpers
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnerOnboarding.SignatureInfo
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding.SessionToken
   alias COSE.Messages.Encrypt0
 

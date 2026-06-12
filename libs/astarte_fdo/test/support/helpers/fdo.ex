@@ -30,6 +30,7 @@ defmodule Astarte.FDO.Helpers do
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
   alias Astarte.FDO.Core.PublicKey
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
   alias COSE.Messages.Sign1

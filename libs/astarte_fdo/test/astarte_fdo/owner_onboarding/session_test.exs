@@ -21,8 +21,8 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.FDOSession
 
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias COSE.Keys
   alias COSE.Keys.ECC
   alias COSE.Keys.Symmetric

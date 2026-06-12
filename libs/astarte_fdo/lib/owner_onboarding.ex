@@ -35,13 +35,13 @@ defmodule Astarte.FDO.OwnerOnboarding do
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.ProveDevice
   alias Astarte.FDO.Core.OwnerOnboarding.ProveOVHdr
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SetupDevicePayload
   alias Astarte.FDO.Core.OwnershipVoucher, as: CoreOwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Header
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Secrets
 
