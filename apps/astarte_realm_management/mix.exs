@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:jason, "~> 1.2"},
       {:con_cache, "~> 1.1"},
       {:guardian, "~> 2.3"},
-      {:horde, "~> 0.9"},
+      {:horde, "~> 0.10"},
       {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},

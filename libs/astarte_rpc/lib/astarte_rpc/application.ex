@@ -20,16 +20,24 @@ defmodule Astarte.RPC.Application do
   @moduledoc false
 
   use Application
+
   alias Astarte.RPC.Config
+  alias Astarte.RPC.RealmManagement
   alias Astarte.RPC.Server
 
   @impl true
   def start(_type, _args) do
     Config.validate!()
 
+    rpc_children =
+      %{astarte_realm_management: RealmManagement}
+      |> Map.take(Config.astarte_services!())
+      |> Map.values()
+
     children = [
       {Phoenix.PubSub, name: Server, pool_size: Config.pool_size!()},
       {Cluster.Supervisor, [Config.cluster_topologies!(), [name: Astarte.RPC.ClusterSupervisor]]}
+      | rpc_children
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.RPC.Supervisor]
