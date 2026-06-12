@@ -19,13 +19,17 @@
 defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.FDOSession
+  use Mimic
 
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.OwnerOnboarding.Session
+  alias Astarte.RPC.RealmManagement
   alias COSE.Keys
   alias COSE.Keys.ECC
   alias COSE.Keys.Symmetric
+
+  import Astarte.FDO.Helpers
 
   describe "new/4" do
     test "returns required session information", context do
@@ -47,6 +51,23 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert session.owner_random
       assert session.xa
       assert {:es256, %ECC{}} = session.device_signature
+    end
+
+    test "cleans up previously registered devices", context do
+      %{
+        realm: realm_name,
+        hello_device: hello_device,
+        device_id: device_id,
+        encoded_device_id: encoded_device_id,
+        ownership_voucher: ownership_voucher
+      } = context
+
+      create_session_with_device_id(realm_name, hello_device, ownership_voucher, device_id)
+
+      RealmManagement
+      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
+
+      assert {:ok, _, _} = Session.new(realm_name, hello_device, ownership_voucher)
     end
   end
 

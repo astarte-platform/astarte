@@ -466,4 +466,9 @@ defmodule Astarte.FDO.Helpers do
       PublicKey.encode(public_key)
     ])
   end
+
+  def create_session_with_device_id(realm_name, hello_device, ownership_voucher, device_id) do
+    {:ok, _token, session} = Session.new(realm_name, hello_device, ownership_voucher)
+    {:ok, _} = Session.add_device_id(session, realm_name, device_id)
+  end
 end

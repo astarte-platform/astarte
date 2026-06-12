@@ -77,6 +77,7 @@ defmodule Astarte.Cases.FDOSession do
     owner_key_pem = COSE.Keys.to_pem(owner_key_struct)
     cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
     device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
 
     key_alg =
       case key_type do
@@ -108,6 +109,7 @@ defmodule Astarte.Cases.FDOSession do
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,
       device_id: device_id,
+      encoded_device_id: encoded_device_id,
       device_key: device_key
     }
   end
