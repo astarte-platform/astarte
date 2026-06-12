@@ -43,6 +43,7 @@ defmodule AstarteE2E.MixProject do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_adapters, path: astarte_lib("astarte_adapters")},
       {:astarte_generators, path: astarte_lib("astarte_generators")},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:amqp, "~> 4.0"},
@@ -63,7 +64,9 @@ defmodule AstarteE2E.MixProject do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:xandra, github: "whatyouhide/xandra", ref: "fec767b918311db850c077ddb0f21ff431b63cdf", override: true},
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 

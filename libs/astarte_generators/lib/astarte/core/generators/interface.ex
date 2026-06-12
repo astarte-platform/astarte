@@ -21,17 +21,14 @@ defmodule Astarte.Core.Generators.Interface do
 
   See https://docs.astarte-platform.org/astarte/latest/030-interface.html
   """
-  use ExUnitProperties
-
-  import Astarte.Generators.Utilities.ParamsGen
+  use Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  # NOTE: Don’t change it; avoid dependency deadlocks
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
-
-  alias Astarte.Utilities.Map, as: MapUtilities
 
   @interface_max_mappings 10
 
@@ -42,19 +39,19 @@ defmodule Astarte.Core.Generators.Interface do
   """
   @spec interface(params :: keyword()) :: StreamData.t(Interface.t())
   def interface(params \\ []) do
-    params gen all name <- name(),
-                   major_version <- major_version(),
-                   minor_version <- minor_version(major_version),
+    params gen all name <- interface_name(),
+                   major_version <- interface_major_version(),
+                   minor_version <- interface_minor_version(major_version),
                    id <- id(name, major_version),
-                   type <- type(),
+                   type <- interface_type(),
                    ownership <- ownership(),
-                   aggregation <- aggregation(type),
+                   aggregation <- interface_aggregation(type),
                    mappings <- mappings(aggregation, type, name, major_version),
                    description <- description(),
                    doc <- doc(),
                    params: params do
       fields =
-        MapUtilities.clean(%{
+        %{
           interface_id: id,
           name: name,
           major_version: major_version,
@@ -65,52 +62,9 @@ defmodule Astarte.Core.Generators.Interface do
           mappings: mappings,
           description: description,
           doc: doc
-        })
+        }
 
       struct(Interface, fields)
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(Interface.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(Interface.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %Interface{
-              name: name,
-              major_version: major_version,
-              minor_version: minor_version,
-              type: type,
-              ownership: ownership,
-              aggregation: aggregation,
-              mappings: mappings,
-              description: description,
-              doc: doc
-            } <-
-              gen,
-            mappings <-
-              mappings
-              |> Enum.map(&MappingGenerator.to_changes(constant(&1)))
-              |> fixed_list() do
-      MapUtilities.clean(%{
-        name: name,
-        major_version: major_version,
-        minor_version: minor_version,
-        type: type,
-        ownership: ownership,
-        aggregation: aggregation,
-        mappings: mappings,
-        description: description,
-        doc: doc,
-        # Different input naming
-        interface_name: name,
-        version_major: major_version,
-        version_minor: minor_version
-      })
     end
   end
 
@@ -119,8 +73,8 @@ defmodule Astarte.Core.Generators.Interface do
 
   https://docs.astarte-platform.org/astarte/latest/030-interface.html#name-limitations
   """
-  @spec name() :: StreamData.t(String.t())
-  def name do
+  @spec interface_name() :: StreamData.t(String.t())
+  def interface_name do
     gen all optional_part <- name_optional(),
             required_part <- name_required(optional_part) do
       optional_part <> required_part
@@ -132,22 +86,22 @@ defmodule Astarte.Core.Generators.Interface do
 
   https://docs.astarte-platform.org/astarte/latest/030-interface.html#interface-type
   """
-  @spec type() :: StreamData.t(:datastream | :properties)
-  def type, do: member_of([:datastream, :properties])
+  @spec interface_type() :: StreamData.t(:datastream | :properties)
+  def interface_type, do: member_of([:datastream, :properties])
 
   @doc false
-  @spec aggregation(any()) :: StreamData.t(:individual | :object)
-  def aggregation(:properties), do: constant(:individual)
-  def aggregation(_), do: member_of([:individual, :object])
+  @spec interface_aggregation(any()) :: StreamData.t(:individual | :object)
+  def interface_aggregation(:properties), do: constant(:individual)
+  def interface_aggregation(_), do: member_of([:individual, :object])
 
   @doc false
-  @spec major_version :: StreamData.t(integer())
-  def major_version, do: integer(0..9)
+  @spec interface_major_version :: StreamData.t(integer())
+  def interface_major_version, do: integer(0..9)
 
   @doc false
-  @spec minor_version(major_version :: integer()) :: StreamData.t(integer())
-  def minor_version(0), do: integer(1..255)
-  def minor_version(_n), do: integer(0..255)
+  @spec interface_minor_version(major_version :: integer()) :: StreamData.t(integer())
+  def interface_minor_version(0), do: integer(1..255)
+  def interface_minor_version(_n), do: integer(0..255)
 
   defp name_optional do
     gen all first <- string([?a..?z, ?A..?Z], length: 1),
@@ -201,19 +155,17 @@ defmodule Astarte.Core.Generators.Interface do
     end)
   end
 
-  defp mappings(aggregation, interface_type, interface_name, interface_major) do
+  defp mappings(aggregation, type, name, major) do
     common =
-      gen all(
-            retention <- MappingGenerator.retention(interface_type),
-            reliability <- MappingGenerator.reliability(interface_type),
-            expiry <- MappingGenerator.expiry(interface_type),
-            allow_unset <- MappingGenerator.allow_unset(interface_type),
-            explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type),
-            database_retention_policy <-
-              MappingGenerator.database_retention_policy(interface_type),
-            database_retention_ttl <-
-              MappingGenerator.database_retention_ttl(interface_type, database_retention_policy)
-          ) do
+      gen all retention <- MappingGenerator.retention(type),
+              reliability <- MappingGenerator.reliability(type),
+              expiry <- MappingGenerator.expiry(type),
+              allow_unset <- MappingGenerator.allow_unset(type),
+              explicit_timestamp <- MappingGenerator.explicit_timestamp(type),
+              database_retention_policy <-
+                MappingGenerator.database_retention_policy(type),
+              database_retention_ttl <-
+                MappingGenerator.database_retention_ttl(type, database_retention_policy) do
         [
           retention: retention,
           reliability: reliability,
@@ -227,9 +179,9 @@ defmodule Astarte.Core.Generators.Interface do
 
     gen all common_params <- common,
             other_params = [
-              interface_type: interface_type,
-              interface_name: interface_name,
-              interface_major: interface_major
+              interface_type: type,
+              interface_name: name,
+              interface_major: major
             ],
             params = common_params ++ other_params,
             mappings <- interface_mappings(aggregation, params) do

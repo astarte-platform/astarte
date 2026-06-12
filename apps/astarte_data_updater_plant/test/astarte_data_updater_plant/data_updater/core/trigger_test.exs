@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,21 +22,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   use ExUnit.Case
   use ExUnitProperties
 
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
+  use Astarte.Cases.Trigger
+
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
-
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
-  use Astarte.Cases.Trigger
-  use ExUnitProperties
 
   @moduletag :data_updater
 
@@ -353,7 +353,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       check all error_name <- string(:alphanumeric),
                 error_metadata <- map_of(string(:alphanumeric), string(:alphanumeric)),
                 timestamp <- integer(1_600_000_000_000_000..2_000_000_000_000_000),
-                device_id <- DeviceGenerator.id() do
+                device_id <- device_id() do
         state = %State{
           realm: realm,
           device_id: device_id,

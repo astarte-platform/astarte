@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy.Handler do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy Handler.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Triggers.Policy.ErrorType
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorType, as: ErrorTypeGenerator
   alias Astarte.Core.Triggers.Policy.Handler
 
   @doc """
@@ -34,31 +33,9 @@ defmodule Astarte.Core.Generators.Triggers.Policy.Handler do
   @spec handler(params :: keyword()) :: StreamData.t(Handler.t())
   def handler(params \\ []) do
     params gen all strategy <- strategy(),
-                   on <- ErrorTypeGenerator.error_type(),
+                   on <- error_type(),
                    params: params do
       %Handler{
-        strategy: strategy,
-        on: on
-      }
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(Handler.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(Handler.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %Handler{
-              strategy: strategy,
-              on: error
-            } <- gen,
-            on <-
-              ErrorTypeGenerator.error_type(error: error) |> ErrorTypeGenerator.to_changes() do
-      %{
         strategy: strategy,
         on: on
       }

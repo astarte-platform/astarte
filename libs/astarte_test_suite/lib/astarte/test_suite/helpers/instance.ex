@@ -65,14 +65,17 @@ defmodule Astarte.TestSuite.Helpers.Instance do
     })
   end
 
-  defp instance_names(1), do: ["astarte"]
-
   defp instance_names(instance_number) do
     1..instance_number
     |> Enum.map(fn _index ->
-      "astarte" <> Integer.to_string(System.unique_integer([:positive]))
+      System.unique_integer([:positive])
+      |> format_instance_name()
     end)
   end
+
+  @doc false
+  def format_instance_name(1), do: "astarte"
+  def format_instance_name(id), do: "astarte#{id}"
 
   defp instance_keyspace(instance_id), do: instance_id
 
@@ -101,8 +104,6 @@ defmodule Astarte.TestSuite.Helpers.Instance do
     """
     |> String.trim()
   end
-
-  defp cleanup_keyspace("astarte"), do: :ok
 
   defp cleanup_keyspace(keyspace) do
     keyspace

@@ -20,14 +20,11 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorType do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy ErrorType.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Triggers.Policy.ErrorKeyword
+  import Astarte.Core.Generators.Triggers.Policy.ErrorRange
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorRange, as: ErrorRangeGenerator
-  alias Astarte.Core.Triggers.Policy.ErrorKeyword
-  alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.ErrorType
 
   @doc """
@@ -36,34 +33,9 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorType do
   @spec error_type() :: StreamData.t(ErrorType.t())
   @spec error_type(params :: keyword()) :: StreamData.t(ErrorType.t())
   def error_type(params \\ []) do
-    params gen all error <-
-                     one_of([
-                       ErrorKeywordGenerator.error_keyword(),
-                       ErrorRangeGenerator.error_range()
-                     ]),
+    params gen all error <- [error_keyword(), error_range()] |> one_of(),
                    params: params do
       error
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(ErrorType.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(ErrorType.t())) ::
-          StreamData.t(map() | binary() | list(integer()))
-  def to_changes(gen) do
-    gen all error_type <- gen,
-            format <- member_of([:map, :raw]) do
-      case {error_type, format} do
-        {%ErrorKeyword{keyword: keyword}, :map} -> %{"keyword" => keyword}
-        {%ErrorRange{error_codes: error_codes}, :map} -> %{"error_codes" => error_codes}
-        {%ErrorKeyword{keyword: keyword}, :raw} -> keyword
-        {%ErrorRange{error_codes: error_codes}, :raw} -> error_codes
-      end
     end
   end
 end

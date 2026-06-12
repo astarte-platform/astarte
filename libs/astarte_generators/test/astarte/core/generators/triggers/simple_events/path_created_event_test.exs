@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent,
-    as: PathCreatedEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,7 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEventTest do
     @describetag :success
     @describetag :ut
     property "generates valid path_created_event" do
-      check all path_created_event <- PathCreatedEventGenerator.path_created_event() do
+      check all path_created_event <- path_created_event() do
         assert %PathCreatedEvent{} = path_created_event
       end
     end

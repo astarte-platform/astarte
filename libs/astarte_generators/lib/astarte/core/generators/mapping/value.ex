@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,15 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   @moduledoc """
   This module provides generators for Interface values.
   """
-  use ExUnitProperties
   use Astarte.Generators.Utilities.ParamsGen
+
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.ValueType
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  # strictly for typing
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
   @type individual_type_t() :: ValueTypeGenerator.valid_t()
@@ -45,7 +47,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   @spec value(params :: keyword()) :: StreamData.t(t())
   def value(params \\ []) do
     gen_interface_base =
-      params gen all interface <- InterfaceGenerator.interface(), params: params do
+      params gen all interface <- interface(), params: params do
         interface
       end
 
@@ -73,7 +75,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
 
     params gen all %Mapping{endpoint: endpoint, value_type: value_type} <- member_of(mappings),
                    type <- constant(value_type),
-                   endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint),
+                   endpoint = endpoint_by_aggregation(aggregation, endpoint),
                    path <- path_from_endpoint(endpoint),
                    value <- build_value(type),
                    params: params do
@@ -84,7 +86,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   defp build_package(%Interface{aggregation: :object = aggregation} = interface, params) do
     %Interface{mappings: [%Mapping{endpoint: endpoint} | _] = mappings} = interface
 
-    endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+    endpoint = endpoint_by_aggregation(aggregation, endpoint)
 
     params gen all path <- path_from_endpoint(endpoint),
                    type <-
@@ -101,7 +103,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
 
   defp endpoint_postfix(endpoint), do: Regex.replace(~r/.*\//, endpoint, "")
 
-  defp build_value(value_type), do: ValueTypeGenerator.value_from_type(value_type)
+  defp build_value(value_type), do: value_from_type(value_type)
 
   # Utilities
 
@@ -112,7 +114,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   def path_matches_endpoint?(aggregation, endpoint, path),
     do:
       path_matches_endpoint?(
-        InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+        endpoint_by_aggregation(aggregation, endpoint)
         |> Mapping.normalize_endpoint()
         |> String.split("/"),
         path |> String.split("/")

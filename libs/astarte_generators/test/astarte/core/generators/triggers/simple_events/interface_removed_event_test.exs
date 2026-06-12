@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEventTes
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent,
-    as: InterfaceRemovedEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,8 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEventTes
     @describetag :success
     @describetag :ut
     property "generates valid interface_removed_event" do
-      check all interface_removed_event <-
-                  InterfaceRemovedEventGenerator.interface_removed_event() do
+      check all interface_removed_event <- interface_removed_event() do
         assert %InterfaceRemovedEvent{} = interface_removed_event
       end
     end

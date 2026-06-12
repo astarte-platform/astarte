@@ -34,13 +34,6 @@ defmodule Astarte.TestSuite.Cases.InstanceTest do
            |> map_size() == 2
   end
 
-  test "single default instance is astarte" do
-    assert InstanceCase.normalize_config!([]).instances
-           |> Map.keys()
-           |> hd()
-           |> then(&(&1 == "astarte"))
-  end
-
   test "keeps explicit instances" do
     instances = %{"astarte1" => {"astarte1", nil}}
 
@@ -50,6 +43,28 @@ defmodule Astarte.TestSuite.Cases.InstanceTest do
   test "rejects invalid cluster" do
     assert_raise ArgumentError, ~r/:instance expects :instance_cluster to be an atom/, fn ->
       InstanceCase.normalize_config!(instance_cluster: "xandra")
+    end
+  end
+
+  test "rejects invalid instance_number" do
+    assert_raise ArgumentError,
+                 ~r/:instance expects :instance_number to be a positive integer/,
+                 fn ->
+                   InstanceCase.normalize_config!(instance_number: "2")
+                 end
+  end
+
+  test "rejects invalid instances" do
+    assert_raise ArgumentError,
+                 ~r/:instance expects :instances to be a canonical graph map/,
+                 fn ->
+                   InstanceCase.normalize_config!(instances: [:not_a_map])
+                 end
+  end
+
+  test "rejects unknown configuration keys" do
+    assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
+      InstanceCase.normalize_config!(unknown_key: true)
     end
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,21 +20,19 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEve
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event IncomingIntrospectionEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-
   @spec incoming_introspection_event() :: StreamData.t(IncomingIntrospectionEvent.t())
   @spec incoming_introspection_event(keyword :: keyword()) ::
           StreamData.t(IncomingIntrospectionEvent.t())
   def incoming_introspection_event(params \\ []) do
-    params gen all interfaces <- InterfaceGenerator.interface() |> list_of(max_length: 10),
+    params gen all interfaces <- interface() |> list_of(max_length: 10),
                    params: params do
       introspection_map =
         interfaces

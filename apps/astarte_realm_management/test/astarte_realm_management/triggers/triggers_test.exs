@@ -23,15 +23,16 @@ defmodule Astarte.RealmManagement.TriggersTest do
 
   import Mimic
 
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Triggers.Policy
+  import Astarte.Core.Adapters.Triggers.Policy
+
   import Astarte.Helpers.Triggers
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 
   alias Astarte.Events.Triggers, as: EventsTriggers
-
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
 
   alias Astarte.RPC.Triggers, as: RPCTriggers
   alias Astarte.RPC.Triggers.TriggerDeletion
@@ -191,9 +192,9 @@ defmodule Astarte.RealmManagement.TriggersTest do
   describe "Test triggers" do
     @tag :creation
     property "are installed correctly", %{realm: realm} do
-      check all device <- DeviceGenerator.device(),
+      check all device <- device(),
                 trigger <- trigger(string(:utf8, min_length: 1)),
-                policy <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
+                policy <- policy() |> map(&from_core_triggers_policy_to_change/1),
                 simple_trigger <- simple_trigger_config(device.device_id) do
         {:ok, policy} = Policies.create_trigger_policy(realm, policy)
 

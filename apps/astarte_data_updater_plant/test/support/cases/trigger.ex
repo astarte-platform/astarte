@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ defmodule Astarte.Cases.Trigger do
   """
   use ExUnit.CaseTemplate
 
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Astarte.Core.Generators.Realm
+  import Astarte.Core.Generators.Triggers.Policy
+
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
@@ -39,11 +40,11 @@ defmodule Astarte.Cases.Trigger do
   end
 
   setup_all context do
-    realm_name = Map.get(context, :realm_name, RealmGenerator.realm_name() |> Enum.at(0))
+    realm_name = Map.get(context, :realm_name, realm_name() |> Enum.at(0))
     trigger_id = UUID.uuid4(:raw)
     tagged_simple_trigger = %TaggedSimpleTrigger{}
     trigger_target = %AMQPTriggerTarget{}
-    policy = PolicyGenerator.policy() |> Enum.at(0) |> Map.fetch!(:name)
+    policy = policy() |> Enum.at(0) |> Map.fetch!(:name)
     data = %State{} |> Map.from_struct()
     install_trigger_message = {realm_name, tagged_simple_trigger, trigger_target, policy, data}
     delete_trigger_message = {realm_name, trigger_id, tagged_simple_trigger, data}

@@ -23,7 +23,7 @@ defmodule Astarte.Core.Generators.GroupTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
+  import Astarte.Core.Generators.Group
 
   @moduletag :group
 
@@ -31,7 +31,7 @@ defmodule Astarte.Core.Generators.GroupTest do
   describe "group generator fields" do
     @tag :success
     property "success valid group name" do
-      check all group_name <- GroupGenerator.name(), max_runs: 500 do
+      check all group_name <- group_name(), max_runs: 500 do
         assert String.first(group_name) not in ["@", "~", "\s"]
       end
     end
@@ -41,7 +41,7 @@ defmodule Astarte.Core.Generators.GroupTest do
   describe "group generator struct" do
     @tag :success
     property "success base group creation" do
-      check all group <- GroupGenerator.group() do
+      check all group <- group() do
         refute is_nil(group)
       end
     end

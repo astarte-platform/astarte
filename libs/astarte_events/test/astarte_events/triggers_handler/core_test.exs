@@ -21,13 +21,11 @@ defmodule Astarte.Events.TriggersHandler.CoreTest do
 
   import Mimic
 
+  import Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent
+
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent, as: SimpleEventGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
-    as: IncomingDataEventGenerator
 
   alias Astarte.Events.AMQPEvents
   alias Astarte.Events.AMQPTriggers
@@ -74,17 +72,17 @@ defmodule Astarte.Events.TriggersHandler.CoreTest do
       exchange = "exchange_#{System.unique_integer([:positive])}"
 
       simple_event =
-        SimpleEventGenerator.simple_event(
+        simple_event(
           realm: realm,
           device_id: @device_id
         )
         |> Enum.at(0)
 
       simple_event_trigger_engine =
-        SimpleEventGenerator.simple_event(
+        simple_event(
           realm: realm,
           device_id: @device_id,
-          event: {:incoming_data_event, IncomingDataEventGenerator.incoming_data_event()}
+          event: {:incoming_data_event, incoming_data_event()}
         )
         |> Enum.at(0)
 

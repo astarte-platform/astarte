@@ -20,8 +20,8 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   use ExUnitProperties
   use Astarte.Cases.Conn
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Group
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
@@ -177,7 +177,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
     @tag issue: 904
     property "creates the group with / in group name", %{conn: conn} do
-      check all group_name <- GroupGenerator.name() do
+      check all group_name <- group_name() do
         params = %{
           "group_name" => group_name,
           "devices" => @group_devices
@@ -212,7 +212,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     setup [:create_group]
 
     property "returns 404 for non-existing group", %{conn: conn} do
-      check all device_id <- DeviceGenerator.encoded_id(), max_runs: 10 do
+      check all device_id <- device_encoded_id(), max_runs: 10 do
         params = %{"device_id" => device_id}
         conn = post(conn, groups_path(conn, :add_device, @realm, "nonexisting"), data: params)
 
@@ -221,7 +221,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     end
 
     property "fails with non-existing device", %{conn: conn} do
-      check all device_id <- DeviceGenerator.encoded_id(), max_runs: 10 do
+      check all device_id <- device_encoded_id(), max_runs: 10 do
         params = %{"device_id" => device_id}
         conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
 

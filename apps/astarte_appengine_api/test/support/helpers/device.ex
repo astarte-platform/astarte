@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,14 @@
 
 defmodule Astarte.Helpers.Device do
   @moduledoc false
+  use ExUnitProperties
+
+  import ExUnit.CaptureLog
+
+  import Astarte.Common.Generators.Timestamp
+
   alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Devices.Device
@@ -29,9 +34,6 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
-
-  import ExUnit.CaptureLog
-  import StreamData
 
   @fallible_value_type [
     :integer,
@@ -93,7 +95,7 @@ defmodule Astarte.Helpers.Device do
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
-      initial_time = TimestampGenerator.timestamp() |> Enum.at(0) |> DateTime.from_unix!()
+      initial_time = timestamp() |> Enum.at(0) |> DateTime.from_unix!()
 
       update_function =
         case interface_descriptor.aggregation do

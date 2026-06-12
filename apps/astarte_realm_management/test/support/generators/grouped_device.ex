@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,14 +28,14 @@ defmodule Astarte.RealmManagement.Generators.GroupedDevice do
 
   alias Astarte.DataAccess.Groups.GroupedDevice
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Group
 
   @doc false
   @spec grouped_device(params :: keyword()) :: StreamData.t(GroupedDevice.t())
   def grouped_device(params) do
-    params gen all device_id <- DeviceGenerator.id(),
-                   group_name <- GroupGenerator.name(),
+    params gen all device_id <- device_id(),
+                   group_name <- group_name(),
                    insertion_uuid <- repeatedly(&UUID.uuid1/0),
                    params: params do
       %GroupedDevice{

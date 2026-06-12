@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,11 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent do
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event DeviceConnectedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Common.Generators.Ip
 
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
-
-  alias Astarte.Common.Generators.Ip, as: IpGenerator
 
   @spec device_connected_event() :: StreamData.t(DeviceConnectedEvent.t())
   @spec device_connected_event(keyword :: keyword()) :: StreamData.t(DeviceConnectedEvent.t())
@@ -41,7 +39,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent do
 
   defp device_ip_address,
     do:
-      IpGenerator.ip(:ipv4)
+      ip(:ipv4)
       |> map(&Tuple.to_list/1)
       |> map(&Enum.join(&1, "."))
 end

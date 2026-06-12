@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,14 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   """
   use Astarte.Generators.Utilities.ParamsGen
 
-  alias Astarte.Core.Interface
+  import Astarte.Common.Generators.MQTT
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Realm
 
+  # strictly for typing
   alias Astarte.Common.Generators.MQTT, as: MQTTGenerator
-  alias Astarte.Core.Generators.Device, as: DeviceGenerarator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Realm, as: RealmGenerarator
+  alias Astarte.Core.Interface
 
   @doc """
   Generates an Astarte control topic.
@@ -46,12 +48,12 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   """
   @spec control_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def control_topic(params \\ []) do
-    params gen all realm_name <- RealmGenerarator.realm_name(),
-                   device <- DeviceGenerarator.device(),
+    params gen all realm_name <- realm_name(),
+                   device <- device(),
                    %{id: device_id} = device,
                    device_id <- constant(device_id),
                    topic <-
-                     MQTTGenerator.mqtt_topic(
+                     mqtt_topic(
                        chars: :alphanumeric,
                        pre: "#{realm_name}/#{device_id}/control/"
                      ),
@@ -73,18 +75,18 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   """
   @spec data_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def data_topic(params \\ []) do
-    params gen all realm_name <- RealmGenerarator.realm_name(),
+    params gen all realm_name <- realm_name(),
                    interfaces <-
-                     InterfaceGenerator.interface()
+                     interface()
                      |> list_of(min_length: 1, max_length: 10),
-                   device <- DeviceGenerarator.device(interfaces: interfaces),
+                   device <- device(interfaces: interfaces),
                    %{id: device_id} = device,
                    device_id <- constant(device_id),
                    interface <- member_of(interfaces),
                    %Interface{name: interface_name} = interface,
                    interface_name <- constant(interface_name),
                    topic <-
-                     MQTTGenerator.mqtt_topic(
+                     mqtt_topic(
                        chars: :alphanumeric,
                        pre: "#{realm_name}/#{device_id}/#{interface_name}/"
                      ),

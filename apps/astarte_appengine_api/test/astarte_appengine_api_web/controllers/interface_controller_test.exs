@@ -26,6 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   use Astarte.Cases.Device
   use Astarte.Cases.Conn
 
+  import Astarte.Generators.InterfaceUpdate
   import Astarte.Helpers.Device
   import Astarte.Helpers.JWT
 
@@ -34,7 +35,6 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
   setup_all %{realm_name: realm} do
     keyspace = Realm.keyspace_name(realm)
@@ -64,8 +64,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
         path =
           interface_values_path(
             conn,
@@ -104,8 +103,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       check all interface <- member_of(interfaces),
                 mapping <- member_of(interface.mappings),
-                path <- InterfaceUpdateGenerator.path_from_endpoint(mapping.endpoint),
-                value <- InterfaceUpdateGenerator.valid_update_value_for(mapping.value_type) do
+                path <- path_from_endpoint(mapping.endpoint),
+                value <- valid_update_value_for(mapping.value_type) do
         interface_name = interface.name
         device_id = device.encoded_id
 
@@ -135,7 +134,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       check all interface <- member_of(interfaces),
                 mapping <- member_of(interface.mappings),
-                path <- InterfaceUpdateGenerator.path_from_endpoint(mapping.endpoint) do
+                path <- path_from_endpoint(mapping.endpoint) do
         interface_name = interface.name
         device_id = device.encoded_id
 
@@ -167,8 +166,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
         request_path =
           interface_values_path(
             conn,
@@ -235,7 +233,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       mapping_update =
         interface
-        |> InterfaceUpdateGenerator.valid_mapping_update_for()
+        |> valid_mapping_update_for()
         |> Enum.at(0)
 
       path = path_tokens(mapping_update.path)
@@ -297,7 +295,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       mapping_update =
         interface
-        |> InterfaceUpdateGenerator.valid_mapping_update_for()
+        |> valid_mapping_update_for()
         |> Enum.at(0)
 
       path = path_tokens(mapping_update.path)
@@ -367,7 +365,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     check all interface <- member_of(valid_interfaces_to_unset),
               mapping_to_unset <-
                 member_of(interface.mappings |> Enum.filter(& &1.allow_unset)),
-              path <- InterfaceUpdateGenerator.path_from_endpoint(mapping_to_unset.endpoint) do
+              path <- path_from_endpoint(mapping_to_unset.endpoint) do
       if mapping_to_unset.allow_unset do
         path_tokens = path_tokens(path)
         expected_token = [realm_name, device.encoded_id, interface.name | path_tokens]
@@ -427,7 +425,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     check all interface <- member_of(invalid_interfaces_to_unset),
               mapping_to_unset <-
                 member_of(interface.mappings |> Enum.filter(&(!&1.allow_unset))),
-              path <- InterfaceUpdateGenerator.path_from_endpoint(mapping_to_unset.endpoint) do
+              path <- path_from_endpoint(mapping_to_unset.endpoint) do
       request_path =
         interface_values_path(
           conn,

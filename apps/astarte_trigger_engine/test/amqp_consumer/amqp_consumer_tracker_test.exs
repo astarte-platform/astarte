@@ -20,7 +20,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
   use Astarte.Cases.Database, async: true
   use Mimic
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Astarte.Core.Generators.Triggers.Policy
+
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
 
   import Astarte.Helpers.Policy
@@ -32,7 +33,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
   end
 
   test "consumer for policy is created when a new policy is added", %{realm_name: realm_name} do
-    policy = PolicyGenerator.policy() |> Enum.at(0)
+    policy = policy() |> Enum.at(0)
     install_policy(realm_name, policy)
 
     assert policy_consumer_available?(realm_name, policy.name)
@@ -40,7 +41,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
 
   describe "consumer for a new policy is removed" do
     setup %{realm_name: realm_name} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
+      policy = policy() |> Enum.at(0)
 
       install_policy(realm_name, policy)
       %{policy: policy}

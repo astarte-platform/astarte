@@ -25,11 +25,16 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
   import ExUnit.CaptureLog
 
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+
+  import Astarte.RealmManagement.Generators.GroupedDevice
+  import Astarte.RealmManagement.Generators.IndividualDatastream
+  import Astarte.RealmManagement.Generators.IndividualProperty
+  import Astarte.RealmManagement.Generators.Name
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
-
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
@@ -40,11 +45,6 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.RealmManagement.DeviceRemoval.Core
   alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.RealmManagement.Interfaces
-
-  alias Astarte.RealmManagement.Generators.GroupedDevice, as: GroupedDeviceGenerator
-  alias Astarte.RealmManagement.Generators.IndividualDatastream, as: IndividualDatastreamGenerator
-  alias Astarte.RealmManagement.Generators.IndividualProperty, as: IndividualPropertyGenerator
-  alias Astarte.RealmManagement.Generators.Name, as: NameGenerator
 
   setup %{realm_name: realm_name} do
     setup_realm_keyspace!(realm_name)
@@ -57,9 +57,9 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
              %{realm: realm} do
       keyspace = Realm.keyspace_name(realm)
 
-      check all device_id <- DeviceGenerator.id(),
+      check all device_id <- device_id(),
                 individual_datastreams <-
-                  IndividualDatastreamGenerator.individual_datastream(device_id: device_id)
+                  individual_datastream(device_id: device_id)
                   |> list_of(max_length: 10),
                 max_runs: 10 do
         individual_datastreams |> Enum.each(&Repo.insert!(&1, prefix: keyspace))
@@ -76,7 +76,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
       Repo.query!("DROP TABLE #{keyspace}.individual_datastreams;")
 
-      check all device_id <- DeviceGenerator.id() do
+      check all device_id <- device_id() do
         Core.delete_individual_datastreams!(realm, device_id)
       end
     end
@@ -85,9 +85,9 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
              %{realm: realm} do
       keyspace = Realm.keyspace_name(realm)
 
-      check all device_id <- DeviceGenerator.id(),
+      check all device_id <- device_id(),
                 individual_properties <-
-                  IndividualPropertyGenerator.individual_property(device_id: device_id)
+                  individual_property(device_id: device_id)
                   |> list_of(max_length: 10),
                 max_runs: 10 do
         Enum.each(individual_properties, &Repo.insert!(&1, prefix: keyspace))
@@ -104,7 +104,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
       Repo.query!("DROP TABLE #{keyspace}.individual_properties;")
 
-      check all device_id <- DeviceGenerator.id() do
+      check all device_id <- device_id() do
         Core.delete_individual_properties!(realm, device_id)
       end
     end
@@ -113,14 +113,14 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
       realm: realm
     } do
       check all interface <-
-                  InterfaceGenerator.interface(
+                  interface(
                     type: :datastream,
                     aggregation: :object
                   )
                   |> filter(fn %Interface{mappings: mappings} ->
                     Enum.all?(mappings, & &1.explicit_timestamp)
                   end),
-                device_id <- Astarte.Core.Generators.Device.id(),
+                device_id <- device_id(),
                 value_timestamp <- repeatedly(&DateTime.utc_now/0),
                 reception_timestamp <- repeatedly(&DateTime.utc_now/0),
                 reception_timestamp_submillis <- integer(0..10),
@@ -150,13 +150,13 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
       keyspace = Realm.keyspace_name(realm)
 
       %{name: name, major_version: major} =
-        InterfaceGenerator.interface(
+        interface(
           type: :datastream,
           aggregation: :object
         )
         |> Enum.at(0)
 
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       # the introspection reports an interface which is not installed
       device = %Device{
@@ -175,8 +175,8 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
     } do
       keyspace = Realm.keyspace_name(realm)
 
-      check all device_id <- DeviceGenerator.id(),
-                aliases <- NameGenerator.name(device_id: device_id) |> list_of(),
+      check all device_id <- device_id(),
+                aliases <- name(device_id: device_id) |> list_of(),
                 max_runs: 10 do
         Enum.each(aliases, &Repo.insert!(&1, prefix: keyspace))
 
@@ -191,9 +191,8 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
     } do
       keyspace = Realm.keyspace_name(realm)
 
-      check all device_id <- DeviceGenerator.id(),
-                grouped_devices <-
-                  GroupedDeviceGenerator.grouped_device(device_id: device_id) |> list_of(),
+      check all device_id <- device_id(),
+                grouped_devices <- grouped_device(device_id: device_id) |> list_of(),
                 max_runs: 10 do
         Enum.each(grouped_devices, &Repo.insert!(&1, prefix: keyspace))
 
@@ -208,7 +207,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
     } do
       keyspace = Realm.keyspace_name(realm)
 
-      check all encoded_device_id <- DeviceGenerator.encoded_id(), max_runs: 10 do
+      check all encoded_device_id <- device_encoded_id(), max_runs: 10 do
         %{
           group: "example_group",
           key: encoded_device_id,
@@ -227,7 +226,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
     } do
       keyspace = Realm.keyspace_name(realm)
 
-      check all device_id <- DeviceGenerator.id(), max_runs: 10 do
+      check all device_id <- device_id(), max_runs: 10 do
         %Device{
           device_id: device_id
         }

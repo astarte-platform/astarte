@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ defmodule Astarte.Core.Generators.Realm do
   """
   use ExUnitProperties
 
-  alias Astarte.Core.Realm
+  import Astarte.Core.Realm, only: [valid_name?: 1]
 
   @doc """
   Generates a random Realm name.
@@ -31,14 +31,12 @@ defmodule Astarte.Core.Generators.Realm do
   """
   @spec realm_name() :: StreamData.t(String.t())
   def realm_name do
-    gen all(
-          first <- string([?a..?z], length: 1),
-          rest <- string([?a..?z, ?0..?9], length: 0..47)
-        ) do
+    gen all first <- string([?a..?z], length: 1),
+            rest <- string([?a..?z, ?0..?9], length: 0..47) do
       first <> rest
     end
     |> filter(&valid?/1)
   end
 
-  defp valid?(name), do: Realm.valid_name?(name)
+  defp valid?(name), do: valid_name?(name)
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ defmodule Astarte.Core.Generators.Mapping.PayloadTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Mapping.Payload, as: PayloadGenerator
-  alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
+  import Astarte.Core.Generators.Mapping.Payload
+  import Astarte.Core.Generators.Mapping.ValueType
 
   @moduletag :mapping
   @moduletag :payload
@@ -32,15 +32,15 @@ defmodule Astarte.Core.Generators.Mapping.PayloadTest do
     @describetag :ut
 
     property "generates value" do
-      check all payload <- PayloadGenerator.payload() do
+      check all payload <- payload() do
         assert %{v: _} = payload
       end
     end
 
     property "generates customized value" do
-      check all type <- ValueTypeGenerator.value_type(),
-                value <- ValueTypeGenerator.value_from_type(type),
-                payload <- PayloadGenerator.payload(v: value) do
+      check all type <- value_type(),
+                value <- value_from_type(type),
+                payload <- payload(v: value) do
         assert %{v: ^value} = payload
       end
     end

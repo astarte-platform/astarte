@@ -28,6 +28,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   use Astarte.Cases.Device
   use Astarte.Cases.Triggers
 
+  import Astarte.Core.Generators.Group
+
   import Astarte.Helpers.Triggers
 
   alias Astarte.Core.Device
@@ -37,8 +39,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
-
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
 
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
 
@@ -69,7 +69,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     # This is a device not in the database, which is the same as a device with all data
     # already deleted
     device_id = Device.random_device_id()
-    groups = GroupGenerator.name() |> Enum.take(3)
+    groups = group_name() |> Enum.take(3)
 
     ref = register_device_deletion_finished_trigger(realm_name, group_name: Enum.random(groups))
     reset_cache(realm_name)

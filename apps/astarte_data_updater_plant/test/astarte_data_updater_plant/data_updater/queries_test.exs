@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
+  use ExUnitProperties
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  use ExUnitProperties
   use Mimic
+
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Realm
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
@@ -396,7 +397,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       astarte_instance_id = "custom#{System.unique_integer([:positive])}"
 
       realm_names =
-        list_of(RealmGenerator.realm_name(), min_length: 5)
+        list_of(realm_name(), min_length: 5)
         |> resize(5)
         |> Enum.at(0)
         |> Enum.sort()
@@ -466,7 +467,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     @tag :regression
     test "does not do anything when the deletion in progress entry does not exist", context do
       %{realm_name: realm_name} = context
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       assert :ok = Queries.ack_start_device_deletion(realm_name, device_id)
       assert {:ok, false} = Queries.check_device_deletion_in_progress(realm_name, device_id)
@@ -489,7 +490,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   end
 
   defp deletion_in_progress_entry do
-    gen all device_id <- DeviceGenerator.id(),
+    gen all device_id <- device_id(),
             vmq_ack <- boolean(),
             dup_start_ack <- boolean(),
             dup_end_ack <- if(dup_start_ack, do: boolean(), else: false) do

@@ -23,9 +23,10 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
 
   import ExUnit.CaptureLog
 
-  alias Astarte.Core.Triggers.Policy
+  import Astarte.Core.Generators.Triggers.Policy
+  import Astarte.Core.Adapters.Triggers.Policy
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.Core.Triggers.Policy
 
   alias Astarte.RealmManagement.Triggers.Policies
 
@@ -50,7 +51,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
     @describetag :creation
     property "successfully creates and retrieves valid policies", %{realm: realm} do
       check all policy_changeset =
-                  %{name: name} <- PolicyGenerator.policy() |> PolicyGenerator.to_changes() do
+                  %{name: name} <- policy() |> map(&from_core_triggers_policy_to_change(&1)) do
         assert {:ok, %Policy{name: ^name}} =
                  Policies.create_trigger_policy(realm, policy_changeset)
 
@@ -82,7 +83,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
 
     test "lists installed policies", %{realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       {:ok, _created_policy} = Policies.create_trigger_policy(realm, policy_changeset)
       assert name in Policies.list_trigger_policies(realm)
@@ -98,7 +99,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
 
     test "retrieves source for installed policy", %{realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       assert {:ok, %Policy{}} = Policies.create_trigger_policy(realm, policy_changeset)
 
@@ -119,7 +120,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
   describe "Policy deletion" do
     @describetag :deletion
     setup %{realm: realm} do
-      policy_changeset = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+      policy_changeset = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       {:ok, created_policy} = Policies.create_trigger_policy(realm, policy_changeset)
 

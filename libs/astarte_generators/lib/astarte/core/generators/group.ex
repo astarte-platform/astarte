@@ -22,11 +22,9 @@ defmodule Astarte.Core.Generators.Group do
 
   See https://docs.astarte-platform.org/astarte/0.11/065-groups.html
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
-
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
 
   @max_subpath_count 10
   @max_subpath_length 20
@@ -35,8 +33,8 @@ defmodule Astarte.Core.Generators.Group do
   @doc """
   Generates a valid Astarte Group name.
   """
-  @spec name() :: StreamData.t(String.t())
-  def name do
+  @spec group_name() :: StreamData.t(String.t())
+  def group_name do
     string(:ascii, min_length: 1, max_length: @max_subpath_length)
     |> uniq_list_of(
       min_length: 1,
@@ -52,9 +50,9 @@ defmodule Astarte.Core.Generators.Group do
   @spec group() :: StreamData.t(map())
   @spec group(params :: keyword()) :: StreamData.t(map())
   def group(params \\ []) do
-    params gen all name <- name(),
+    params gen all name <- group_name(),
                    device_ids <-
-                     DeviceGenerator.device()
+                     device()
                      |> map(& &1.id)
                      |> list_of(min_length: 1, max_length: @max_devices_count),
                    params: params do

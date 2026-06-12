@@ -20,21 +20,19 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEve
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event InterfaceMinorUpdatedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   @spec interface_minor_updated_event() :: StreamData.t(InterfaceMinorUpdatedEvent.t())
   @spec interface_minor_updated_event(keyword :: keyword()) ::
           StreamData.t(InterfaceMinorUpdatedEvent.t())
   def interface_minor_updated_event(params \\ []) do
     params gen all interface <-
-                     InterfaceGenerator.interface()
+                     interface()
                      |> filter(fn %Interface{minor_version: minor_version} ->
                        minor_version < 255
                      end),

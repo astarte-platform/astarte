@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,14 +20,12 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.BSONValue
+  import Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent
+
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
-    as: IncomingDataEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -38,24 +36,24 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEventTest do
     @describetag :success
     @describetag :ut
     property "generates valid incoming_data_event" do
-      check all incoming_data_event <- IncomingDataEventGenerator.incoming_data_event() do
+      check all incoming_data_event <- incoming_data_event() do
         assert %IncomingDataEvent{} = incoming_data_event
       end
     end
 
     property "generates valid incoming_data_event using interface" do
-      check all interface <- InterfaceGenerator.interface(),
+      check all interface <- interface(),
                 incoming_data_event <-
-                  IncomingDataEventGenerator.incoming_data_event(interface: interface) do
+                  incoming_data_event(interface: interface) do
         assert %IncomingDataEvent{} = incoming_data_event
       end
     end
 
     property "generates valid incoming_data_event using name and bson_value" do
-      check all %Interface{name: interface_name} = interface <- InterfaceGenerator.interface(),
-                bson_value <- BSONValueGenerator.bson_value(interface: interface),
+      check all %Interface{name: interface_name} = interface <- interface(),
+                bson_value <- bson_value(interface: interface),
                 incoming_data_event <-
-                  IncomingDataEventGenerator.incoming_data_event(
+                  incoming_data_event(
                     interface_name: interface_name,
                     bson_value: bson_value
                   ) do

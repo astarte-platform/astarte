@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,7 @@ defmodule Astarte.Common.Generators.Timestamp do
   @moduledoc """
   Unix timestamp generator
   """
-  use ExUnitProperties
-
-  import Astarte.Generators.Utilities.ParamsGen
+  use Astarte.Generators.Utilities.ParamsGen
 
   @min_default 0
   @max_default 2_556_143_999_999_999
@@ -31,15 +29,15 @@ defmodule Astarte.Common.Generators.Timestamp do
   @default_unit :second
 
   @doc false
-  @spec min_default() :: integer()
-  @spec min_default(unit :: atom()) :: integer()
-  def min_default(unit \\ @default_unit),
+  @spec timestamp_min_default() :: integer()
+  @spec timestamp_min_default(unit :: atom()) :: integer()
+  def timestamp_min_default(unit \\ @default_unit),
     do: @min_default |> System.convert_time_unit(@ref_unit, unit)
 
   @doc false
-  @spec max_default() :: integer()
-  @spec max_default(unit :: atom()) :: integer()
-  def max_default(unit \\ @default_unit),
+  @spec timestamp_max_default() :: integer()
+  @spec timestamp_max_default(unit :: atom()) :: integer()
+  def timestamp_max_default(unit \\ @default_unit),
     do: @max_default |> System.convert_time_unit(@ref_unit, unit)
 
   @doc """
@@ -49,8 +47,8 @@ defmodule Astarte.Common.Generators.Timestamp do
   @spec timestamp(params :: keyword()) :: StreamData.t(integer())
   def timestamp(params \\ []) do
     params gen all unit <- constant(@default_unit),
-                   min <- constant(min_default(unit)),
-                   max <- constant(max_default(unit)),
+                   min <- unit |> timestamp_min_default() |> constant(),
+                   max <- unit |> timestamp_max_default() |> constant(),
                    timestamp <- timestamp(min, max),
                    params: params,
                    exclude: [:timestamp] do

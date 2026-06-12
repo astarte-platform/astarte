@@ -5,5 +5,5 @@
     "mix.exs"
   ],
   subdirectories: ["priv/*/migrations", "priv/*/migrations/realm", "priv/*/migrations/astarte"],
-  import_deps: [:skogsra, :ecto, :ecto_sql, :astarte_generators, :astarte_adapters]
+  import_deps: [:skogsra, :ecto, :ecto_sql, :astarte_generators]
 ]

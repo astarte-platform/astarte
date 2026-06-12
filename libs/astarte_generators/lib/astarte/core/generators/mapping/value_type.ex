@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   """
   use ExUnitProperties
 
-  alias Astarte.Core.Mapping.ValueType
+  import Astarte.Common.Generators.DateTime
 
-  alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
+  alias Astarte.Core.Mapping.ValueType
 
   @valid_atoms [
     :double,
@@ -53,14 +53,14 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   @doc """
   List of all astarte's ValueType atoms
   """
-  @spec valid_atoms() :: list(atom())
-  def valid_atoms, do: @valid_atoms
+  @spec value_type_valid_atoms() :: list(atom())
+  def value_type_valid_atoms, do: @valid_atoms
 
   @doc """
   Generates a valid ValueType
   """
   @spec value_type() :: StreamData.t(ValueType.t())
-  def value_type, do: member_of(valid_atoms())
+  def value_type, do: member_of(value_type_valid_atoms())
 
   @doc """
   Generates a valid value from ValueType
@@ -73,7 +73,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   def value_from_type(:string), do: string(:utf8, max_length: 65_535)
   def value_from_type(:binaryblob), do: binary(max_length: 65_535)
 
-  def value_from_type(:datetime), do: DateTimeGenerator.date_time()
+  def value_from_type(:datetime), do: date_time()
 
   def value_from_type(array) when is_atom(array),
     do: type_array(array) |> value_from_type() |> list_of(max_length: 1023)

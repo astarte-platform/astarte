@@ -21,7 +21,8 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
 
   import Mimic
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent, as: SimpleEventGenerator
+  import Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent
+
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Events.AMQP.Vhost
@@ -82,7 +83,7 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
       assert_receive :consumer_ready
 
       simple_event =
-        SimpleEventGenerator.simple_event(
+        simple_event(
           realm: realm_name,
           device_id: @device_id
         )
@@ -164,7 +165,7 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
       assert_receive :consumer_ready
 
       simple_event =
-        SimpleEventGenerator.simple_event(
+        simple_event(
           realm: realm_name,
           device_id: @device_id
         )

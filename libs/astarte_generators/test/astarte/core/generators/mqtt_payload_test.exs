@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ defmodule Astarte.Core.Generators.MQTTPayloadTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
-  alias Astarte.Core.Generators.MQTTPayload, as: MQTTPayloadGenerator
+  import Astarte.Core.Generators.Mapping
+  import Astarte.Core.Generators.MQTTPayload
+
   alias Astarte.Core.Mapping
 
   defp value_matches_mapping?(:double, value), do: is_float(value)
@@ -64,14 +65,14 @@ defmodule Astarte.Core.Generators.MQTTPayloadTest do
   @moduletag :payload
 
   property "generated payloads are valid BSONs with 'v' and 't' keys" do
-    check all payload <- MQTTPayloadGenerator.payload(), max_runs: 100 do
+    check all payload <- mqtt_payload(), max_runs: 100 do
       assert %{"v" => _value} = Cyanide.decode!(payload)
     end
   end
 
   property "generated payloads honor the mapping type" do
-    check all %Mapping{type: type} <- MappingGenerator.mapping(),
-              payload <- MQTTPayloadGenerator.payload(type: type),
+    check all %Mapping{type: type} <- mapping(),
+              payload <- mqtt_payload(type: type),
               %{"v" => value} = Cyanide.decode!(payload) do
       assert value_matches_mapping?(type, value)
     end

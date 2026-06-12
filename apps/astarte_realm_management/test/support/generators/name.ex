@@ -22,18 +22,16 @@ defmodule Astarte.RealmManagement.Generators.Name do
   @moduledoc """
   Generator for `Astarte.DataAccess.Realms.Name` structures
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Device
 
   alias Astarte.DataAccess.Realms.Name
-
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   @doc false
   @spec name(params :: keyword()) :: StreamData.t(Name.t())
   def name(params \\ []) do
-    params gen all device_id <- DeviceGenerator.id(),
+    params gen all device_id <- device_id(),
                    alias <- string(:utf8, length: 1..100),
                    object_type <- integer(0..256),
                    params: params do

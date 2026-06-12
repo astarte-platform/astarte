@@ -21,19 +21,13 @@ defmodule Astarte.TestSuiteTest.Cases.NoParamsCaseTest do
 
   alias Astarte.TestSuiteTest.Cases.NoParamsCase
 
+  defmodule CompiledNoParamsCase do
+    @moduledoc false
+    use ExUnit.Case
+    use NoParamsCase
+  end
+
   test "case template can be used without configuration" do
-    module = Module.concat(__MODULE__, CompiledNoParamsCase)
-
-    quoted =
-      quote do
-        defmodule unquote(module) do
-          use ExUnit.Case
-          use unquote(NoParamsCase)
-        end
-      end
-
-    Code.compile_quoted(quoted)
-
-    assert function_exported?(module, :__ex_unit__, 0)
+    assert function_exported?(CompiledNoParamsCase, :__ex_unit__, 0)
   end
 end

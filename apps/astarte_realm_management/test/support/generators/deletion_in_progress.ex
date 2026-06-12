@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,18 +22,16 @@ defmodule Astarte.RealmManagement.Generators.DeletionInProgress do
   @moduledoc """
   Generator for `Astarte.DataAccess.Device.DeletionInProgress`
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Device
 
   alias Astarte.DataAccess.Device.DeletionInProgress
-
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   @doc false
   @spec deletion_in_progress(params :: keyword()) :: StreamData.t(DeletionInProgress.t())
   def deletion_in_progress(params \\ []) do
-    params gen all device_id <- DeviceGenerator.id(),
+    params gen all device_id <- device_id(),
                    dup_end_ack <- boolean(),
                    vmq_ack <- boolean(),
                    dup_start_ack <- boolean(),

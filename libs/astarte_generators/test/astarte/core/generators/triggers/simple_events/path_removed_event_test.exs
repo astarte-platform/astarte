@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent,
-    as: PathRemovedEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,7 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEventTest do
     @describetag :success
     @describetag :ut
     property "generates valid path_removed_event" do
-      check all path_removed_event <- PathRemovedEventGenerator.path_removed_event() do
+      check all path_removed_event <- path_removed_event() do
         assert %PathRemovedEvent{} = path_removed_event
       end
     end

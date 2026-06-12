@@ -47,8 +47,9 @@ defmodule Astarte.TestSuite.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_generators, path: astarte_lib("astarte_generators")},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")}
+      {:astarte_generators, path: "../astarte_generators"},
+      {:astarte_data_access, path: "../astarte_data_access"},
+      {:astarte_adapters, path: "../astarte_adapters"}
     ]
   end
 
@@ -69,6 +70,9 @@ defmodule Astarte.TestSuite.MixProject do
   defp deps do
     [
       {:stream_data, "~> 1.1"},
+      {:ecto, "~> 3.12.0", override: true},
+      {:ecto_sql, "~> 3.12.0", override: true},
+      {:decimal, "~> 3.0", override: true},
       # Test section
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -88,10 +92,5 @@ defmodule Astarte.TestSuite.MixProject do
         "GitHub" => "https://github.com/astarte-platform/astarte/libs/astarte_test_suite"
       }
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,21 +20,21 @@ defmodule Astarte.Common.Generators.DateTime do
   @moduledoc """
   DateTime generator
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
-
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  import Astarte.Common.Generators.Timestamp
 
   @ref_unit :microsecond
 
   @doc false
-  @spec min_default :: DateTime.t()
-  def min_default, do: TimestampGenerator.min_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
+  @spec date_time_min_default :: DateTime.t()
+  def date_time_min_default,
+    do: timestamp_min_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
 
   @doc false
-  @spec max_default :: DateTime.t()
-  def max_default, do: TimestampGenerator.max_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
+  @spec date_time_max_default :: DateTime.t()
+  def date_time_max_default,
+    do: timestamp_max_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
 
   @doc """
   Generates a random DateTime from min to max (see Timestamp generator)
@@ -42,12 +42,12 @@ defmodule Astarte.Common.Generators.DateTime do
   @spec date_time() :: StreamData.t(DateTime.t())
   @spec date_time(params :: keyword()) :: StreamData.t(DateTime.t())
   def date_time(params \\ []) do
-    params gen all min <- constant(min_default()),
-                   max <- constant(max_default()),
+    params gen all min <- constant(date_time_min_default()),
+                   max <- constant(date_time_max_default()),
                    min = DateTime.to_unix(min, @ref_unit),
                    max = DateTime.to_unix(max, @ref_unit),
                    date_time <-
-                     TimestampGenerator.timestamp(min: min, max: max, unit: @ref_unit)
+                     timestamp(min: min, max: max, unit: @ref_unit)
                      |> map(&DateTime.from_unix!(&1, @ref_unit)),
                    params: params,
                    exclude: [:date_time] do

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy ErrorKeyword.
   """
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword
-  alias Astarte.Core.Triggers.Policy.ErrorKeyword
-
-  use ExUnitProperties
   use Astarte.Generators.Utilities.ParamsGen
+
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
 
   @any_error "any_error"
   @client_error "client_error"
@@ -62,22 +60,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
     params gen all keyword <- keyword(), params: params do
       %ErrorKeyword{
         keyword: keyword
-      }
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(ErrorKeyword.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(ErrorKeyword.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %ErrorKeyword{keyword: keyword} <- gen do
-      %{
-        "keyword" => keyword
       }
     end
   end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,16 +23,15 @@ defmodule Astarte.Core.Generators.Mapping.ValueTypeTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Mapping.ValueType
-
-  alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
+  import Astarte.Core.Generators.Mapping.ValueType
+  import Astarte.Core.Mapping.ValueType, only: [cast: 1, validate_value: 2]
 
   @moduletag :core
   @moduletag :mapping
   @moduletag :value_type
 
   defp valid_cast(type) when is_atom(type) do
-    case ValueType.cast(type) do
+    case cast(type) do
       {:ok, _} -> true
       :error -> false
     end
@@ -43,20 +42,19 @@ defmodule Astarte.Core.Generators.Mapping.ValueTypeTest do
     @describetag :success
     @describetag :ut
 
-    test "validate all valid_atoms in value_type generator" do
-      assert ValueTypeGenerator.valid_atoms() |> Enum.all?(&valid_cast/1)
-    end
+    test "validate all valid_atoms in value_type generator",
+      do: assert(value_type_valid_atoms() |> Enum.all?(&valid_cast/1))
 
     property "validate generated value_type using validate_value/2" do
-      check all value_type <- ValueTypeGenerator.value_type() do
+      check all value_type <- value_type() do
         assert valid_cast(value_type)
       end
     end
 
     property "validate generated value_type using value_from_type/1" do
-      check all value_type <- ValueTypeGenerator.value_type(),
-                value <- ValueTypeGenerator.value_from_type(value_type) do
-        assert ValueType.validate_value(value_type, value)
+      check all value_type <- value_type(),
+                value <- value_from_type(value_type) do
+        assert validate_value(value_type, value)
       end
     end
   end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,19 +20,17 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceAddedEvent do
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event InterfaceAddedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-
   @spec interface_added_event() :: StreamData.t(InterfaceAddedEvent.t())
   @spec interface_added_event(keyword :: keyword()) :: StreamData.t(InterfaceAddedEvent.t())
   def interface_added_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.interface(),
+    params gen all interface <- interface(),
                    %Interface{
                      name: name,
                      major_version: major_version,

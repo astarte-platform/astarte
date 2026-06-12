@@ -22,26 +22,23 @@ defmodule Astarte.RealmManagement.Generators.IndividualProperty do
   @moduledoc """
   Generators of `IndividualProperty`es
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.Value
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
   alias Astarte.DataAccess.Realms.IndividualProperty
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
-
   @doc false
   @spec individual_property(params :: keyword()) :: StreamData.t(IndividualProperty.t())
   def individual_property(params \\ []) do
-    params gen all interface <-
-                     InterfaceGenerator.interface(aggregation: :individual, type: :properties),
-                   value <- ValueGenerator.value(interface: interface),
-                   device_id <- DeviceGenerator.id(),
+    params gen all interface <- interface(aggregation: :individual, type: :properties),
+                   value <- value(interface: interface),
+                   device_id <- device_id(),
                    %Interface{
                      interface_id: interface_id,
                      mappings: [%Mapping{endpoint_id: endpoint_id} | _]

@@ -24,12 +24,10 @@ defmodule Astarte.Core.Generators.Mapping do
   """
   use Astarte.Generators.Utilities.ParamsGen
 
+  import Astarte.Core.Generators.Interface
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-
-  alias Astarte.Utilities.Map, as: MapUtilities
 
   @unix_prefix_path_chars [?a..?z, ?A..?Z, ?_]
   @unix_path_chars @unix_prefix_path_chars ++ [?0..?9]
@@ -41,9 +39,9 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec mapping() :: StreamData.t(Mapping.t())
   @spec mapping(params :: keyword()) :: StreamData.t(Mapping.t())
   def mapping(params \\ []) do
-    params gen all interface_type <- InterfaceGenerator.type(),
-                   interface_name <- InterfaceGenerator.name(),
-                   interface_major <- InterfaceGenerator.major_version(),
+    params gen all interface_type <- interface_type(),
+                   interface_name <- interface_name(),
+                   interface_major <- interface_major_version(),
                    endpoint <- endpoint(),
                    endpoint_id <- endpoint_id(interface_name, interface_major, endpoint),
                    type <- type(),
@@ -59,7 +57,7 @@ defmodule Astarte.Core.Generators.Mapping do
                    doc <- doc(),
                    params: params do
       fields =
-        MapUtilities.clean(%{
+        %{
           endpoint: endpoint,
           endpoint_id: endpoint_id,
           type: type,
@@ -73,26 +71,9 @@ defmodule Astarte.Core.Generators.Mapping do
           database_retention_ttl: database_retention_ttl,
           description: description,
           doc: doc
-        })
+        }
 
       struct(Mapping, fields)
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(Mapping.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(Mapping.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all mapping <- gen do
-      mapping
-      |> Map.from_struct()
-      |> Map.drop([:interface_id, :endpoint_id])
-      |> MapUtilities.clean()
     end
   end
 
@@ -155,9 +136,9 @@ defmodule Astarte.Core.Generators.Mapping do
 
   @doc false
   @spec reliability(:datastream | :properties) ::
-          StreamData.t(:unreliable | :guaranteed | :unique | nil)
+          StreamData.t(:unreliable | :guaranteed | :unique)
   def reliability(:datastream), do: member_of([:unreliable, :guaranteed, :unique])
-  def reliability(_), do: constant(nil)
+  def reliability(_), do: constant(:unreliable)
 
   @doc false
   @spec explicit_timestamp(:datastream | :properties) :: StreamData.t(boolean())
@@ -176,9 +157,9 @@ defmodule Astarte.Core.Generators.Mapping do
 
   @doc false
   @spec database_retention_policy(:datastream | :properties) ::
-          StreamData.t(:no_ttl | :use_ttl | nil)
+          StreamData.t(:no_ttl | :use_ttl)
   def database_retention_policy(:datastream), do: member_of([:no_ttl, :use_ttl])
-  def database_retention_policy(_), do: constant(nil)
+  def database_retention_policy(_), do: constant(:no_ttl)
 
   @doc false
   @spec database_retention_ttl(:datastream | :properties, :use_ttl | :no_ttl) ::

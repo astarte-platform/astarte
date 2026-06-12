@@ -21,9 +21,10 @@ defmodule Astarte.Events.Triggers.CoreTest do
 
   import Mimic
 
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -162,7 +163,7 @@ defmodule Astarte.Events.Triggers.CoreTest do
     end
 
     test "returns {:device_id, device_id} when a device_id is provided" do
-      device_id = DeviceGenerator.encoded_id() |> Enum.at(0)
+      device_id = device_encoded_id() |> Enum.at(0)
       {:ok, decoded_device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
 
       trigger = %ProtobufDeviceTrigger{
@@ -301,7 +302,7 @@ defmodule Astarte.Events.Triggers.CoreTest do
     end
 
     test "returns {:device_and_any_interface, device_id} when device is specified and interface is '*'" do
-      device_id = DeviceGenerator.encoded_id() |> Enum.at(0)
+      device_id = device_encoded_id() |> Enum.at(0)
       {:ok, decoded_device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
 
       trigger = %ProtobufDataTrigger{
@@ -314,7 +315,7 @@ defmodule Astarte.Events.Triggers.CoreTest do
     end
 
     test "returns {:device_and_interface, device_id, interface_id} when device and interface are specified" do
-      device_id = DeviceGenerator.encoded_id() |> Enum.at(0)
+      device_id = device_encoded_id() |> Enum.at(0)
       {:ok, decoded_device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
       interface_id = CQLUtils.interface_id("com.example.Test", 1)
 

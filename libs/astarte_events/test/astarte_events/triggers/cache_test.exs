@@ -22,7 +22,8 @@ defmodule Astarte.Events.Triggers.CacheTest do
 
   import Mimic
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
+
   alias Astarte.DataAccess.UUID
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
@@ -46,7 +47,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
 
   describe "find_device_trigger_targets/4" do
     test "loads triggers from DB and caches them", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       _simple_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
 
       targets =
@@ -62,7 +63,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
 
     test "loads device triggers for groups", %{realm_name: realm} do
       group = "my_group"
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       _trigger = install_simple_trigger(realm, object: {:group, group})
 
@@ -79,7 +80,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
   end
 
   test "installs and deletes device volatile triggers", %{realm_name: realm} do
-    device_id = DeviceGenerator.id() |> Enum.at(0)
+    device_id = device_id() |> Enum.at(0)
     event_key = :on_device_connection
     default_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
     simple_trigger = Triggers.deserialize_simple_trigger(default_trigger)
@@ -121,7 +122,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
   end
 
   test "installs and deletes data volatile triggers", %{realm_name: realm} do
-    device_id = DeviceGenerator.id() |> Enum.at(0)
+    device_id = device_id() |> Enum.at(0)
     interface = install_interface(realm)
     {:ok, interface_id} = UUID.cast(interface.interface_id)
     data = %{interface_ids_to_name: %{interface_id => interface.name}}
@@ -180,7 +181,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
 
   describe "find_data_triggers/4" do
     test "loads data triggers from DB", %{realm_name: realm} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
       interface = install_interface(realm)
 
       _trigger =

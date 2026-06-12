@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ defmodule Astarte.Core.Generators.MQTTPayload do
   """
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Mapping.Payload, as: PayloadGenerator
+  import Astarte.Core.Generators.Mapping.Payload
 
   @type astarte_payload :: Cyanide.bson_type()
 
@@ -32,24 +32,24 @@ defmodule Astarte.Core.Generators.MQTTPayload do
 
   ## Examples
 
-    iex> MQTTPayloadGenerator.payload() |> Enum.take(1)
+    iex> MQTTPayloadGenerator.mqtt_payload() |> Enum.take(1)
     [
       <<24, 0, 0, 0, 9, 116, 0, 59, 115, 119, 124, 150, 1, 0, 0, 2, 118, 0, 1, 0, 0,
         0, 0, 0>>
     ]
 
 
-    iex> MQTTPayloadGenerator.payload(type: :double, m: %{meta: "data"}) |> Enum.take(1)
+    iex> MQTTPayloadGenerator.mqtt_payload(type: :double, m: %{meta: "data"}) |> Enum.take(1)
     [
       <<27, 0, 0, 0, 9, 116, 0, 218, 95, 121, 124, 150, 1, 0, 0, 1, 118, 0, 0, 0, 0,
         0, 0, 0, 240, 191, 0>>
     ]
   """
-  @spec payload() :: StreamData.t(astarte_payload())
-  @spec payload(params :: keyword()) :: StreamData.t(astarte_payload())
-  def payload(params \\ []),
+  @spec mqtt_payload() :: StreamData.t(astarte_payload())
+  @spec mqtt_payload(params :: keyword()) :: StreamData.t(astarte_payload())
+  def mqtt_payload(params \\ []),
     do:
-      PayloadGenerator.payload(params)
+      payload(params)
       |> map(fn payload ->
         {:ok, bson} = Cyanide.encode(payload)
         bson

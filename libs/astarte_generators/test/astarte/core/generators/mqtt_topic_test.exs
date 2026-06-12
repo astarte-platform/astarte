@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,12 +23,12 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Interface
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.MQTTTopic
+  import Astarte.Core.Generators.Realm
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.MQTTTopic, as: MQTTTopicGenerator
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
+  alias Astarte.Core.Interface
 
   @moduletag :core
   @moduletag :mqtt
@@ -38,13 +38,13 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
     @describetag :success
     @describetag :ut
     property "control_topic/2" do
-      check all topic <- MQTTTopicGenerator.control_topic() do
+      check all topic <- control_topic() do
         refute is_nil(topic)
       end
     end
 
     property "data_topic/2" do
-      check all topic <- MQTTTopicGenerator.data_topic() do
+      check all topic <- data_topic() do
         refute is_nil(topic)
       end
     end
@@ -55,10 +55,10 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
     @describetag :ut
 
     property "passing device" do
-      check all realm_name <- RealmGenerator.realm_name(),
-                %{id: device_id} = device <- DeviceGenerator.device(),
+      check all realm_name <- realm_name(),
+                %{id: device_id} = device <- device(),
                 topic <-
-                  MQTTTopicGenerator.control_topic(
+                  control_topic(
                     realm_name: realm_name,
                     device: device
                   ) do
@@ -67,11 +67,11 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
     end
 
     property "passing device, device_id and interface" do
-      check all realm_name <- RealmGenerator.realm_name(),
-                %{id: device_id} = device <- DeviceGenerator.device(),
-                %Interface{name: interface_name} = interface <- InterfaceGenerator.interface(),
+      check all realm_name <- realm_name(),
+                %{id: device_id} = device <- device(),
+                %Interface{name: interface_name} = interface <- interface(),
                 topic <-
-                  MQTTTopicGenerator.data_topic(
+                  data_topic(
                     realm_name: realm_name,
                     device: device,
                     device_id: device_id,

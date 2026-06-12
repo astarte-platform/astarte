@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorTypeTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorType, as: ErrorTypeGenerator
+  import Astarte.Core.Generators.Triggers.Policy.ErrorType
+
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
 
@@ -41,7 +42,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorTypeTest do
     @describetag :ut
 
     property "validate triggers policy error_type" do
-      check all error_type <- ErrorTypeGenerator.error_type() do
+      check all error_type <- error_type() do
         assert valid_error_type?(error_type)
       end
     end

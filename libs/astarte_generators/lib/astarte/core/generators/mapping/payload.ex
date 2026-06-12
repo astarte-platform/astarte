@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,23 +22,22 @@ defmodule Astarte.Core.Generators.Mapping.Payload do
   """
   use Astarte.Generators.Utilities.ParamsGen
 
-  alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
-  alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
-
-  alias Astarte.Utilities.Map, as: MapUtilities
+  import Astarte.Common.Generators.DateTime
+  import Astarte.Core.Generators.Mapping.ValueType
 
   @spec payload() :: StreamData.t(map())
   @spec payload(params :: keyword()) :: StreamData.t(map())
   def payload(params \\ []) do
-    params gen all type <- ValueTypeGenerator.value_type(),
-                   v <- ValueTypeGenerator.value_from_type(type),
+    params gen all type <- value_type(),
+                   v <- value_from_type(type),
                    t <- timestamp(),
                    m <- metadata(),
                    params: params do
-      MapUtilities.clean(%{v: v, t: t, m: m})
+      %{v: v, t: t, m: m}
+      |> Map.reject(fn {_key, value} -> is_nil(value) end)
     end
   end
 
-  defp timestamp, do: one_of([nil, DateTimeGenerator.date_time()])
+  defp timestamp, do: one_of([nil, date_time()])
   defp metadata, do: one_of([nil, map_of(string(:ascii), string(:ascii))])
 end

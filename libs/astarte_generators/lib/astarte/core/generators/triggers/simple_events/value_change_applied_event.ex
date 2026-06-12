@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,30 +20,28 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent 
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event ValueChangeAppliedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.BSONValue
+  import Astarte.Core.Generators.Mapping.Value
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
 
   @spec value_change_applied_event() :: StreamData.t(ValueChangeAppliedEvent.t())
   @spec value_change_applied_event(keyword :: keyword()) ::
           StreamData.t(ValueChangeAppliedEvent.t())
   def value_change_applied_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.interface(),
+    params gen all interface <- interface(),
                    %Interface{name: name} = interface,
-                   value <- ValueGenerator.value(interface: interface),
+                   value <- value(interface: interface),
                    %{path: path, type: value_type} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   old_bson_value <- BSONValueGenerator.to_bson(%{value | path: path}),
+                   old_bson_value <- to_bson(%{value | path: path}),
                    new_bson_value <-
-                     BSONValueGenerator.bson_value(
+                     bson_value(
                        interface: interface,
                        path: path,
                        type: value_type

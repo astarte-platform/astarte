@@ -23,19 +23,58 @@ defmodule Astarte.TestSuiteTest do
 
   alias Astarte.Core.Interface
 
-  alias Astarte.TestSuite.ConfigurationError
-
   alias Astarte.TestSuite.Case, as: TestSuiteCase
   alias Astarte.TestSuite.Cases.Device, as: DeviceCase
   alias Astarte.TestSuite.Cases.Group, as: GroupCase
   alias Astarte.TestSuite.Cases.Instance, as: InstanceCase
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
-
+  alias Astarte.TestSuite.ConfigurationError
   alias Astarte.TestSuiteTest.Cases.NoParamsCase
   alias Astarte.TestSuiteTest.Cases.ParamsCase
   alias Astarte.TestSuiteTest.Helpers.Common, as: CommonHelperSupport
 
   doctest Astarte.TestSuite
+
+  defmodule DescendantOnlyMacroTest do
+    use Astarte.TestSuite, group: true
+  end
+
+  defmodule RandomOrderMacroTest do
+    use Astarte.TestSuite,
+      secure: [token_ttl: 60],
+      group: [group_number: 4],
+      instance: true,
+      common: true
+  end
+
+  defmodule MixedCasesMacroTest do
+    use Astarte.TestSuite,
+      conn: [transport: :http, port: 4000],
+      external_cases: [
+        Astarte.TestSuiteTest.Cases.NoParamsCase,
+        {Astarte.TestSuiteTest.Cases.ParamsCase, [value: 7]}
+      ]
+  end
+
+  defmodule DisabledGraphMacroTest do
+    use Astarte.TestSuite, group: false
+  end
+
+  defmodule SingleExternalCaseMacroTest do
+    use Astarte.TestSuite, external_cases: Astarte.TestSuiteTest.Cases.NoParamsCase
+  end
+
+  defmodule DirectExternalModuleKeyMacroTest do
+    use Astarte.TestSuite, [
+      {:"Elixir.Astarte.TestSuiteTest.Cases.NoParamsCase", true},
+      {:"Elixir.Astarte.TestSuiteTest.Cases.ParamsCase", [value: 1]}
+    ]
+  end
+
+  defmodule AliasedExternalModuleMacroTest do
+    alias Astarte.TestSuiteTest.Cases.NoParamsCase
+    use Astarte.TestSuite, external_cases: [NoParamsCase]
+  end
 
   test "planner includes a single explicit parent with its ancestors" do
     assert %Astarte.TestSuite.Plan{
@@ -314,9 +353,7 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "use macro exposes graph plan for descendant-only request" do
-    module = compile_suite!(DescendantOnlyMacroTest, group: true)
-
-    assert module.__astarte_test_suite_plan__().load_order == [
+    assert DescendantOnlyMacroTest.__astarte_test_suite_plan__().load_order == [
              :common,
              :instance,
              :realm,
@@ -327,16 +364,7 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "use macro ignores caller order and keeps topological order" do
-    module =
-      compile_suite!(
-        RandomOrderMacroTest,
-        secure: [token_ttl: 60],
-        group: [group_number: 4],
-        instance: true,
-        common: true
-      )
-
-    assert module.__astarte_test_suite_plan__().load_order == [
+    assert RandomOrderMacroTest.__astarte_test_suite_plan__().load_order == [
              :common,
              :instance,
              :realm,
@@ -349,53 +377,34 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "use macro appends non graph cases after graph-managed cases" do
-    module =
-      compile_suite!(
-        MixedCasesMacroTest,
-        conn: [transport: :http, port: 4000],
-        external_cases: [NoParamsCase, {ParamsCase, [value: 7]}]
-      )
-
     assert %{
              load_order: [:common, :instance, :conn],
              external_case_modules: [NoParamsCase, ParamsCase]
-           } = module.__astarte_test_suite_plan__()
+           } = MixedCasesMacroTest.__astarte_test_suite_plan__()
   end
 
   test "use macro accepts disabled graph cases" do
-    module = compile_suite!(DisabledGraphMacroTest, group: false)
-
     assert %{load_order: [], external_case_modules: []} =
-             module.__astarte_test_suite_plan__()
+             DisabledGraphMacroTest.__astarte_test_suite_plan__()
   end
 
   test "use macro accepts a single external case entry" do
-    module = compile_suite!(SingleExternalCaseMacroTest, external_cases: NoParamsCase)
-
     assert %{load_order: [], external_case_modules: [NoParamsCase]} =
-             module.__astarte_test_suite_plan__()
+             SingleExternalCaseMacroTest.__astarte_test_suite_plan__()
   end
 
   test "use macro accepts direct external module keys" do
-    module =
-      compile_suite!(
-        DirectExternalModuleKeyMacroTest,
-        [{NoParamsCase, true}, {ParamsCase, [value: 1]}]
-      )
-
     assert %{
              load_order: [],
              external_case_modules: [NoParamsCase, ParamsCase]
-           } = module.__astarte_test_suite_plan__()
+           } = DirectExternalModuleKeyMacroTest.__astarte_test_suite_plan__()
   end
 
   test "use macro expands aliased external modules" do
-    module = compile_quoted_suite!(AliasedExternalModuleMacroTest)
-
     assert %{
              load_order: [],
              external_case_modules: [NoParamsCase]
-           } = module.__astarte_test_suite_plan__()
+           } = AliasedExternalModuleMacroTest.__astarte_test_suite_plan__()
   end
 
   test "use macro rejects invalid literal compile-time configuration" do
@@ -485,24 +494,6 @@ defmodule Astarte.TestSuiteTest do
       quote do
         defmodule unquote(module) do
           use Astarte.TestSuite, unquote(opts_ast)
-        end
-      end
-
-    Code.compile_quoted(quoted)
-
-    module
-  end
-
-  defp compile_quoted_suite!(name) do
-    module = Module.concat(__MODULE__, name)
-
-    quoted =
-      quote do
-        defmodule unquote(module) do
-          alias Astarte.TestSuiteTest.Cases.NoParamsCase
-
-          use Astarte.TestSuite,
-            external_cases: [NoParamsCase]
         end
       end
 

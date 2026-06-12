@@ -52,11 +52,11 @@ defmodule Astarte.Core.Generators.MixProject do
   defp deps do
     [
       {:stream_data, "~> 1.1"},
+      {:moar, "~> 5.0"},
       # Test section
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end

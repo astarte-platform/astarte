@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,27 +20,25 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent do
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event PathCreatedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.BSONValue
+  import Astarte.Core.Generators.Mapping.Value
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
-
   @spec path_created_event() :: StreamData.t(PathCreatedEvent.t())
   @spec path_created_event(keyword :: keyword()) :: StreamData.t(PathCreatedEvent.t())
   def path_created_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.interface(),
+    params gen all interface <- interface(),
                    %Interface{name: name} = interface,
-                   value <- ValueGenerator.value(interface: interface),
+                   value <- value(interface: interface),
                    %{path: path} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   bson_value <- BSONValueGenerator.to_bson(%{value | path: path}),
+                   bson_value <- to_bson(%{value | path: path}),
                    params: params do
       %PathCreatedEvent{
         interface: interface_name,

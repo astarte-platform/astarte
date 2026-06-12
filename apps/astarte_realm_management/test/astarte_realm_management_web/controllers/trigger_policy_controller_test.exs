@@ -22,7 +22,9 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
   import ExUnit.CaptureLog
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Astarte.Core.Adapters.Triggers.Policy
+  import Astarte.Core.Generators.Triggers.Policy
+
   alias Astarte.RealmManagement.Triggers.Policies
 
   @moduletag :trigger_policy
@@ -45,7 +47,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
     test "list existing policies", %{auth_conn: conn, realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post_conn, 201)["data"]["name"] == name
@@ -64,7 +66,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
     test "shows existing policy", %{auth_conn: conn, realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post_conn, 201)["data"]["name"] == name
@@ -90,7 +92,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
     test "renders policy when data is valid", %{auth_conn: conn, realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post_conn, 201)["data"]["name"] == name
@@ -111,7 +113,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
     test "renders error when policy is already installed", %{auth_conn: conn, realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post_conn, 201)["data"]["name"] == name
@@ -130,7 +132,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
 
     test "deletes existing policy", %{auth_conn: conn, realm: realm} do
       policy_changeset =
-        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
+        %{name: name} = policy() |> Enum.at(0) |> from_core_triggers_policy_to_change()
 
       post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post_conn, 201)["data"]["name"] == name

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEve
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent,
-    as: InterfaceMinorUpdatedEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,8 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEve
     @describetag :success
     @describetag :ut
     property "generates valid interface_minor_updated_event" do
-      check all interface_minor_updated_event <-
-                  InterfaceMinorUpdatedEventGenerator.interface_minor_updated_event() do
+      check all interface_minor_updated_event <- interface_minor_updated_event() do
         assert %InterfaceMinorUpdatedEvent{} = interface_minor_updated_event
       end
     end
