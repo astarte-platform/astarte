@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   ## Message structure:
 
       [
+        seq_num     :: uint,        # sequence number
         key_type    :: uint,        # suite identifier integer
         cose_key    :: #bstr,       # CBOR-encoded COSE_Key map
         hkdf_salt   :: #bstr,       # HKDF salt (32 B)
@@ -64,6 +65,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   typedstruct enforce: true do
     @typedoc "InitExchange key-agreement message."
 
+    field :seq_num, non_neg_integer()
     field :key_type, key_suite()
     field :public_key, Key.t()
     field :hkdf_salt, binary()
@@ -72,11 +74,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
 
   @doc """
   Builds a new `%InitExchange{}` with a freshly generated ephemeral X25519
-  key pair, a random HKDF salt, and a random AES-GCM nonce.
+  key pair, a random HKDF salt, a random AES-GCM nonce, and a random sequence
+  number.
 
   Returns a `%InitExchange{}` with the full key struct stored in `public_key`
   (including the private `d` field for later ECDH derivation), a random HKDF
-  salt, and a random AES-GCM nonce.
+  salt, a random AES-GCM nonce, and a random `seq_num` suitable for
+  correlation with the corresponding `ExchangeResp`.
   """
   @spec new(key_suite()) :: t()
   def new(key_type \\ :ecdh_x25519_hkdf_sha256_aes_256_gcm)
@@ -85,8 +89,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
     key = OKP.generate(:enc)
     hkdf_salt = :crypto.strong_rand_bytes(@hkdf_salt_size)
     nonce = :crypto.strong_rand_bytes(@nonce_size)
+    <<seq_num::unsigned-16>> = :crypto.strong_rand_bytes(2)
 
     %__MODULE__{
+      seq_num: seq_num,
       key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm,
       public_key: key,
       hkdf_salt: hkdf_salt,
@@ -98,8 +104,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
     key = ECC.generate(:es256)
     hkdf_salt = :crypto.strong_rand_bytes(@hkdf_salt_size)
     nonce = :crypto.strong_rand_bytes(@nonce_size)
+    <<seq_num::unsigned-16>> = :crypto.strong_rand_bytes(2)
 
     %__MODULE__{
+      seq_num: seq_num,
       key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm,
       public_key: key,
       hkdf_salt: hkdf_salt,
@@ -116,6 +124,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
     cose_key_bytes = COSE.Keys.encode_cbor(msg.public_key)
 
     [
+      msg.seq_num,
       key_type_id,
       %CBOR.Tag{tag: :bytes, value: cose_key_bytes},
       %CBOR.Tag{tag: :bytes, value: msg.hkdf_salt},
@@ -143,7 +152,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
     end
   end
 
-  defp parse([key_type, public_key, hkdf_salt, nonce]) do
+  defp parse([seq_num, key_type, public_key, hkdf_salt, nonce])
+       when is_integer(seq_num) and seq_num >= 0 do
     with {:ok, key_suite} <- parse_key_suite(key_type),
          {:ok, cose_key_bytes} <- unwrap_bytes(public_key),
          {:ok, cose_key_map} <- decode_cbor(cose_key_bytes),
@@ -154,6 +164,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
          :ok <- validate_nonce(nonce) do
       {:ok,
        %__MODULE__{
+         seq_num: seq_num,
          key_type: key_suite,
          public_key: raw_public_key,
          hkdf_salt: hkdf_salt,
