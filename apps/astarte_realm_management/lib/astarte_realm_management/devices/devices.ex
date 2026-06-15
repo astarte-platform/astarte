@@ -25,6 +25,7 @@ defmodule Astarte.RealmManagement.Devices do
   """
   alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval
+  alias Astarte.RealmManagement.DeviceRemoval.Scheduler
   alias Astarte.RealmManagement.Devices.Queries
   alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
   alias Astarte.RealmManagement.TriggersHandler
@@ -51,6 +52,8 @@ defmodule Astarte.RealmManagement.Devices do
     if Queries.device_exists?(realm_name, device_id) do
       TriggersHandler.device_deletion_started(realm_name, device_id)
       DevicesRPC.start_device_deletion_rpc(realm_name, device_id)
+      Scheduler.delete_device(realm_name, device_id)
+
       :ok
     else
       # Don't leave dangling entries. This should only ever run if the request was made for

@@ -54,6 +54,19 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     {:noreply, state}
   end
 
+  @doc """
+  Starts the device deletion process for the given device if all `ack`s have been received
+  """
+  def delete_device(realm_name, device_id) do
+    case Queries.device_to_delete?(realm_name, device_id) do
+      true ->
+        start_device_deletion(%{device_id: device_id, realm_name: realm_name})
+
+      false ->
+        {:error, :device_not_ready}
+    end
+  end
+
   defp start_device_deletion! do
     device_to_delete_list = retrieve_devices_to_delete!()
 
