@@ -30,7 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
   @spec decode_bson_payload(binary, integer) ::
-          {:ok, {map, integer, map}}
+          {:ok, {term, integer, map}}
           | {:ok, {nil, nil, nil}}
           | {:error, :undecodable_bson_payload}
 

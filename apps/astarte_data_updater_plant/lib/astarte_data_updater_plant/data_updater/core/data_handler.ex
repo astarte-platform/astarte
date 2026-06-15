@@ -64,6 +64,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
+         # TODO device_shared_secret will be fetched from DB later, for now it can be hardcoded
+         {:ok, value} <- do_decrypt_payload(value, mapping, context, "some_device_shared_secret"),
          :ok <- validate_value(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
@@ -627,4 +629,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     do: realm_max_ttl
 
   defp max_ttl(_, _, _), do: nil
+
+  defp do_decrypt_payload(value, %Mapping{encrypted: true}, context, key)
+       when is_binary(value) and is_binary(key) do
+    case value do
+      <<iv::binary-12, tag::binary-16, ciphertext::binary>> ->
+        decrypted_payload =
+          :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, ciphertext, <<>>, tag, false)
+
+        {:ok, decrypted_payload}
+
+      _ ->
+        handle_decryption_failure(context)
+    end
+  end
+
+  defp do_decrypt_payload(_value, %Mapping{encrypted: true}, context, _device_shared_secret) do
+    handle_decryption_failure(context)
+  end
+
+  defp do_decrypt_payload(value, %Mapping{encrypted: false}, _context, _device_shared_secret),
+    do: {:ok, value}
+
+  defp handle_decryption_failure(context) do
+    %{state: %{realm: realm, device_id: device_id}} = context
+
+    error = %{
+      message: "Failed to decrypt payload for device #{device_id} in realm #{realm}",
+      logger_metadata: [tag: "decryption_failed"],
+      error_name: "decryption_failed",
+      error: :decryption_failed
+    }
+
+    Core.Error.handle_error(context, error)
+  end
 end
