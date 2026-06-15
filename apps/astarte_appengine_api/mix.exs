@@ -105,6 +105,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:libcluster, "~> 3.3"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:horde, "~> 0.9"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
