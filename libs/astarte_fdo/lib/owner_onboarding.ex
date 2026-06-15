@@ -61,8 +61,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
            Session.new(
              realm_name,
              hello_device,
-             ownership_voucher,
-             ownership_voucher.hmac
+             ownership_voucher
            ) do
       encoded_pub_key = PublicKey.encode(pub_key)
       num_ov_entries = Enum.count(ownership_voucher.entries)

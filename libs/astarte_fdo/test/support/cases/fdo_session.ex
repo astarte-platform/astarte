@@ -139,12 +139,7 @@ defmodule Astarte.Cases.FDOSession do
       )
 
     {:ok, token, session} =
-      Session.new(
-        context.realm_name,
-        hello_device,
-        context.ownership_voucher,
-        context.ownership_voucher.hmac
-      )
+      Session.new(context.realm_name, hello_device, context.ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)

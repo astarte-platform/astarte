@@ -60,9 +60,10 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     field :replacement_hmac, Hash.t() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher, hmac) do
+  def new(realm_name, hello_device, ownership_voucher) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
+    hmac = ownership_voucher.hmac
 
     %HelloDevice{
       guid: guid,

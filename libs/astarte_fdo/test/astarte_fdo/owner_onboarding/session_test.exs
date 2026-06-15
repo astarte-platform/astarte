@@ -39,8 +39,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
                Session.new(
                  realm_name,
                  hello_device,
-                 ownership_voucher,
-                 ownership_voucher.hmac
+                 ownership_voucher
                )
 
       assert is_binary(session.guid)
@@ -208,7 +207,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher, p384_voucher.hmac)
+        Session.new(realm_name, hello_device, p384_voucher)
 
       {:ok, session_with_secret} =
         Session.build_session_secret(session, realm_name, p384_owner_key, xb)
