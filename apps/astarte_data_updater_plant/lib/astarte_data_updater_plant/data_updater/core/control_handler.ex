@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   """
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -32,6 +33,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   require Logger
+
+  @doc """
+  Handles control messages published by the device on various control topics.
+
+  ### Supported Paths
+  * `/producer/properties` - Handles properties pruning (plaintext or zlib compressed).
+  * `/emptyCache` - Triggers a cache empty and interface properties resend.
+  * `/keyAgreement` - Handles the InitExchange protocol (Device to Astarte direction).
+  * `/keyAgreement/1` - Receives an ExchangeResp sent by the device when Astarte previously initiated a key-agreement handshake.
+  """
+  def handle_control(state, path, payload, timestamp)
 
   def handle_control(%State{discard_messages: true} = state, _, _, _) do
     {:discard, :discard_messages, state}
@@ -148,16 +160,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  @doc """
-  Handles the `/keyAgreement` control topic (Device to Astarte direction).
-
-  Performs full payload parsing and validation per the InitExchange protocol.
-  """
   def handle_control(state, "/keyAgreement", payload, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     case InitExchange.decode(payload) do
-      # TODO: use init_exchange for shared-secret derivation (ECDH + HKDF step)
+      # TODO: call send_exchange_resp/3 here and use the returned key pair
+      #       for the ECDH + HKDF shared-secret derivation step.
       {:ok, _init_exchange} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_init],
@@ -193,6 +201,55 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           logger_metadata: [tag: "key_agreement_error"],
           error_name: "key_agreement_error",
           error: :key_agreement_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
+  def handle_control(state, "/keyAgreement/1", payload, timestamp) do
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
+    expected_key_type =
+      Map.get(new_state, :pending_key_type, :ecdh_x25519_hkdf_sha256_aes_256_gcm)
+
+    case ExchangeResp.cbor_decode(payload, expected_key_type) do
+      # TODO: use exchange_resp for ECDH + HKDF shared-secret derivation
+      {:ok, _exchange_resp} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
+          %{payload_size: byte_size(payload)},
+          %{realm: new_state.realm}
+        )
+
+        final_state = %{
+          new_state
+          | total_received_msgs: new_state.total_received_msgs + 1,
+            total_received_bytes: new_state.total_received_bytes + byte_size(payload)
+        }
+
+        {:ack, :ok, final_state}
+
+      {:error, reason} ->
+        Logger.warning(
+          "[keyAgreement/1] payload validation failed: #{inspect(reason)}",
+          tag: "key_agreement_resp_invalid_payload"
+        )
+
+        context = %{
+          state: new_state,
+          payload: payload,
+          path: "/keyAgreement/1",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message:
+            "Invalid keyAgreement/1 payload (#{inspect(reason)}): " <>
+              inspect(Base.encode64(payload)),
+          logger_metadata: [tag: "key_agreement_resp_error"],
+          error_name: "key_agreement_resp_error",
+          error: :key_agreement_resp_error
         }
 
         Core.Error.handle_error(context, error)
@@ -273,6 +330,66 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:error, reason} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "error"}
+        )
+
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Publishes an `ExchangeResp` message from Astarte to a device in response to a
+  received `InitExchange` on:
+  `<realm>/<device_id>/control/keyAgreement/1`
+  """
+  @spec send_exchange_resp(String.t(), binary(), InitExchange.t()) ::
+          {:ok, ExchangeResp.t()} | {:error, term()}
+  def send_exchange_resp(realm, device_id, %InitExchange{} = init_exchange) do
+    exchange_resp = ExchangeResp.new(init_exchange)
+
+    with :ok <- publish_exchange_resp(realm, device_id, exchange_resp) do
+      {:ok, exchange_resp}
+    end
+  end
+
+  defp publish_exchange_resp(realm, device_id, %ExchangeResp{} = exchange_resp) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/1"
+    payload = ExchangeResp.cbor_encode(exchange_resp)
+
+    publish_start = System.monotonic_time()
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success"}
+        )
+
+        :ok
+
+      {:ok, %{local_matches: 0, remote_matches: 0}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "no_matches"}
+        )
+
+        {:error, :session_not_found}
+
+      {:error, reason} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp_send],
           %{
             duration: System.monotonic_time() - publish_start,
             payload_size: byte_size(payload)
