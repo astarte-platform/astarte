@@ -136,6 +136,7 @@ defmodule Astarte.Helpers.Database do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities capabilities,
+        shared_secret blob,
 
         PRIMARY KEY (device_id)
       );

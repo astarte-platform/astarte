@@ -42,6 +42,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :previous_interfaces, {:array, :map}
     field :groups, {:array, :string}
     field :deletion_in_progress, :boolean, default: false
+    field :shared_secret, :binary
   end
 
   @doc false

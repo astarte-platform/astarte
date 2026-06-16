@@ -63,7 +63,8 @@ defmodule Astarte.DataAccess.Database do
     {21, Migrations.Realm.CreateUnconfirmedDevices},
     {22, Migrations.Realm.AddEncryptedToIndividualProperties},
     {23, Migrations.Realm.AddEncryptedToIndividualDatastreams},
-    {24, Migrations.Realm.AddEncryptedToEndpoints}
+    {24, Migrations.Realm.AddEncryptedToEndpoints},
+    {25, Migrations.Realm.AddSharedSecretToDevice}
   ]
 
   @doc """

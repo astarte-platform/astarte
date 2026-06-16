@@ -95,7 +95,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
     last_seen_ip inet,
     attributes map<varchar, varchar>,
     capabilities capabilities,
-
+    shared_secret blob,
     groups map<text, timeuuid>,
 
     PRIMARY KEY (device_id)

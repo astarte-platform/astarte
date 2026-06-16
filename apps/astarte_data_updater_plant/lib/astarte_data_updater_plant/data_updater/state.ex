@@ -114,5 +114,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :last_datastream_maximum_retention_refresh, non_neg_integer(), default: 0
     field :capabilities, Capabilities.t(), default: %Capabilities{}
     field :encrypted_endpoints_key, HandshakeState.t(), default: :uninitialized
+    field :shared_secret, binary()
   end
 end

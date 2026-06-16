@@ -151,6 +151,7 @@ defmodule Astarte.Helpers.Database do
     last_seen_ip inet,
     attributes map<varchar, varchar>,
     capabilities capabilities,
+    shared_secret blob,
 
     groups map<text, timeuuid>,
 

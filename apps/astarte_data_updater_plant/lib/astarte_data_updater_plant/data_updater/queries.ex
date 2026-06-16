@@ -217,7 +217,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         :total_received_bytes,
         :introspection,
         :exchanged_bytes_by_interface,
-        :exchanged_msgs_by_interface
+        :exchanged_msgs_by_interface,
+        :shared_secret
       ])
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
@@ -233,7 +234,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
-      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface
+      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
+      shared_secret: stats.shared_secret
     }
   end
 
@@ -731,5 +733,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> Map.take(nil_keys)
 
     Map.merge(capabilities, defaults)
+  end
+
+  def save_shared_secret(realm, device_id, shared_secret) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    device =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{shared_secret: shared_secret})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    Repo.update!(device, opts)
+    :ok
   end
 end

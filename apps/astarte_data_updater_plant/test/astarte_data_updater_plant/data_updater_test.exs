@@ -52,6 +52,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.Events.Triggers.Cache
 
   setup :verify_on_exit!
@@ -1620,6 +1621,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # The second disconnection trigger is not sent
     assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
+  end
+
+  test "the shared secret is loaded from the database when the data updater process comes up", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
+    random_binary = :crypto.strong_rand_bytes(16)
+
+    encoded_device_id =
+      :crypto.strong_rand_bytes(16)
+      |> Base.url_encode64(padding: false)
+
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+
+    DatabaseTestHelper.insert_device(realm, device_id)
+
+    Queries.save_shared_secret(realm, device_id, random_binary)
+
+    handle_connection(
+      realm,
+      encoded_device_id,
+      "10.0.0.1",
+      make_timestamp("2017-12-09T14:00:32+00:00")
+    )
+
+    assert %{shared_secret: random_binary} = dump_state(realm, encoded_device_id)
   end
 
   defp generate_disconnection_trigger_data do
