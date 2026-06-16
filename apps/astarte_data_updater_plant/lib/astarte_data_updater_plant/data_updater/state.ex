@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
   @type interface_name :: String.t()
   @type policy_name :: String.t()
@@ -112,5 +113,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :last_deletion_in_progress_refresh, non_neg_integer(), default: 0
     field :last_datastream_maximum_retention_refresh, non_neg_integer(), default: 0
     field :capabilities, Capabilities.t(), default: %Capabilities{}
+    field :handshake_key_type, InitExchange.key_suite() | nil
+    field :active_key_type, InitExchange.key_suite() | nil
   end
 end

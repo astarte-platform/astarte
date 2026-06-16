@@ -166,7 +166,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     case InitExchange.decode(payload) do
       # TODO: call send_exchange_resp/3 here and use the returned key pair
       #       for the ECDH + HKDF shared-secret derivation step.
-      {:ok, _init_exchange} ->
+      {:ok, init_exchange} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_init],
           %{payload_size: byte_size(payload)},
@@ -176,7 +176,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         final_state = %{
           new_state
           | total_received_msgs: new_state.total_received_msgs + 1,
-            total_received_bytes: new_state.total_received_bytes + byte_size(payload)
+            total_received_bytes: new_state.total_received_bytes + byte_size(payload),
+            active_key_type: init_exchange.key_type
         }
 
         {:ack, :ok, final_state}
@@ -208,52 +209,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   def handle_control(state, "/keyAgreement/1", payload, timestamp) do
-    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
-
-    expected_key_type =
-      Map.get(new_state, :pending_key_type, :ecdh_x25519_hkdf_sha256_aes_256_gcm)
-
-    case ExchangeResp.cbor_decode(payload, expected_key_type) do
-      # TODO: use exchange_resp for ECDH + HKDF shared-secret derivation
-      {:ok, _exchange_resp} ->
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
-          %{payload_size: byte_size(payload)},
-          %{realm: new_state.realm}
-        )
-
-        final_state = %{
-          new_state
-          | total_received_msgs: new_state.total_received_msgs + 1,
-            total_received_bytes: new_state.total_received_bytes + byte_size(payload)
-        }
-
-        {:ack, :ok, final_state}
-
-      {:error, reason} ->
-        Logger.warning(
-          "[keyAgreement/1] payload validation failed: #{inspect(reason)}",
-          tag: "key_agreement_resp_invalid_payload"
-        )
-
-        context = %{
-          state: new_state,
-          payload: payload,
-          path: "/keyAgreement/1",
-          timestamp: timestamp
-        }
-
-        error = %{
-          message:
-            "Invalid keyAgreement/1 payload (#{inspect(reason)}): " <>
-              inspect(Base.encode64(payload)),
-          logger_metadata: [tag: "key_agreement_resp_error"],
-          error_name: "key_agreement_resp_error",
-          error: :key_agreement_resp_error
-        }
-
-        Core.Error.handle_error(context, error)
-    end
+    state
+    |> TimeBasedActions.execute_time_based_actions(timestamp)
+    |> process_key_agreement(payload, timestamp)
   end
 
   def handle_control(state, path, payload, timestamp) do
@@ -278,21 +236,80 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.Error.handle_error(context, error)
   end
 
+  defp process_key_agreement(%{handshake_key_type: nil} = state, _payload, _timestamp) do
+    Logger.warning(
+      "[keyAgreement/1] Received ExchangeResp but no pending key exchange was found in state.",
+      tag: "key_agreement_resp_unexpected"
+    )
+    #TODO: implement ExchangeFailed message to signal to the other party that for whatever reason the key exchange has failed
+    {:ack, :ok, state}
+  end
+
+  defp process_key_agreement(%{handshake_key_type: expected_key_type} = state, payload, timestamp) do
+    case ExchangeResp.cbor_decode(payload, expected_key_type) do
+      {:ok, _exchange_resp} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
+          %{payload_size: byte_size(payload)},
+          %{realm: state.realm}
+        )
+
+        final_state = %{
+          state
+          | total_received_msgs: state.total_received_msgs + 1,
+            total_received_bytes: state.total_received_bytes + byte_size(payload),
+            handshake_key_type: nil,
+            active_key_type: expected_key_type
+        }
+
+        {:ack, :ok, final_state}
+
+      {:error, reason} ->
+        Logger.warning(
+          "[keyAgreement/1] payload validation failed: #{inspect(reason)}",
+          tag: "key_agreement_resp_invalid_payload"
+        )
+
+        context = %{
+          state: state,
+          payload: payload,
+          path: "/keyAgreement/1",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message:
+            "Invalid keyAgreement/1 payload (#{inspect(reason)}): " <>
+              inspect(Base.encode64(payload)),
+          logger_metadata: [tag: "key_agreement_resp_error"],
+          error_name: "key_agreement_resp_error",
+          error: :key_agreement_resp_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
   @doc """
   Sends an `InitExchange` message from Astarte to a device to trigger
   a new key-agreement handshake
 
   Generates a fresh ephemeral X25519 key pair, a random HKDF
   salt, and a random AES-256-GCM nonce, CBOR-encodes the `InitExchange`
-  struct, and publishes it on: `<realm>/<device_id>/control/keyAgreement`
+  struct, updates the state with the new handshake key type, and publishes
+  it on: `<realm>/<device_id>/control/keyAgreement`
   """
-  @spec send_init_exchange(String.t(), binary()) ::
-          {:ok, InitExchange.t()} | {:error, term()}
-  def send_init_exchange(realm, device_id) do
+  @spec send_init_exchange(State.t()) :: {:ok, State.t()} | {:error, term()}
+  def send_init_exchange(state) do
     init_exchange = InitExchange.new()
 
-    with :ok <- publish_init_exchange(realm, device_id, init_exchange) do
-      {:ok, init_exchange}
+    with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange) do
+      updated_state = %{
+        state
+        | handshake_key_type: init_exchange.key_type
+      }
+
+      {:ok, updated_state}
     end
   end
 
