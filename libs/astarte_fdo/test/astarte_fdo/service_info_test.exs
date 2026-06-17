@@ -25,8 +25,8 @@ defmodule Astarte.FDO.ServiceInfoTest do
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
   alias COSE.Keys.ECC
 
@@ -79,7 +79,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } = context
 
     {:ok, token, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, ownership_voucher.hmac)
+      Session.new(realm_name, hello_device, ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)

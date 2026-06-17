@@ -24,8 +24,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
 
   setup :verify_on_exit!

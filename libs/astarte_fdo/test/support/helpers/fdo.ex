@@ -30,6 +30,7 @@ defmodule Astarte.FDO.Helpers do
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
   alias Astarte.FDO.Core.PublicKey
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
   alias COSE.Messages.Sign1
@@ -464,5 +465,10 @@ defmodule Astarte.FDO.Helpers do
       nil,
       PublicKey.encode(public_key)
     ])
+  end
+
+  def create_session_with_device_id(realm_name, hello_device, ownership_voucher, device_id) do
+    {:ok, _token, session} = Session.new(realm_name, hello_device, ownership_voucher)
+    {:ok, _} = Session.add_device_id(session, realm_name, device_id)
   end
 end

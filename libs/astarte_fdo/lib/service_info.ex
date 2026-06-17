@@ -30,7 +30,7 @@ defmodule Astarte.FDO.ServiceInfo do
 
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding.Session
 
   import Astarte.FDO.Core.ServiceInfo
 

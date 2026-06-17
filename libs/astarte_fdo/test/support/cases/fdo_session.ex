@@ -37,10 +37,10 @@ defmodule Astarte.Cases.FDOSession do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
@@ -77,6 +77,7 @@ defmodule Astarte.Cases.FDOSession do
     owner_key_pem = COSE.Keys.to_pem(owner_key_struct)
     cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
     device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
 
     key_alg =
       case key_type do
@@ -108,6 +109,7 @@ defmodule Astarte.Cases.FDOSession do
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,
       device_id: device_id,
+      encoded_device_id: encoded_device_id,
       device_key: device_key
     }
   end
@@ -139,12 +141,7 @@ defmodule Astarte.Cases.FDOSession do
       )
 
     {:ok, token, session} =
-      Session.new(
-        context.realm_name,
-        hello_device,
-        context.ownership_voucher,
-        context.ownership_voucher.hmac
-      )
+      Session.new(context.realm_name, hello_device, context.ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)
@@ -158,6 +155,7 @@ defmodule Astarte.Cases.FDOSession do
 
     %{
       hello_device: hello_device,
+      guid: hello_device.guid,
       session: session,
       token: token,
       device_random: device_random,

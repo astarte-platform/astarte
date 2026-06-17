@@ -36,10 +36,10 @@ defmodule Astarte.Cases.FDOSession do
 
   alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
@@ -135,12 +135,7 @@ defmodule Astarte.Cases.FDOSession do
       )
 
     {:ok, token, session} =
-      Session.new(
-        context.realm_name,
-        hello_device,
-        context.ownership_voucher,
-        context.ownership_voucher.hmac
-      )
+      Session.new(context.realm_name, hello_device, context.ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)

@@ -35,13 +35,13 @@ defmodule Astarte.FDO.OwnerOnboarding do
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.ProveDevice
   alias Astarte.FDO.Core.OwnerOnboarding.ProveOVHdr
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SetupDevicePayload
   alias Astarte.FDO.Core.OwnershipVoucher, as: CoreOwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Header
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Secrets
 
@@ -61,8 +61,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
            Session.new(
              realm_name,
              hello_device,
-             ownership_voucher,
-             ownership_voucher.hmac
+             ownership_voucher
            ) do
       encoded_pub_key = PublicKey.encode(pub_key)
       num_ov_entries = Enum.count(ownership_voucher.entries)

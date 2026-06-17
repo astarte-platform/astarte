@@ -29,9 +29,9 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnershipVoucher, as: OVCore
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnershipVoucher
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
