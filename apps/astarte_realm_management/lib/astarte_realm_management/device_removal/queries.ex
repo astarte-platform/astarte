@@ -199,6 +199,20 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     :ok
   end
 
+  def device_to_delete?(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    case Repo.fetch(DeletionInProgress, device_id, opts) do
+      {:ok, deletion} -> DeletionInProgress.all_ack?(deletion)
+      {:error, :not_found} -> false
+    end
+  end
+
   def retrieve_devices_to_delete!(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
