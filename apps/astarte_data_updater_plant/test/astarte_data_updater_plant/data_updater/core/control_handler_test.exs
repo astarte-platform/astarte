@@ -322,6 +322,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+      assert new_state.active_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do
@@ -332,6 +333,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+      assert new_state.active_key_type == :ecdh_p256_hkdf_sha256_aes_256_gcm
     end
 
     test "discards the message if discard_messages is set", context do
@@ -420,54 +422,45 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     end
   end
 
-  describe "send_init_exchange/2" do
-    setup context do
-      %{state: state} = context
-      {:ok, realm: state.realm, device_id: state.device_id}
-    end
-
-    test "publishes a well-formed CBOR InitExchange to the device and returns the message",
+  describe "send_init_exchange/1" do
+    test "publishes a well-formed CBOR InitExchange to the device and returns the updated state",
          context do
-      %{realm: realm, device_id: device_id} = context
+      %{state: state} = context
 
       expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
-        encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
 
-        assert topic == "#{realm}/#{encoded_device_id}/control/keyAgreement"
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement"
         assert qos == 2
         assert {:ok, _} = InitExchange.decode(payload_bytes)
 
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
-      assert {:ok, %InitExchange{} = msg} =
-               ControlHandler.send_init_exchange(realm, device_id)
+      assert {:ok, new_state} = ControlHandler.send_init_exchange(state)
 
-      assert msg.key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
-      assert %COSE.Keys.OKP{} = msg.public_key
-      assert byte_size(msg.hkdf_salt) == 32
-      assert byte_size(msg.nonce) == 12
+      assert new_state.handshake_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
     end
 
     test "returns {:error, :session_not_found} when the device has no active session",
          context do
-      %{realm: realm, device_id: device_id} = context
+      %{state: state} = context
 
       expect(VMQPlugin, :publish, fn _topic, _payload, _qos ->
         {:ok, %{local_matches: 0, remote_matches: 0}}
       end)
 
       assert {:error, :session_not_found} =
-               ControlHandler.send_init_exchange(realm, device_id)
+               ControlHandler.send_init_exchange(state)
     end
 
     test "returns {:error, reason} on VMQ publish failure", context do
-      %{realm: realm, device_id: device_id} = context
+      %{state: state} = context
 
       expect(VMQPlugin, :publish, fn _topic, _payload, _qos -> {:error, :transport_failure} end)
 
       assert {:error, :transport_failure} =
-               ControlHandler.send_init_exchange(realm, device_id)
+               ControlHandler.send_init_exchange(state)
     end
   end
 
@@ -477,33 +470,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       %{state: state, exchange_resp_payload: payload} = context
 
       # Inject the expected key_type into the state for validation
-      state = Map.put(state, :pending_key_type, :ecdh_x25519_hkdf_sha256_aes_256_gcm)
+      state = %{state | handshake_key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+      assert new_state.handshake_key_type == nil
+      assert new_state.active_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
     end
 
     test "acks a valid CBOR ExchangeResp payload with a P-256 key", context do
       %{state: state, p256_exchange_resp_payload: payload} = context
 
       # Inject the expected key_type into the state for validation
-      state = Map.put(state, :pending_key_type, :ecdh_p256_hkdf_sha256_aes_256_gcm)
+      state = %{state | handshake_key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+      assert new_state.handshake_key_type == nil
+      assert new_state.active_key_type == :ecdh_p256_hkdf_sha256_aes_256_gcm
     end
 
     test "discards an invalid ExchangeResp payload", context do
       %{state: state, invalid_exchange_resp_payload: payload} = context
 
       # Inject default expected key type so validation proceeds to the actual error
-      state = Map.put(state, :pending_key_type, :ecdh_x25519_hkdf_sha256_aes_256_gcm)
+      state = %{state | handshake_key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
 
       expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
 
