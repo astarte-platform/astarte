@@ -30,7 +30,8 @@ modules = [
   Astarte.RealmManagement.RPC.DataUpdaterPlant.Client,
   Astarte.RealmManagement.RPC.Server,
   Astarte.RPC.Triggers,
-  Task
+  Task,
+  Task.Supervisor
 ]
 
 for module <- modules, do: Mimic.copy(module)

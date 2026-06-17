@@ -33,6 +33,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   alias Astarte.Core.Device
 
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
@@ -77,6 +78,22 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
 
     assert_receive ^ref
+  end
+
+  test "removes device from unconfirmed devices", context do
+    %{
+      realm_name: realm_name,
+      decoded_device_id: device_id
+    } = context
+
+    insert_unconfirmed_device_entry(realm_name, device_id)
+    DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
+    refute Repo.get(UnconfirmedDevice, device_id, prefix: Realm.keyspace_name(realm_name))
+  end
+
+  defp insert_unconfirmed_device_entry(realm_name, device_id) do
+    %UnconfirmedDevice{device_id: device_id}
+    |> Repo.insert!(prefix: Realm.keyspace_name(realm_name))
   end
 
   defp insert_deletion_entry(realm_name, device_id, groups) do

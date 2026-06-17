@@ -194,6 +194,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       TriggersHandler.device_deletion_finished(realm_name, device_id, groups)
     end
 
+    DeviceRemovalQueries.remove_device_from_unconfirmed_devices!(realm_name, device_id)
     DeviceRemovalQueries.remove_device_from_deletion_in_progress!(realm_name, device_id)
   end
 end

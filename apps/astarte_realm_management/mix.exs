@@ -100,6 +100,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:libcluster, "~> 3.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:open_api_spex, "~> 3.22"},
+      {:sched_ex, "~> 1.1"},
       {:ymlr, "~> 5.1"}
     ]
   end
