@@ -103,7 +103,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:hkdf, "~> 0.3.0"}
     ]
   end
 
