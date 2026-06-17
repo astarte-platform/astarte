@@ -21,6 +21,9 @@ defmodule Astarte.DataAccess.Device.XandraTest do
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.Repo
 
   setup do
     Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
@@ -146,8 +149,8 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.credentials_secret == "secret_v2"
     end
 
-    test "re-registers an unconfirmed device with unconfirmed: true sets a TTL" do
-      device_id = :crypto.strong_rand_bytes(16)
+    test "with unconfirmed: true creates `Astarte.DataAccess.Device.UnconfirmedDevice` entry" do
+      device_id = CoreDevice.random_device_id()
 
       assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
 
@@ -157,6 +160,9 @@ defmodule Astarte.DataAccess.Device.XandraTest do
                )
 
       assert device.credentials_secret == "secret_v2"
+
+      assert {:ok, %UnconfirmedDevice{device_id: ^device_id}} =
+               Repo.fetch(UnconfirmedDevice, device_id, prefix: "autotestrealm")
     end
 
     test "re-registers an unconfirmed device with initial_introspection" do
@@ -176,5 +182,45 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.introspection == [{"com.example.Foo", 1}]
       assert device.introspection_minor == [{"com.example.Foo", 2}]
     end
+  end
+
+  describe "confirm/2" do
+    setup :add_unconfirmed_device
+
+    test "confirms an unconfirmed device", %{device_id: device_id} do
+      assert {:ok, _} = Device.confirm("autotestrealm", device_id)
+      refute Repo.get(UnconfirmedDevice, device_id, prefix: "autotestrealm")
+    end
+
+    test "does nothing for confirmed devices", %{device_id: device_id} do
+      {:ok, device} = Device.confirm("autotestrealm", device_id)
+      assert Device.confirm("autotestrealm", device_id) == {:ok, device}
+    end
+
+    test "returns an error when the device does not exist" do
+      device_id = CoreDevice.random_device_id()
+      assert Device.confirm("autotestrealm", device_id) == {:error, :device_not_found}
+    end
+  end
+
+  defp add_unconfirmed_device(_context) do
+    device_id = CoreDevice.random_device_id()
+    encoded_device_id = CoreDevice.encode_device_id(device_id)
+    credentials_secret = "credentials_secret"
+    opts = [unconfirmed: true]
+
+    on_exit(fn ->
+      Repo.delete!(%DeviceStruct{device_id: device_id}, prefix: "autotestrealm")
+      Repo.delete!(%UnconfirmedDevice{device_id: device_id}, prefix: "autotestrealm")
+    end)
+
+    {:ok, _} =
+      Device.register("autotestrealm", device_id, encoded_device_id, credentials_secret, opts)
+
+    %{
+      device_id: device_id,
+      encoded_device_id: encoded_device_id,
+      credentials_secret: credentials_secret
+    }
   end
 end

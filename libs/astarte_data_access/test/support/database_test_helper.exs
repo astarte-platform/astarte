@@ -116,7 +116,14 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       PRIMARY KEY ((object_name), object_type)
     );
   """
+  @create_unconfirmed_devices_table """
+    CREATE TABLE autotestrealm.unconfirmed_devices (
+      device_id uuid,
+      created_at timestamp,
 
+      PRIMARY KEY ((device_id))
+    );
+  """
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
@@ -467,6 +474,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       {:ok, _} ->
         Xandra.execute!(conn, @create_capabilities_type)
         Xandra.execute!(conn, @create_devices_table)
+        Xandra.execute!(conn, @create_unconfirmed_devices_table)
         Xandra.execute!(conn, @create_names_table)
         Xandra.execute!(conn, @create_kv_store)
         Xandra.execute!(conn, @create_endpoints_table)

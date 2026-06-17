@@ -24,6 +24,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Config
   alias Astarte.FDO.Core.Hash
@@ -246,7 +247,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
          {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, to2_session.guid),
          :ok <- Queries.mark_voucher_as_claimed(realm_name, to2_session.guid),
-         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
+         {:ok, _device} <- Device.confirm(realm_name, to2_session.device_id) do
       if not OwnershipVoucher.credential_reuse?(ov_entry) do
         add_output_voucher(realm_name, ov_entry, to2_session)
       end
