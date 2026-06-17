@@ -100,6 +100,43 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
         assert valid_result?(result, interface_to_update, expected_read_value)
       end
     end
+
+    property "returns the value for encrypted interfaces", context do
+      %{
+        realm_name: realm_name,
+        interfaces: interfaces,
+        device: device
+      } = context
+
+      encrypted_server_interfaces =
+        interfaces
+        |> Enum.filter(fn interface ->
+          interface.ownership == :device and Enum.any?(interface.mappings, & &1.encrypted)
+        end)
+
+      check all interface_to_update <- member_of(encrypted_server_interfaces),
+                mapping_update <-
+                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+        Device.update_interface_values(
+          realm_name,
+          device.encoded_id,
+          interface_to_update.name,
+          mapping_update.path,
+          "test_value",
+          %{}
+        )
+
+        {:ok, %InterfaceValues{data: result}} =
+          Device.get_interface_values!(
+            realm_name,
+            device.encoded_id,
+            interface_to_update.name,
+            %{}
+          )
+
+        assert valid_result?(result, interface_to_update, "test_value")
+      end
+    end
   end
 
   describe "get_interface_value null and limit" do

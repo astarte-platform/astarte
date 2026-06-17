@@ -23,11 +23,17 @@ defmodule Astarte.Cases.Device do
 
   import Astarte.Helpers.Device
   import Astarte.Helpers.Interface
+  import Ecto.Query
 
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
 
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
@@ -39,6 +45,24 @@ defmodule Astarte.Cases.Device do
 
   setup_all %{realm_name: realm_name} do
     interfaces_data = interfaces_for_update()
+
+    # TODO this is a workaround waiting for the possibility to install interfaces
+    # with encrypted endpoints. For the moment we update "manually" in the db the encrypted option
+    # for the interested endpoints
+    interfaces_with_encrypted_endpoints =
+      Enum.filter(interfaces_data.interfaces, fn interface ->
+        interface.mappings |> Enum.at(0) |> Map.get(:encrypted) == true
+      end)
+
+    endpoints_to_update =
+      for interface <- interfaces_with_encrypted_endpoints,
+          mapping <- interface.mappings do
+        {interface.interface_id, mapping.endpoint_id}
+      end
+
+    for {interface_id, endpoint_id} <- endpoints_to_update do
+      enable_endpoints_encryption(realm_name, interface_id, endpoint_id)
+    end
 
     device =
       DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> resize(10) |> Enum.at(0)
@@ -174,7 +198,23 @@ defmodule Astarte.Cases.Device do
       {:properties_server_without_unset,
        fn acc -> new_interfaces(properties_server_without_unset(), acc) end},
       {:explicit_timestamps, fn acc -> new_interfaces(explicit_timestamps(), acc) end},
-      {:other_interfaces, fn acc -> new_interfaces(other_interfaces(), acc) end}
+      {:other_interfaces, fn acc -> new_interfaces(other_interfaces(), acc) end},
+      {
+        :encrypted_endpoints_properties_interfaces,
+        fn acc ->
+          new_interfaces(encrypted_endpoint_mapping(:properties, :individual), acc)
+        end
+      },
+      {
+        :encrypted_endpoints_individual_datastream_interfaces,
+        fn acc ->
+          new_interfaces(encrypted_endpoint_mapping(:datastream, :individual), acc)
+        end
+      },
+      {
+        :encrypted_endpoints_object_datastream_interfaces,
+        fn acc -> new_interfaces(encrypted_endpoint_mapping(:datastream, :object), acc) end
+      }
     ]
 
     {all_interfaces, named_interfaces} =
@@ -208,6 +248,91 @@ defmodule Astarte.Cases.Device do
       downsampable_object_interfaces: interfaces.object_downsampable,
       explicit_timestamp_interfaces: interfaces.explicit_timestamps
     }
+  end
+
+  defp encrypted_endpoint_mapping(:properties, :individual) do
+    mapping_gen =
+      MappingGenerator.mapping(
+        interface_type: :properties,
+        endpoint: "/encryptedProperty",
+        value_type: :string,
+        encrypted: true
+      )
+
+    InterfaceGenerator.interface(
+      name: "test.EncryptedPropertiesInterface",
+      ownership: :device,
+      type: :properties,
+      mappings: StreamData.fixed_list([mapping_gen])
+    )
+  end
+
+  defp encrypted_endpoint_mapping(:datastream, :individual) do
+    mapping_gen =
+      MappingGenerator.mapping(
+        interface_type: :datastream,
+        endpoint: "/encryptedValue",
+        value_type: :string,
+        encrypted: true
+      )
+
+    InterfaceGenerator.interface(
+      name: "test.EncryptedIndividualDatastreamInterface",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :individual,
+      mappings: StreamData.fixed_list([mapping_gen])
+    )
+  end
+
+  defp encrypted_endpoint_mapping(:datastream, :object) do
+    common_mapping_params = [
+      interface_type: :datastream,
+      value_type: :string,
+      database_retention_policy: :no_ttl,
+      reliability: nil,
+      retention: :discard,
+      expiry: 0,
+      explicit_timestamp: false
+    ]
+
+    mapping_gen = MappingGenerator.mapping(common_mapping_params)
+
+    # generate two encrypted mappings
+    mappings =
+      StreamData.fixed_list([mapping_gen, mapping_gen])
+      |> map(fn [mapping_0, mapping_1] ->
+        mapping_0 = %{mapping_0 | endpoint: "/encryptedPath/endpoint0", encrypted: true}
+        mapping_1 = %{mapping_1 | endpoint: "/encryptedPath/endpoint1", encrypted: true}
+        [mapping_0, mapping_1]
+      end)
+
+    InterfaceGenerator.interface(
+      name: "test.EncryptedObjectDatastreamInterface",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :object,
+      mappings: mappings
+    )
+  end
+
+  defp enable_endpoints_encryption(realm_name, interface_id, endpoint_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    update_query =
+      from Endpoint,
+        prefix: ^keyspace,
+        where: [interface_id: ^interface_id],
+        where: [endpoint_id: ^endpoint_id],
+        update: [set: [encrypted: true]]
+
+    consistency = Consistency.domain_model(:write)
+
+    Repo.update_all(
+      update_query,
+      [],
+      consistency: consistency
+    )
   end
 
   defp new_interfaces(interface_gen, previous_interfaces) do
