@@ -241,7 +241,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       "[keyAgreement/1] Received ExchangeResp but no pending key exchange was found in state.",
       tag: "key_agreement_resp_unexpected"
     )
-    #TODO: implement ExchangeFailed message to signal to the other party that for whatever reason the key exchange has failed
+
+    # TODO: implement ExchangeFailed message
     {:ack, :ok, state}
   end
 
