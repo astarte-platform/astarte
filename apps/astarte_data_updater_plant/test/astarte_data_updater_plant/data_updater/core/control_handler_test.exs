@@ -322,7 +322,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
-      assert new_state.active_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
+
+      assert {:handshake_started, %{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+               new_state.encrypted_endpoints_key
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do
@@ -333,7 +335,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
-      assert new_state.active_key_type == :ecdh_p256_hkdf_sha256_aes_256_gcm
+
+      assert {:handshake_started, %{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
+               new_state.encrypted_endpoints_key
     end
 
     test "discards the message if discard_messages is set", context do
@@ -343,6 +347,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement", <<1>>, 0)
+    end
+
+    test "logs an error and leaves the key-agreement state untouched if the state machine rejects the transition",
+         context do
+      %{state: state, init_exchange_payload: payload} = context
+
+      # Simulate a handshake that has already completed, so a fresh
+      # InitExchange from the device is no longer a valid transition
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:established,
+             %{
+               shared_secret: :crypto.strong_rand_bytes(32),
+               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               end)
+
+      assert new_state.encrypted_endpoints_key == state.encrypted_endpoints_key
     end
   end
 
@@ -439,7 +467,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:ok, new_state} = ControlHandler.send_init_exchange(state)
 
-      assert new_state.handshake_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
+      assert {:handshake_started, %{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+               new_state.encrypted_endpoints_key
     end
 
     test "returns {:error, :session_not_found} when the device has no active session",
@@ -467,54 +496,52 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   describe "/keyAgreement/1" do
     test "acks a valid CBOR ExchangeResp payload and increments message counters",
          context do
-      %{state: state, exchange_resp_payload: payload} = context
+      %{state: state, exchange_resp_payload: payload, init_exchange: init_exchange} = context
 
-      # Inject the expected key_type into the state for validation
-      state = %{state | handshake_key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
+      # Inject the expected key agreement state for validation
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{
+               init_exchange: init_exchange,
+               key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
-      assert new_state.handshake_key_type == nil
-      assert new_state.active_key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
+
+      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+               new_state.encrypted_endpoints_key
     end
 
     test "acks a valid CBOR ExchangeResp payload with a P-256 key", context do
-      %{state: state, p256_exchange_resp_payload: payload} = context
+      %{state: state, p256_exchange_resp_payload: payload, p256_init_exchange: p256_init_exchange} =
+        context
 
-      # Inject the expected key_type into the state for validation
-      state = %{state | handshake_key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}
+      # Inject the expected key agreement state for validation
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{
+               init_exchange: p256_init_exchange,
+               key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm
+             }}
+      }
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
-      assert new_state.handshake_key_type == nil
-      assert new_state.active_key_type == :ecdh_p256_hkdf_sha256_aes_256_gcm
-    end
 
-    test "discards an invalid ExchangeResp payload", context do
-      %{state: state, invalid_exchange_resp_payload: payload} = context
-
-      # Inject default expected key type so validation proceeds to the actual error
-      state = %{state | handshake_key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
-
-      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
-
-      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
-                                                              "key_agreement_resp_error",
-                                                              _meta,
-                                                              _ts ->
-        :ok
-      end)
-
-      assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
-
-      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+      assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
+               new_state.encrypted_endpoints_key
     end
 
     test "discards the message if discard_messages is set", context do

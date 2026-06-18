@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
 
   @type interface_name :: String.t()
   @type policy_name :: String.t()
@@ -113,7 +113,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :last_deletion_in_progress_refresh, non_neg_integer(), default: 0
     field :last_datastream_maximum_retention_refresh, non_neg_integer(), default: 0
     field :capabilities, Capabilities.t(), default: %Capabilities{}
-    field :handshake_key_type, InitExchange.key_suite() | nil
-    field :active_key_type, InitExchange.key_suite() | nil
+    field :encrypted_endpoints_key, HandshakeState.t(), default: :uninitialized
   end
 end
