@@ -36,6 +36,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
   alias Astarte.DataAccess.Repo
 
   alias Astarte.RealmManagement.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.DeviceRemoval.Scheduler
   alias Astarte.RealmManagement.Devices
   alias Astarte.RealmManagement.Devices.Queries, as: DeviceQueries
   alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
@@ -127,6 +128,28 @@ defmodule Astarte.RealmManagement.DevicesTest do
       start_device_deletion(realm, device_id)
 
       assert_receive ^ref
+    end
+
+    test "calls `Scheduler.delete_device/2`", context do
+      %{
+        realm: realm_name,
+        device_id: encoded_device_id,
+        decoded_device_id: device_id
+      } = context
+
+      keyspace = Realm.keyspace_name(realm_name)
+
+      device = %DeviceData{device_id: device_id}
+
+      Repo.insert!(device, prefix: keyspace)
+
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
+      Scheduler
+      |> expect(:delete_device, fn ^realm_name, ^device_id -> :ok end)
+
+      assert Devices.delete_device(realm_name, encoded_device_id) == :ok
     end
 
     property "does not delete a non existing device", %{realm: realm} do

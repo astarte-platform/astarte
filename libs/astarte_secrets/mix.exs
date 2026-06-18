@@ -48,7 +48,7 @@ defmodule AstarteSecrets.MixProject do
       {:castore, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
       {:httpoison, "~> 2.2"},

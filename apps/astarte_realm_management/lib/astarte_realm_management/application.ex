@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ defmodule Astarte.RealmManagement.Application do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.RealmManagement.Config
+  alias Astarte.RealmManagement.DeviceRemoval.Scheduler
 
   require Logger
 
@@ -46,14 +47,23 @@ defmodule Astarte.RealmManagement.Application do
 
     trigger_types = [:DEVICE_DELETION_STARTED, :DEVICE_DELETION_FINISHED]
 
+    every_10_minutes = "*/10 * * * *"
+
+    unconfirmed_devices_scheduler = %{
+      id: "unconfirmed_devices_scheduler",
+      start: {SchedEx, :run_every, [Scheduler, :delete_unconfirmed_devices, [], every_10_minutes]}
+    }
+
     children =
       [
+        Astarte.RealmManagement.RPC.Server,
         {Astarte.RPC.Triggers.Client, types: trigger_types},
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
         {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-        Astarte.RealmManagement.DeviceRemoval.Scheduler,
+        Scheduler,
+        unconfirmed_devices_scheduler,
         {Astarte.Events.AMQPEvents.Supervisor, []},
         {Astarte.Events.AMQPTriggers.Supervisor, []},
         {Astarte.Events.Triggers.Supervisor, []}

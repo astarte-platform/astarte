@@ -30,7 +30,9 @@ defmodule Astarte.RPC.MixProject do
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
-        "coveralls.html": :test
+        "coveralls.html": :test,
+        "mneme.test": :test,
+        "mneme.watch": :test
       ],
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [plt_add_apps: [:ex_unit, :astarte_events]],
@@ -54,6 +56,8 @@ defmodule Astarte.RPC.MixProject do
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:horde, "~> 0.10"},
+      {:mneme, "~> 0.10", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:mimic, "~> 1.11", only: [:test, :dev]},

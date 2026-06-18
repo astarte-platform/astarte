@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,18 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+modules = [
+  Astarte.DataAccess.Config,
+  Astarte.DataAccess.Health,
+  Astarte.DataAccess.KvStore,
+  Astarte.DataAccess.Repo,
+  Astarte.Events.Triggers,
+  Astarte.Events.TriggersHandler,
+  Astarte.RealmManagement.DeviceRemoval.Scheduler,
+  Astarte.RealmManagement.Devices,
+  Astarte.RealmManagement.Devices.Queries,
+  Astarte.RealmManagement.Health,
+  Astarte.RealmManagement.RealmConfig.Queries,
+  Astarte.RealmManagement.RPC.DataUpdaterPlant.Client,
+  Astarte.RealmManagement.RPC.Server,
+  Astarte.RPC.Triggers,
+  Task,
+  Task.Supervisor
+]
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health)
-Mimic.copy(Astarte.DataAccess.KvStore)
-Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Events.Triggers)
-Mimic.copy(Astarte.Events.TriggersHandler)
-Mimic.copy(Astarte.RealmManagement.Devices.Queries)
-Mimic.copy(Astarte.RealmManagement.Health)
-Mimic.copy(Astarte.RealmManagement.RealmConfig.Queries)
-Mimic.copy(Astarte.RealmManagement.RPC.DataUpdaterPlant.Client)
-Mimic.copy(Astarte.RPC.Triggers)
-Mimic.copy(Task)
+for module <- modules, do: Mimic.copy(module)
+
 ExUnit.start(capture_log: true)

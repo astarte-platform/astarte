@@ -20,6 +20,7 @@ defmodule Astarte.DataAccess.Device.XandraTest do
   use Astarte.DataAccess.Cases.Database, async: true
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
   alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -127,9 +128,10 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.credentials_secret == "secret_v2"
     end
 
-    test "re-registers an unconfirmed device with unconfirmed: true sets a TTL", context do
+    test "with unconfirmed: true creates `Astarte.DataAccess.Device.UnconfirmedDevice` entry",
+         context do
       %{realm_name: realm_name} = context
-      device_id = :crypto.strong_rand_bytes(16)
+      device_id = CoreDevice.random_device_id()
 
       assert {:ok, _} = Device.register(realm_name, device_id, "extid", "secret_v1")
 
@@ -137,6 +139,9 @@ defmodule Astarte.DataAccess.Device.XandraTest do
                Device.register(realm_name, device_id, "extid", "secret_v2", unconfirmed: true)
 
       assert device.credentials_secret == "secret_v2"
+
+      assert {:ok, %UnconfirmedDevice{device_id: ^device_id}} =
+               Repo.fetch(UnconfirmedDevice, device_id, prefix: Realm.keyspace_name(realm_name))
     end
 
     test "re-registers an unconfirmed device with initial_introspection", context do
@@ -157,5 +162,50 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.introspection == [{"com.example.Foo", 1}]
       assert device.introspection_minor == [{"com.example.Foo", 2}]
     end
+  end
+
+  describe "confirm/2" do
+    setup :add_unconfirmed_device
+
+    test "confirms an unconfirmed device", context do
+      %{device_id: device_id, realm_name: realm_name} = context
+      assert {:ok, _} = Device.confirm(realm_name, device_id)
+      refute Repo.get(UnconfirmedDevice, device_id, prefix: Realm.keyspace_name(realm_name))
+    end
+
+    test "does nothing for confirmed devices", context do
+      %{device_id: device_id, realm_name: realm_name} = context
+      {:ok, device} = Device.confirm(realm_name, device_id)
+      assert Device.confirm(realm_name, device_id) == {:ok, device}
+    end
+
+    test "returns an error when the device does not exist", context do
+      %{realm_name: realm_name} = context
+      device_id = CoreDevice.random_device_id()
+      assert Device.confirm(realm_name, device_id) == {:error, :device_not_found}
+    end
+  end
+
+  defp add_unconfirmed_device(context) do
+    %{realm_name: realm_name} = context
+    keyspace = Realm.keyspace_name(realm_name)
+    device_id = CoreDevice.random_device_id()
+    encoded_device_id = CoreDevice.encode_device_id(device_id)
+    credentials_secret = "credentials_secret"
+    opts = [unconfirmed: true]
+
+    on_exit(fn ->
+      Repo.delete!(%DeviceStruct{device_id: device_id}, prefix: keyspace)
+      Repo.delete!(%UnconfirmedDevice{device_id: device_id}, prefix: keyspace)
+    end)
+
+    {:ok, _} =
+      Device.register(realm_name, device_id, encoded_device_id, credentials_secret, opts)
+
+    %{
+      device_id: device_id,
+      encoded_device_id: encoded_device_id,
+      credentials_secret: credentials_secret
+    }
   end
 end

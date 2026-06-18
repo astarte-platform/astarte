@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,15 @@
 # limitations under the License.
 #
 
-[
-  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
-  import_deps: [:mneme, :skogsra, :typedstruct]
-]
+defmodule Astarte.RPC.RealmManagement.DeviceDeletion do
+  @moduledoc """
+  Device deletion request
+  """
+
+  use TypedStruct
+
+  typedstruct do
+    field :realm_name, String.t()
+    field :encoded_device_id, String.t()
+  end
+end

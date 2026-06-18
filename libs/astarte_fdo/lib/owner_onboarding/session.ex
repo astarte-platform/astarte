@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
+defmodule Astarte.FDO.OwnerOnboarding.Session do
   @moduledoc """
   Represents an active FDO TO2 (Transfer of Ownership 2) session.
 
@@ -25,16 +25,18 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
   """
   use TypedStruct
 
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.Helpers
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnerOnboarding.SignatureInfo
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding.SessionToken
+  alias Astarte.RPC.RealmManagement
   alias COSE.Messages.Encrypt0
 
   typedstruct do
@@ -60,9 +62,10 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     field :replacement_hmac, Hash.t() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher, hmac) do
+  def new(realm_name, hello_device, ownership_voucher) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
+    hmac = ownership_voucher.hmac
 
     %HelloDevice{
       guid: guid,
@@ -74,6 +77,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     with {:ok, owner_random, xa} <- SessionKey.new(kex_name),
          {:ok, device_signature} <-
            Helpers.validate_signature_info(easig_info, ownership_voucher),
+         :ok <- cleanup_previous_session(realm_name, guid),
          signature_params =
            SignatureInfo.device_signature_to_database_params(device_signature),
          session_params =
@@ -111,6 +115,27 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         }
 
       {:ok, token, session}
+    end
+  end
+
+  def cleanup_previous_session(realm_name, guid) do
+    case fetch(realm_name, guid) do
+      {:ok, %Session{device_id: device_id}} when device_id != nil ->
+        # Device was registered, delete it
+        encoded_device_id = Device.encode_device_id(device_id)
+        ensure_device_deleted(realm_name, encoded_device_id)
+
+      _ ->
+        # Nothing to cleanup
+        :ok
+    end
+  end
+
+  defp ensure_device_deleted(realm_name, encoded_device_id) do
+    case RealmManagement.delete_device(realm_name, encoded_device_id) do
+      :ok -> :ok
+      {:error, :device_not_found} -> :ok
+      error -> error
     end
   end
 

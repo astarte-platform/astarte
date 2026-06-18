@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,6 @@
 # limitations under the License.
 #
 
-Mimic.copy(:hackney)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.FDO.Config)
-
 # Define a test endpoint module for FDO session tokens
 defmodule Astarte.FDO.TestEndpoint do
   def config(:secret_key_base), do: "test_secret_key_for_fdo_sessions_in_tests"
@@ -30,19 +26,27 @@ Application.put_env(:astarte_fdo, :base_url_domain, "api.astarte.localhost")
 Application.put_env(:astarte_fdo, :base_url_port, 4003)
 Application.put_env(:astarte_fdo, :base_url_protocol, :http)
 
-Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo)
-Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady)
-Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.ProveDevice)
-Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.Session)
-Mimic.copy(Astarte.FDO.Core.OwnershipVoucher.Core)
-Mimic.copy(Astarte.FDO.OwnerOnboarding.DeviceAttestation)
-Mimic.copy(Astarte.FDO.OwnerOnboarding)
-Mimic.copy(Astarte.FDO.Rendezvous.Client)
-Mimic.copy(Astarte.FDO.Rendezvous)
-Mimic.copy(Astarte.FDO.ServiceInfo)
-Mimic.copy(Astarte.Secrets)
-Mimic.copy(DateTime)
-Mimic.copy(HTTPoison)
+modules = [
+  :hackney,
+  Astarte.DataAccess.Config,
+  Astarte.FDO.Config,
+  Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo,
+  Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady,
+  Astarte.FDO.Core.OwnerOnboarding.ProveDevice,
+  Astarte.FDO.Core.OwnershipVoucher.Core,
+  Astarte.FDO.OwnerOnboarding,
+  Astarte.FDO.OwnerOnboarding.DeviceAttestation,
+  Astarte.FDO.OwnerOnboarding.Session,
+  Astarte.FDO.Rendezvous,
+  Astarte.FDO.Rendezvous.Client,
+  Astarte.FDO.ServiceInfo,
+  Astarte.RPC.RealmManagement,
+  Astarte.Secrets,
+  DateTime,
+  HTTPoison
+]
+
+for module <- modules, do: Mimic.copy(module)
 
 # fix flakiness caused by namespaces being created at the same time
 Astarte.Secrets.Core.create_nested_namespace(["fdo_owner_keys", "instance"])

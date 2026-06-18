@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,30 +15,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 
-defmodule Astarte.PairingWeb.Plug.DecryptAndVerify do
+defmodule Astarte.RPC.Cases.RPCServer do
   @moduledoc """
-  Plug for decrypting and verifying incoming FDO messages in the Owner Onboarding protocol.
+  Sets up Ping Pong servers as the RPC servers
   """
 
-  use Plug.Builder
+  use ExUnit.CaseTemplate
 
-  import Plug.Conn
+  alias Astarte.RPC.Helpers.RPCServer
+  alias Astarte.RPC.RealmManagement
 
-  alias Astarte.FDO.OwnerOnboarding.Session
-  alias Astarte.PairingWeb.FDOFallbackController
+  setup do
+    test_process = self()
 
-  def init(_opts) do
-    nil
-  end
+    realm_management_opts = [
+      name: RealmManagement.server_name(),
+      id: :realm_management,
+      receiver: test_process
+    ]
 
-  def call(conn, _opts) do
-    session = conn.assigns.to2_session
-    body = conn.assigns.cbor_body
+    realm_management = start_supervised!({RPCServer, realm_management_opts})
 
-    case Session.decrypt_and_verify(session, body) do
-      {:ok, body} -> assign(conn, :body, body)
-      _ -> FDOFallbackController.invalid_message(conn)
-    end
+    %{realm_management: realm_management}
   end
 end

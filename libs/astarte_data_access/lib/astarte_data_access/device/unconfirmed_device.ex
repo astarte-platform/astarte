@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,27 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-defmodule Astarte.DataAccess.Device.DeletionInProgress do
+
+defmodule Astarte.DataAccess.Device.UnconfirmedDevice do
   @moduledoc """
   This module defines the Ecto schema for the `deletion_in_progress` table.
   """
   use TypedEctoSchema
+
+  alias Astarte.DataAccess.DateTime, as: DateTimeMs
   alias Astarte.DataAccess.UUID
 
-  alias __MODULE__, as: Data
-
   @primary_key {:device_id, UUID, autogenerate: false}
-  typed_schema "deletion_in_progress" do
-    field :vmq_ack, :boolean
-    field :dup_start_ack, :boolean
-    field :dup_end_ack, :boolean
-    field :groups, Exandra.Set, type: :string, default: MapSet.new()
-  end
-
-  @spec all_ack?(t()) :: boolean()
-  def all_ack?(%Data{} = deletion) do
-    %Data{vmq_ack: vmq, dup_start_ack: dup_start, dup_end_ack: dup_end} = deletion
-
-    vmq and dup_start and dup_end
+  typed_schema "unconfirmed_devices" do
+    field :created_at, DateTimeMs
   end
 end

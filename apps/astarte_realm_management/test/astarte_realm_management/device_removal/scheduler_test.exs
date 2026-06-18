@@ -26,13 +26,21 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
 
   use Astarte.Cases.Data, async: true
 
+  use Mimic
+
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
+  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
+  alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
   alias Astarte.RealmManagement.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.DeviceRemoval.Scheduler
+  alias Astarte.RealmManagement.DeviceRemoverSupervisor
 
   alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
 
@@ -66,6 +74,57 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
     end
   end
 
+  describe "delete_unconfirmed_devices/0" do
+    setup :seed_unconfirmed_devices
+
+    test "removes unconfirmed devices", context do
+      %{
+        realm: realm_name,
+        old_unconfirmed_1: old_unconfirmed_1,
+        old_unconfirmed_2: old_unconfirmed_2
+      } = context
+
+      to_be_removed = [old_unconfirmed_1, old_unconfirmed_2]
+
+      expect_removal(realm_name, to_be_removed)
+      assert Scheduler.delete_unconfirmed_devices() == :ok
+      assert_removal(realm_name, to_be_removed)
+    end
+
+    test "has a grace period for newly added unconfirmed devices", context do
+      %{realm: realm_name, new_unconfirmed: new_unconfirmed} = context
+      keyspace = Realm.keyspace_name(realm_name)
+
+      assert Scheduler.delete_unconfirmed_devices() == :ok
+      assert Repo.get(Device, new_unconfirmed, prefix: keyspace)
+      assert Repo.get(UnconfirmedDevice, new_unconfirmed, prefix: keyspace)
+    end
+  end
+
+  defp expect_removal(realm_name, device_ids) do
+    test_process = self()
+
+    Realm.keyspace_name(realm_name)
+
+    for _ <- device_ids do
+      Task.Supervisor
+      |> expect(:start_child, fn DeviceRemoverSupervisor,
+                                 DeviceRemover,
+                                 :run,
+                                 [%{realm_name: ^realm_name, device_id: device_id}],
+                                 _opts ->
+        send(test_process, {:received_device, device_id})
+        {:ok, test_process}
+      end)
+    end
+  end
+
+  defp assert_removal(realm_name, device_ids) do
+    for device_id <- device_ids do
+      assert_receive {:received_device, ^device_id}
+    end
+  end
+
   defp seed_ackd_deletions(devices, realm) do
     keyspace = Realm.keyspace_name(realm)
 
@@ -79,6 +138,65 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
       }
       |> Repo.insert!(prefix: keyspace)
     end)
+  end
+
+  defp seed_unconfirmed_devices(context) do
+    %{realm: realm_name} = context
+    keyspace = Realm.keyspace_name(realm_name)
+    now = DateTime.utc_now()
+
+    old = DateTime.add(now, -10, :minute)
+
+    old_unconfirmed_1 = %UnconfirmedDevice{
+      device_id: CoreDevice.random_device_id(),
+      created_at: old
+    }
+
+    old_unconfirmed_1_device = %Device{device_id: old_unconfirmed_1.device_id}
+
+    old = DateTime.add(now, -20, :minute)
+
+    old_unconfirmed_2 = %UnconfirmedDevice{
+      device_id: CoreDevice.random_device_id(),
+      created_at: old
+    }
+
+    old_unconfirmed_2_device = %Device{device_id: old_unconfirmed_2.device_id}
+
+    new_unconfirmed = %UnconfirmedDevice{
+      device_id: CoreDevice.random_device_id(),
+      created_at: now
+    }
+
+    new_unconfirmed_device = %Device{device_id: new_unconfirmed.device_id}
+
+    on_exit(fn ->
+      old_unconfirmed_1 |> Repo.delete!(prefix: keyspace)
+      old_unconfirmed_2 |> Repo.delete!(prefix: keyspace)
+      new_unconfirmed |> Repo.delete!(prefix: keyspace)
+      old_unconfirmed_1_device |> Repo.delete!(prefix: keyspace)
+      old_unconfirmed_2_device |> Repo.delete!(prefix: keyspace)
+      new_unconfirmed_device |> Repo.delete!(prefix: keyspace)
+    end)
+
+    Repo.insert!(old_unconfirmed_1, prefix: keyspace)
+    Repo.insert!(old_unconfirmed_2, prefix: keyspace)
+    Repo.insert!(new_unconfirmed, prefix: keyspace)
+    Repo.insert!(old_unconfirmed_1_device, prefix: keyspace)
+    Repo.insert!(old_unconfirmed_2_device, prefix: keyspace)
+    Repo.insert!(new_unconfirmed_device, prefix: keyspace)
+    test_process = self()
+
+    Task.Supervisor
+    |> stub(:start_child, fn DeviceRemoverSupervisor, DeviceRemover, :run, [_args], _opts ->
+      {:ok, test_process}
+    end)
+
+    %{
+      old_unconfirmed_1: old_unconfirmed_1.device_id,
+      old_unconfirmed_2: old_unconfirmed_2.device_id,
+      new_unconfirmed: new_unconfirmed.device_id
+    }
   end
 
   defp seed_non_ackd_deletions(deletions, realm) do

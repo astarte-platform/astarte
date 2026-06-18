@@ -271,7 +271,6 @@ defmodule Astarte.DataAccess.Helpers.Database do
         description varchar,
         doc varchar,
         required boolean,
-        encrypted boolean,
 
         PRIMARY KEY ((interface_id), endpoint_id)
       );

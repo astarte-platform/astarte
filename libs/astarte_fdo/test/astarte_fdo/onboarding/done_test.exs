@@ -20,33 +20,20 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
   use Astarte.Cases.Data, async: false
   use Astarte.Cases.FDOSession
 
-  import Ecto.Query
-
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
   alias Astarte.DataAccess.Devices.Device, as: DeviceDB
   alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DataAccessOwnershipVoucher
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnershipVoucher, as: OVCore
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnershipVoucher
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
-
-  defp get_device_ttl(realm_name, device_id) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from(d in DeviceDB,
-        where: d.device_id == ^device_id,
-        select: fragment("TTL(?)", d.first_registration)
-      )
-
-    Repo.one(query, prefix: keyspace)
-  end
 
   defp register_device(realm, hardware_id, opts) do
     credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
@@ -159,20 +146,20 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
                OwnerOnboarding.done(realm_name, session, mismatch_msg)
     end
 
-    test "removes device TTL when onboarding completes successfully", %{
+    test "confirms device when onboarding completes successfully", %{
       realm: realm_name,
       session: session,
       done_msg: done_msg
     } do
       new_hmac = :crypto.strong_rand_bytes(32)
+      keyspace = Realm.keyspace_name(realm_name)
 
       session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
       {:ok, device_before} = Device.fetch(realm_name, session.device_id)
       assert device_before.device_id == session.device_id
 
-      ttl_before = get_device_ttl(realm_name, session.device_id)
-      assert is_integer(ttl_before) and ttl_before > 0
+      assert Repo.get(UnconfirmedDevice, session.device_id, prefix: keyspace)
 
       assert {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
@@ -181,10 +168,7 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
       assert device_after.credentials_secret == device_before.credentials_secret
       assert device_after.first_registration == device_before.first_registration
 
-      ttl_after = get_device_ttl(realm_name, session.device_id)
-
-      assert ttl_after == nil,
-             "TTL should be nil (no TTL/permanent) after removal, got #{inspect(ttl_after)}"
+      refute Repo.get(UnconfirmedDevice, session.device_id, prefix: keyspace)
     end
 
     test "marks the voucher as claimed", context do

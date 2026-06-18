@@ -60,9 +60,10 @@ defmodule Astarte.DataAccess.Database do
     {18, Migrations.Realm.RemovePrivateKey},
     {19, Migrations.Realm.AddReplacementDataAndRemoteKey},
     {20, Migrations.Realm.AddStatus},
-    {21, Migrations.Realm.AddEncryptedToIndividualProperties},
-    {22, Migrations.Realm.AddEncryptedToIndividualDatastreams},
-    {23, Migrations.Realm.AddEncryptedToEndpoints}
+    {21, Migrations.Realm.CreateUnconfirmedDevices},
+    {22, Migrations.Realm.AddEncryptedToIndividualProperties},
+    {23, Migrations.Realm.AddEncryptedToIndividualDatastreams},
+    {24, Migrations.Realm.AddEncryptedToEndpoints}
   ]
 
   @doc """

@@ -24,9 +24,9 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnershipVoucher, as: OVCore
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.Secrets
   alias COSE.Keys
   alias COSE.Messages.Sign1

@@ -54,6 +54,25 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     {:noreply, state}
   end
 
+  @doc """
+  Starts the device deletion process for the given device if all `ack`s have been received
+  """
+  def delete_device(realm_name, device_id) do
+    case Queries.device_to_delete?(realm_name, device_id) do
+      true ->
+        start_device_deletion(%{device_id: device_id, realm_name: realm_name})
+
+      false ->
+        {:error, :device_not_ready}
+    end
+  end
+
+  def delete_unconfirmed_devices do
+    devices = retrieve_unconfirmed_devices!()
+
+    Enum.each(devices, &start_device_deletion/1)
+  end
+
   defp start_device_deletion! do
     device_to_delete_list = retrieve_devices_to_delete!()
 
@@ -79,6 +98,15 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
     Enum.flat_map(realms, fn %{realm_name: realm_name} ->
       devices = Queries.retrieve_devices_to_delete!(realm_name)
+      Enum.map(devices, &Map.put(&1, :realm_name, realm_name))
+    end)
+  end
+
+  defp retrieve_unconfirmed_devices! do
+    realms = Queries.retrieve_realms!()
+
+    Enum.flat_map(realms, fn %{realm_name: realm_name} ->
+      devices = Queries.retrieve_unconfirmed_devices!(realm_name)
       Enum.map(devices, &Map.put(&1, :realm_name, realm_name))
     end)
   end

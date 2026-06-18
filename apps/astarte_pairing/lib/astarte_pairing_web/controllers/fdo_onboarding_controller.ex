@@ -23,8 +23,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
   alias Astarte.Pairing.Engine
   alias Astarte.PairingWeb.ApiSpec.Schemas.Fdo

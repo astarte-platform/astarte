@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 - 2025 SECO Mind Srl
+# Copyright 2023 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,10 +25,12 @@ defmodule Astarte.RealmManagement.Devices do
   """
   alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval
+  alias Astarte.RealmManagement.DeviceRemoval.Scheduler
   alias Astarte.RealmManagement.Devices.Queries
   alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
   alias Astarte.RealmManagement.TriggersHandler
 
+  @spec delete_device(String.t(), String.t()) :: :ok | {:error, term()}
   def delete_device(realm_name, device_id) do
     with {:ok, decoded_id} <- Device.decode_device_id(device_id),
          :ok <- ensure_device_exists(realm_name, decoded_id) do
@@ -37,7 +39,7 @@ defmodule Astarte.RealmManagement.Devices do
     end
   end
 
-  def ensure_device_exists(realm_name, device_id) do
+  defp ensure_device_exists(realm_name, device_id) do
     if Queries.device_exists?(realm_name, device_id) do
       :ok
     else
@@ -51,6 +53,8 @@ defmodule Astarte.RealmManagement.Devices do
     if Queries.device_exists?(realm_name, device_id) do
       TriggersHandler.device_deletion_started(realm_name, device_id)
       DevicesRPC.start_device_deletion_rpc(realm_name, device_id)
+      Scheduler.delete_device(realm_name, device_id)
+
       :ok
     else
       # Don't leave dangling entries. This should only ever run if the request was made for

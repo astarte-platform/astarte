@@ -23,6 +23,7 @@ defmodule Astarte.DataAccess.Device do
   require Logger
   alias Astarte.Core.Device, as: DeviceCore
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device.UnconfirmedDevice
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -108,29 +109,24 @@ defmodule Astarte.DataAccess.Device do
       |> build_initial_introspection_maps()
 
     keyspace_name = Realm.keyspace_name(realm_name)
-
     consistency = Consistency.device_info(:write)
+    unconfirmed? = Keyword.get(opts, :unconfirmed, false)
+    opts = [prefix: keyspace_name, consistency: consistency]
 
-    repo_opts =
-      if Keyword.get(opts, :unconfirmed, false) do
-        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
-      else
-        [prefix: keyspace_name, consistency: consistency]
-      end
-
-    %Device{}
-    |> Ecto.Changeset.change(%{
-      device_id: device_id,
-      first_registration: registration_timestamp,
-      credentials_secret: credentials_secret,
-      inhibit_credentials_request: false,
-      protocol_revision: 0,
-      total_received_bytes: 0,
-      total_received_msgs: 0,
-      introspection: introspection,
-      introspection_minor: introspection_minor
-    })
-    |> Repo.insert(repo_opts)
+    with :ok <- register_unconfirmed_device(unconfirmed?, device_id, opts) do
+      %Device{
+        device_id: device_id,
+        first_registration: registration_timestamp,
+        credentials_secret: credentials_secret,
+        inhibit_credentials_request: false,
+        protocol_revision: 0,
+        total_received_bytes: 0,
+        total_received_msgs: 0,
+        introspection: introspection,
+        introspection_minor: introspection_minor
+      }
+      |> Repo.insert(opts)
+    end
   end
 
   defp do_register_unconfirmed_device(
@@ -145,25 +141,21 @@ defmodule Astarte.DataAccess.Device do
       |> build_initial_introspection_maps()
 
     keyspace_name = Realm.keyspace_name(realm_name)
-
     consistency = Consistency.device_info(:write)
+    unconfirmed? = Keyword.get(opts, :unconfirmed, false)
+    opts = [prefix: keyspace_name, consistency: consistency]
 
-    repo_opts =
-      if Keyword.get(opts, :unconfirmed, false) do
-        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
-      else
-        [prefix: keyspace_name, consistency: consistency]
-      end
-
-    device
-    |> Ecto.Changeset.change(%{
-      credentials_secret: credentials_secret,
-      inhibit_credentials_request: false,
-      protocol_revision: 0,
-      introspection: introspection,
-      introspection_minor: introspection_minor
-    })
-    |> Repo.insert(repo_opts)
+    with :ok <- register_unconfirmed_device(unconfirmed?, device.device_id, opts) do
+      device
+      |> Ecto.Changeset.change(%{
+        credentials_secret: credentials_secret,
+        inhibit_credentials_request: false,
+        protocol_revision: 0,
+        introspection: introspection,
+        introspection_minor: introspection_minor
+      })
+      |> Repo.insert(opts)
+    end
   end
 
   defp build_initial_introspection_maps(initial_introspection) do
@@ -176,6 +168,40 @@ defmodule Astarte.DataAccess.Device do
 
       {[{interface_name, major_version} | majors], [{interface_name, minor_version} | minors]}
     end)
+  end
+
+  defp register_unconfirmed_device(false, _device_id, _opts), do: :ok
+
+  defp register_unconfirmed_device(true, device_id, opts) do
+    opts =
+      opts
+      |> Keyword.put(:overwrite, false)
+      |> Keyword.put(:allow_stale, true)
+
+    result =
+      %UnconfirmedDevice{device_id: device_id, created_at: DateTime.utc_now()}
+      |> Repo.insert(opts)
+
+    with {:ok, _} <- result do
+      :ok
+    end
+  end
+
+  @spec confirm(String.t(), DeviceCore.device_id()) ::
+          {:ok, Device.t()} | {:error, :device_not_found}
+  def confirm(realm_name, device_id) do
+    unconfirmed_device = %UnconfirmedDevice{device_id: device_id}
+    keyspace = Realm.keyspace_name(realm_name)
+    delete_opts = [prefix: keyspace, consistency: Consistency.device_info(:write)]
+
+    fetch_opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read),
+      error: :device_not_found
+    ]
+
+    Repo.delete!(unconfirmed_device, delete_opts)
+    Repo.fetch(Device, device_id, fetch_opts)
   end
 
   def fetch(realm_name, device_id) do
