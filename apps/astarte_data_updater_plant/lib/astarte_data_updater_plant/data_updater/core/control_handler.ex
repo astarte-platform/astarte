@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -44,6 +45,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   * `/emptyCache` - Triggers a cache empty and interface properties resend.
   * `/keyAgreement` - Handles the InitExchange protocol (Device to Astarte direction).
   * `/keyAgreement/1` - Receives an ExchangeResp sent by the device when Astarte previously initiated a key-agreement handshake.
+  * `/keyAgreement/2` - Receives a SecretHash from the device to verify keys.
   """
   def handle_control(state, path, payload, timestamp)
 
@@ -226,6 +228,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     |> process_key_agreement(payload, timestamp)
   end
 
+  def handle_control(state, "/keyAgreement/2", payload, timestamp) do
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
+    case SecretHash.cbor_decode(payload) do
+      {:ok, %SecretHash{seq_num: seq_num} = secret_hash_msg} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_secret_hash],
+          %{payload_size: byte_size(payload)},
+          %{realm: new_state.realm}
+        )
+
+        process_secret_hash(new_state, seq_num, secret_hash_msg, payload, timestamp)
+
+      {:error, reason} ->
+        Logger.warning(
+          "[keyAgreement/2] payload validation failed: #{inspect(reason)}",
+          tag: "secret_hash_invalid_payload"
+        )
+
+        context = %{
+          state: new_state,
+          payload: payload,
+          path: "/keyAgreement/2",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message: "Invalid SecretHash payload: #{inspect(Base.encode64(payload))}",
+          logger_metadata: [tag: "secret_hash_error"],
+          error_name: "secret_hash_error",
+          error: :secret_hash_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
   def handle_control(state, path, payload, timestamp) do
     # Track unexpected control messages
     :telemetry.execute(
@@ -246,6 +285,57 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     }
 
     Core.Error.handle_error(context, error)
+  end
+
+  defp process_secret_hash(state, _seq_num, secret_hash_msg, payload, _timestamp) do
+    case state.encrypted_endpoints_key do
+      {:established, %{shared_secret: shared_secret, alg: _alg}} ->
+        # Ask the module to verify itself
+        case SecretHash.verify(secret_hash_msg, shared_secret) do
+          :ok ->
+            # TODO: Implement HashOk (3) transmission here.
+            # For now, we acknowledge the valid hash and move on.
+            Logger.debug(
+              "[keyAgreement/2] SecretHash matches. Skipping HashOk transmission for now."
+            )
+
+            final_state = %{
+              state
+              | total_received_msgs: state.total_received_msgs + 1,
+                total_received_bytes: state.total_received_bytes + byte_size(payload)
+            }
+
+            {:ack, :ok, final_state}
+
+          {:error, :hash_mismatch} ->
+            Logger.warning("[keyAgreement/2] SecretHash mismatch. Renegotiating.")
+            # TODO: implement ExchangeFailed message
+            renegotiate_handshake(state, payload)
+        end
+
+      _ ->
+        Logger.warning("[keyAgreement/2] No shared secret established. Renegotiating.")
+        # TODO: implement ExchangeFailed message
+        renegotiate_handshake(state, payload)
+    end
+  end
+
+  defp renegotiate_handshake(state, payload) do
+    case send_init_exchange(state) do
+      {:ok, state_after_init} ->
+        final_state = %{
+          state_after_init
+          | total_received_msgs: state.total_received_msgs + 1,
+            total_received_bytes: state.total_received_bytes + byte_size(payload)
+        }
+
+        {:ack, :ok, final_state}
+
+      {:error, reason} ->
+        Logger.error("[keyAgreement/2] Failed to renegotiate key: #{inspect(reason)}")
+        # TODO: implement ExchangeFailed message
+        {:discard, reason, state}
+    end
   end
 
   defp process_key_agreement(

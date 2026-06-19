@@ -40,7 +40,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash do
 
   typedstruct enforce: true do
     @typedoc "SecretHash key-agreement verification message."
-
     field :seq_num, non_neg_integer()
     field :key_hash, binary()
   end
@@ -98,4 +97,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash do
   # SHA256 output is exactly 32 bytes
   defp validate_hash_length(hash) when byte_size(hash) == 32, do: :ok
   defp validate_hash_length(_), do: {:error, :invalid_hash_length}
+
+  @doc """
+  Verifies if the received SecretHash matches the expected derived shared secret
+  using a constant-time comparison to prevent timing attacks.
+  """
+  @spec verify(t(), binary()) :: :ok | {:error, :hash_mismatch}
+  def verify(%SecretHash{key_hash: received_hash}, shared_secret) do
+    expected_hash = :crypto.hash(:sha256, shared_secret)
+
+    if :crypto.hash_equals(expected_hash, received_hash) do
+      :ok
+    else
+      {:error, :hash_mismatch}
+    end
+  end
 end
