@@ -24,30 +24,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
 
   ## States
 
-  * `:uninitialized` — no handshake has been attempted (initial state or post-reset).
-  * `{:handshake_started, data}` — one side sent/received `InitExchange`; waiting
-    for `ExchangeResp` and ECDH derivation.
-  * `{:established, data}` — shared secret successfully derived; encrypted traffic
-    may flow.
-  * `{:failed, reason}` — the handshake failed; caller must reset or re-initiate.
+  * `:uninitialized` — No handshake attempted (initial state or post-reset).
+  * `{:handshake_started, data}` — `InitExchange` exchanged; awaiting `ExchangeResp` and derivation.
+  * `{:established, data}` — Shared secret derived; ready for encrypted traffic.
+  * `{:failed, reason}` — Handshake failed; requires reset or re-initiation.
 
   ## Valid transitions
 
-  | Current state          | Event                             | Next state            |
-  |------------------------|-----------------------------------|-----------------------|
-  | any                    | `:reset`                          | `:uninitialized`      |
-  | any                    | `{:initiate_handshake, msg}`      | `:handshake_started`  |
-  | `:uninitialized`       | `{:receive_init, msg}`            | `:handshake_started`  |
-  | `{:handshake_started}` | `{:receive_init, msg}`            | `:handshake_started`  |
-  | `{:failed, _}`         | `{:receive_init, msg}`            | `:handshake_started`  |
-  | `{:handshake_started}` | `{:handshake_completed, secret}`  | `:established`        |
-  | any                    | `{:error, reason}`                | `{:failed, reason}`   |
-
-  Note that `{:receive_init, msg}` is intentionally **not** valid from
-  `:established`. When a device sends a fresh `InitExchange` while a secret
-  is already in place, the handler must decide whether to re-key; the state
-  machine must not advance until `send_exchange_resp/3` has actually been
-  called and the new exchange is committed.
+  | Current state                                     | Event                             | Next state           |
+  |---------------------------------------------------|-----------------------------------|----------------------|
+  | any                                               | `:reset`                          | `:uninitialized`     |
+  | any                                               | `{:initiate_handshake, msg}`      | `:handshake_started` |
+  | `:uninitialized`, `:handshake_started`, `:failed` | `{:receive_init, msg}`            | `:handshake_started` |
+  | `:handshake_started`                              | `{:handshake_completed, secret}`  | `:established`       |
+  | `:established`                                    | `:secret_reconfirmed`             | `:established`       |
+  | any                                               | `{:error, reason}`                | `{:failed, reason}`  |
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
@@ -109,6 +100,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
       )
       when is_binary(shared_secret) do
     {:ok, {:established, %{shared_secret: shared_secret, alg: alg}}}
+  end
+
+  # SecretHash successfully verified while already established
+  def transition({:established, data}, :secret_reconfirmed) do
+    {:ok, {:established, data}}
   end
 
   # Error transition
