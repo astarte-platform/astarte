@@ -25,7 +25,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -164,8 +166,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     case InitExchange.decode(payload) do
-      # TODO: call send_exchange_resp/3 here and use the returned key pair
-      #       for the ECDH + HKDF shared-secret derivation step.
       {:ok, init_exchange} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_init],
@@ -173,14 +173,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: new_state.realm}
         )
 
-        final_state = %{
-          new_state
-          | total_received_msgs: new_state.total_received_msgs + 1,
-            total_received_bytes: new_state.total_received_bytes + byte_size(payload),
-            active_key_type: init_exchange.key_type
-        }
+        # TODO: call send_exchange_resp/3 here and use the returned key pair
+        #       for the ECDH + HKDF shared-secret derivation step.
+        case HandshakeState.transition(
+               new_state.encrypted_endpoints_key,
+               {:receive_init, init_exchange}
+             ) do
+          {:ok, new_key_state} ->
+            final_state = %{
+              new_state
+              | total_received_msgs: new_state.total_received_msgs + 1,
+                total_received_bytes: new_state.total_received_bytes + byte_size(payload),
+                encrypted_endpoints_key: new_key_state
+            }
 
-        {:ack, :ok, final_state}
+            {:ack, :ok, final_state}
+
+          {:error, reason} ->
+            Logger.error("[keyAgreement] State machine transition failed: #{inspect(reason)}")
+            {:ack, :ok, new_state}
+        end
 
       {:error, reason} ->
         Logger.warning(
@@ -236,58 +248,80 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.Error.handle_error(context, error)
   end
 
-  defp process_key_agreement(%{handshake_key_type: nil} = state, _payload, _timestamp) do
-    Logger.warning(
-      "[keyAgreement/1] Received ExchangeResp but no pending key exchange was found in state.",
-      tag: "key_agreement_resp_unexpected"
-    )
+  defp process_key_agreement(
+         %{encrypted_endpoints_key: {:handshake_started, data}} = state,
+         payload,
+         timestamp
+       ) do
+    with {:ok, exchange_resp} <- decode_exchange_resp(state, payload, timestamp, data.key_type),
+         {:ok, shared_secret} <- derive_shared_secret(state, data.init_exchange, exchange_resp),
+         {:ok, new_key_state} <- transition_key_agreement(state, shared_secret) do
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
+        %{payload_size: byte_size(payload)},
+        %{realm: state.realm}
+      )
 
-    # TODO: implement ExchangeFailed message
+      final_state = %{
+        state
+        | encrypted_endpoints_key: new_key_state,
+          total_received_msgs: state.total_received_msgs + 1,
+          total_received_bytes: state.total_received_bytes + byte_size(payload)
+      }
+
+      {:ack, :ok, final_state}
+    else
+      {:error, reason} ->
+        # TODO: Implement failedexchange message
+        Logger.warning("keyAgreement/1 failed, ignoring for now: #{inspect(reason)}")
+
+        # Fallback
+        {:ack, :ok, state}
+    end
+  end
+
+  defp process_key_agreement(state, _payload, _timestamp) do
+    Logger.warning("[keyAgreement/1] Unexpected response received.")
     {:ack, :ok, state}
   end
 
-  defp process_key_agreement(%{handshake_key_type: expected_key_type} = state, payload, timestamp) do
+  defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
     case ExchangeResp.cbor_decode(payload, expected_key_type) do
-      {:ok, _exchange_resp} ->
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
-          %{payload_size: byte_size(payload)},
-          %{realm: state.realm}
-        )
-
-        final_state = %{
-          state
-          | total_received_msgs: state.total_received_msgs + 1,
-            total_received_bytes: state.total_received_bytes + byte_size(payload),
-            handshake_key_type: nil,
-            active_key_type: expected_key_type
-        }
-
-        {:ack, :ok, final_state}
+      {:ok, exchange_resp} ->
+        {:ok, exchange_resp}
 
       {:error, reason} ->
-        Logger.warning(
-          "[keyAgreement/1] payload validation failed: #{inspect(reason)}",
-          tag: "key_agreement_resp_invalid_payload"
-        )
+        # TODO : implement ExchangeFailed message
+        {:error, reason}
+    end
+  end
 
-        context = %{
-          state: state,
-          payload: payload,
-          path: "/keyAgreement/1",
-          timestamp: timestamp
-        }
+  defp derive_shared_secret(_state, init_exchange, exchange_resp) do
+    case SharedSecret.derive(
+           init_exchange.public_key,
+           exchange_resp.public_key,
+           init_exchange.hkdf_salt
+         ) do
+      {:ok, shared_secret} ->
+        {:ok, shared_secret}
 
-        error = %{
-          message:
-            "Invalid keyAgreement/1 payload (#{inspect(reason)}): " <>
-              inspect(Base.encode64(payload)),
-          logger_metadata: [tag: "key_agreement_resp_error"],
-          error_name: "key_agreement_resp_error",
-          error: :key_agreement_resp_error
-        }
+      {:error, reason} ->
+        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
 
-        Core.Error.handle_error(context, error)
+  defp transition_key_agreement(state, shared_secret) do
+    case HandshakeState.transition(
+           state.encrypted_endpoints_key,
+           {:handshake_completed, shared_secret}
+         ) do
+      {:ok, new_key_state} ->
+        {:ok, new_key_state}
+
+      {:error, reason} ->
+        Logger.error("[keyAgreement/1] State machine transition failed: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -304,13 +338,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   def send_init_exchange(state) do
     init_exchange = InitExchange.new()
 
-    with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange) do
-      updated_state = %{
-        state
-        | handshake_key_type: init_exchange.key_type
-      }
-
-      {:ok, updated_state}
+    with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange),
+         {:ok, new_key_state} <-
+           HandshakeState.transition(
+             state.encrypted_endpoints_key,
+             {:initiate_handshake, init_exchange}
+           ) do
+      {:ok, %{state | encrypted_endpoints_key: new_key_state}}
     end
   end
 
