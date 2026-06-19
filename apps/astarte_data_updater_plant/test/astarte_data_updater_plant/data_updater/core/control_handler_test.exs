@@ -32,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
@@ -128,6 +129,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         }
       ])
 
+    # SecretHash payloads
+    shared_secret = :crypto.strong_rand_bytes(32)
+    valid_secret_hash = SecretHash.new(1, shared_secret)
+    valid_secret_hash_payload = SecretHash.cbor_encode(valid_secret_hash)
+
+    # Hash derived from a different random secret to simulate a mismatch
+    invalid_secret_hash = %SecretHash{seq_num: 1, key_hash: :crypto.strong_rand_bytes(32)}
+    invalid_secret_hash_payload = SecretHash.cbor_encode(invalid_secret_hash)
+
     %{
       init_exchange: init_exchange,
       init_exchange_payload: init_exchange_payload,
@@ -139,7 +149,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       wrong_okp_key_payload: wrong_okp_key_payload,
       wrong_hkdf_salt_payload: wrong_hkdf_salt_payload,
       wrong_nonce_payload: wrong_nonce_payload,
-      invalid_exchange_resp_payload: invalid_exchange_resp_payload
+      invalid_exchange_resp_payload: invalid_exchange_resp_payload,
+      shared_secret: shared_secret,
+      valid_secret_hash_payload: valid_secret_hash_payload,
+      invalid_secret_hash_payload: invalid_secret_hash_payload
     }
   end
 
@@ -611,6 +624,105 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:error, :transport_failure} =
                ControlHandler.send_exchange_resp(realm, device_id, init_exchange)
+    end
+  end
+
+  describe "/keyAgreement/2 (SecretHash)" do
+    test "acks a valid SecretHash payload when hashes match", context do
+      %{
+        state: state,
+        valid_secret_hash_payload: payload,
+        shared_secret: shared_secret
+      } = context
+
+      # Inject the expected established key state
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:established,
+             %{
+               shared_secret: shared_secret,
+               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      # The state should remain untouched
+      assert {:established, _} = new_state.encrypted_endpoints_key
+    end
+
+    test "renegotiates if hashes mismatch", context do
+      %{
+        state: state,
+        invalid_secret_hash_payload: payload,
+        shared_secret: shared_secret
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:established,
+             %{
+               shared_secret: shared_secret,
+               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
+
+      # Expect 1 publish (the InitExchange renegotiation fallback)
+      expect(VMQPlugin, :publish, 1, fn _topic, _payload_bytes, _qos ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+
+      # Ensure it correctly fell back and overwrote the :established state with a new handshake
+      assert {:handshake_started, _} = new_state.encrypted_endpoints_key
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+    end
+
+    test "renegotiates if no shared secret is established", context do
+      %{state: state, valid_secret_hash_payload: payload} = context
+
+      # state.encrypted_endpoints_key is :uninitialized by default here
+
+      # Expect 1 publish (the InitExchange renegotiation fallback)
+      expect(VMQPlugin, :publish, 1, fn _topic, _payload_bytes, _qos ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+
+      # Ensure it started a new handshake
+      assert {:handshake_started, _} = new_state.encrypted_endpoints_key
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+    end
+
+    test "discards payload and logs an error if the CBOR structure is invalid", context do
+      %{state: state} = context
+
+      # Corrupted/invalid payload
+      payload = <<0xFF, 0xFE, 0x00>>
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "secret_hash_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
   end
 end
