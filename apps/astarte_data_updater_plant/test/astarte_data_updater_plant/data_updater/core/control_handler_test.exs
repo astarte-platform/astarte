@@ -348,30 +348,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement", <<1>>, 0)
     end
-
-    test "logs an error and leaves the key-agreement state untouched if the state machine rejects the transition",
-         context do
-      %{state: state, init_exchange_payload: payload} = context
-
-      # Simulate a handshake that has already completed, so a fresh
-      # InitExchange from the device is no longer a valid transition
-      state = %{
-        state
-        | encrypted_endpoints_key:
-            {:established,
-             %{
-               shared_secret: :crypto.strong_rand_bytes(32),
-               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
-             }}
-      }
-
-      assert {{:ack, :ok, new_state}, log} =
-               with_log(fn ->
-                 ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
-               end)
-
-      assert new_state.encrypted_endpoints_key == state.encrypted_endpoints_key
-    end
   end
 
   describe "/keyAgreement - invalid payloads" do

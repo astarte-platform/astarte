@@ -20,36 +20,94 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState do
   @moduledoc """
-  Pure state machine for Encrypted Endpoints Key Agreement protocol.
+  Pure state machine for the Encrypted Endpoints Key Agreement protocol.
+
+  ## States
+
+  * `:uninitialized` — no handshake has been attempted (initial state or post-reset).
+  * `{:handshake_started, data}` — one side sent/received `InitExchange`; waiting
+    for `ExchangeResp` and ECDH derivation.
+  * `{:established, data}` — shared secret successfully derived; encrypted traffic
+    may flow.
+  * `{:failed, reason}` — the handshake failed; caller must reset or re-initiate.
+
+  ## Valid transitions
+
+  | Current state          | Event                             | Next state            |
+  |------------------------|-----------------------------------|-----------------------|
+  | any                    | `:reset`                          | `:uninitialized`      |
+  | any                    | `{:initiate_handshake, msg}`      | `:handshake_started`  |
+  | `:uninitialized`       | `{:receive_init, msg}`            | `:handshake_started`  |
+  | `{:handshake_started}` | `{:receive_init, msg}`            | `:handshake_started`  |
+  | `{:failed, _}`         | `{:receive_init, msg}`            | `:handshake_started`  |
+  | `{:handshake_started}` | `{:handshake_completed, secret}`  | `:established`        |
+  | any                    | `{:error, reason}`                | `{:failed, reason}`   |
+
+  Note that `{:receive_init, msg}` is intentionally **not** valid from
+  `:established`. When a device sends a fresh `InitExchange` while a secret
+  is already in place, the handler must decide whether to re-key; the state
+  machine must not advance until `send_exchange_resp/3` has actually been
+  called and the new exchange is committed.
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
   @type key_suite :: InitExchange.key_suite()
 
+  @type handshake_data :: %{
+          key_type: key_suite(),
+          init_exchange: InitExchange.t()
+        }
+
+  @type established_data :: %{
+          shared_secret: binary(),
+          alg: key_suite()
+        }
+
   @type t ::
           :uninitialized
-          | {:handshake_started, %{key_type: key_suite(), init_exchange: InitExchange.t()}}
-          | {:established, %{shared_secret: binary(), alg: key_suite()}}
+          | {:handshake_started, handshake_data()}
+          | {:established, established_data()}
           | {:failed, reason :: term()}
 
   @doc """
   Pure transition function. Cryptographic derivation must be performed
   externally by the caller.
-  """
-  @spec transition(t(), term()) :: {:ok, t()} | {:error, term()}
 
-  # Initiating a handshake (Astarte to Device)
-  def transition(:uninitialized, {:initiate_handshake, %InitExchange{} = msg}) do
+  Returns `{:ok, new_state}` on a valid transition, or
+  `{:error, :invalid_transition}` when the (state, event) pair is not
+  permitted by the protocol.
+  """
+  @spec transition(t(), term()) :: {:ok, t()} | {:error, :invalid_transition}
+
+  # `:reset` is always valid, covers session reconnect and post-failure recovery
+  def transition(_current_state, :reset) do
+    {:ok, :uninitialized}
+  end
+
+  # Either party may trigger a new handshake from any state (e.g. key rotation).
+  def transition(_current_state, {:initiate_handshake, %InitExchange{} = msg}) do
     {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
   end
 
-  # Receiving a handshake initiation (Device to Astarte)
+  # Receiving a handshake initiation (Device to Astarte).
   def transition(:uninitialized, {:receive_init, %InitExchange{} = msg}) do
     {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
   end
 
+  def transition({:handshake_started, _}, {:receive_init, %InitExchange{} = msg}) do
+    {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
+  end
+
+  def transition({:failed, _}, {:receive_init, %InitExchange{} = msg}) do
+    {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
+  end
+
   # Successful handshake completion (Result of SharedSecret.derive/3)
-  def transition({:handshake_started, %{key_type: alg}}, {:handshake_completed, shared_secret}) do
+  def transition(
+        {:handshake_started, %{key_type: alg}},
+        {:handshake_completed, shared_secret}
+      )
+      when is_binary(shared_secret) do
     {:ok, {:established, %{shared_secret: shared_secret, alg: alg}}}
   end
 
