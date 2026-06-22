@@ -25,11 +25,14 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   require Logger
 
   alias AMQP.Basic
+  alias AMQP.Channel
+  alias AMQP.Connection
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.Handler
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Policy, as: PolicyProcess
   alias Astarte.TriggerEngine.Policy.Impl
@@ -37,11 +40,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
 
   import Astarte.Fixtures.Policy
 
+  setup_all :open_channel
+
   setup do
     payload = "payload#{System.unique_integer()}"
-    channel = "channel#{System.unique_integer()}"
 
-    %{payload: payload, channel: channel}
+    %{payload: payload}
   end
 
   @tag :unit
@@ -191,6 +195,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     @tag :integration
     test "with retry strategy", args do
       %{
+        channel: chan,
         payload: original_payload,
         retry_all_routing_key: retry_all_routing_key,
         message_id: message_id
@@ -206,14 +211,13 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, retry_all_routing_key, original_payload, [], message_id)
-      end)
+      produce_event(chan, retry_all_routing_key, original_payload, [], message_id)
     end
 
     @tag :integration
     test "with retry strategy when consumer responds with connection_error", args do
       %{
+        channel: chan,
         payload: original_payload,
         retry_all_routing_key: retry_all_routing_key,
         message_id: message_id
@@ -229,13 +233,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, retry_all_routing_key, original_payload, [], message_id)
-      end)
+      produce_event(chan, retry_all_routing_key, original_payload, [], message_id)
     end
 
     test "with mixed policies", args do
       %{
+        channel: chan,
         payload: original_payload,
         realm_name: realm_name
       } = args
@@ -267,17 +270,9 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], "message1")
-      end)
-
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], "message2")
-      end)
-
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], "message3")
-      end)
+      produce_event(chan, routing_key, original_payload, [], "message1")
+      produce_event(chan, routing_key, original_payload, [], "message2")
+      produce_event(chan, routing_key, original_payload, [], "message3")
     end
   end
 
@@ -302,6 +297,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
 
     test "with retry strategy policy when delivery fails >= retry_times", args do
       %{
+        channel: chan,
         payload: original_payload,
         retry_all_policy: policy,
         retry_all_routing_key: routing_key,
@@ -314,13 +310,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         {:http_error, 418}
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], message_id)
-      end)
+      produce_event(chan, routing_key, original_payload, [], message_id)
     end
 
     test "with discard strategy when delivery fails", args do
       %{
+        channel: chan,
         payload: original_payload,
         discard_all_routing_key: routing_key,
         message_id: message_id
@@ -332,13 +327,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         {:http_error, 500}
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], message_id)
-      end)
+      produce_event(chan, routing_key, original_payload, [], message_id)
     end
 
     test "with discard strategy when consumer responds with connection_error", args do
       %{
+        channel: chan,
         payload: original_payload,
         discard_all_routing_key: routing_key,
         message_id: message_id
@@ -350,9 +344,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         {:error, :connection_error}
       end)
 
-      ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
-        produce_event(chan, routing_key, original_payload, [], message_id)
-      end)
+      produce_event(chan, routing_key, original_payload, [], message_id)
     end
   end
 
@@ -375,5 +367,17 @@ defmodule Astarte.TriggerEngine.PolicyTest do
 
   defp generate_routing_key(realm, policy) do
     "#{realm}_#{policy}"
+  end
+
+  defp open_channel(_context) do
+    {:ok, conn} = Connection.open(Config.amqp_consumer_options!())
+    {:ok, channel} = Channel.open(conn)
+
+    on_exit(fn ->
+      Channel.close(channel)
+      Connection.close(conn)
+    end)
+
+    %{channel: channel}
   end
 end

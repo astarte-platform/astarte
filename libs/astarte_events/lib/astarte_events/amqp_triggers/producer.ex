@@ -23,9 +23,11 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
   use GenServer, restart: :transient
   require Logger
 
-  alias AMQP.{Channel, Connection}
+  alias AMQP.Basic
+  alias AMQP.Channel
+  alias AMQP.Connection
+  alias AMQP.Exchange
   alias Astarte.Events.Config
-  alias ExRabbitPool.RabbitMQ
 
   @connection_backoff 10_000
 
@@ -50,6 +52,7 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
 
   @impl true
   def init(opts) do
+    Process.flag(:trap_exit, true)
     realm_name = Keyword.fetch!(opts, :realm)
     wait_start = Keyword.get(opts, :wait_start, false)
 
@@ -76,23 +79,40 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, {conn, chan, realm}) do
-    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
+    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
     {:reply, reply, {conn, chan, realm}, 60_000}
   end
 
   @impl true
   def handle_call({:declare_exchange, exchange}, _from, {conn, chan, realm}) do
-    reply = RabbitMQ.declare_exchange(chan, exchange, type: :direct, durable: true)
+    reply = Exchange.declare(chan, exchange, :direct, durable: true)
     {:reply, reply, {conn, chan, realm}, 60_000}
   end
 
   @impl true
-  def handle_info({:DOWN, _, :process, _pid, reason}, {conn, _chan, realm}) do
-    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
+  def handle_info({:DOWN, _, :process, _pid, reason}, {_conn, chan, realm}) do
+    Logger.warning("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reconnect...",
       tag: "amqp_triggers_producer_conn_lost"
     )
 
-    :ok = Connection.close(conn)
+    close_channel(chan)
+
+    case init_producer(realm) do
+      {:ok, new_state} ->
+        {:noreply, new_state, 60_000}
+
+      {:error, _} ->
+        schedule_connect()
+        {:noreply, {:not_connected, realm}}
+    end
+  end
+
+  @impl true
+  def handle_info({:EXIT, conn_pid, reason}, {%{pid: conn_pid}, chan, realm}) do
+    "RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect..."
+    |> Logger.warning(tag: "amqp_triggers_producer_conn_lost")
+
+    close_channel(chan)
 
     case init_producer(realm) do
       {:ok, new_state} ->
@@ -121,6 +141,8 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
       |> Keyword.put(:virtual_host, vhost_name(realm_name))
 
     with {:ok, connection} <- Connection.open(amqp_opts) do
+      Process.link(connection.pid)
+
       case Channel.open(connection) do
         {:ok, %Channel{pid: channel_pid} = channel} ->
           Process.monitor(channel_pid)
@@ -139,6 +161,14 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
   defp schedule_connect do
     Logger.warning("Retrying connection in #{@connection_backoff} ms")
     Process.send_after(self(), :init, @connection_backoff)
+  end
+
+  defp close_channel(channel) do
+    if Process.alive?(channel.pid) do
+      Channel.close(channel)
+      Process.unlink(channel.conn.pid)
+      Connection.close(channel.conn)
+    end
   end
 
   def vhost_name(realm_name) do

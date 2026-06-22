@@ -71,7 +71,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:amqp, "~> 3.0"},
+      {:amqp, "~> 4.1"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
@@ -85,7 +85,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.9"},
-      {:current_rabbit_pool, "~> 1.1"},
       {:phoenix_swagger, "~> 0.8"},
       {:exandra, "~> 0.13"},
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0

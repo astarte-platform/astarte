@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+Mimic.copy(AMQP.Channel)
 Mimic.copy(Astarte.Core.Mapping.ValueType)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataAccess.Health)
@@ -39,7 +40,6 @@ Mimic.copy(Astarte.DataUpdaterPlant.TriggersHandler)
 Mimic.copy(Astarte.Events.Triggers)
 Mimic.copy(Astarte.Events.TriggersHandler)
 Mimic.copy(Astarte.Secrets)
-Mimic.copy(ExRabbitPool)
 Mimic.copy(GenServer)
 Mimic.copy(Horde.Registry)
 Mimic.copy(Mississippi.Consumer.MessageTracker)
