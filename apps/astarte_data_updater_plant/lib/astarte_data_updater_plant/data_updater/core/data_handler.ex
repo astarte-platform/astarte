@@ -27,10 +27,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Data
+  alias Astarte.DataAccess.Device, as: DeviceAccess
+  alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -140,7 +141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       opts: [ttl: db_max_ttl]
     }
 
-    Queries.insert_value_into_db(insert_context)
+    DeviceAccess.insert_value_into_db(insert_context)
     |> handle_result(context, start)
   end
 

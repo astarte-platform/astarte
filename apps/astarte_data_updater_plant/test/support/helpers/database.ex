@@ -20,13 +20,14 @@ defmodule Astarte.Helpers.Database do
   @moduledoc """
   This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
   """
+  alias Astarte.DataAccess.Device, as: DeviceAccess
+  alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @create_keyspace """
@@ -547,7 +548,7 @@ defmodule Astarte.Helpers.Database do
         opts: []
       }
 
-      :ok = Queries.insert_value_into_db(insert_context)
+      :ok = DeviceAccess.insert_value_into_db(insert_context)
 
       timestamp
     end)

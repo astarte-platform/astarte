@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.InsertContext do
+defmodule Astarte.DataAccess.Device.InsertContext do
   @moduledoc false
 
   alias Astarte.Core.InterfaceDescriptor

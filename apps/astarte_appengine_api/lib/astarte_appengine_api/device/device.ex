@@ -37,6 +37,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings
   alias Ecto.Changeset
@@ -199,7 +200,9 @@ defmodule Astarte.AppEngine.API.Device do
       ) do
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
          mapping =
-           Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id),
+           Mapping.from_db_result!(
+             Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
+           ),
          {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
          wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
@@ -270,7 +273,26 @@ defmodule Astarte.AppEngine.API.Device do
     %{realm: realm, device: device, desc: desc, mapping: mapping, opts: opts} = ctx
     %{path: path, val: val, now: now, raw: raw} = data
 
-    with :ok <- Queries.insert_value_into_db(realm, device, desc, mapping, path, val, now, opts) do
+    now_millisecond = DateTime.to_unix(now, :millisecond)
+
+    now_decimicrosecond =
+      now
+      |> DateTime.to_unix(:microsecond)
+      |> Kernel.*(10)
+
+    insert_context = %InsertContext{
+      realm: realm,
+      device_id: device,
+      interface_descriptor: desc,
+      mapping: mapping,
+      path: path,
+      value: val,
+      value_timestamp: now_millisecond,
+      reception_timestamp: now_decimicrosecond,
+      opts: opts
+    }
+
+    with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
       if desc.type == :datastream do
         Queries.insert_path_into_db(realm, device, desc, ctx.end_id, path, now, now, opts)
       end
@@ -437,17 +459,26 @@ defmodule Astarte.AppEngine.API.Device do
             [ttl: db_max_ttl]
         end
 
-      with :ok <-
-             Queries.insert_value_into_db(
-               realm_name,
-               device_id,
-               interface_descriptor,
-               nil,
-               path,
-               value,
-               now,
-               opts
-             ) do
+      now_millisecond = DateTime.to_unix(now, :millisecond)
+
+      now_decimicrosecond =
+        now
+        |> DateTime.to_unix(:microsecond)
+        |> Kernel.*(10)
+
+      insert_context = %InsertContext{
+        realm: realm_name,
+        device_id: device_id,
+        interface_descriptor: interface_descriptor,
+        mapping: nil,
+        path: path,
+        value: value,
+        value_timestamp: now_millisecond,
+        reception_timestamp: now_decimicrosecond,
+        opts: opts
+      }
+
+      with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
         Queries.insert_path_into_db(
           realm_name,
           device_id,
@@ -715,9 +746,19 @@ defmodule Astarte.AppEngine.API.Device do
          path <- "/" <> no_prefix_path,
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path) do
       mapping =
-        Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
+        Mapping.from_db_result!(
+          Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
+        )
 
-      perform_value_deletion(realm_name, device_id, interface_descriptor, mapping, path)
+      insert_context = %InsertContext{
+        realm: realm_name,
+        device_id: device_id,
+        interface_descriptor: interface_descriptor,
+        mapping: mapping,
+        path: path
+      }
+
+      perform_value_deletion(insert_context)
     else
       {:ownership, :device} ->
         {:error, :cannot_write_to_device_owned}
@@ -730,9 +771,16 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp perform_value_deletion(realm, device, descriptor, mapping, path) do
+  defp perform_value_deletion(
+         %InsertContext{
+           realm: realm,
+           device_id: device,
+           interface_descriptor: descriptor,
+           path: path
+         } = insert_context
+       ) do
     with :ok <-
-           Queries.insert_value_into_db(realm, device, descriptor, mapping, path, nil, nil, []) do
+           DeviceQueries.insert_value_into_db(insert_context) do
       handle_interface_type_cleanup(realm, device, descriptor.name, descriptor.type, path)
     end
   end
