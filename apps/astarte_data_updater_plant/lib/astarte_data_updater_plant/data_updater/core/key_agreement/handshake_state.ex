@@ -42,6 +42,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
+  require Logger
+
   @type key_suite :: InitExchange.key_suite()
 
   @type handshake_data :: %{
@@ -113,5 +115,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   end
 
   # Fallback for invalid protocol steps
-  def transition(_current_state, _event), do: {:error, :invalid_transition}
+  def transition(current_state, event) do
+    Logger.warning(
+      "Handshake: tried to transition with event #{inspect(event)} from state #{inspect(current_state)}"
+    )
+
+    {:error, :invalid_transition}
+  end
 end

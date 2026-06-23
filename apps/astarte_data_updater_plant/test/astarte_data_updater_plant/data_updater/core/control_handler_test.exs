@@ -331,26 +331,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
          context do
       %{state: state, init_exchange_payload: payload} = context
 
+      expect(VMQPlugin, :publish, 1, fn topic, _payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/1"
+        assert qos == 2
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
 
-      assert {:handshake_started, %{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do
       %{state: state, p256_init_exchange_payload: payload} = context
 
+      expect(VMQPlugin, :publish, 1, fn topic, _payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/1"
+        assert qos == 2
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
 
-      assert {:handshake_started, %{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
     end
 
