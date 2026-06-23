@@ -28,10 +28,11 @@ defmodule Astarte.Adapters do
   ## Usage
 
   To use the DSL, you must `use Astarte.Adapters` in your module. This will
-  import the `transform` macro.
+  import the `transform` and `transformp` macros.
 
-  A transformation is defined using `transform`, which takes a name for the generated
-  function and a `do` block containing the transformation rules.
+  A transformation is defined using `transform` (to generate a public function)
+  or `transformp` (to generate a private function). Both take a name for the
+  generated function and a `do` block containing the transformation rules.
 
   ### Mapping Options
 
@@ -41,7 +42,7 @@ defmodule Astarte.Adapters do
 
   ### Rules
 
-  Inside a `transform` block, you can use four constructs. They must be declared
+  Inside a `transform` or `transformp` block, you can use four constructs. They must be declared
   in the following strict order:
 
   1. `pre_process function`: (Optional) The very first statement. A function of arity 1
@@ -63,6 +64,7 @@ defmodule Astarte.Adapters do
 
         @type string_payload :: String.t()
 
+        # Generates a public function `map_payload/1`
         transform map_payload do
           @source string_payload()
           @returns map()
@@ -73,6 +75,12 @@ defmodule Astarte.Adapters do
           field :type <- "type", fn type, _source -> String.upcase(type) end, required: false
           field :full_name, fn source -> source["first"] <> " " <> source["last"] end
           post_process &struct!(MyStruct, &1)
+        end
+
+        # Generates a private function `private_mapping/1`
+        transformp private_mapping do
+          field :internal_id <- "id"
+          field :timestamp <- "ts"
         end
       end
   """
@@ -87,7 +95,10 @@ defmodule Astarte.Adapters do
   @doc """
   Defines a transformation ruleset.
   """
-  defmacro transform(name, do: block) do
+  defmacro transform(name, do: block), do: build_transform(:def, name, block)
+  defmacro transformp(name, do: block), do: build_transform(:defp, name, block)
+
+  defp build_transform(def_type, name, block) do
     %{
       pre: pre,
       fields: fields,
@@ -136,10 +147,22 @@ defmodule Astarte.Adapters do
         fun -> quote(do: unquote(fun).(unquote(pipeline)))
       end
 
+    specs =
+      case def_type do
+        :def ->
+          quote do
+            @doc "Transforms source data using the `#{unquote(fun_name)}` ruleset."
+            @spec unquote(fun_name)(unquote(source_type)) :: unquote(return_type)
+          end
+
+        :defp ->
+          nil
+      end
+
     quote do
-      @doc "Transforms source data using the `#{unquote(fun_name)}` ruleset."
-      @spec unquote(fun_name)(unquote(source_type)) :: unquote(return_type)
-      def unquote(fun_name)(unquote(source_data_var)) do
+      unquote(specs)
+
+      unquote(def_type)(unquote(fun_name)(unquote(source_data_var))) do
         unquote(pre_ast)
         _ = unquote(processed_source_var)
         unquote(final_ast)
