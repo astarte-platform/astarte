@@ -177,24 +177,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: new_state.realm}
         )
 
-        # TODO: call send_exchange_resp/3 here and use the returned key pair
-        #       for the ECDH + HKDF shared-secret derivation step.
-        case HandshakeState.transition(
-               new_state.encrypted_endpoints_key,
-               {:receive_init, init_exchange}
-             ) do
-          {:ok, new_key_state} ->
-            final_state = %{
-              new_state
-              | total_received_msgs: new_state.total_received_msgs + 1,
-                total_received_bytes: new_state.total_received_bytes + byte_size(payload),
-                encrypted_endpoints_key: new_key_state
-            }
+        with {:ok, state_after_receive} <-
+               HandshakeState.transition(
+                 new_state.encrypted_endpoints_key,
+                 {:receive_init, init_exchange}
+               )
+               |> wrap_transition_error(),
+             {:ok, exchange_resp} <-
+               send_exchange_resp(new_state.realm, new_state.device_id, init_exchange),
+             {:ok, shared_secret} <-
+               SharedSecret.derive(
+                 exchange_resp.public_key,
+                 init_exchange.public_key,
+                 init_exchange.hkdf_salt
+               ),
+             {:ok, established_key_state} <-
+               HandshakeState.transition(
+                 state_after_receive,
+                 {:handshake_completed, shared_secret}
+               )
+               |> wrap_transition_error() do
+          final_state = %{
+            new_state
+            | total_received_msgs: new_state.total_received_msgs + 1,
+              total_received_bytes: new_state.total_received_bytes + byte_size(payload),
+              encrypted_endpoints_key: established_key_state
+          }
 
-            {:ack, :ok, final_state}
-
+          {:ack, :ok, final_state}
+        else
           {:error, reason} ->
-            Logger.error("[keyAgreement] State machine transition failed: #{inspect(reason)}")
+            Logger.error("[keyAgreement] InitExchange handling failed: #{inspect(reason)}")
             {:ack, :ok, new_state}
         end
 
@@ -883,4 +896,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     Core.Error.handle_error(context, error, opts)
   end
+
+  # HandshakeState.transition/2 returns {:ok, state} | {:error, reason}.
+  defp wrap_transition_error({:ok, _} = ok), do: ok
+  defp wrap_transition_error({:error, reason}), do: {:error, {:state_transition_failed, reason}}
 end
