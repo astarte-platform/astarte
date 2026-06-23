@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_housekeeping] Added HOUSEKEEPING_DEFAULT_DATASTREAM_MAXIMUM_STORAGE_RETENTION to set default, instance wise, realm default realm data retention, expressed in seconds
 
+### Fixed
+
+- [astarte_housekeeping] The `/health` readiness probe now reports ready only once the `astarte` keyspace replication has been initialized, so realm creation no longer fails intermittently right after a pod reports ready.
+
 ## [1.3.0] - 2026-05-06
 
 ### Changed
