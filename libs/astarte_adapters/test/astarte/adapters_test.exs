@@ -80,6 +80,16 @@ defmodule Astarte.AdaptersTest do
     end
   end
 
+  test "public transform successfully delegates to a private transformp" do
+    assert function_exported?(Mappings, :process_metadata, 1) == false
+
+    source = %{data: "payload", meta: %{state: "active", id: 123}}
+    expected = %{data: "payload", metadata: %{status: "ACTIVE", code: 123}}
+
+    assert expected == Mappings.with_private_delegation(source)
+    refute function_exported?(Mappings, :process_metadata, 1)
+  end
+
   describe "string_map_to_string/1" do
     test "concatenates kept fields" do
       assert "helloworld" == Mappings.string_map_to_string(%{"a" => "hello", "b" => "world"})
@@ -149,7 +159,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestPreProcessFail do
         use Astarte.Adapters
-        transform fail do
+        transformp fail do
           keep :a
           pre_process fn x -> x end
         end
@@ -365,14 +375,16 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestPreOnly do
         use Astarte.Adapters
-        transform run do
+        transformp run do
           pre_process fn x -> %{x: x} end
         end
+        def call_run(x), do: run(x)
       end
       """
 
       {{:module, mod, _, _}, _} = Code.eval_string(code)
-      assert %{} == mod.run(1)
+      refute function_exported?(mod, :run, 1)
+      assert %{} == mod.call_run(1)
     end
 
     test "allows only post_process" do

@@ -94,4 +94,17 @@ defmodule Astarte.Adapters.Mappings do
     @source %{combined: integer(), static: String.t()}
     keep :atom_key, "string_key", :another_atom
   end
+
+  transform with_private_delegation do
+    @source %{data: String.t(), meta: map()}
+    @returns map()
+
+    field :data <- :data
+    field :metadata <- :meta, fn meta, _source -> process_metadata(meta) end
+  end
+
+  transformp process_metadata do
+    field :status <- :state, fn state, _source -> String.upcase(state) end
+    field :code <- :id
+  end
 end
