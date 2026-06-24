@@ -46,8 +46,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   # dump(type, atom) to {:ok, integer} (decoded to encoded)
   @key_suites Ecto.ParameterizedType.init(Ecto.Enum,
                 values: [
-                  ecdh_x25519_hkdf_sha256_aes_256_gcm: 0,
-                  ecdh_p256_hkdf_sha256_aes_256_gcm: 1
+                  ecdh_p256_hkdf_sha256_aes_256_gcm: 0,
+                  ecdh_x25519_hkdf_sha256_aes_256_gcm: 1
                 ]
               )
   # AES-256-GCM nonce size (bytes)
