@@ -58,10 +58,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   end
 
   setup_all do
-    init_exchange = InitExchange.new()
+    init_exchange = InitExchange.new(0)
     init_exchange_payload = InitExchange.cbor_encode(init_exchange)
 
-    p256_init_exchange = InitExchange.new(:ecdh_p256_hkdf_sha256_aes_256_gcm)
+    p256_init_exchange = InitExchange.new(0, :ecdh_p256_hkdf_sha256_aes_256_gcm)
     p256_init_exchange_payload = InitExchange.cbor_encode(p256_init_exchange)
 
     exchange_resp_payload = init_exchange |> ExchangeResp.new() |> ExchangeResp.cbor_encode()
@@ -559,6 +559,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", <<1>>, 0)
+    end
+
+    test "ignores the message and logs a warning if seq_num mismatches", context do
+      %{state: state, exchange_resp_payload: payload, init_exchange: init_exchange} = context
+
+      # Alter the init_exchange to have a mismatched seq_num
+      modified_init = %{init_exchange | seq_num: init_exchange.seq_num + 999}
+
+      # Inject the expected key agreement state for validation
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{
+               init_exchange: modified_init,
+               key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~ "keyAgreement/1 failed, ignoring for now: :seq_num_mismatch"
+
+      # The state should not be updated to :established
+      assert {:handshake_started, _} = state.encrypted_endpoints_key
     end
   end
 

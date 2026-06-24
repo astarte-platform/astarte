@@ -421,6 +421,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
          timestamp
        ) do
     with {:ok, exchange_resp} <- decode_exchange_resp(state, payload, timestamp, data.key_type),
+         :ok <- validate_seq_num(exchange_resp.seq_num, data.init_exchange.seq_num),
          {:ok, shared_secret} <- derive_shared_secret(state, data.init_exchange, exchange_resp),
          {:ok, new_key_state} <- transition_key_agreement(state, shared_secret) do
       :telemetry.execute(
@@ -451,6 +452,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Logger.warning("[keyAgreement/1] Unexpected response received.")
     {:ack, :ok, state}
   end
+
+  defp validate_seq_num(received_seq, expected_seq) when received_seq == expected_seq, do: :ok
+  defp validate_seq_num(_received_seq, _expected_seq), do: {:error, :seq_num_mismatch}
 
   defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
     case ExchangeResp.cbor_decode(payload, expected_key_type) do
@@ -503,7 +507,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   """
   @spec send_init_exchange(State.t()) :: {:ok, State.t()} | {:error, term()}
   def send_init_exchange(state) do
-    init_exchange = InitExchange.new()
+    seq_num = state.key_agreement_seq_num
+    init_exchange = InitExchange.new(seq_num)
 
     with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange),
          {:ok, new_key_state} <-
@@ -511,7 +516,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
              state.encrypted_endpoints_key,
              {:initiate_handshake, init_exchange}
            ) do
-      {:ok, %{state | encrypted_endpoints_key: new_key_state}}
+      {:ok,
+       %{
+         state
+         | encrypted_endpoints_key: new_key_state,
+           key_agreement_seq_num: seq_num + 1
+       }}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
