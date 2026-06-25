@@ -38,7 +38,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   | `:uninitialized`, `:handshake_started`, `:failed` | `{:receive_init, msg}`            | `:handshake_started` |
   | `:handshake_started`                              | `{:handshake_completed, secret}`  | `:established`       |
   | `:established`                                    | `:secret_reconfirmed`             | `:established`       |
-  | any                                               | `{:error, reason}`                | `{:failed, reason}`  |
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
@@ -66,9 +65,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   Pure transition function. Cryptographic derivation must be performed
   externally by the caller.
 
-  Returns `{:ok, new_state}` on a valid transition, or
-  `{:error, :invalid_transition}` when the (state, event) pair is not
-  permitted by the protocol.
+  Returns `{:ok, new_state}` when the transition represents a valid protocol
+  step, or `{:error, :invalid_transition}` when the (state, event) pair is
+  not permitted.
   """
   @spec transition(t(), term()) :: {:ok, t()} | {:error, :invalid_transition}
 
@@ -109,11 +108,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
     {:ok, {:established, data}}
   end
 
-  # Error transition
-  def transition(_current_state, {:error, reason}) do
-    {:ok, {:failed, reason}}
-  end
-
   # Fallback for invalid protocol steps
   def transition(current_state, event) do
     Logger.warning(
@@ -121,5 +115,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
     )
 
     {:error, :invalid_transition}
+  end
+
+  @doc """
+  Unconditionally moves to the `{:failed, reason}` state.
+  """
+  @spec fail(t(), term()) :: t()
+  def fail(_current_state, reason) do
+    {:failed, reason}
   end
 end

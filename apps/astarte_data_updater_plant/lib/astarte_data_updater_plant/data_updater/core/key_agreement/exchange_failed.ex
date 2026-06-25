@@ -28,8 +28,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
   ## Message structure:
 
       [
-        reason :: uint   # integer code representing the failure reason
+        seq_num   :: uint,  # sequence number of the message that caused the error
+        error_code :: uint,  # integer code representing the failure reason
+        error_msg  :: tstr   # additional context
       ]
+
+  ## Error codes:
+
+    * `0` – `internal_server_error`: unexpected server-side failure (e.g. Astarte crash)
+    * `1` – `invalid_argument`: wrong payload from the device (e.g. invalid key)
+    * `2` – `hash_mismatch`: hash comparison failed
+    * `3` – `unprocessable_entity`: structurally valid message that cannot be processed
+      (e.g. unsupported algorithm, key-type mismatch)
   """
 
   use TypedStruct
@@ -39,34 +49,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
   # Ecto.Enum parameterized type for error codes.
   @reasons Ecto.ParameterizedType.init(Ecto.Enum,
              values: [
-               unspecified: 0,
-               hash_mismatch: 1,
-               invalid_payload: 2,
-               key_derivation_failed: 3,
-               seq_num_mismatch: 4
+               internal_server_error: 0,
+               invalid_argument: 1,
+               hash_mismatch: 2,
+               unprocessable_entity: 3
              ]
            )
 
   @type reason ::
-          :unspecified
+          :internal_server_error
+          | :invalid_argument
           | :hash_mismatch
-          | :invalid_payload
-          | :key_derivation_failed
-          | :seq_num_mismatch
+          | :unprocessable_entity
 
   typedstruct enforce: true do
     @typedoc "ExchangeFailed notification message."
+    field :seq_num, non_neg_integer()
     field :reason, reason()
+    field :error_msg, String.t()
   end
 
   @doc """
-  Builds a new `%ExchangeFailed{}` from a known reason atom.
+  Builds a new `%ExchangeFailed{}` from a sequence number, reason atom, and error message.
   """
-  @spec new(reason()) :: t()
-  def new(reason) do
+  @spec new(non_neg_integer(), reason(), String.t()) :: {:ok, t()} | {:error, :invalid_reason}
+  def new(seq_num, reason, error_msg)
+      when is_integer(seq_num) and seq_num >= 0 and is_binary(error_msg) do
     case Ecto.Type.cast(@reasons, reason) do
-      {:ok, valid_reason} -> %ExchangeFailed{reason: valid_reason}
-      _error -> raise ArgumentError, "invalid ExchangeFailed reason: #{inspect(reason)}"
+      {:ok, valid_reason} ->
+        {:ok, %ExchangeFailed{seq_num: seq_num, reason: valid_reason, error_msg: error_msg}}
+
+      _error ->
+        {:error, :invalid_reason}
     end
   end
 
@@ -74,9 +88,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
   Returns the list representation of an `%ExchangeFailed{}` ready for CBOR encoding.
   """
   @spec encode(t()) :: list()
-  def encode(%ExchangeFailed{reason: reason}) do
+  def encode(%ExchangeFailed{seq_num: seq_num, reason: reason, error_msg: error_msg}) do
     {:ok, code} = Ecto.Type.dump(@reasons, reason)
-    [code]
+    [seq_num, code, error_msg]
   end
 
   @doc """
@@ -96,10 +110,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
     end
   end
 
-  defp decode([code]) when is_integer(code) and code >= 0 do
+  defp decode([seq_num, code, error_msg])
+       when is_integer(seq_num) and seq_num >= 0 and
+              is_integer(code) and code >= 0 and
+              is_binary(error_msg) do
     case Ecto.Type.cast(@reasons, code) do
-      {:ok, valid_reason} -> {:ok, %ExchangeFailed{reason: valid_reason}}
-      _error -> {:error, :invalid_payload}
+      {:ok, valid_reason} ->
+        {:ok, %ExchangeFailed{seq_num: seq_num, reason: valid_reason, error_msg: error_msg}}
+
+      _error ->
+        {:error, :invalid_payload}
     end
   end
 

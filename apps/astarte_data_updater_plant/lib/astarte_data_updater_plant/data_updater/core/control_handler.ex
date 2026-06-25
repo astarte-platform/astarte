@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   """
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk
@@ -48,6 +49,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   * `/keyAgreement/1` - Receives an ExchangeResp sent by the device when Astarte previously initiated a key-agreement handshake.
   * `/keyAgreement/2` - Receives a SecretHash from the device to verify keys.
   * `/keyAgreement/3` - Receives a HashOk from the device confirming the key verification.
+  * `/keyAgreement/4` - Receives an ExchangeFailed from the device signalling a key-agreement failure.
   """
   def handle_control(state, path, payload, timestamp)
 
@@ -288,7 +290,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
               new_state
               | encrypted_endpoints_key: new_key_state,
                 total_received_msgs: new_state.total_received_msgs + 1,
-                total_received_bytes: new_state.total_received_bytes + byte_size(payload)
+                total_received_bytes:
+                  new_state.total_received_bytes + byte_size(payload) +
+                    byte_size("/keyAgreement/3")
             }
 
             {:ack, :ok, final_state}
@@ -337,6 +341,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
+  def handle_control(state, "/keyAgreement/4", payload, timestamp) do
+    state
+    |> TimeBasedActions.execute_time_based_actions(timestamp)
+    |> process_exchange_failed(payload, timestamp)
+  end
+
   def handle_control(state, path, payload, timestamp) do
     # Track unexpected control messages
     :telemetry.execute(
@@ -381,7 +391,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       final_state = %{
         new_state
         | total_received_msgs: new_state.total_received_msgs + 1,
-          total_received_bytes: new_state.total_received_bytes + byte_size(payload),
+          total_received_bytes:
+            new_state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0"),
           encrypted_endpoints_key: established_key_state
       }
 
@@ -392,7 +403,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp process_secret_hash(
          %{encrypted_endpoints_key: {:established, %{shared_secret: shared_secret, alg: alg}}} =
            state,
-         _seq_num,
+         seq_num,
          secret_hash_msg,
          payload,
          _timestamp
@@ -405,26 +416,54 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           state
           | encrypted_endpoints_key: new_key_state,
             total_received_msgs: state.total_received_msgs + 1,
-            total_received_bytes: state.total_received_bytes + byte_size(payload)
+            total_received_bytes:
+              state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/2")
         }
 
         {:ack, :ok, final_state}
 
       {:error, :hash_mismatch} ->
         Logger.warning("[keyAgreement/2] SecretHash mismatch.")
-        # TODO: implement ExchangeFailed message
+
+        _ =
+          send_exchange_failed(
+            state.realm,
+            state.device_id,
+            seq_num,
+            :hash_mismatch,
+            "hash comparison failed"
+          )
+
         {:ack, :ok, state}
 
       {:error, reason} ->
         Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
-        # TODO: implement ExchangeFailed message
+
+        _ =
+          send_exchange_failed(
+            state.realm,
+            state.device_id,
+            seq_num,
+            :internal_server_error,
+            "unexpected error processing secret hash"
+          )
+
         {:ack, :ok, state}
     end
   end
 
   defp process_secret_hash(state, _seq_num, _secret_hash_msg, _payload, _timestamp) do
     Logger.warning("[keyAgreement/2] No shared secret established.")
-    # TODO: implement ExchangeFailed message
+
+    _ =
+      send_exchange_failed(
+        state.realm,
+        state.device_id,
+        0,
+        :internal_server_error,
+        "no shared secret established"
+      )
+
     {:ack, :ok, state}
   end
 
@@ -457,17 +496,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         state
         | encrypted_endpoints_key: new_key_state,
           total_received_msgs: state.total_received_msgs + 1,
-          total_received_bytes: state.total_received_bytes + byte_size(payload)
+          total_received_bytes:
+            state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
       }
 
       {:ack, :ok, final_state}
     else
-      {:error, reason} ->
-        # TODO: Implement failedexchange message
-        Logger.warning("keyAgreement/1 failed, ignoring for now: #{inspect(reason)}")
+      {:error, reason, message} ->
+        Logger.warning("[keyAgreement/1] Processing failed: #{inspect(reason)} - #{message}")
 
-        # Fallback
-        {:ack, :ok, state}
+        _ = send_exchange_failed(state.realm, state.device_id, 0, reason, message)
+
+        final_state = %{
+          state
+          | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
+            total_received_msgs: state.total_received_msgs + 1,
+            total_received_bytes:
+              state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
+        }
+
+        {:ack, :ok, final_state}
     end
   end
 
@@ -481,9 +529,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:ok, exchange_resp} ->
         {:ok, exchange_resp}
 
+      {:error, :key_type_mismatch = reason} ->
+        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
+        {:error, :unprocessable_entity, "unsupported key type"}
+
+      {:error, :invalid_cose_key = reason} ->
+        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
+        {:error, :invalid_argument, "invalid COSE key"}
+
       {:error, reason} ->
-        # TODO : implement ExchangeFailed message
-        {:error, reason}
+        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
+        {:error, :invalid_argument, "invalid payload"}
     end
   end
 
@@ -496,9 +552,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:ok, shared_secret} ->
         {:ok, shared_secret}
 
+      {:error, :key_mismatch_or_unsupported = reason} ->
+        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
+        {:error, :unprocessable_entity, "unsupported or mismatched key"}
+
       {:error, reason} ->
         Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, :internal_server_error, "key derivation failed"}
     end
   end
 
@@ -512,8 +572,68 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:error, reason} ->
         Logger.error("[keyAgreement/1] State machine transition failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, :internal_server_error, "unexpected error"}
     end
+  end
+
+  defp process_exchange_failed(state, payload, timestamp) do
+    case ExchangeFailed.cbor_decode(payload) do
+      {:ok, exchange_failed} ->
+        ack_device_exchange_failed(state, exchange_failed, payload)
+
+      {:error, reason} ->
+        discard_invalid_exchange_failed(state, payload, reason, timestamp)
+    end
+  end
+
+  defp ack_device_exchange_failed(
+         state,
+         %ExchangeFailed{seq_num: seq_num, reason: reason, error_msg: error_msg},
+         payload
+       ) do
+    Logger.warning(
+      "[keyAgreement/4] Device signalled ExchangeFailed seq=#{seq_num}: #{inspect(reason)} – #{error_msg}",
+      tag: "key_agreement_device_failed"
+    )
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :control_handler, :key_agreement_device_failed],
+      %{payload_size: byte_size(payload)},
+      %{realm: state.realm, reason: reason}
+    )
+
+    final_state = %{
+      state
+      | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
+        total_received_msgs: state.total_received_msgs + 1,
+        total_received_bytes:
+          state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
+    }
+
+    {:ack, :ok, final_state}
+  end
+
+  defp discard_invalid_exchange_failed(state, payload, decode_reason, timestamp) do
+    Logger.warning(
+      "[keyAgreement/4] payload validation failed: #{inspect(decode_reason)}",
+      tag: "exchange_failed_invalid_payload"
+    )
+
+    context = %{
+      state: state,
+      payload: payload,
+      path: "/keyAgreement/4",
+      timestamp: timestamp
+    }
+
+    error = %{
+      message: "Invalid ExchangeFailed payload: #{inspect(Base.encode64(payload))}",
+      logger_metadata: [tag: "exchange_failed_error"],
+      error_name: "exchange_failed_error",
+      error: :exchange_failed_error
+    }
+
+    Core.Error.handle_error(context, error)
   end
 
   defp send_hash_ok(realm, device_id, alg) do
@@ -560,6 +680,63 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         )
 
         {:error, reason}
+    end
+  end
+
+  defp send_exchange_failed(realm, device_id, seq_num, reason, error_msg) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/4"
+
+    {:ok, exchange_failed} = ExchangeFailed.new(seq_num, reason, error_msg)
+    payload = ExchangeFailed.cbor_encode(exchange_failed)
+
+    publish_start = System.monotonic_time()
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success", reason: reason}
+        )
+
+        :ok
+
+      {:ok, %{local_matches: 0, remote_matches: 0}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "no_matches", reason: reason}
+        )
+
+        Logger.warning(
+          "[keyAgreement/4] Could not deliver ExchangeFailed (#{inspect(reason)}): device session not found",
+          tag: "exchange_failed_no_session"
+        )
+
+        {:error, :session_not_found}
+
+      {:error, publish_reason} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "error", reason: reason}
+        )
+
+        Logger.warning(
+          "[keyAgreement/4] Could not deliver ExchangeFailed (#{inspect(reason)}): #{inspect(publish_reason)}",
+          tag: "exchange_failed_publish_error"
+        )
+
+        {:error, publish_reason}
     end
   end
 

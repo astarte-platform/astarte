@@ -30,10 +30,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
@@ -113,6 +116,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         }
       ])
 
+    invalid_cose_key_exchange_resp_payload =
+      CBOR.encode([
+        0,
+        %CBOR.Tag{
+          tag: :bytes,
+          value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(16)})
+        }
+      ])
+
     # SecretHash payloads
     shared_secret = :crypto.strong_rand_bytes(32)
     valid_secret_hash = SecretHash.new(1, shared_secret)
@@ -133,6 +145,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       wrong_okp_key_payload: wrong_okp_key_payload,
       wrong_hkdf_salt_payload: wrong_hkdf_salt_payload,
       invalid_exchange_resp_payload: invalid_exchange_resp_payload,
+      invalid_cose_key_exchange_resp_payload: invalid_cose_key_exchange_resp_payload,
       shared_secret: shared_secret,
       valid_secret_hash_payload: valid_secret_hash_payload,
       invalid_secret_hash_payload: invalid_secret_hash_payload
@@ -326,7 +339,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
-      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0")
 
       assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
@@ -348,7 +363,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
-      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0")
 
       assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
@@ -361,6 +378,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement/0", <<1>>, 0)
+    end
+
+    test "discards and asks a clean session when a handshake is already established",
+         context do
+      %{state: state, init_exchange_payload: payload} = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:established,
+             %{
+               shared_secret: :crypto.strong_rand_bytes(32),
+               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
+             }}
+      }
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_transition_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {{:discard, _result, new_state, {:continue, continue_arg}}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
+               end)
+
+      assert log =~ "State machine transition failed: :invalid_transition"
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
   end
 
@@ -451,7 +500,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
-      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
 
       assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
@@ -476,7 +527,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
-      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
 
       assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
@@ -489,6 +542,244 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", <<1>>, 0)
+    end
+  end
+
+  describe "/keyAgreement/1 - errors" do
+    test "logs a warning and leaves the state untouched if no handshake was started",
+         context do
+      %{state: state} = context
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", <<1>>, 0)
+               end)
+
+      assert log =~ "Unexpected response received."
+    end
+
+    test "sends ExchangeFailed and transitions to :failed when the payload is invalid",
+         context do
+      %{
+        state: state,
+        invalid_exchange_resp_payload: payload,
+        init_exchange: init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok, %ExchangeFailed{reason: :invalid_argument, error_msg: "invalid payload"}} =
+                 ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~ "[keyAgreement/1] Processing failed: :invalid_argument - invalid payload"
+      assert {:failed, :invalid_argument} = new_state.encrypted_endpoints_key
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
+    end
+
+    test "sends ExchangeFailed and transitions to :failed when the COSE key is invalid",
+         context do
+      %{
+        state: state,
+        invalid_cose_key_exchange_resp_payload: payload,
+        init_exchange: init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok, %ExchangeFailed{reason: :invalid_argument, error_msg: "invalid COSE key"}} =
+                 ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~ "[keyAgreement/1] Processing failed: :invalid_argument - invalid COSE key"
+      assert {:failed, :invalid_argument} = new_state.encrypted_endpoints_key
+    end
+
+    test "sends ExchangeFailed and transitions to :failed when the key type does not match",
+         context do
+      # A valid X25519 ExchangeResp, sent while Astarte expects P-256
+      %{
+        state: state,
+        exchange_resp_payload: payload,
+        p256_init_exchange: p256_init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: p256_init_exchange, key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok,
+                %ExchangeFailed{
+                  reason: :unprocessable_entity,
+                  error_msg: "unsupported key type"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~
+               "[keyAgreement/1] Processing failed: :unprocessable_entity - unsupported key type"
+
+      assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
+    end
+
+    test "sends ExchangeFailed and transitions to :failed when the keys are of mismatched suites",
+         context do
+      %{
+        state: state,
+        exchange_resp_payload: payload,
+        p256_init_exchange: p256_init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: p256_init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok,
+                %ExchangeFailed{
+                  reason: :unprocessable_entity,
+                  error_msg: "unsupported or mismatched key"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~
+               "[keyAgreement/1] Processing failed: :unprocessable_entity - unsupported or mismatched key"
+
+      assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
+    end
+
+    test "sends ExchangeFailed with a generic message when derivation fails for an unexpected reason",
+         context do
+      %{
+        state: state,
+        exchange_resp_payload: payload,
+        init_exchange: init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(SharedSecret, :derive, fn _my_key, _peer_key, _salt ->
+        {:error, {:ecdh_failed, "boom"}}
+      end)
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok,
+                %ExchangeFailed{
+                  reason: :internal_server_error,
+                  error_msg: "key derivation failed"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~
+               "[keyAgreement/1] Processing failed: :internal_server_error - key derivation failed"
+
+      assert {:failed, :internal_server_error} = new_state.encrypted_endpoints_key
+    end
+
+    test "sends ExchangeFailed with a generic message when the handshake state transition unexpectedly fails",
+         context do
+      %{
+        state: state,
+        exchange_resp_payload: payload,
+        init_exchange: init_exchange
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
+      }
+
+      expect(HandshakeState, :transition, fn _current_state, {:handshake_completed, _secret} ->
+        {:error, :invalid_transition}
+      end)
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok,
+                %ExchangeFailed{
+                  reason: :internal_server_error,
+                  error_msg: "unexpected error"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, new_state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+               end)
+
+      assert log =~
+               "[keyAgreement/1] Processing failed: :internal_server_error - unexpected error"
+
+      assert {:failed, :internal_server_error} = new_state.encrypted_endpoints_key
     end
   end
 
@@ -613,7 +904,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
-      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/2")
 
       # The state should remain untouched
       assert {:established, _} = new_state.encrypted_endpoints_key
@@ -646,9 +939,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         valid_secret_hash_payload: payload
       } = context
 
-      # Mock publish failure
-      expect(VMQPlugin, :publish, 1, fn _topic, _payload_bytes, _qos ->
+      # 2 publishes: 1 HashOk (fails) + 1 ExchangeFailed (best-effort error notification)
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
         {:error, :transport_failure}
+      end)
+
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert {{:ack, :ok, ^state}, log} =
@@ -665,8 +962,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         valid_secret_hash_payload: payload
       } = context
 
-      expect(VMQPlugin, :publish, 1, fn _topic, _payload_bytes, _qos ->
+      # 2 publishes: 1 HashOk (session not found) + 1 ExchangeFailed (best-effort notification)
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
         {:ok, %{local_matches: 0, remote_matches: 0}}
+      end)
+
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert {{:ack, :ok, ^state}, log} =
@@ -675,6 +977,97 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                end)
 
       assert log =~ "Failed to process SecretHash: :session_not_found"
+    end
+
+    test "sends ExchangeFailed with :hash_mismatch and acks when hashes do not match",
+         context do
+      %{
+        established_state: state,
+        invalid_secret_hash_payload: payload
+      } = context
+
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok,
+                %ExchangeFailed{
+                  reason: :hash_mismatch,
+                  error_msg: "hash comparison failed"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+               end)
+
+      assert log =~ "[keyAgreement/2] SecretHash mismatch."
+    end
+
+    test "logs when the device is offline and cannot receive the ExchangeFailed notification",
+         context do
+      %{
+        established_state: state,
+        invalid_secret_hash_payload: payload
+      } = context
+
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
+        {:ok, %{local_matches: 0, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+               end)
+
+      assert log =~ "Could not deliver ExchangeFailed"
+      assert log =~ "device session not found"
+    end
+
+    test "logs when publishing the ExchangeFailed notification fails", context do
+      %{
+        established_state: state,
+        invalid_secret_hash_payload: payload
+      } = context
+
+      expect(VMQPlugin, :publish, fn _topic, _payload_bytes, _qos ->
+        {:error, :transport_failure}
+      end)
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+               end)
+
+      assert log =~ "Could not deliver ExchangeFailed"
+      assert log =~ ":transport_failure"
+    end
+
+    test "sends ExchangeFailed when no shared secret has been established yet", context do
+      %{state: state, valid_secret_hash_payload: payload} = context
+
+      expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
+        assert {:ok,
+                %ExchangeFailed{
+                  seq_num: 0,
+                  reason: :internal_server_error,
+                  error_msg: "no shared secret established"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {{:ack, :ok, ^state}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
+               end)
+
+      assert log =~ "[keyAgreement/2] No shared secret established."
     end
   end
 
@@ -712,7 +1105,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_msgs == established_state.total_received_msgs + 1
 
       assert new_state.total_received_bytes ==
-               established_state.total_received_bytes + byte_size(payload)
+               established_state.total_received_bytes + byte_size(payload) +
+                 byte_size("/keyAgreement/3")
     end
 
     test "discards the message if discard_messages is set", context do
@@ -738,6 +1132,92 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
                ControlHandler.handle_control(state, "/keyAgreement/3", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards and asks a clean session when no handshake has been established yet",
+         context do
+      %{state: state, valid_hash_ok_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_transition_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {{:discard, _result, new_state, {:continue, continue_arg}}, log} =
+               with_log(fn ->
+                 ControlHandler.handle_control(state, "/keyAgreement/3", payload, 0)
+               end)
+
+      assert log =~ "[keyAgreement/3] State transition failed: :invalid_transition"
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+  end
+
+  describe "/keyAgreement/4" do
+    setup do
+      {:ok, valid_exchange_failed} = ExchangeFailed.new(0, :hash_mismatch, "hash did not match")
+      valid_exchange_failed_payload = ExchangeFailed.cbor_encode(valid_exchange_failed)
+
+      # An invalid payload: 3 fields but error_code is a string instead of an integer
+      invalid_exchange_failed_payload = CBOR.encode([0, "not_an_integer", "msg"])
+
+      %{
+        valid_exchange_failed: valid_exchange_failed,
+        valid_exchange_failed_payload: valid_exchange_failed_payload,
+        invalid_exchange_failed_payload: invalid_exchange_failed_payload
+      }
+    end
+
+    test "acks a valid ExchangeFailed payload, updates state to failed, and increments counters",
+         context do
+      %{state: state, valid_exchange_failed_payload: payload} = context
+
+      # Inject a handshake_started state so we can transition from it
+      state = %{
+        state
+        | encrypted_endpoints_key: {:handshake_started, %{}}
+      }
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
+
+      # Ensure it correctly transitioned to the failed state with the exact reason
+      assert {:failed, :hash_mismatch} = new_state.encrypted_endpoints_key
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+
+      assert new_state.total_received_bytes ==
+               state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
+    end
+
+    test "discards the message if discard_messages is set", context do
+      %{state: state, valid_exchange_failed_payload: payload} = context
+
+      state = %{state | discard_messages: true}
+
+      assert {:discard, :discard_messages, ^state} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
+    end
+
+    test "discards payload and logs an error if the CBOR structure is invalid", context do
+      %{state: state, invalid_exchange_failed_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "exchange_failed_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
