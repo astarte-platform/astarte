@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
@@ -132,7 +133,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       invalid_key_type_payload: invalid_key_type_payload,
       wrong_okp_key_payload: wrong_okp_key_payload,
       wrong_hkdf_salt_payload: wrong_hkdf_salt_payload,
-      wrong_nonce_payload: wrong_nonce_payload,
       invalid_exchange_resp_payload: invalid_exchange_resp_payload,
       shared_secret: shared_secret,
       valid_secret_hash_payload: valid_secret_hash_payload,
@@ -908,6 +908,68 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
                ControlHandler.handle_control(state, "/keyAgreement/3", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+  end
+
+  describe "/keyAgreement/4" do
+    setup do
+      valid_exchange_failed = ExchangeFailed.new(:hash_mismatch)
+      valid_exchange_failed_payload = ExchangeFailed.cbor_encode(valid_exchange_failed)
+
+      # An invalid payload that isn't a 1-element integer list
+      invalid_exchange_failed_payload = CBOR.encode(["not_an_integer"])
+
+      %{
+        valid_exchange_failed: valid_exchange_failed,
+        valid_exchange_failed_payload: valid_exchange_failed_payload,
+        invalid_exchange_failed_payload: invalid_exchange_failed_payload
+      }
+    end
+
+    test "acks a valid ExchangeFailed payload, updates state to failed, and increments counters",
+         context do
+      %{state: state, valid_exchange_failed_payload: payload} = context
+
+      # Inject a handshake_started state so we can transition from it
+      state = %{
+        state
+        | encrypted_endpoints_key: {:handshake_started, %{}}
+      }
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
+
+      # Ensure it correctly transitioned to the failed state with the exact reason
+      assert {:failed, :hash_mismatch} = new_state.encrypted_endpoints_key
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+    end
+
+    test "discards the message if discard_messages is set", context do
+      %{state: state, valid_exchange_failed_payload: payload} = context
+
+      state = %{state | discard_messages: true}
+
+      assert {:discard, :discard_messages, ^state} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
+    end
+
+    test "discards payload and logs an error if the CBOR structure is invalid", context do
+      %{state: state, invalid_exchange_failed_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "exchange_failed_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end

@@ -37,17 +37,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
   alias __MODULE__, as: ExchangeFailed
 
   # Ecto.Enum parameterized type for error codes.
-  # TODO: Expand or modifythis list in the future with more specific error codes
-  # (e.g., :key_type_mismatch, :key_derivation_failed etc.)
   @reasons Ecto.ParameterizedType.init(Ecto.Enum,
              values: [
                unspecified: 0,
                hash_mismatch: 1,
-               invalid_payload: 2
+               invalid_payload: 2,
+               key_type_mismatch: 3,
+               key_derivation_failed: 4,
+               seq_num_mismatch: 5
              ]
            )
 
-  @type reason :: :unspecified | :hash_mismatch | :invalid_payload
+  @type reason ::
+          :unspecified
+          | :hash_mismatch
+          | :invalid_payload
+          | :key_type_mismatch
+          | :key_derivation_failed
+          | :seq_num_mismatch
 
   typedstruct enforce: true do
     @typedoc "ExchangeFailed notification message."
