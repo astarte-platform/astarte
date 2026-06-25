@@ -520,8 +520,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   Sends an `InitExchange` message from Astarte to a device to trigger
   a new key-agreement handshake
 
-  Generates a fresh ephemeral X25519 key pair, a random HKDF
-  salt, and a random AES-256-GCM nonce, CBOR-encodes the `InitExchange`
+  Generates a fresh ephemeral key pair, a random HKDF
+  salt, CBOR-encodes the `InitExchange`
   struct, updates the state with the new handshake key type, and publishes
   it on: `<realm>/<device_id>/control/keyAgreement`
   """

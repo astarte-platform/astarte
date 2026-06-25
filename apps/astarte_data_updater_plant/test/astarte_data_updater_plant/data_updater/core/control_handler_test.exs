@@ -69,14 +69,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     p256_exchange_resp_payload =
       p256_init_exchange |> ExchangeResp.new() |> ExchangeResp.cbor_encode()
 
-    # InitExchange invalid payloads: [seq_num, key_type, cose_key, hkdf_salt, nonce]
+    # InitExchange invalid payloads: [seq_num, key_type, cose_key, hkdf_salt]
     invalid_key_type_payload =
       CBOR.encode([
         0,
         99,
         %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)}
       ])
 
     wrong_okp_key_payload =
@@ -88,8 +87,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
           tag: :bytes,
           value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(16)})
         },
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)}
       ])
 
     wrong_hkdf_salt_payload =
@@ -102,22 +100,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
           value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(32)})
         },
         # 16 bytes instead of the required 32
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(16)},
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
-      ])
-
-    wrong_nonce_payload =
-      CBOR.encode([
-        0,
-        0,
-        # valid 32-byte X25519 COSE_Key, so parsing proceeds to the nonce check
-        %CBOR.Tag{
-          tag: :bytes,
-          value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(32)})
-        },
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
-        # 8 bytes instead of the required 12
-        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(8)}
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(16)}
       ])
 
     # ExchangeResp invalid payload  [seq_num, cose_key] but seq_num is a string
@@ -407,16 +390,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
 
-    test "discards a payload with a wrong-size nonce", context do
-      %{state: state, wrong_nonce_payload: payload} = context
-
-      assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
-
-      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
-    end
-
-    test "discards a valid CBOR payload that is not a 5-element list", context do
+    test "discards a valid CBOR payload that is not a 4-element list", context do
       %{state: state} = context
 
       # CBOR-valid but wrong structure, hits the parse(_) fallback
