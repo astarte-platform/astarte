@@ -40,6 +40,8 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Core
   alias Ecto.Changeset
 
   require Logger
@@ -280,21 +282,60 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
       |> Kernel.*(10)
 
-    insert_context = %InsertContext{
-      realm: realm,
-      device_id: device,
-      interface_descriptor: desc,
-      mapping: mapping,
-      path: path,
-      value: val,
-      value_timestamp: now_millisecond,
-      reception_timestamp: now_decimicrosecond,
-      opts: opts
-    }
+    encrypted_endpoints =
+      case Map.get(mapping, :encrypted) do
+        true ->
+          [Map.get(mapping, :endpoint)]
 
+        _ ->
+          []
+      end
+
+    case maybe_encrypt_value(
+           desc.aggregation,
+           path,
+           val,
+           encrypted_endpoints,
+           realm
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database"
+        )
+
+        error
+
+      {value, encrypted_dek} ->
+        insert_context = %InsertContext{
+          realm: realm,
+          device_id: device,
+          interface_descriptor: desc,
+          mapping: mapping,
+          path: path,
+          value: value,
+          value_timestamp: now_millisecond,
+          reception_timestamp: now_decimicrosecond,
+          encrypted_dek: encrypted_dek,
+          opts: opts
+        }
+
+        do_persist_encrypted_value(insert_context, raw, ctx.end_id, now)
+    end
+  end
+
+  defp do_persist_encrypted_value(insert_context, raw, end_id, now) do
     with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
-      if desc.type == :datastream do
-        Queries.insert_path_into_db(realm, device, desc, ctx.end_id, path, now, now, opts)
+      if insert_context.interface_descriptor.type == :datastream do
+        Queries.insert_path_into_db(
+          insert_context.realm,
+          insert_context.device_id,
+          insert_context.interface_descriptor,
+          end_id,
+          insert_context.path,
+          now,
+          now,
+          insert_context.opts
+        )
       end
 
       {:ok, %InterfaceValues{data: raw}}
@@ -447,54 +488,17 @@ defmodule Astarte.AppEngine.API.Device do
              wrapped_value,
              publish_opts
            ) do
-      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
-      db_max_ttl = min(realm_max_ttl, object_retention(mappings))
-
-      opts =
-        case db_max_ttl do
-          nil ->
-            []
-
-          _ ->
-            [ttl: db_max_ttl]
-        end
-
-      now_millisecond = DateTime.to_unix(now, :millisecond)
-
-      now_decimicrosecond =
-        now
-        |> DateTime.to_unix(:microsecond)
-        |> Kernel.*(10)
-
-      insert_context = %InsertContext{
-        realm: realm_name,
+      handle_object_value_storage(%{
+        realm_name: realm_name,
         device_id: device_id,
         interface_descriptor: interface_descriptor,
-        mapping: nil,
         path: path,
+        raw_value: raw_value,
         value: value,
-        value_timestamp: now_millisecond,
-        reception_timestamp: now_decimicrosecond,
-        opts: opts
-      }
-
-      with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
-        Queries.insert_path_into_db(
-          realm_name,
-          device_id,
-          interface_descriptor,
-          endpoint_id,
-          path,
-          now,
-          now,
-          opts
-        )
-
-        {:ok,
-         %InterfaceValues{
-           data: raw_value
-         }}
-      end
+        mappings: mappings,
+        endpoint_id: endpoint_id,
+        now: now
+      })
     else
       {:error, :unexpected_value_type, expected: value_type} ->
         Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
@@ -527,6 +531,136 @@ defmodule Astarte.AppEngine.API.Device do
         )
 
         {:error, reason}
+    end
+  end
+
+  defp handle_object_value_storage(%{
+         realm_name: realm_name,
+         device_id: device_id,
+         interface_descriptor: interface_descriptor,
+         path: path,
+         raw_value: raw_value,
+         value: value,
+         mappings: mappings,
+         endpoint_id: endpoint_id,
+         now: now
+       }) do
+    realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
+    db_max_ttl = min(realm_max_ttl, object_retention(mappings))
+
+    opts =
+      case db_max_ttl do
+        nil ->
+          []
+
+        _ ->
+          [ttl: db_max_ttl]
+      end
+
+    now_millisecond = DateTime.to_unix(now, :millisecond)
+
+    now_decimicrosecond =
+      now
+      |> DateTime.to_unix(:microsecond)
+      |> Kernel.*(10)
+
+    encrypted_endpoints = extract_encrypted_endpoints(mappings)
+
+    case maybe_encrypt_value(
+           interface_descriptor.aggregation,
+           path,
+           value,
+           encrypted_endpoints,
+           realm_name
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database"
+        )
+
+        error
+
+      {value, encrypted_dek} ->
+        persist_object_value(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          raw_value,
+          value,
+          encrypted_dek,
+          %{
+            opts: opts,
+            now_millisecond: now_millisecond,
+            now_decimicrosecond: now_decimicrosecond,
+            endpoint_id: endpoint_id,
+            now: now,
+            mappings: mappings
+          }
+        )
+    end
+  end
+
+  defp extract_encrypted_endpoints(mappings) do
+    Enum.reduce(mappings, [], fn mapping, acc ->
+      case Map.get(mapping, :encrypted) do
+        true ->
+          acc ++ [Map.get(mapping, :endpoint)]
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp persist_object_value(
+         realm_name,
+         device_id,
+         interface_descriptor,
+         path,
+         raw_value,
+         value,
+         encrypted_dek,
+         storage_context
+       ) do
+    %{
+      opts: opts,
+      now_millisecond: now_millisecond,
+      now_decimicrosecond: now_decimicrosecond,
+      endpoint_id: endpoint_id,
+      now: now,
+      mappings: mappings
+    } = storage_context
+
+    insert_context = %InsertContext{
+      realm: realm_name,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mappings,
+      path: path,
+      value: value,
+      value_timestamp: now_millisecond,
+      reception_timestamp: now_decimicrosecond,
+      encrypted_dek: encrypted_dek,
+      opts: opts
+    }
+
+    with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
+      Queries.insert_path_into_db(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        endpoint_id,
+        path,
+        now,
+        now,
+        opts
+      )
+
+      {:ok,
+       %InterfaceValues{
+         data: raw_value
+       }}
     end
   end
 
@@ -571,6 +705,74 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
+    end
+  end
+
+  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
+  defp maybe_encrypt_value(_, _, nil, _, _) do
+    {nil, nil}
+  end
+
+  # no encrypted endpoints for this interface: return plaintext original value and no DEK
+  defp maybe_encrypt_value(_, _, value, [], _) do
+    {value, nil}
+  end
+
+  # check if encryption is required for the endpoint, and if so: retrieve the current realm DEK,
+  # encrypt the (individual) value with it, and return a tuple {encrypted_value, encrypted_dek}
+  # ready to be stored in db.
+  defp maybe_encrypt_value(:individual, path, value, encrypted_endpoints, realm) do
+    case String.replace(path, "//", "/") in encrypted_endpoints do
+      true ->
+        with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+               generate_new_dek(realm) do
+          encrypted_value =
+            do_encrypt_individual_value(value, plaintext_dek)
+
+          {encrypted_value, ciphertext_dek}
+        end
+
+      _ ->
+        {value, nil}
+    end
+  end
+
+  # for each of the mappings of the object check if the related encrypted option is set,
+  # and based on this condition treat each of the endpoints values as a separate one when deciding
+  # whether to encrypt it or not (encryption choice is done at endpoint level, not at object level)
+  defp maybe_encrypt_value(:object, _, obj_value, encrypted_endpoints, realm) do
+    with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+           generate_new_dek(realm) do
+      # leave untouched object values that do not need encryption, encrypt all others
+      obj_value_with_encryption =
+        Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
+          endpoint = Path.basename(endpoint)
+
+          Map.put(
+            acc_obj,
+            endpoint,
+            do_encrypt_individual_value(Map.get(acc_obj, endpoint), plaintext_dek)
+          )
+        end)
+
+      {obj_value_with_encryption, ciphertext_dek}
+    end
+  end
+
+  defp do_encrypt_individual_value(value, dek) do
+    value_binary = :erlang.term_to_binary(value)
+    {:ok, encrypted_value} = Secrets.encrypt_with_dek(value_binary, dek)
+    encrypted_value
+  end
+
+  defp generate_new_dek(realm_name) do
+    # TO DO: Astarte Secrets should be able to
+    # generate a DEK without needing to generate a KEK first
+    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Path.join()
+
+    case Secrets.generate_dek("realm_kek", namespace) do
+      {:ok, _dek} = dek_entry -> dek_entry
+      _ -> {:error, :dek_generation_error}
     end
   end
 

@@ -285,15 +285,22 @@ defmodule Astarte.DataAccess.Device do
       mapping: mapping,
       path: path,
       value: value,
-      reception_timestamp: reception_timestamp
+      reception_timestamp: reception_timestamp,
+      encrypted_dek: encrypted_dek
     } = context
 
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
+    %Mapping{endpoint_id: endpoint_id, value_type: value_type, encrypted: encrypted} = mapping
     keyspace_name = Realm.keyspace_name(realm)
     timestamp = div(reception_timestamp, 10_000)
     reception_timestamp_submillis = rem(reception_timestamp, 10_000)
-    column_name = CQLUtils.type_to_db_column_name(value_type)
+
+    column_name =
+      case encrypted do
+        true -> "encryptedblob_value"
+        _ -> CQLUtils.type_to_db_column_name(value_type)
+      end
+
     db_value = to_db_friendly_type(value)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -304,6 +311,7 @@ defmodule Astarte.DataAccess.Device do
       "path" => path,
       "reception_timestamp" => timestamp,
       "reception_timestamp_submillis" => reception_timestamp_submillis,
+      "encrypted_dek" => encrypted_dek,
       column_name => db_value
     }
 
@@ -332,15 +340,22 @@ defmodule Astarte.DataAccess.Device do
       value: value,
       value_timestamp: value_timestamp,
       reception_timestamp: reception_timestamp,
+      encrypted_dek: encrypted_dek,
       opts: opts
     } = context
 
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
+    %Mapping{endpoint_id: endpoint_id, value_type: value_type, encrypted: encrypted} = mapping
     keyspace_name = Realm.keyspace_name(realm)
     timestamp = div(reception_timestamp, 10_000)
     reception_timestamp_submillis = rem(reception_timestamp, 10_000)
-    column_name = CQLUtils.type_to_db_column_name(value_type)
+
+    column_name =
+      case encrypted do
+        true -> "encryptedblob_value"
+        _ -> CQLUtils.type_to_db_column_name(value_type)
+      end
+
     db_value = to_db_friendly_type(value)
 
     # TODO: use received value_timestamp when needed
@@ -353,6 +368,7 @@ defmodule Astarte.DataAccess.Device do
       "value_timestamp" => value_timestamp,
       "reception_timestamp" => timestamp,
       "reception_timestamp_submillis" => reception_timestamp_submillis,
+      "encrypted_dek" => encrypted_dek,
       column_name => db_value
     }
 
@@ -380,6 +396,7 @@ defmodule Astarte.DataAccess.Device do
       value: value,
       value_timestamp: value_timestamp,
       reception_timestamp: reception_timestamp,
+      encrypted_dek: encrypted_dek,
       opts: opts
     } = context
 
@@ -422,7 +439,15 @@ defmodule Astarte.DataAccess.Device do
       "reception_timestamp_submillis" => reception_timestamp_submillis
     }
 
-    object_value = compute_db_object_entries(column_info, value)
+    object_value =
+      compute_db_object_entries(column_info, value)
+
+    object_value =
+      if mapping |> Enum.any?(& &1.encrypted) do
+        add_encrypted_dek_to_object(object_value, encrypted_dek)
+      else
+        object_value
+      end
 
     insert_value = Map.merge(insert_params, object_value)
 
@@ -465,6 +490,10 @@ defmodule Astarte.DataAccess.Device do
     opts = Keyword.merge(opts, consistency: Consistency.device_info(:write))
 
     _ = Repo.delete_all(query, opts)
+  end
+
+  defp add_encrypted_dek_to_object(object, dek) do
+    Map.put(object, "encrypted_dek", dek)
   end
 
   defp compute_db_object_entries(column_info, object) do
