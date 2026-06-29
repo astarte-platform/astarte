@@ -42,6 +42,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   @doc """
   Handles control messages published by the device on various control topics.
 
+  ### Lifecycle
+
+  Call `handle_device_connection/1` once per MQTT Connect event before
+  routing any control messages for that session.  It resets session-scoped
+  state (device sequence-number, stale handshake) and, when a
+  shared secret is already established, sends a `SecretHash` to
+  the device.
+
   ### Supported Paths
   * `/producer/properties` - Handles properties pruning (plaintext or zlib compressed).
   * `/emptyCache` - Triggers a cache empty and interface properties resend.
@@ -444,9 +452,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     with :ok <- validate_device_seq_num(seq_num, state.device_seq_num),
          :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
          {:ok, new_key_state} <-
-           HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed),
-         :ok <- send_hash_ok(state.realm, state.device_id, alg) do
-      final_state = %{
+           HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed) do
+      verified_state = %{
         state
         | encrypted_endpoints_key: new_key_state,
           total_received_msgs: state.total_received_msgs + 1,
@@ -454,7 +461,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           device_seq_num: seq_num
       }
 
-      {:ack, :ok, final_state}
+      send_hash_ok(verified_state.realm, verified_state.device_id, alg)
+
+      {:ack, :ok, verified_state}
     else
       {:error, :seq_num_replay} ->
         Logger.warning(
@@ -471,7 +480,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         renegotiate_handshake(state, payload)
 
       {:error, reason} ->
-        Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
+        Logger.error(
+          "[keyAgreement/2] Unexpected error processing SecretHash: #{inspect(reason)}"
+        )
+
         :ok = send_exchange_failed(state.realm, state.device_id, :unspecified)
         {:ack, :ok, state}
     end
@@ -656,7 +668,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:handshake_started, _} ->
         # A previous session started a handshake that never completed.
         # The device will have discarded its ephemeral keys on disconnect,
-        # so the stored InitExchange is unusable
+        # so the stored InitExchange is unusable. Reset and wait for the
+        # device to re-initiate.
         Logger.debug(
           "[handle_device_connection] Resetting stale handshake_started state on reconnect",
           realm: state.realm,
@@ -705,6 +718,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   @doc """
   Sends a `SecretHash` message from Astarte to a device to verify that both
   sides share the same derived symmetric key.
+
+  This is used in the key-already-present flow:
+  when Astarte reconnects and already holds a shared secret, it sends a
+  `SecretHash` instead of a full `InitExchange`, allowing the device to confirm
+  the key is still valid with a `HashOk` reply.
 
   Published on: `<realm>/<device_id>/control/keyAgreement/2`
   """
@@ -787,7 +805,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: realm, result: "no_matches"}
         )
 
-        {:error, :session_not_found}
+        Logger.warning(
+          "[keyAgreement/3] Could not deliver HashOk: device session not found. " <>
+            "Device will re-send SecretHash or reconnect.",
+          tag: "hash_ok_no_session"
+        )
+
+        :ok
 
       {:error, reason} ->
         :telemetry.execute(
@@ -799,7 +823,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: realm, result: "error"}
         )
 
-        {:error, reason}
+        Logger.warning(
+          "[keyAgreement/3] Could not deliver HashOk: #{inspect(reason)}. " <>
+            "Device will re-send SecretHash or reconnect.",
+          tag: "hash_ok_publish_error"
+        )
+
+        :ok
     end
   end
 
