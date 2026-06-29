@@ -639,6 +639,60 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
+  @doc """
+  Sends a `SecretHash` message from Astarte to a device to verify that both
+  sides share the same derived symmetric key.
+
+  Published on: `<realm>/<device_id>/control/keyAgreement/2`
+  """
+  @spec send_secret_hash(State.t(), binary()) :: {:ok, State.t()} | {:error, term()}
+  def send_secret_hash(%{encrypted_endpoints_key: {:established, _}} = state, shared_secret) do
+    seq_num = state.key_agreement_seq_num
+    secret_hash = SecretHash.new(seq_num, shared_secret)
+    topic = "#{state.realm}/#{Device.encode_device_id(state.device_id)}/control/keyAgreement/2"
+    payload = SecretHash.cbor_encode(secret_hash)
+
+    publish_start = System.monotonic_time()
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_secret_hash_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: state.realm, result: "success"}
+        )
+
+        {:ok, %{state | key_agreement_seq_num: seq_num + 1}}
+
+      {:ok, %{local_matches: 0, remote_matches: 0}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_secret_hash_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: state.realm, result: "no_matches"}
+        )
+
+        {:error, :session_not_found}
+
+      {:error, reason} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_secret_hash_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: state.realm, result: "error"}
+        )
+
+        {:error, reason}
+    end
+  end
+
   defp send_hash_ok(realm, device_id, alg) do
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/3"
 
