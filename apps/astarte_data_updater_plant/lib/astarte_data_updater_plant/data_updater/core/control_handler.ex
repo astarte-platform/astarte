@@ -609,6 +609,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   @doc """
+  Performs key-agreement state actions on MQTT Connect.
+
+  * **`device_seq_num`**: Always reset to `nil` (counters are session-scoped).
+  * **`{:handshake_started, _}`**: Always reset to `:uninitialized` (mid-handshake states cannot carry over).
+  * **`{:established, _}`**: Triggers a proactive `SecretHash` message to confirm the device still holds the shared secret before allowing encrypted traffic.
+  * **`:uninitialized` / `{:failed, _}`**: No action taken; waits for the device to initiate a fresh handshake.
+
+  """
+  @spec handle_device_connection(State.t()) :: {:ok, State.t()} | {:error, term()}
+  def handle_device_connection(state) do
+    # reset the device-side sequence number on a new MQTT
+    # the counter is session-scoped and must not carry over.
+    session_state = %{state | device_seq_num: nil}
+
+    case session_state.encrypted_endpoints_key do
+      {:established, %{shared_secret: shared_secret}} ->
+        # A shared secret is present. Send SecretHash so the
+        # device can confirm it still holds the same key
+        case send_secret_hash(session_state, shared_secret) do
+          {:ok, new_state} ->
+            Logger.debug(
+              "[handle_device_connection] Sent SecretHash to verify existing key",
+              realm: state.realm,
+              tag: "key_agreement_secret_hash_on_connect"
+            )
+
+            {:ok, new_state}
+
+          {:error, reason} ->
+            Logger.warning(
+              "[handle_device_connection] Failed to send SecretHash: #{inspect(reason)}. " <>
+                "Resetting key state.",
+              tag: "key_agreement_secret_hash_connect_failed"
+            )
+
+            # Publishing failed
+            reset_state = %{
+              session_state
+              | encrypted_endpoints_key: :uninitialized
+            }
+
+            {:error, {reason, reset_state}}
+        end
+
+      {:handshake_started, _} ->
+        # A previous session started a handshake that never completed.
+        # The device will have discarded its ephemeral keys on disconnect,
+        # so the stored InitExchange is unusable
+        Logger.debug(
+          "[handle_device_connection] Resetting stale handshake_started state on reconnect",
+          realm: state.realm,
+          tag: "key_agreement_stale_handshake_reset"
+        )
+
+        {:ok, %{session_state | encrypted_endpoints_key: :uninitialized}}
+
+      _other ->
+        # :uninitialized or {:failed, _}, wait for device.
+        {:ok, session_state}
+    end
+  end
+
+  @doc """
   Sends an `InitExchange` message from Astarte to a device to trigger
   a new key-agreement handshake
 
