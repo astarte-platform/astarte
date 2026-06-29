@@ -42,9 +42,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
                unspecified: 0,
                hash_mismatch: 1,
                invalid_payload: 2,
-               key_type_mismatch: 3,
-               key_derivation_failed: 4,
-               seq_num_mismatch: 5
+               key_derivation_failed: 3,
+               seq_num_mismatch: 4
              ]
            )
 
@@ -52,7 +51,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed 
           :unspecified
           | :hash_mismatch
           | :invalid_payload
-          | :key_type_mismatch
           | :key_derivation_failed
           | :seq_num_mismatch
 

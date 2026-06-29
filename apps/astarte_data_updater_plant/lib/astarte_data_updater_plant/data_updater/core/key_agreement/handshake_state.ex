@@ -35,7 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   |---------------------------------------------------|-----------------------------------|----------------------|
   | any                                               | `:reset`                          | `:uninitialized`     |
   | any                                               | `{:initiate_handshake, msg}`      | `:handshake_started` |
-  | `:uninitialized`, `:handshake_started`, `:failed` | `{:receive_init, msg}`            | `:handshake_started` |
+  | `:uninitialized`, `:handshake_started`, `:established`, `:failed` | `{:receive_init, msg}`            | `:handshake_started` |
   | `:handshake_started`                              | `{:handshake_completed, secret}`  | `:established`       |
   | `:established`                                    | `:secret_reconfirmed`             | `:established`       |
   | any                                               | `{:error, reason}`                | `{:failed, reason}`  |
@@ -90,6 +90,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   end
 
   def transition({:failed, _}, {:receive_init, %InitExchange{} = msg}) do
+    {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
+  end
+
+  # Device may re-initiate from an established state when it has lost its key
+  # Astarte discards the existing shared secret and starts a fresh handshake.
+  def transition({:established, _}, {:receive_init, %InitExchange{} = msg}) do
     {:ok, {:handshake_started, %{key_type: msg.key_type, init_exchange: msg}}}
   end
 

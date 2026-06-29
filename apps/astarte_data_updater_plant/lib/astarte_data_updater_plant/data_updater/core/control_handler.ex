@@ -452,8 +452,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     with :ok <- validate_device_seq_num(seq_num, state.device_seq_num),
          :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
          {:ok, new_key_state} <-
-           HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed) do
-      verified_state = %{
+           HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed),
+         :ok <- send_hash_ok(state.realm, state.device_id, alg) do
+      final_state = %{
         state
         | encrypted_endpoints_key: new_key_state,
           total_received_msgs: state.total_received_msgs + 1,
@@ -461,9 +462,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           device_seq_num: seq_num
       }
 
-      send_hash_ok(verified_state.realm, verified_state.device_id, alg)
-
-      {:ack, :ok, verified_state}
+      {:ack, :ok, final_state}
     else
       {:error, :seq_num_replay} ->
         Logger.warning(
@@ -476,23 +475,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:error, :hash_mismatch} ->
         Logger.warning("[keyAgreement/2] SecretHash mismatch. Renegotiating.")
-        :ok = send_exchange_failed(state.realm, state.device_id, :hash_mismatch)
         renegotiate_handshake(state, payload)
 
       {:error, reason} ->
-        Logger.error(
-          "[keyAgreement/2] Unexpected error processing SecretHash: #{inspect(reason)}"
+        # HashOk delivery failure
+        Logger.warning(
+          "[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}",
+          tag: "secret_hash_send_failed"
         )
 
-        :ok = send_exchange_failed(state.realm, state.device_id, :unspecified)
         {:ack, :ok, state}
     end
   end
 
-  # Fallback clause for when no shared secret is established
+  # Fallback: no shared secret established — renegotiate immediately.
+  # No ExchangeFailed is sent; the InitExchange itself is the signal to the device.
   defp process_secret_hash(state, _seq_num, _secret_hash_msg, payload, _timestamp) do
     Logger.warning("[keyAgreement/2] No shared secret established. Renegotiating.")
-    :ok = send_exchange_failed(state.realm, state.device_id, :unspecified)
     renegotiate_handshake(state, payload)
   end
 
@@ -509,7 +508,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:error, reason} ->
         Logger.error("[keyAgreement/2] Failed to renegotiate key: #{inspect(reason)}")
-        :ok = send_exchange_failed(state.realm, state.device_id, :unspecified)
         {:discard, reason, state}
     end
   end
@@ -538,14 +536,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:ack, :ok, final_state}
     else
+      {:error, :seq_num_mismatch} ->
+        Logger.warning(
+          "keyAgreement/1 failed, ignoring for now: :seq_num_mismatch",
+          tag: "key_agreement_seq_num_mismatch"
+        )
+
+        {:ack, :ok, state}
+
       {:error, reason} ->
         Logger.warning("[keyAgreement/1] Processing failed: #{inspect(reason)}")
 
         failed_reason =
           case reason do
             :invalid_payload -> :invalid_payload
-            :key_type_mismatch -> :key_type_mismatch
-            :seq_num_mismatch -> :seq_num_mismatch
+            :key_type_mismatch -> :unspecified
             {:ecdh_failed, _} -> :key_derivation_failed
             :key_mismatch_or_unsupported -> :key_derivation_failed
             _ -> :unspecified
@@ -805,13 +810,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: realm, result: "no_matches"}
         )
 
-        Logger.warning(
-          "[keyAgreement/3] Could not deliver HashOk: device session not found. " <>
-            "Device will re-send SecretHash or reconnect.",
-          tag: "hash_ok_no_session"
-        )
-
-        :ok
+        {:error, :session_not_found}
 
       {:error, reason} ->
         :telemetry.execute(
@@ -823,13 +822,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: realm, result: "error"}
         )
 
-        Logger.warning(
-          "[keyAgreement/3] Could not deliver HashOk: #{inspect(reason)}. " <>
-            "Device will re-send SecretHash or reconnect.",
-          tag: "hash_ok_publish_error"
-        )
-
-        :ok
+        {:error, reason}
     end
   end
 
