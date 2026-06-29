@@ -115,5 +115,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :capabilities, Capabilities.t(), default: %Capabilities{}
     field :encrypted_endpoints_key, HandshakeState.t(), default: :uninitialized
     field :key_agreement_seq_num, non_neg_integer(), default: 0
+    field :device_seq_num, non_neg_integer() | nil, default: nil
   end
 end

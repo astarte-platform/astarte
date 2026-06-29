@@ -179,7 +179,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: new_state.realm}
         )
 
-        with {:ok, state_after_receive} <-
+        with :ok <- validate_device_seq_num(init_exchange.seq_num, new_state.device_seq_num),
+             {:ok, state_after_receive} <-
                HandshakeState.transition(
                  new_state.encrypted_endpoints_key,
                  {:receive_init, init_exchange}
@@ -203,11 +204,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             new_state
             | total_received_msgs: new_state.total_received_msgs + 1,
               total_received_bytes: new_state.total_received_bytes + byte_size(payload),
-              encrypted_endpoints_key: established_key_state
+              encrypted_endpoints_key: established_key_state,
+              device_seq_num: init_exchange.seq_num
           }
 
           {:ack, :ok, final_state}
         else
+          {:error, :seq_num_replay} ->
+            Logger.warning(
+              "[keyAgreement] Replayed or out-of-order InitExchange seq_num=#{init_exchange.seq_num}, " <>
+                "last_seen=#{new_state.device_seq_num}",
+              tag: "key_agreement_seq_num_replay"
+            )
+
+            {:ack, :ok, new_state}
+
           {:error, reason} ->
             Logger.error("[keyAgreement] InitExchange handling failed: #{inspect(reason)}")
             {:ack, :ok, new_state}
@@ -425,12 +436,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp process_secret_hash(
          %{encrypted_endpoints_key: {:established, %{shared_secret: shared_secret, alg: alg}}} =
            state,
-         _seq_num,
+         seq_num,
          secret_hash_msg,
          payload,
          _timestamp
        ) do
-    with :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
+    with :ok <- validate_device_seq_num(seq_num, state.device_seq_num),
+         :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
          {:ok, new_key_state} <-
            HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed),
          :ok <- send_hash_ok(state.realm, state.device_id, alg) do
@@ -438,20 +450,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         state
         | encrypted_endpoints_key: new_key_state,
           total_received_msgs: state.total_received_msgs + 1,
-          total_received_bytes: state.total_received_bytes + byte_size(payload)
+          total_received_bytes: state.total_received_bytes + byte_size(payload),
+          device_seq_num: seq_num
       }
 
       {:ack, :ok, final_state}
     else
+      {:error, :seq_num_replay} ->
+        Logger.warning(
+          "[keyAgreement/2] Replayed or out-of-order SecretHash seq_num=#{seq_num}, " <>
+            "last_seen=#{state.device_seq_num}",
+          tag: "secret_hash_seq_num_replay"
+        )
+
+        {:ack, :ok, state}
+
       {:error, :hash_mismatch} ->
         Logger.warning("[keyAgreement/2] SecretHash mismatch. Renegotiating.")
-        :ok = send_exchange_failed(new_state.realm, new_state.device_id, :hash_mismatch)
-        renegotiate_handshake(new_state, payload)
+        :ok = send_exchange_failed(state.realm, state.device_id, :hash_mismatch)
+        renegotiate_handshake(state, payload)
 
       {:error, reason} ->
         Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
-        :ok = send_exchange_failed(new_state.realm, new_state.device_id, :unspecified)
-        {:ack, :ok, new_state}
+        :ok = send_exchange_failed(state.realm, state.device_id, :unspecified)
+        {:ack, :ok, state}
     end
   end
 
@@ -540,6 +562,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
   defp validate_seq_num(received_seq, expected_seq) when received_seq == expected_seq, do: :ok
   defp validate_seq_num(_received_seq, _expected_seq), do: {:error, :seq_num_mismatch}
+
+  # Validates that a seq_num received FROM the device is strictly greater than the last
+  # one we have seen from it
+  defp validate_device_seq_num(_seq_num, nil), do: :ok
+  defp validate_device_seq_num(seq_num, last_seen) when seq_num > last_seen, do: :ok
+  defp validate_device_seq_num(_seq_num, _last_seen), do: {:error, :seq_num_replay}
 
   defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
     case ExchangeResp.cbor_decode(payload, expected_key_type) do
