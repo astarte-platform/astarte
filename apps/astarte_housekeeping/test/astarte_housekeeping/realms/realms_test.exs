@@ -25,6 +25,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
   alias Astarte.Core.Generators.Realm, as: RealmGenerators
 
+  alias Astarte.DataAccess.Realms.Realm, as: DataAccessRealm
   alias Astarte.DataAccess.Repo
   alias Astarte.Events.AMQP
   alias Astarte.Events.AMQP.Vhost
@@ -342,6 +343,13 @@ defmodule Astarte.Housekeeping.RealmsTest do
       assert :ok = Realms.delete_realm(realm_name, async: true)
     end
 
+    test "succeeds when the keyspace was already deleted from a previous run", context do
+      %{realm_name: realm_name} = context
+      drop_realm_keyspace(realm_name)
+
+      assert :ok = Realms.delete_realm(realm_name, [])
+    end
+
     test "returns error when trying to delete a realm while deletion is disabled", %{
       realm_name: realm_name
     } do
@@ -360,5 +368,11 @@ defmodule Astarte.Housekeeping.RealmsTest do
       Mimic.stub(Repo, :query, fn _, _, _ -> {:error, "generic error"} end)
       assert {:error, "generic error"} = Realms.delete_realm(realm_name)
     end
+  end
+
+  defp drop_realm_keyspace(realm_name) do
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    Repo.query!("DROP KEYSPACE #{keyspace}")
+    :ok
   end
 end
