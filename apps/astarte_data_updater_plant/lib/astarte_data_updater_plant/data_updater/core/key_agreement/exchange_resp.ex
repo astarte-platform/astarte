@@ -129,9 +129,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp do
 
       {:ok, _} ->
         {:error, :key_type_mismatch}
-
-      {:error, _} ->
-        {:error, :invalid_cose_key}
     end
   end
 

@@ -33,7 +33,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret do
   @doc """
   Derives a 256-bit AES-GCM symmetric key using the given COSE keys and salt.
   Supports both X25519 (OKP) and P-256 (ECC).
+
+  Both keys are expected to share the same curve, which callers must already
+  guarantee (e.g. by deriving both keys from the same negotiated `key_suite`).
   """
+  @spec derive(COSE.Keys.Key.t(), COSE.Keys.Key.t(), binary()) :: {:ok, binary()}
   def derive(my_cose_key, peer_cose_key, salt) do
     with {:ok, raw_ecdh_secret} <- compute_ecdh(my_cose_key, peer_cose_key) do
       # Extract the pseudo-random key (PRK)
@@ -68,11 +72,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret do
     safe_compute_key(uncompressed_pub, my_priv, :secp256r1)
   end
 
-  defp compute_ecdh(_, _), do: {:error, :key_mismatch_or_unsupported}
-
   defp safe_compute_key(peer_pub, my_priv, curve) do
     {:ok, :crypto.compute_key(:ecdh, peer_pub, my_priv, curve)}
-  rescue
-    e -> {:error, {:ecdh_failed, Exception.message(e)}}
   end
 end

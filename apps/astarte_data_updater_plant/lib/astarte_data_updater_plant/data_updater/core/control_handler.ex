@@ -45,7 +45,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   ### Lifecycle
 
   Call `handle_device_connection/1` once per MQTT Connect event before
-  routing any control messages for that session.  It resets session-scoped
+  routing any control messages for that session.
+  It resets session-scoped
   state (device sequence-number, stale handshake) and, when a
   shared secret is already established, sends a `SecretHash` to
   the device.
@@ -192,8 +193,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
                HandshakeState.transition(
                  new_state.encrypted_endpoints_key,
                  {:receive_init, init_exchange}
-               )
-               |> wrap_transition_error(),
+               ),
              {:ok, exchange_resp} <-
                send_exchange_resp(new_state.realm, new_state.device_id, init_exchange),
              {:ok, shared_secret} <-
@@ -206,8 +206,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
                HandshakeState.transition(
                  state_after_receive,
                  {:handshake_completed, shared_secret}
-               )
-               |> wrap_transition_error() do
+               ) do
           final_state = %{
             new_state
             | total_received_msgs: new_state.total_received_msgs + 1,
@@ -551,8 +550,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           case reason do
             :invalid_payload -> :invalid_payload
             :key_type_mismatch -> :unspecified
-            {:ecdh_failed, _} -> :key_derivation_failed
-            :key_mismatch_or_unsupported -> :key_derivation_failed
             _ -> :unspecified
           end
 
@@ -577,6 +574,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     {:ack, :ok, state}
   end
 
+  @spec validate_seq_num(non_neg_integer(), non_neg_integer()) ::
+          :ok | {:error, :seq_num_mismatch}
   defp validate_seq_num(received_seq, expected_seq) when received_seq == expected_seq, do: :ok
   defp validate_seq_num(_received_seq, _expected_seq), do: {:error, :seq_num_mismatch}
 
@@ -586,6 +585,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp validate_device_seq_num(seq_num, last_seen) when seq_num > last_seen, do: :ok
   defp validate_device_seq_num(_seq_num, _last_seen), do: {:error, :seq_num_replay}
 
+  @spec decode_exchange_resp(State.t(), binary(), integer(), atom()) ::
+          {:ok, ExchangeResp.t()} | {:error, :invalid_payload | :key_type_mismatch}
   defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
     case ExchangeResp.cbor_decode(payload, expected_key_type) do
       {:ok, exchange_resp} ->
@@ -597,32 +598,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   defp derive_shared_secret(_state, init_exchange, exchange_resp) do
-    case SharedSecret.derive(
-           init_exchange.public_key,
-           exchange_resp.public_key,
-           init_exchange.hkdf_salt
-         ) do
-      {:ok, shared_secret} ->
-        {:ok, shared_secret}
-
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
-        {:error, reason}
-    end
+    SharedSecret.derive(
+      init_exchange.public_key,
+      exchange_resp.public_key,
+      init_exchange.hkdf_salt
+    )
   end
 
   defp transition_key_agreement(state, shared_secret) do
-    case HandshakeState.transition(
-           state.encrypted_endpoints_key,
-           {:handshake_completed, shared_secret}
-         ) do
-      {:ok, new_key_state} ->
-        {:ok, new_key_state}
-
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] State machine transition failed: #{inspect(reason)}")
-        {:error, reason}
-    end
+    HandshakeState.transition(
+      state.encrypted_endpoints_key,
+      {:handshake_completed, shared_secret}
+    )
   end
 
   @doc """
@@ -632,7 +619,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   * **`{:handshake_started, _}`**: Always reset to `:uninitialized` (mid-handshake states cannot carry over).
   * **`{:established, _}`**: Triggers a proactive `SecretHash` message to confirm the device still holds the shared secret before allowing encrypted traffic.
   * **`:uninitialized` / `{:failed, _}`**: No action taken; waits for the device to initiate a fresh handshake.
-
   """
   @spec handle_device_connection(State.t()) :: {:ok, State.t()} | {:error, term()}
   def handle_device_connection(state) do
@@ -1219,8 +1205,4 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     Core.Error.handle_error(context, error, opts)
   end
-
-  # HandshakeState.transition/2 returns {:ok, state} | {:error, reason}.
-  defp wrap_transition_error({:ok, _} = ok), do: ok
-  defp wrap_transition_error({:error, reason}), do: {:error, {:state_transition_failed, reason}}
 end
