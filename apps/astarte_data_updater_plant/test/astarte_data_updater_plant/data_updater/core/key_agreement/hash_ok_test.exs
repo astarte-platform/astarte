@@ -25,12 +25,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOkTest do
 
   describe "encode/1" do
     test "returns a single-element list with the integer mapped from InitExchange" do
-      # According to InitExchange.supported_key_suites(), x25519 is 0, p256 is 1
+      # According to InitExchange.supported_key_suites(), p256 is 0, x25519 is 1
       msg_x25519 = %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
-      assert HashOk.encode(msg_x25519) == [0]
+      assert HashOk.encode(msg_x25519) == [1]
 
       msg_p256 = %HashOk{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}
-      assert HashOk.encode(msg_p256) == [1]
+      assert HashOk.encode(msg_p256) == [0]
     end
   end
 
@@ -40,21 +40,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOkTest do
       encoded = HashOk.cbor_encode(msg)
 
       assert is_binary(encoded)
-      assert {:ok, [1], ""} = CBOR.decode(encoded)
+      assert {:ok, [0], ""} = CBOR.decode(encoded)
     end
   end
 
   describe "cbor_decode/1" do
     test "successfully decodes a valid CBOR payload to the correct atom" do
-      payload_x25519 = CBOR.encode([0])
-
-      assert {:ok, %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
-               HashOk.cbor_decode(payload_x25519)
-
-      payload_p256 = CBOR.encode([1])
+      payload_p256 = CBOR.encode([0])
 
       assert {:ok, %HashOk{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
                HashOk.cbor_decode(payload_p256)
+
+      payload_x25519 = CBOR.encode([1])
+
+      assert {:ok, %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+               HashOk.cbor_decode(payload_x25519)
     end
 
     test "returns error for valid CBOR with unknown algorithm code" do

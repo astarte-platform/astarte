@@ -538,14 +538,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   Sends an `InitExchange` message from Astarte to a device to trigger
   a new key-agreement handshake
 
-  Generates a fresh ephemeral X25519 key pair, a random HKDF
-  salt, and a random AES-256-GCM nonce, CBOR-encodes the `InitExchange`
+  Generates a fresh ephemeral key pair, a random HKDF
+  salt, CBOR-encodes the `InitExchange`
   struct, updates the state with the new handshake key type, and publishes
   it on: `<realm>/<device_id>/control/keyAgreement`
   """
   @spec send_init_exchange(State.t()) :: {:ok, State.t()} | {:error, term()}
   def send_init_exchange(state) do
-    init_exchange = InitExchange.new()
+    init_exchange = InitExchange.new(0)
 
     with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange),
          {:ok, new_key_state} <-
