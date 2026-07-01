@@ -411,9 +411,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         {:ack, :ok, final_state}
 
       {:error, :hash_mismatch} ->
-        Logger.warning("[keyAgreement/2] SecretHash mismatch. Renegotiating.")
+        Logger.warning("[keyAgreement/2] SecretHash mismatch.")
         # TODO: implement ExchangeFailed message
-        renegotiate_handshake(state, payload)
+        {:ack, :ok, state}
 
       {:error, reason} ->
         Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
@@ -422,10 +422,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  defp process_secret_hash(state, _seq_num, _secret_hash_msg, payload, _timestamp) do
-    Logger.warning("[keyAgreement/2] No shared secret established. Renegotiating.")
+  defp process_secret_hash(state, _seq_num, _secret_hash_msg, _payload, _timestamp) do
+    Logger.warning("[keyAgreement/2] No shared secret established.")
     # TODO: implement ExchangeFailed message
-    renegotiate_handshake(state, payload)
+    {:ack, :ok, state}
   end
 
   defp confirm_secret_hash(state, secret_hash_msg, shared_secret, alg) do
@@ -436,24 +436,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         :ok -> {:ok, new_key_state}
         {:error, reason} -> {:error, reason}
       end
-    end
-  end
-
-  defp renegotiate_handshake(state, payload) do
-    case send_init_exchange(state) do
-      {:ok, state_after_init} ->
-        final_state = %{
-          state_after_init
-          | total_received_msgs: state.total_received_msgs + 1,
-            total_received_bytes: state.total_received_bytes + byte_size(payload)
-        }
-
-        {:ack, :ok, final_state}
-
-      {:error, reason} ->
-        Logger.error("[keyAgreement/2] Failed to renegotiate key: #{inspect(reason)}")
-        # TODO: implement ExchangeFailed message
-        {:discard, reason, state}
     end
   end
 
@@ -534,29 +516,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  @doc """
-  Sends an `InitExchange` message from Astarte to a device to trigger
-  a new key-agreement handshake
-
-  Generates a fresh ephemeral key pair, a random HKDF
-  salt, CBOR-encodes the `InitExchange`
-  struct, updates the state with the new handshake key type, and publishes
-  it on: `<realm>/<device_id>/control/keyAgreement`
-  """
-  @spec send_init_exchange(State.t()) :: {:ok, State.t()} | {:error, term()}
-  def send_init_exchange(state) do
-    init_exchange = InitExchange.new(0)
-
-    with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange),
-         {:ok, new_key_state} <-
-           HandshakeState.transition(
-             state.encrypted_endpoints_key,
-             {:initiate_handshake, init_exchange}
-           ) do
-      {:ok, %{state | encrypted_endpoints_key: new_key_state}}
-    end
-  end
-
   defp send_hash_ok(realm, device_id, alg) do
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/3"
 
@@ -593,51 +552,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:error, reason} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok_send],
-          %{
-            duration: System.monotonic_time() - publish_start,
-            payload_size: byte_size(payload)
-          },
-          %{realm: realm, result: "error"}
-        )
-
-        {:error, reason}
-    end
-  end
-
-  defp publish_init_exchange(realm, device_id, %InitExchange{} = init_exchange) do
-    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement"
-    payload = InitExchange.cbor_encode(init_exchange)
-
-    publish_start = System.monotonic_time()
-
-    case VMQPlugin.publish(topic, payload, 2) do
-      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
-          %{
-            duration: System.monotonic_time() - publish_start,
-            payload_size: byte_size(payload)
-          },
-          %{realm: realm, result: "success"}
-        )
-
-        :ok
-
-      {:ok, %{local_matches: 0, remote_matches: 0}} ->
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
-          %{
-            duration: System.monotonic_time() - publish_start,
-            payload_size: byte_size(payload)
-          },
-          %{realm: realm, result: "no_matches"}
-        )
-
-        {:error, :session_not_found}
-
-      {:error, reason} ->
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
           %{
             duration: System.monotonic_time() - publish_start,
             payload_size: byte_size(payload)
