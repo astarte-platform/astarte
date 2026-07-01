@@ -36,6 +36,7 @@ defmodule Astarte.DataAccess.Device.InsertContext do
     field :value, term()
     field :value_timestamp, non_neg_integer()
     field :reception_timestamp, non_neg_integer()
+    field :encrypted_dek, binary(), default: nil
     field :opts, keyword(), default: []
   end
 end

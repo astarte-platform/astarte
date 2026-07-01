@@ -50,12 +50,26 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   import Ecto.Query
 
   defp create_one_object_columns_for_mappings(mappings) do
-    for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
+    for %Mapping{endpoint: endpoint, value_type: value_type, encrypted: encrypted} <- mappings do
       column_name = CQLUtils.endpoint_to_db_column_name(endpoint)
-      cql_type = CQLUtils.mapping_value_type_to_db_type(value_type)
+
+      cql_type =
+        case encrypted do
+          true -> "blob"
+          _ -> CQLUtils.mapping_value_type_to_db_type(value_type)
+        end
+
       "#{column_name} #{cql_type}"
     end
     |> Enum.join(~s(,\n))
+  end
+
+  defp maybe_add_encrypted_dek_column(columns, mappings) do
+    if Enum.any?(mappings, &Map.get(&1, :encrypted)) do
+      Enum.join([columns, "encrypted_dek blob"], ~s(,\n))
+    else
+      columns
+    end
   end
 
   defp create_interface_table(
@@ -95,7 +109,8 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
         interface_descriptor.major_version
       )
 
-    columns = create_one_object_columns_for_mappings(mappings)
+    columns =
+      create_one_object_columns_for_mappings(mappings) |> maybe_add_encrypted_dek_column(mappings)
 
     [%Mapping{explicit_timestamp: explicit_timestamp} | _tail] = mappings
 

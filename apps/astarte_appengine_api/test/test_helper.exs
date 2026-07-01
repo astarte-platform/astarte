@@ -3,6 +3,8 @@ Mimic.copy(Astarte.AppEngine.API.Health)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataAccess.Health)
 Mimic.copy(Astarte.DataAccess.Repo)
+Mimic.copy(Astarte.Secrets)
+Mimic.copy(Astarte.Secrets.Core)
 Mimic.copy(DateTime)
 Mimic.copy(Horde.Registry)
 
