@@ -500,7 +500,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
 
       with {:ok, endpoints} <-
              Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
-        mappings = Enum.map(endpoints, &to_mapping(&1, interface))
+        mappings = Enum.map(endpoints, &to_mapping(&1))
 
         interface =
           interface
@@ -520,15 +520,8 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
     end
   end
 
-  defp to_mapping(endpoint, interface) do
-    %Mapping{}
-    |> Mapping.changeset(Map.from_struct(endpoint),
-      interface_name: interface.name,
-      interface_id: interface.interface_id,
-      interface_major: interface.major_version,
-      interface_type: interface.type
-    )
-    |> Ecto.Changeset.apply_changes()
+  defp to_mapping(endpoint) do
+    Mapping.from_db_result!(endpoint)
     |> Map.from_struct()
     |> Map.put(:type, endpoint.value_type)
   end
