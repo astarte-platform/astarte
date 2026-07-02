@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
@@ -45,113 +46,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
-  """
-
-  @create_capabilities_type """
-    CREATE TYPE :keyspace.capabilities (
-      purge_properties_compression_format int
-    );
-  """
-
-  @create_devices_table """
-      CREATE TABLE :keyspace.devices (
-        device_id uuid,
-        aliases map<ascii, varchar>,
-        introspection map<ascii, int>,
-        introspection_minor map<ascii, int>,
-        old_introspection map<frozen<tuple<ascii, int>>, int>,
-        protocol_revision int,
-        first_registration timestamp,
-        credentials_secret ascii,
-        inhibit_credentials_request boolean,
-        cert_serial ascii,
-        cert_aki ascii,
-        first_credentials_request timestamp,
-        last_connection timestamp,
-        last_disconnection timestamp,
-        connected boolean,
-        pending_empty_cache boolean,
-        total_received_msgs bigint,
-        total_received_bytes bigint,
-        exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-        exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-        last_credentials_request_ip inet,
-        last_seen_ip inet,
-        attributes map<varchar, varchar>,
-        groups map<text, timeuuid>,
-        capabilities capabilities,
-
-        PRIMARY KEY (device_id)
-    );
-  """
-
-  @create_interfaces_table """
-      CREATE TABLE :keyspace.interfaces (
-        interface_id uuid,
-        name ascii,
-        major_version int,
-        minor_version int,
-        storage_type int,
-        storage ascii,
-        type int,
-        ownership int,
-        aggregation int,
-        automaton_transitions blob,
-        automaton_accepting_states blob,
-        description varchar,
-        doc varchar,
-
-        PRIMARY KEY (name, major_version)
-      );
-  """
-
-  @create_endpoints_table """
-      CREATE TABLE :keyspace.endpoints (
-        interface_id uuid,
-        endpoint_id uuid,
-        interface_name ascii,
-        interface_major_version int,
-        interface_minor_version int,
-        interface_type int,
-        endpoint ascii,
-        value_type int,
-        reliability int,
-        retention int,
-        expiry int,
-        database_retention_ttl int,
-        database_retention_policy int,
-        allow_unset boolean,
-        explicit_timestamp boolean,
-        description varchar,
-        doc varchar,
-        required boolean,
-        encrypted boolean,
-
-        PRIMARY KEY ((interface_id), endpoint_id)
-    );
-  """
-
-  @create_simple_triggers_table """
-      CREATE TABLE :keyspace.simple_triggers (
-        object_id uuid,
-        object_type int,
-        parent_trigger_id uuid,
-        simple_trigger_id uuid,
-        trigger_data blob,
-        trigger_target blob,
-
-        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-      );
-  """
-
-  @create_kv_store_table """
-      CREATE TABLE :keyspace.kv_store (
-        group varchar,
-        key varchar,
-        value blob,
-
-        PRIMARY KEY ((group), key)
-      );
   """
 
   @insert_endpoints [
@@ -204,35 +98,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         (db576345-80b1-5358-f305-d77ec39b3d84, 3b39fd3a-e261-26ff-e523-4c2dd150b864, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
     """
   ]
-
-  @create_individual_properties_table """
-    CREATE TABLE IF NOT EXISTS :keyspace.individual_properties (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-      encrypted_blob blob,
-      encrypted_dek blob,
-
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-    );
-  """
 
   @create_individual_datastreams_table """
     CREATE TABLE IF NOT EXISTS :keyspace.individual_datastreams (
@@ -352,18 +217,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     """
   ]
 
-  @create_deletion_in_progress_table """
-    CREATE TABLE :keyspace.deletion_in_progress (
-      device_id uuid,
-      vmq_ack boolean,
-      dup_start_ack boolean,
-      dup_end_ack boolean,
-      groups set<text>,
-
-      PRIMARY KEY (device_id)
-  );
-  """
-
   def create_test_keyspace do
     # for compatibility reasons only
     create_test_keyspace(@test_realm)
@@ -374,25 +227,18 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
     case execute(keyspace_name, @create_autotestrealm) do
       {:ok, _} ->
-        execute!(keyspace_name, @create_capabilities_type)
-        execute!(keyspace_name, @create_devices_table)
-        execute!(keyspace_name, @create_endpoints_table)
+        Database.migrate_realm(realm_name)
 
         Enum.each(@insert_endpoints, fn query ->
           execute!(keyspace_name, query)
         end)
 
-        execute!(keyspace_name, @create_simple_triggers_table)
-        execute!(keyspace_name, @create_individual_properties_table)
         execute!(keyspace_name, @create_individual_datastreams_table)
         execute!(keyspace_name, @create_test_object_table)
 
         Enum.each(@insert_values, fn query ->
           execute!(keyspace_name, query)
         end)
-
-        execute!(keyspace_name, @create_interfaces_table)
-        execute!(keyspace_name, @create_kv_store_table)
 
         %Interface{}
         |> Ecto.Changeset.change(%{
@@ -744,7 +590,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         })
         |> Repo.insert!(prefix: keyspace_name)
 
-        execute!(keyspace_name, @create_deletion_in_progress_table)
         Vhost.create_vhost(realm_name)
         {:ok, keyspace_name}
 

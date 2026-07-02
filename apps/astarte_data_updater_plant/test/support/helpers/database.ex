@@ -20,6 +20,7 @@ defmodule Astarte.Helpers.Database do
   @moduledoc """
   This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
   """
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceAccess
   alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
@@ -39,161 +40,6 @@ defmodule Astarte.Helpers.Database do
 
   @drop_keyspace """
   DROP KEYSPACE IF EXISTS :keyspace
-  """
-
-  @create_realms_table """
-  CREATE TABLE :keyspace.realms (
-    realm_name varchar,
-    device_registration_limit int,
-
-    PRIMARY KEY (realm_name)
-  );
-  """
-
-  @create_kv_store """
-  CREATE TABLE :keyspace.kv_store (
-    group varchar,
-    key varchar,
-    value blob,
-
-    PRIMARY KEY ((group), key)
-  )
-  """
-
-  @create_names_table """
-  CREATE TABLE :keyspace.names (
-    object_name varchar,
-    object_type int,
-    object_uuid uuid,
-
-    PRIMARY KEY ((object_name), object_type)
-  )
-  """
-
-  @create_capabilities_type """
-  CREATE TYPE :keyspace.capabilities (
-    purge_properties_compression_format int
-  );
-  """
-
-  @create_devices_table """
-  CREATE TABLE :keyspace.devices (
-    device_id uuid,
-    aliases map<ascii, varchar>,
-    introspection map<ascii, int>,
-    introspection_minor map<ascii, int>,
-    old_introspection map<frozen<tuple<ascii, int>>, int>,
-    protocol_revision int,
-    first_registration timestamp,
-    credentials_secret ascii,
-    inhibit_credentials_request boolean,
-    cert_serial ascii,
-    cert_aki ascii,
-    first_credentials_request timestamp,
-    last_connection timestamp,
-    last_disconnection timestamp,
-    connected boolean,
-    pending_empty_cache boolean,
-    total_received_msgs bigint,
-    total_received_bytes bigint,
-    exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-    exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-    last_credentials_request_ip inet,
-    last_seen_ip inet,
-    attributes map<varchar, varchar>,
-    capabilities capabilities,
-    groups map<text, timeuuid>,
-
-    PRIMARY KEY (device_id)
-  )
-  """
-
-  @create_interfaces_table """
-  CREATE TABLE :keyspace.interfaces (
-    name ascii,
-    major_version int,
-    minor_version int,
-    interface_id uuid,
-    storage_type int,
-    storage ascii,
-    type int,
-    ownership int,
-    aggregation int,
-    automaton_transitions blob,
-    automaton_accepting_states blob,
-    description text,
-    doc text,
-
-    PRIMARY KEY (name, major_version)
-  )
-  """
-
-  @create_endpoints_table """
-  CREATE TABLE :keyspace.endpoints (
-    interface_id uuid,
-    endpoint_id uuid,
-    interface_name ascii,
-    interface_major_version int,
-    interface_minor_version int,
-    interface_type int,
-    endpoint ascii,
-    value_type int,
-    reliability int,
-    retention int,
-    expiry int,
-    database_retention_ttl int,
-    database_retention_policy int,
-    allow_unset boolean,
-    explicit_timestamp boolean,
-    description text,
-    doc text,
-    required boolean,
-    encrypted boolean,
-
-    PRIMARY KEY ((interface_id), endpoint_id)
-  )
-  """
-
-  @create_simple_triggers_table """
-  CREATE TABLE :keyspace.simple_triggers (
-    object_id uuid,
-    object_type int,
-    parent_trigger_id uuid,
-    simple_trigger_id uuid,
-    trigger_data blob,
-    trigger_target blob,
-
-    PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-  );
-  """
-
-  @create_individual_properties_table """
-  CREATE TABLE :keyspace.individual_properties (
-    device_id uuid,
-    interface_id uuid,
-    endpoint_id uuid,
-    path text,
-    reception_timestamp timestamp,
-    reception_timestamp_submillis smallint,
-    double_value double,
-    integer_value int,
-    boolean_value boolean,
-    longinteger_value bigint,
-    string_value text,
-    binaryblob_value blob,
-    datetime_value timestamp,
-    doublearray_value list<double>,
-    integerarray_value list<int>,
-    booleanarray_value list<boolean>,
-    longintegerarray_value list<bigint>,
-    stringarray_value list<text>,
-    binaryblobarray_value list<blob>,
-    datetimearray_value list<timestamp>,
-    encryptedblob_value blob,
-    encrypted_dek blob,
-
-    PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-  );
   """
 
   @create_individual_datastreams_table """
@@ -224,26 +70,6 @@ defmodule Astarte.Helpers.Database do
 
       PRIMARY KEY ((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
   )
-  """
-
-  @create_groups_table """
-  CREATE TABLE :keyspace.grouped_devices (
-    group_name varchar,
-    insertion_uuid timeuuid,
-    device_id uuid,
-    PRIMARY KEY ((group_name), insertion_uuid, device_id)
-  )
-  """
-
-  @create_deletion_in_progress_table """
-  CREATE TABLE :keyspace.deletion_in_progress (
-      device_id uuid,
-      vmq_ack boolean,
-      dup_start_ack boolean,
-      dup_end_ack boolean,
-      groups set<text>,
-      PRIMARY KEY ((device_id))
-    )
   """
 
   @insert_public_key """
@@ -298,8 +124,7 @@ defmodule Astarte.Helpers.Database do
   def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace, [], timeout: 60_000)
-    execute!(astarte_keyspace, @create_kv_store, [], timeout: 60_000)
-    execute!(astarte_keyspace, @create_realms_table, [], timeout: 60_000)
+    Database.migrate_astarte()
   end
 
   def setup!(realm_name) do
@@ -315,17 +140,8 @@ defmodule Astarte.Helpers.Database do
   def setup_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_capabilities_type, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_devices_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_groups_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_names_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_kv_store, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_endpoints_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_simple_triggers_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_individual_properties_table, [], timeout: 60_000)
+    Database.migrate_realm(realm_name)
     execute!(realm_keyspace, @create_individual_datastreams_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_interfaces_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_deletion_in_progress_table, [], timeout: 60_000)
 
     Enum.each(@insert_endpoints, fn query ->
       execute!(realm_keyspace, query, [], timeout: 60_000)
