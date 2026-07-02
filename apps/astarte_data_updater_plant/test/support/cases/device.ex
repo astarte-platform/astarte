@@ -67,7 +67,8 @@ defmodule Astarte.Cases.Device do
 
     endpoints_to_update =
       for interface <- interfaces_with_encrypted_endpoints,
-          mapping <- interface.mappings do
+          mapping <- interface.mappings,
+          Map.get(mapping, :encrypted) do
         {interface.interface_id, mapping.endpoint_id}
       end
 
@@ -263,7 +264,7 @@ defmodule Astarte.Cases.Device do
         end
       },
       {
-        :encrypted_endpoints_oject_datastream_interfaces,
+        :encrypted_endpoints_object_datastream_interfaces,
         fn acc -> new_interfaces(encrypted_endpoint_mapping(:datastream, :object), acc, :list) end
       },
       {:other_interfaces,
@@ -320,7 +321,14 @@ defmodule Astarte.Cases.Device do
     )
     |> map(fn interface ->
       mapping = Enum.at(interface.mappings, 0)
-      mapping = %{mapping | endpoint: "/encryptedProperty", value_type: :string, encrypted: true}
+
+      mapping = %{
+        mapping
+        | endpoint: "/encryptedProperty",
+          value_type: :string,
+          encrypted: true,
+          allow_unset: true
+      }
 
       %{interface | mappings: [mapping]}
     end)
@@ -354,13 +362,32 @@ defmodule Astarte.Cases.Device do
 
     mapping_gen = MappingGenerator.mapping(common_mapping_params)
 
-    # generate two encrypted mappings
+    # generate two encrypted mappings and a non-encrypted one
     mappings =
-      StreamData.fixed_list([mapping_gen, mapping_gen])
-      |> map(fn [mapping_0, mapping_1] ->
-        mapping_0 = %{mapping_0 | endpoint: "/encryptedPath/endpoint0", encrypted: true}
-        mapping_1 = %{mapping_1 | endpoint: "/encryptedPath/endpoint1", encrypted: true}
-        [mapping_0, mapping_1]
+      StreamData.fixed_list([mapping_gen, mapping_gen, mapping_gen])
+      |> map(fn [mapping_0, mapping_1, mapping_2] ->
+        mapping_0 = %{
+          mapping_0
+          | endpoint: "/partiallyEncryptedPath/endpoint0",
+            value_type: :string,
+            encrypted: true
+        }
+
+        mapping_1 = %{
+          mapping_1
+          | endpoint: "/partiallyEncryptedPath/endpoint1",
+            value_type: :string,
+            encrypted: true
+        }
+
+        mapping_2 = %{
+          mapping_2
+          | endpoint: "/partiallyEncryptedPath/endpoint2",
+            value_type: :string,
+            encrypted: false
+        }
+
+        [mapping_0, mapping_1, mapping_2]
       end)
 
     InterfaceGenerator.interface(

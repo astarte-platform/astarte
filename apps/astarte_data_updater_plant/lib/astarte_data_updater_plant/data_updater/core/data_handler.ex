@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataAccess.Data
   alias Astarte.DataAccess.Device, as: DeviceAccess
   alias Astarte.DataAccess.Device.InsertContext
+  alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
@@ -36,6 +37,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Secrets
 
   require Logger
 
@@ -129,20 +131,46 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       maybe_insert_path(context, interface_descriptor, mapping)
     end
 
-    insert_context = %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      value: value,
-      value_timestamp: maybe_explicit_value_timestamp,
-      reception_timestamp: timestamp,
-      opts: [ttl: db_max_ttl]
-    }
+    encrypted_endpoints =
+      state.mappings
+      |> Map.values()
+      |> Enum.filter(& &1.encrypted)
+      |> Enum.map(& &1.endpoint)
 
-    DeviceAccess.insert_value_into_db(insert_context)
-    |> handle_result(context, start)
+    case maybe_encrypt_value(
+           interface_descriptor.aggregation,
+           path,
+           value,
+           encrypted_endpoints,
+           realm
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database",
+          tag: "data_encryption_error"
+        )
+
+        error
+
+      {value, encrypted_dek} ->
+        insert_context =
+          %InsertContext{
+            realm: realm,
+            device_id: device_id,
+            interface_descriptor: interface_descriptor,
+            mapping: mapping,
+            path: path,
+            value: value,
+            value_timestamp: maybe_explicit_value_timestamp,
+            reception_timestamp: timestamp,
+            encrypted_endpoints: encrypted_endpoints,
+            encrypted_dek: encrypted_dek,
+            opts: [ttl: db_max_ttl]
+          }
+
+        DeviceAccess.insert_value_into_db(insert_context)
+        |> handle_result(context, start)
+    end
   end
 
   defp get_previous_value(context, interface_descriptor, mapping)
@@ -156,6 +184,73 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp get_previous_value(_, _, _), do: nil
+
+  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
+  defp maybe_encrypt_value(_, _, nil, _, _) do
+    {nil, nil}
+  end
+
+  # no encrypted endpoints for this interface: return plaintext original value and no DEK
+  defp maybe_encrypt_value(_, _, value, [], _) do
+    {value, nil}
+  end
+
+  # check if encryption is required for the endpoint, and if so: retrieve the current realm DEK,
+  # encrypt the (individual) value with it, and return a tuple {encrypted_value, encrypted_dek}
+  # ready to be stored in db.
+  defp maybe_encrypt_value(:individual, path, value, encrypted_endpoints, realm) do
+    case path in encrypted_endpoints do
+      true ->
+        with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+               DEKCache.fetch_data_encryption_key(realm) do
+          encrypted_value =
+            do_encrypt_individual_value(value, plaintext_dek)
+
+          {encrypted_value, ciphertext_dek}
+        end
+
+      _ ->
+        {value, nil}
+    end
+  end
+
+  # for each of the mappings of the object check if the related encrypted option is set,
+  # and based on this condition treat each of the endpoints values as a separate one when
+  # applying encryption logic (encryption choice is done at endpoint level, not at object level)
+  defp maybe_encrypt_value(:object, _, obj_value, encrypted_endpoints, realm) do
+    case encrypted_endpoints != [] do
+      true ->
+        with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+               DEKCache.fetch_data_encryption_key(realm) do
+          obj_value_with_encryption =
+            do_encrypt_object_mappings(encrypted_endpoints, obj_value, plaintext_dek)
+
+          {obj_value_with_encryption, ciphertext_dek}
+        end
+
+      _ ->
+        {obj_value, nil}
+    end
+  end
+
+  defp do_encrypt_individual_value(value, dek) do
+    value_binary = :erlang.term_to_binary(value)
+    {:ok, encrypted_value} = Secrets.encrypt_with_dek(value_binary, dek)
+    encrypted_value
+  end
+
+  # leave untouched object values that do not need encryption, encrypt all others in-place
+  defp do_encrypt_object_mappings(encrypted_endpoints, obj_value, dek) do
+    Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
+      endpoint = Path.basename(endpoint)
+
+      Map.put(
+        acc_obj,
+        endpoint,
+        do_encrypt_individual_value(Map.get(acc_obj, endpoint), dek)
+      )
+    end)
+  end
 
   defp handle_result({:error, :unset_not_allowed}, context, _start) do
     error = %{
@@ -234,7 +329,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp validate_value(context, interface_descriptor, mapping, value) do
     %{state: state} = context
 
-    mappings = Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
+    mappings =
+      Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
 
     with :ok <- validate_value_type(context, mappings, value) do
       validate_required_mappings(context, interface_descriptor, mappings, value)

@@ -227,6 +227,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       stringarray_value list<varchar>,
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
+      encrypted_blob blob,
+      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id), endpoint_id, path)
     );
@@ -249,6 +251,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       datetimearray_value list<timestamp>,
       double_value double,
       doublearray_value list<double>,
+      encrypted_blob blob,
+      encrypted_dek blob,
       integer_value int,
       integerarray_value list<int>,
       longinteger_value bigint,
