@@ -48,10 +48,17 @@ defmodule Astarte.RealmManagement.Application do
     trigger_types = [:DEVICE_DELETION_STARTED, :DEVICE_DELETION_FINISHED]
 
     every_10_minutes = "*/10 * * * *"
+    every_30_minutes = "*/30 * * * *"
 
     unconfirmed_devices_scheduler = %{
       id: "unconfirmed_devices_scheduler",
       start: {SchedEx, :run_every, [Scheduler, :delete_unconfirmed_devices, [], every_10_minutes]}
+    }
+
+    pending_deletions_scheduler = %{
+      id: "pending_deletions_scheduler",
+      start:
+        {SchedEx, :run_every, [Scheduler, :reschedule_pending_deletions, [], every_30_minutes]}
     }
 
     children =
@@ -64,6 +71,7 @@ defmodule Astarte.RealmManagement.Application do
         {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
         Scheduler,
         unconfirmed_devices_scheduler,
+        pending_deletions_scheduler,
         {Astarte.Events.AMQPEvents.Supervisor, []},
         {Astarte.Events.AMQPTriggers.Supervisor, []},
         {Astarte.Events.Triggers.Supervisor, []}

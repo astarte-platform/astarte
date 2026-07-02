@@ -27,8 +27,10 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   use GenServer
 
+  alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
   alias Astarte.RealmManagement.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
 
   require Logger
 
@@ -73,6 +75,29 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     Enum.each(devices, &start_device_deletion/1)
   end
 
+  @doc """
+  Re-sends start_device_deletion RPC for all devices that are pending deletion
+  but have not yet received all three acks.
+  """
+  def reschedule_pending_deletions do
+    devices = retrieve_devices_pending_deletion!()
+
+    Enum.each(devices, fn %{device_id: device_id, realm_name: realm_name} ->
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      _ =
+        Logger.debug(
+          "Re-sending start_device_deletion for pending device #{encoded_device_id}",
+          realm: realm_name
+        )
+
+      Task.Supervisor.start_child(
+        Astarte.RealmManagement.DeviceRemoverSupervisor,
+        fn -> DevicesRPC.start_device_deletion_rpc(realm_name, device_id) end
+      )
+    end)
+  end
+
   defp start_device_deletion! do
     device_to_delete_list = retrieve_devices_to_delete!()
 
@@ -98,6 +123,15 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
     Enum.flat_map(realms, fn %{realm_name: realm_name} ->
       devices = Queries.retrieve_devices_to_delete!(realm_name)
+      Enum.map(devices, &Map.put(&1, :realm_name, realm_name))
+    end)
+  end
+
+  defp retrieve_devices_pending_deletion! do
+    realms = Queries.retrieve_realms!()
+
+    Enum.flat_map(realms, fn %{realm_name: realm_name} ->
+      devices = Queries.retrieve_devices_pending_deletion!(realm_name)
       Enum.map(devices, &Map.put(&1, :realm_name, realm_name))
     end)
   end
