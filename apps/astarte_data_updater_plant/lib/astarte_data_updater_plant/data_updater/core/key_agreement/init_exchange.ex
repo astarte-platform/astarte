@@ -21,7 +21,7 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   @moduledoc """
   Represents the InitExchange key-agreement message exchanged over the
-  `<realm>/<device>/control/keyAgreement` MQTT control topic.
+  `<realm>/<device>/control/keyAgreement/0` MQTT control topic.
 
   ## Message structure:
 
@@ -108,7 +108,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   def cbor_encode(%__MODULE__{} = msg), do: encode(msg) |> CBOR.encode()
 
   @doc """
-  Decodes and validates a raw CBOR payload received on the `control/keyAgreement` topic.
+  Decodes and validates a raw CBOR payload received on the `control/keyAgreement/0` topic.
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
   def decode(payload) when is_binary(payload) do

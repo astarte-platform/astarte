@@ -44,7 +44,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   ### Supported Paths
   * `/producer/properties` - Handles properties pruning (plaintext or zlib compressed).
   * `/emptyCache` - Triggers a cache empty and interface properties resend.
-  * `/keyAgreement` - Handles the InitExchange protocol (Device to Astarte direction).
+  * `/keyAgreement/0` - Handles the InitExchange protocol (Device to Astarte direction).
   * `/keyAgreement/1` - Receives an ExchangeResp sent by the device when Astarte previously initiated a key-agreement handshake.
   * `/keyAgreement/2` - Receives a SecretHash from the device to verify keys.
   * `/keyAgreement/3` - Receives a HashOk from the device confirming the key verification.
@@ -166,7 +166,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  def handle_control(state, "/keyAgreement", payload, timestamp) do
+  def handle_control(state, "/keyAgreement/0", payload, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     case InitExchange.decode(payload) do
@@ -182,17 +182,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             {:ack, :ok, final_state}
 
           {:error, reason} ->
-            Logger.error("[keyAgreement] State machine transition failed: #{inspect(reason)}")
+            Logger.error("[keyAgreement/0] State machine transition failed: #{inspect(reason)}")
 
             context = %{
               state: new_state,
               payload: payload,
-              path: "/keyAgreement",
+              path: "/keyAgreement/0",
               timestamp: timestamp
             }
 
             error = %{
-              message: "keyAgreement state machine transition failed: #{inspect(reason)}",
+              message: "keyAgreement/0 state machine transition failed: #{inspect(reason)}",
               logger_metadata: [tag: "key_agreement_transition_error"],
               error_name: "key_agreement_transition_error",
               error: :key_agreement_transition_error
@@ -203,20 +203,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:error, reason} ->
         Logger.warning(
-          "[keyAgreement] payload validation failed: #{inspect(reason)}",
+          "[keyAgreement/0] payload validation failed: #{inspect(reason)}",
           tag: "key_agreement_invalid_payload"
         )
 
         context = %{
           state: new_state,
           payload: payload,
-          path: "/keyAgreement",
+          path: "/keyAgreement/0",
           timestamp: timestamp
         }
 
         error = %{
           message:
-            "Invalid keyAgreement payload (#{inspect(reason)}): " <>
+            "Invalid keyAgreement/0 payload (#{inspect(reason)}): " <>
               inspect(Base.encode64(payload)),
           logger_metadata: [tag: "key_agreement_error"],
           error_name: "key_agreement_error",

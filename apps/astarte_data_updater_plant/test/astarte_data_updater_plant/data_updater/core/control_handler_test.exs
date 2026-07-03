@@ -308,7 +308,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     assert new_state.total_received_msgs > state.total_received_msgs
   end
 
-  describe "/keyAgreement" do
+  describe "/keyAgreement/0" do
     test "acks a valid CBOR InitExchange payload and increments message counters",
          context do
       %{state: state, init_exchange_payload: payload} = context
@@ -323,7 +323,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       end)
 
       assert {:ack, :ok, new_state} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
@@ -345,7 +345,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       end)
 
       assert {:ack, :ok, new_state} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
@@ -360,11 +360,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       state = %{state | discard_messages: true}
 
       assert {:discard, _result, ^state} =
-               ControlHandler.handle_control(state, "/keyAgreement", <<1>>, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", <<1>>, 0)
     end
   end
 
-  describe "/keyAgreement - invalid payloads" do
+  describe "/keyAgreement/0 - invalid payloads" do
     setup context do
       %{state: state} = context
 
@@ -384,7 +384,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       %{state: state, invalid_key_type_payload: payload} = context
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
@@ -393,7 +393,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       %{state: state, wrong_okp_key_payload: payload} = context
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
@@ -402,7 +402,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       %{state: state, wrong_hkdf_salt_payload: payload} = context
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
@@ -414,7 +414,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       payload = CBOR.encode(%{"key_type" => 0})
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
@@ -425,7 +425,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       payload = <<0xFF, 0xFE, 0x00, 0x01>>
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
-               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+               ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
