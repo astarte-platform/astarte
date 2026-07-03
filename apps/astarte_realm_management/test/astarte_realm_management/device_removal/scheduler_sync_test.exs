@@ -35,6 +35,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   alias Astarte.DataAccess.Repo
 
   alias Astarte.RealmManagement.DeviceRemoval.Scheduler
+  alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
 
   import Astarte.Helpers.Device
 
@@ -54,6 +56,44 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
     test "does nothing for unconfirmed devices", context do
       %{realm: realm_name, device_id: device_id} = context
       assert Scheduler.delete_device(realm_name, device_id) == {:error, :device_not_ready}
+    end
+  end
+
+  describe "reschedule_pending_deletions/0" do
+    property "re-sends the RPC only for devices missing at least one ack", %{realm: realm} do
+      check all ackd_devices <- DeviceGenerator.id() |> list_of(length: 1..5),
+                non_ackd_devices <-
+                  DeviceGenerator.id()
+                  |> filter(&(&1 not in ackd_devices))
+                  |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
+                  |> filter(&(not DeletionInProgress.all_ack?(&1)))
+                  |> list_of(length: 1..5),
+                max_runs: 10 do
+        ackd_deletions = seed_ackd_deletions(ackd_devices, realm)
+        non_ackd_deletions = seed_non_ackd_deletions(non_ackd_devices, realm)
+        non_ackd_device_ids = Enum.map(non_ackd_devices, & &1.device_id)
+
+        test_process = self()
+
+        DevicesRPC
+        |> expect(:start_device_deletion_rpc, length(non_ackd_device_ids), fn ^realm, device_id ->
+          send(test_process, {:rpc_called, device_id})
+          :ok
+        end)
+
+        assert Scheduler.reschedule_pending_deletions() == :ok
+
+        for device_id <- non_ackd_device_ids do
+          assert_receive {:rpc_called, ^device_id}
+        end
+
+        for device_id <- ackd_devices do
+          refute_receive {:rpc_called, ^device_id}
+        end
+
+        (ackd_deletions ++ non_ackd_deletions)
+        |> Enum.each(&Repo.delete!(&1, prefix: Realm.keyspace_name(realm)))
+      end
     end
   end
 
@@ -90,5 +130,25 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
       vmq_ack: true
     }
     |> Repo.insert!(prefix: Realm.keyspace_name(realm_name))
+  end
+
+  defp seed_ackd_deletions(devices, realm) do
+    keyspace = Realm.keyspace_name(realm)
+
+    devices
+    |> Enum.map(fn device_id ->
+      %DeletionInProgress{
+        device_id: device_id,
+        dup_end_ack: true,
+        dup_start_ack: true,
+        vmq_ack: true
+      }
+      |> Repo.insert!(prefix: keyspace)
+    end)
+  end
+
+  defp seed_non_ackd_deletions(deletions, realm) do
+    keyspace = Realm.keyspace_name(realm)
+    Enum.map(deletions, &Repo.insert!(&1, prefix: keyspace))
   end
 end

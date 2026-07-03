@@ -227,6 +227,19 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     |> Enum.filter(&DeletionInProgress.all_ack?/1)
   end
 
+  def retrieve_devices_pending_deletion!(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    from(DeletionInProgress)
+    |> Repo.all(opts)
+    |> Enum.reject(&DeletionInProgress.all_ack?/1)
+  end
+
   @doc """
   Returns unconfirmed devices, with a grace period of 5 minutes
   """
