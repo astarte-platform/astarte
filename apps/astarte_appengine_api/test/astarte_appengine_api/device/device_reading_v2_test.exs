@@ -24,6 +24,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.AppEngine.API.Device.Queries, as: AppEngineDeviceQueries
 
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
@@ -34,6 +35,8 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   alias Astarte.DataAccess.Repo
 
   alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
+
+  alias Astarte.Secrets.EncryptedMessages
 
   describe "get_interface_value" do
     setup context do
@@ -114,6 +117,11 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
         device: device
       } = context
 
+      random_binary = :crypto.strong_rand_bytes(32)
+      {:ok, device_id} = CoreDevice.decode_device_id(device.encoded_id)
+
+      :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, random_binary)
+
       encrypted_server_interfaces =
         interfaces
         |> Enum.filter(fn interface ->
@@ -150,7 +158,14 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
             interface_to_update: interface_to_update,
             expected_read_value: expected_read_value,
             mapping_update: mapping_update
-          } = populate_interface(realm_name, device, interface_to_update, mapping_update)
+          } =
+            populate_interface(
+              realm_name,
+              device,
+              interface_to_update,
+              mapping_update,
+              random_binary
+            )
 
           {:ok, %InterfaceValues{data: result}} =
             Device.get_interface_values!(
@@ -249,10 +264,17 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     Repo.query!("TRUNCATE #{Realm.keyspace_name(realm_name)}.individual_datastreams")
   end
 
-  defp populate_interface(realm_name, device, interface_to_update, mapping_update) do
+  defp populate_interface(
+         realm_name,
+         device,
+         interface_to_update,
+         mapping_update,
+         shared_key \\ nil
+       ) do
     update_value = mapping_update.value
     path_tokens = String.split(mapping_update.path, "/")
     expected_token = [realm_name, device.encoded_id, interface_to_update.name | path_tokens]
+    encrypted_path? = encrypted_mapping_path?(interface_to_update, mapping_update.path)
 
     expected_published_value =
       expected_published_value!(mapping_update.value_type, update_value)
@@ -267,7 +289,14 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       assert %{payload: payload, topic_tokens: topic_tokens, qos: qos} = args
       assert topic_tokens == expected_token
       assert qos == expected_qos
-      assert {:ok, %{"v" => ^expected_published_value}} = Cyanide.decode(payload)
+
+      assert {:ok, %{"v" => published_value}} = Cyanide.decode(payload)
+
+      if encrypted_path? do
+        assert decrypt_value(published_value, shared_key) == expected_published_value
+      else
+        assert published_value == expected_published_value
+      end
     end)
 
     with {:ok, device_id} <- CoreDevice.decode_device_id(device.encoded_id),
@@ -306,5 +335,35 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       expected_read_value: expected_read_value,
       mapping_update: mapping_update
     }
+  end
+
+  defp encrypted_mapping_path?(interface_to_update, path) do
+    normalized_path = normalize_path(path)
+
+    Enum.any?(interface_to_update.mappings, fn mapping ->
+      normalized_endpoint = normalize_path(mapping.endpoint)
+
+      mapping.encrypted and
+        (normalized_endpoint == normalized_path or
+           String.starts_with?(normalized_endpoint, normalized_path <> "/"))
+    end)
+  end
+
+  defp normalize_path(path) do
+    "/" <> String.trim(path, "/")
+  end
+
+  defp decrypt_value(encrypted_value, shared_secret) do
+    case EncryptedMessages.decrypt(
+           encrypted_value,
+           shared_secret,
+           :aes_256_gcm
+         ) do
+      {:ok, decrypted_value} ->
+        :erlang.binary_to_term(decrypted_value)
+
+      {:error, reason} ->
+        flunk("Unable to decrypt published value: #{inspect(reason)}")
+    end
   end
 end

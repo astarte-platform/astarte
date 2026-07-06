@@ -93,7 +93,10 @@ defmodule Astarte.Cases.Device do
 
     random_interfaces =
       interfaces
-      |> Enum.reject(&(&1 in taken_interfaces))
+      # Do not populate interfaces with encrypted mappings
+      |> Enum.reject(fn interface ->
+        interface in taken_interfaces or Enum.any?(interface.mappings, & &1.encrypted)
+      end)
       |> Enum.group_by(fn interface ->
         {interface.type, interface.ownership, interface.aggregation}
       end)

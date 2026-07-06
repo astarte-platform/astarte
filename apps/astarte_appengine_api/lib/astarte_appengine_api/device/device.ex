@@ -42,6 +42,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Mappings
   alias Astarte.Secrets
   alias Astarte.Secrets.Core
+  alias Astarte.Secrets.EncryptedMessages
   alias Ecto.Changeset
 
   require Logger
@@ -212,13 +213,20 @@ defmodule Astarte.AppEngine.API.Device do
          reliability = mapping.reliability,
          publish_opts = build_publish_opts(interface_type, reliability),
          interface_name = interface_descriptor.name,
+         publish_value =
+           maybe_apply_transport_encryption(
+             realm_name,
+             mapping,
+             wrapped_value,
+             device_id
+           ),
          :ok <-
            ensure_publish(
              realm_name,
              device_id,
              interface_name,
              path,
-             wrapped_value,
+             publish_value,
              publish_opts
            ) do
       opts = build_database_opts(realm_name, mapping)
@@ -256,6 +264,63 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp maybe_apply_transport_encryption(realm_name, %Mapping{} = mapping, value, device_id) do
+    encrypted_endpoints = extract_encrypted_endpoints([mapping])
+
+    maybe_apply_transport_encryption_with_endpoints(
+      realm_name,
+      encrypted_endpoints,
+      value,
+      device_id
+    )
+  end
+
+  defp maybe_apply_transport_encryption(realm_name, mappings, value, device_id)
+       when is_list(mappings) do
+    encrypted_endpoints = extract_encrypted_endpoints(mappings)
+
+    maybe_apply_transport_encryption_with_endpoints(
+      realm_name,
+      encrypted_endpoints,
+      value,
+      device_id
+    )
+  end
+
+  defp maybe_apply_transport_encryption_with_endpoints(
+         realm_name,
+         encrypted_endpoints,
+         value,
+         device_id
+       )
+       when is_list(encrypted_endpoints) do
+    should_encrypt_transport_payload? = encrypted_endpoints != []
+
+    if should_encrypt_transport_payload? do
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      with {:ok, device_status} <- get_device_status!(realm_name, encoded_device_id),
+           :ok <- check_shared_secret(device_status.shared_secret) do
+        encrypt_aes_gcm_binary(value, device_status.shared_secret)
+      end
+    else
+      value
+    end
+  end
+
+  defp check_shared_secret(nil), do: {:error, :device_not_ready_for_encryption}
+  defp check_shared_secret(_), do: :ok
+
+  defp encrypt_aes_gcm_binary(value, shared_secret) do
+    plaintext = normalize_transport_payload(value)
+    EncryptedMessages.encrypt(plaintext, shared_secret, :aes_256_gcm)
+  end
+
+  defp normalize_transport_payload(value) do
+    # Used for object aggregated interfaces
+    :erlang.term_to_binary(value)
+  end
+
   # Helper to calculate TTL and build DB options
   defp build_database_opts(realm_name, mapping) do
     realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
@@ -282,14 +347,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
       |> Kernel.*(10)
 
-    encrypted_endpoints =
-      case Map.get(mapping, :encrypted) do
-        true ->
-          [Map.get(mapping, :endpoint)]
-
-        _ ->
-          []
-      end
+    encrypted_endpoints = extract_encrypted_endpoints([mapping])
 
     case maybe_encrypt_value(
            desc.aggregation,
@@ -479,13 +537,20 @@ defmodule Astarte.AppEngine.API.Device do
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
          interface_name = interface_descriptor.name,
+         publish_value =
+           maybe_apply_transport_encryption(
+             realm_name,
+             mappings,
+             wrapped_value,
+             device_id
+           ),
          :ok <-
            ensure_publish(
              realm_name,
              device_id,
              interface_name,
              path,
-             wrapped_value,
+             publish_value,
              publish_opts
            ) do
       handle_object_value_storage(%{
