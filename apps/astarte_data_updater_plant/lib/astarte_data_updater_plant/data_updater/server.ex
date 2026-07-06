@@ -159,7 +159,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Impl.handle_capabilities(state, payload, message_id, timestamp)
-      {:no_reply, new_state}
+      {:noreply, new_state}
     else
       {:noreply, state, timeout}
     end

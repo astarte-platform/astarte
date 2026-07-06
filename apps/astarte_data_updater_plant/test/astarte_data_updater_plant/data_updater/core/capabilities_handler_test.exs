@@ -28,22 +28,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   import Astarte.Helpers.DataUpdater
 
   setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
+    %{message_tracker: message_tracker} = setup_data_updater(realm_name, device.encoded_id)
     state = DataUpdater.dump_state(realm_name, device.encoded_id)
 
-    %{state: state}
+    %{state: state, message_tracker: message_tracker}
   end
 
   describe "handle_capabilities/4" do
-    property "updates valid capabilities", %{realm_name: realm_name, state: state, device: device} do
+    property "updates valid capabilities", context do
+      %{realm_name: realm_name, state: state, device: device, message_tracker: message_tracker} =
+        context
+
       check all capabilities <- gen_capabilities(),
                 timestamp <- Timestamp.timestamp(),
                 tracking_id <- repeatedly(&gen_tracking_id/0) do
-        {message_id, _} = tracking_id
+        {message_id, delivery_tag} = tracking_id
+        MessageTracker.track_delivery(message_tracker, message_id, delivery_tag)
 
         payload =
           capabilities

@@ -26,6 +26,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   require Logger
 
@@ -53,9 +55,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler do
 
     case parse_capabilities(payload, state) do
       {:ok, capabilities} ->
+        new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
         Queries.set_device_capabilities(realm, device_id, capabilities)
 
-        %State{state | capabilities: capabilities}
+        MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
+        received_bytes = byte_size(payload) + byte_size("/capabilities")
+
+        new_state
+        |> Map.update!(:total_received_msgs, &(&1 + 1))
+        |> Map.update!(:total_received_bytes, &(&1 + received_bytes))
+        |> Map.put(:capabilities, capabilities)
 
       {:error, error} ->
         handle_error(state, error, payload, message_id, timestamp)

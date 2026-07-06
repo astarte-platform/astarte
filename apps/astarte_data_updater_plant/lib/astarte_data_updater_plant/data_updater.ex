@@ -181,7 +181,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
     with_dup_and_message_tracker(realm, encoded_device_id, fn dup, message_tracker ->
       MessageTracker.track_delivery(message_tracker, message_id, delivery_tag)
-      GenServer.cast(dup, {:handle_capabilities, payload, tracking_id, timestamp})
+      GenServer.cast(dup, {:handle_capabilities, payload, message_id, timestamp})
     end)
   end
 
