@@ -401,7 +401,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   defp process_secret_hash(
-         %{encrypted_endpoints_key: {:established, %{shared_secret: shared_secret, alg: alg}}} =
+         %{encrypted_endpoints_key: {:established, %{shared_secret: shared_secret}}} =
            state,
          seq_num,
          secret_hash_msg,
@@ -409,7 +409,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
          _timestamp
        ) do
     state
-    |> confirm_secret_hash(secret_hash_msg, shared_secret, alg)
+    |> confirm_secret_hash(secret_hash_msg, shared_secret)
     |> case do
       {:ok, new_key_state} ->
         final_state = %{
@@ -452,14 +452,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  defp process_secret_hash(state, _seq_num, _secret_hash_msg, _payload, _timestamp) do
+  defp process_secret_hash(state, seq_num, _secret_hash_msg, _payload, _timestamp) do
     Logger.warning("[keyAgreement/2] No shared secret established.")
 
     _ =
       send_exchange_failed(
         state.realm,
         state.device_id,
-        0,
+        seq_num,
         :internal_server_error,
         "no shared secret established"
       )
@@ -467,11 +467,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     {:ack, :ok, state}
   end
 
-  defp confirm_secret_hash(state, secret_hash_msg, shared_secret, alg) do
+  defp confirm_secret_hash(state, secret_hash_msg, shared_secret) do
     with :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
          {:ok, new_key_state} <-
            HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed) do
-      case send_hash_ok(state.realm, state.device_id, alg) do
+      case send_hash_ok(state.realm, state.device_id, secret_hash_msg.seq_num) do
         :ok -> {:ok, new_key_state}
         {:error, reason} -> {:error, reason}
       end
@@ -636,11 +636,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.Error.handle_error(context, error)
   end
 
-  defp send_hash_ok(realm, device_id, alg) do
+  defp send_hash_ok(realm, device_id, seq_num) do
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/3"
 
-    hash_ok = %HashOk{key_type: alg}
-    payload = HashOk.cbor_encode(hash_ok)
+    payload = HashOk.cbor_encode(%HashOk{seq_num: seq_num})
 
     publish_start = System.monotonic_time()
 

@@ -894,8 +894,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/3"
         assert qos == 2
 
-        # Assert the HashOk payload correctly encoded the algorithm to 1 (x25519)
-        assert {:ok, [1], ""} = CBOR.decode(payload_bytes)
+        # Assert the HashOk payload carries the seq_num (1) of the associated SecretHash
+        assert {:ok, %HashOk{seq_num: 1}} = HashOk.cbor_decode(payload_bytes)
 
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
@@ -1054,7 +1054,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
         assert {:ok,
                 %ExchangeFailed{
-                  seq_num: 0,
+                  seq_num: seq_num,
                   reason: :internal_server_error,
                   error_msg: "no shared secret established"
                 }} = ExchangeFailed.cbor_decode(payload_bytes)
@@ -1073,9 +1073,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
   describe "/keyAgreement/3" do
     setup do
-      valid_hash_ok = %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
+      valid_hash_ok = %HashOk{seq_num: 1}
       valid_hash_ok_payload = HashOk.cbor_encode(valid_hash_ok)
-      invalid_hash_ok_payload = CBOR.encode([99])
+      invalid_hash_ok_payload = CBOR.encode([-1])
 
       %{
         valid_hash_ok_payload: valid_hash_ok_payload,

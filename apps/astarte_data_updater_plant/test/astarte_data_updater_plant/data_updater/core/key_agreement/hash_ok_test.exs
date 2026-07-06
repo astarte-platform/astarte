@@ -24,42 +24,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOkTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk
 
   describe "encode/1" do
-    test "returns a single-element list with the integer mapped from InitExchange" do
-      # According to InitExchange.supported_key_suites(), p256 is 0, x25519 is 1
-      msg_x25519 = %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}
-      assert HashOk.encode(msg_x25519) == [1]
-
-      msg_p256 = %HashOk{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}
-      assert HashOk.encode(msg_p256) == [0]
+    test "returns a single-element list with the seq_num" do
+      assert HashOk.encode(%HashOk{seq_num: 0}) == [0]
+      assert HashOk.encode(%HashOk{seq_num: 42}) == [42]
     end
   end
 
   describe "cbor_encode/1" do
     test "encodes the struct into a valid CBOR binary" do
-      msg = %HashOk{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}
+      msg = %HashOk{seq_num: 7}
       encoded = HashOk.cbor_encode(msg)
 
       assert is_binary(encoded)
-      assert {:ok, [0], ""} = CBOR.decode(encoded)
+      assert {:ok, [7], ""} = CBOR.decode(encoded)
     end
   end
 
   describe "cbor_decode/1" do
-    test "successfully decodes a valid CBOR payload to the correct atom" do
-      payload_p256 = CBOR.encode([0])
+    test "successfully decodes a valid CBOR payload to the seq_num it carries" do
+      payload_zero = CBOR.encode([0])
+      assert {:ok, %HashOk{seq_num: 0}} = HashOk.cbor_decode(payload_zero)
 
-      assert {:ok, %HashOk{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
-               HashOk.cbor_decode(payload_p256)
-
-      payload_x25519 = CBOR.encode([1])
-
-      assert {:ok, %HashOk{key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
-               HashOk.cbor_decode(payload_x25519)
-    end
-
-    test "returns error for valid CBOR with unknown algorithm code" do
-      unknown_alg_payload = CBOR.encode([99])
-      assert {:error, :invalid_payload} = HashOk.cbor_decode(unknown_alg_payload)
+      payload_large = CBOR.encode([65_535])
+      assert {:ok, %HashOk{seq_num: 65_535}} = HashOk.cbor_decode(payload_large)
     end
 
     test "returns error for valid CBOR with invalid inner structure" do
@@ -79,6 +66,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOkTest do
     test "returns error for invalid malformed CBOR binary" do
       invalid_cbor = <<0xFF>>
       assert {:error, :invalid_payload} = HashOk.cbor_decode(invalid_cbor)
+    end
+  end
+
+  describe "cbor_encode/1 and cbor_decode/1 round-trip" do
+    test "round-trips successfully" do
+      original = %HashOk{seq_num: 123}
+
+      assert {:ok, decoded} = original |> HashOk.cbor_encode() |> HashOk.cbor_decode()
+      assert decoded.seq_num == original.seq_num
+    end
+
+    test "round-trips with seq_num 0" do
+      msg = %HashOk{seq_num: 0}
+      assert {:ok, decoded} = msg |> HashOk.cbor_encode() |> HashOk.cbor_decode()
+      assert decoded.seq_num == 0
     end
   end
 end
