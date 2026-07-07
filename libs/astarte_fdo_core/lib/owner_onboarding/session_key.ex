@@ -106,7 +106,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKey do
     random = :crypto.strong_rand_bytes(blen_random)
     {pub_key, _} = :crypto.generate_key(:ecdh, ec_curve, random)
 
-    <<4::size(8), pub_key_x::binary-size(blen_ec_point), pub_key_y::binary-size(blen_ec_point)>> =
+    <<4::size(8), pub_key_x::binary-size(^blen_ec_point), pub_key_y::binary-size(^blen_ec_point)>> =
       pub_key
 
     xa =
@@ -176,11 +176,11 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKey do
 
   defp parse_xb_ecdh(xb) do
     <<blen_x::integer-unsigned-size(16), rest::binary>> = xb
-    <<x::binary-size(blen_x), rest::binary>> = rest
+    <<x::binary-size(^blen_x), rest::binary>> = rest
     <<blen_y::integer-unsigned-size(16), rest::binary>> = rest
-    <<y::binary-size(blen_y), rest::binary>> = rest
+    <<y::binary-size(^blen_y), rest::binary>> = rest
     <<blen_r::integer-unsigned-size(16), rest::binary>> = rest
-    <<device_random::binary-size(blen_r)>> = rest
+    <<device_random::binary-size(^blen_r)>> = rest
 
     device_public = <<4, x::binary, y::binary>>
 

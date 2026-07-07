@@ -221,10 +221,10 @@ defmodule Astarte.Helpers.Device do
   end
 
   defp similar?(nil = _result, [] = _value), do: true
-  defp similar?(%{} = _result, nil = _value), do: true
-  defp similar?("" = _result, nil = _value), do: true
   defp similar?(%{"" => nil}, nil), do: true
   defp similar?(%{"" => nil}, []), do: true
+  defp similar?(%{} = result, nil = _value), do: result == %{}
+  defp similar?("" = _result, nil = _value), do: true
 
   defp similar?(%DateTime{} = datetime, timestamp)
        when is_integer(timestamp),

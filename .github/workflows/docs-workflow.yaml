@@ -44,6 +44,7 @@ jobs:
       - name: Generate ${{ matrix.app.name }} OpenAPI spec
         uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: apps/${{ matrix.app.name }}
           mix-env: test
           task: >-
@@ -85,6 +86,7 @@ jobs:
       - name: Build Docs
         uses: team-alembic/staple-actions/actions/mix-docs@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: ./astarte/doc
           mix-env: dev
       - name: Copy Docs, preserving Device SDK docs

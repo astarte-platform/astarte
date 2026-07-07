@@ -29,7 +29,7 @@
   "telemetry": {:hex, :telemetry, "1.4.2", "a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855", [:rebar3], [], "hexpm", "928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1"},
   "typed_ecto_schema": {:hex, :typed_ecto_schema, "0.4.3", "1e5f3b6c763f9b5725975d3ab7f1554525f1f1399b966f2425acf04f9d8dd4fe", [:mix], [{:ecto, "~> 3.5", [hex: :ecto, repo: "hexpm", optional: false]}], "hexpm", "dcbd9b35b9fda5fa9258e0ae629a99cf4473bd7adfb85785d3f71dfe7a9b2bc0"},
   "typedstruct": {:hex, :typedstruct, "0.5.4", "d1d33d58460a74f413e9c26d55e66fd633abd8ac0fb12639add9a11a60a0462a", [:make, :mix], [], "hexpm", "ffaef36d5dbaebdbf4ed07f7fb2ebd1037b2c1f757db6fb8e7bcbbfabbe608d8"},
-  "xandra": {:git, "https://github.com/whatyouhide/xandra.git", "5ae058e54f99c3e192232678716a8b7c07ba79ae", []},
+  "xandra": {:hex, :xandra, "0.19.4", "bc6e46db726ce252a21b1bb5a7a21502b61702242dccf0d1007201210064e08c", [:mix], [{:decimal, "~> 1.7 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}, {:nimble_options, "~> 1.0", [hex: :nimble_options, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4.3 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "3584949976f1146d3bef0f4f91a0fb2ce025f24be181827172ba0bc2571cb362"},
   "yamerl": {:hex, :yamerl, "0.10.0", "4ff81fee2f1f6a46f1700c0d880b24d193ddb74bd14ef42cb0bcf46e81ef2f8e", [:rebar3], [], "hexpm", "346adb2963f1051dc837a2364e4acf6eb7d80097c0f53cbdc3046ec8ec4b4e6e"},
   "yaml_elixir": {:hex, :yaml_elixir, "2.12.1", "d74f2d82294651b58dac849c45a82aaea639766797359baff834b64439f6b3f4", [:mix], [{:yamerl, "~> 0.10", [hex: :yamerl, repo: "hexpm", optional: false]}], "hexpm", "d9ac16563c737d55f9bfeed7627489156b91268a3a21cd55c54eb2e335207fed"},
 }

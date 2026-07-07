@@ -246,7 +246,7 @@ defmodule Astarte.Helpers.DataUpdater do
     MessageTracker
     |> allow(self(), get_data_updater_process!(realm, device_id))
     |> expect(:ack_delivery, fn ^message_tracker, message ->
-      result = MessageTracker.ack_delivery(message_tracker, message)
+      result = Mimic.call_original(MessageTracker, :ack_delivery, [message_tracker, message])
       send(me, :ack_delivery)
       result
     end)

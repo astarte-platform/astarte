@@ -22,18 +22,12 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   def project do
     [
       app: :astarte_data_updater_plant,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
@@ -43,6 +37,17 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       extra_applications: [:logger],
       mod: {Astarte.DataUpdaterPlant.Application, []}
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -80,10 +85,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
-      {:mimic, "~> 1.11", only: [:dev, :test]},
+      {:mimic, "~> 2.3", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:libcluster, "~> 3.3"},
       {:horde, "~> 0.9", override: true},

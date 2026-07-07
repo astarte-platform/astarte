@@ -22,20 +22,25 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
+      dialyzer: [plt_add_apps: [:ex_unit]],
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+    ]
+  end
+
+  def cli do
+    [
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
-      ],
-      dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      ]
     ]
   end
 
@@ -80,8 +85,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
@@ -90,7 +93,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},

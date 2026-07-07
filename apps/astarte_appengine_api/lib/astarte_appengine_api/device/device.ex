@@ -1394,10 +1394,7 @@ defmodule Astarte.AppEngine.API.Device do
       )
 
     values
-    |> maybe_downsample_to(count, :object, nil, %InterfaceValuesOptions{
-      opts
-      | downsample_key: downsample_column
-    })
+    |> maybe_downsample_to(count, :object, nil, %{opts | downsample_key: downsample_column})
     |> pack_result(:object, :datastream, endpoint_metadata, opts)
   end
 

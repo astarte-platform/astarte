@@ -23,16 +23,10 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       app: :astarte_housekeeping,
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       description: "Astarte Housekeeping API"
@@ -46,6 +40,17 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       mod: {Astarte.Housekeeping.Application, []},
       extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -88,7 +93,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.11", only: [:test, :dev]},
+      {:mimic, "~> 2.3", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},

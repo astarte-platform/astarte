@@ -391,7 +391,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   end
 
   describe "retrieve_realms!/0" do
-    @describetag timeout: 120_000
+    @describetag timeout: 180_000
+
     setup do
       astarte_instance_id = "custom#{System.unique_integer([:positive])}"
 

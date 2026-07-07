@@ -24,8 +24,6 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   alias AstarteE2E.Device
   alias AstarteE2E.VolatileTriggerRoundtrip.Scheduler
 
-  require Logger
-
   def name, do: "device data volatile trigger roundtrip"
 
   def start_link(init_arg) do

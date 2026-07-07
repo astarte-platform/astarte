@@ -22,7 +22,6 @@ defmodule Astarte.FDO.Rendezvous.Client do
   handling the communication with the rendezvous server,
   including processing request URLs, options, and response headers.
   """
-  require Logger
 
   use HTTPoison.Base
 

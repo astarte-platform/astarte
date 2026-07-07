@@ -22,16 +22,10 @@ defmodule Astarte.FDO.Core.MixProject do
     [
       app: :astarte_fdo_core,
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
@@ -41,6 +35,17 @@ defmodule Astarte.FDO.Core.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -68,7 +73,7 @@ defmodule Astarte.FDO.Core.MixProject do
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}

@@ -32,8 +32,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.UUID
   alias Astarte.Helpers.JWT, as: JWTTestHelper
 
-  require Logger
-
   @devices_list [
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
      %{

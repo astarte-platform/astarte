@@ -40,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
-  def maybe_handle_cache_miss(nil, interface_name, state) do
+  def maybe_handle_cache_miss(nil, interface_name, %State{} = state) do
     with {:ok, major_version} <-
            Device.interface_version(state.realm, state.device_id, interface_name),
          {:ok, interface_row} <-

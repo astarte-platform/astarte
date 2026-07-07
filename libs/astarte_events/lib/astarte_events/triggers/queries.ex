@@ -20,7 +20,6 @@ defmodule Astarte.Events.Triggers.Queries do
   @moduledoc """
   Database query functionalities for Astarte Events triggers.
   """
-  require Logger
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device

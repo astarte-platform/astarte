@@ -21,17 +21,11 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       description: "Astarte App Engine API"
@@ -45,6 +39,17 @@ defmodule Astarte.AppEngine.API.Mixfile do
     [
       mod: {Astarte.AppEngine.API.Application, []},
       extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -87,8 +92,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_json_schema, "~> 0.9"},
       {:phoenix_swagger, "~> 0.8"},
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:pretty_log, "~> 0.1"},
@@ -114,7 +117,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:ecto, "~> 3.13", override: true},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},

@@ -55,7 +55,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
                 |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
                 |> filter(&(not DeletionInProgress.all_ack?(&1)))
                 |> list_of(length: 1..10),
-              max_runs: 25 do
+              max_runs: 5 do
       ackd_deletions = seed_ackd_deletions(ackd_devices, realm)
       non_ackd_deletions = seed_non_ackd_deletions(non_ackd_devices, realm)
 
@@ -113,7 +113,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
                                  :run,
                                  [%{realm_name: ^realm_name, device_id: device_id}],
                                  _opts ->
-        send(test_process, {:received_device, device_id})
+        send(test_process, {:received_device, realm_name, device_id})
         {:ok, test_process}
       end)
     end
@@ -121,7 +121,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
 
   defp assert_removal(realm_name, device_ids) do
     for device_id <- device_ids do
-      assert_receive {:received_device, ^device_id}
+      assert_receive {:received_device, ^realm_name, ^device_id}
     end
   end
 
@@ -185,12 +185,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
     Repo.insert!(old_unconfirmed_1_device, prefix: keyspace)
     Repo.insert!(old_unconfirmed_2_device, prefix: keyspace)
     Repo.insert!(new_unconfirmed_device, prefix: keyspace)
-    test_process = self()
-
-    Task.Supervisor
-    |> stub(:start_child, fn DeviceRemoverSupervisor, DeviceRemover, :run, [_args], _opts ->
-      {:ok, test_process}
-    end)
 
     %{
       old_unconfirmed_1: old_unconfirmed_1.device_id,

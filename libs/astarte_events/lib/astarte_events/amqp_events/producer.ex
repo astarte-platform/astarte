@@ -29,8 +29,6 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   alias AMQP.Exchange
   alias Astarte.Events.Config
 
-  @connection_backoff Application.compile_env(:astarte_events, :connection_backoff, 10_000)
-
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -190,7 +188,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   end
 
   defp schedule_connect do
-    _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
-    Process.send_after(self(), :init, @connection_backoff)
+    _ = Logger.warning("Retrying connection in #{Config.connection_backoff!()} ms")
+    Process.send_after(self(), :init, Config.connection_backoff!())
   end
 end

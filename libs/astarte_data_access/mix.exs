@@ -23,22 +23,27 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       app: :astarte_data_access,
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       description: description(),
       package: package(),
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       source_url: "https://github.com/astarte-platform/astarte_data_access",
       homepage_url: "https://astarte-platform.org/"
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -71,8 +76,7 @@ defmodule Astarte.DataAccess.Mixfile do
   defp deps do
     [
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:xandra, "~> 0.19"},
       {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
@@ -82,7 +86,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.7.4", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
