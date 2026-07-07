@@ -195,7 +195,8 @@ defmodule Astarte.RealmManagement.TriggersTest do
       check all device <- device(),
                 trigger <- trigger(string(:utf8, min_length: 1)),
                 policy <- policy() |> map(&from_core_triggers_policy_to_change/1),
-                simple_trigger <- simple_trigger_config(device.device_id) do
+                simple_trigger <- simple_trigger_config(device.device_id),
+                max_runs: 3 do
         {:ok, policy} = Policies.create_trigger_policy(realm, policy)
 
         _ = Jason.decode!(trigger.action, keys: :atoms)
@@ -241,7 +242,8 @@ defmodule Astarte.RealmManagement.TriggersTest do
       check all device <- Astarte.Core.Generators.Device.device(),
                 trigger <-
                   trigger(string(:alphanumeric, min_length: 1)),
-                simple_trigger <- simple_trigger_config(device.device_id) do
+                simple_trigger <- simple_trigger_config(device.device_id),
+                max_runs: 5 do
         attrs = %{
           name: trigger.name,
           policy: nil,

@@ -29,8 +29,6 @@ defmodule Astarte.DataAccess.FDO.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  require Logger
-
   def get_ownership_voucher(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 

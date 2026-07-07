@@ -35,7 +35,6 @@ defmodule Astarte.HousekeepingWeb.Telemetry.DatabaseEvents do
     [:failed_to_connect]
   ]
 
-  require Logger
   alias Astarte.HousekeepingWeb.TelemetryTaskSupervisor
 
   @doc """

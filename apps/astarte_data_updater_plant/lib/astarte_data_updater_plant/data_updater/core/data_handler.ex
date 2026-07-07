@@ -218,18 +218,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   # and based on this condition treat each of the endpoints values as a separate one when
   # applying encryption logic (encryption choice is done at endpoint level, not at object level)
   defp maybe_encrypt_value(:object, _, obj_value, encrypted_endpoints, realm) do
-    case encrypted_endpoints != [] do
-      true ->
-        with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
-               DEKCache.fetch_data_encryption_key(realm) do
-          obj_value_with_encryption =
-            do_encrypt_object_mappings(encrypted_endpoints, obj_value, plaintext_dek)
+    # SAFETY: empty `encrypted_endpoints` is matches a a clause above
+    with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+           DEKCache.fetch_data_encryption_key(realm) do
+      obj_value_with_encryption =
+        do_encrypt_object_mappings(encrypted_endpoints, obj_value, plaintext_dek)
 
-          {obj_value_with_encryption, ciphertext_dek}
-        end
-
-      _ ->
-        {obj_value, nil}
+      {obj_value_with_encryption, ciphertext_dek}
     end
   end
 

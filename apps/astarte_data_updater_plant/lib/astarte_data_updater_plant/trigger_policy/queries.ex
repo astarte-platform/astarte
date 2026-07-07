@@ -20,7 +20,6 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
   @moduledoc """
   This module is responsible for querying the database for trigger policies.
   """
-  require Logger
 
   import Ecto.Query
 

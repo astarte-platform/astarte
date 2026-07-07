@@ -30,7 +30,7 @@
             toolVersions = ./.tool-versions;
             wxSupport = false;
           };
-          formatter = pkgs.nixfmt-rfc-style;
+          formatter = pkgs.nixfmt-tree;
         };
     };
 }

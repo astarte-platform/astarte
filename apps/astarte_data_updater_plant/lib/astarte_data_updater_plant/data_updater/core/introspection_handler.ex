@@ -26,8 +26,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.State
 
-  require Logger
-
   def handle_introspection(%State{discard_messages: true} = state, _, _) do
     {:ack, :discard_messages, state}
   end

@@ -18,7 +18,6 @@
 
 defmodule AstarteDeviceFleetSimulator.Config do
   use Skogsra
-  require Logger
 
   @type scheduler_option ::
           {:device_count, integer()}

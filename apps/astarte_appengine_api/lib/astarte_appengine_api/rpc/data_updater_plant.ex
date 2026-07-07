@@ -21,8 +21,6 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   This module sends RPC to DataUpdaterPlant
   """
 
-  require Logger
-
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
 
   @rpc_behaviour Application.compile_env(

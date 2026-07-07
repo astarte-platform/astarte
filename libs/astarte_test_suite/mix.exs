@@ -22,16 +22,10 @@ defmodule Astarte.TestSuite.MixProject do
   def project do
     [
       app: :astarte_test_suite,
-      version: "1.3.2",
-      elixir: "~> 1.15.7",
+      version: "1.5.0-dev",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps() ++ astarte_required_modules(),
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       package: package(),
       dialyzer: dialyzer(),
       test_coverage: [tool: ExCoveralls]
@@ -42,6 +36,17 @@ defmodule Astarte.TestSuite.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 

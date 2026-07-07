@@ -27,16 +27,10 @@ defmodule Astarte.RealmManagement.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       description: "Astarte Realm Management API"
@@ -50,6 +44,17 @@ defmodule Astarte.RealmManagement.Mixfile do
     [
       mod: {Astarte.RealmManagement.Application, []},
       extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -96,7 +101,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_events, path: astarte_lib("astarte_events")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:ssl_verify_fun, "~> 1.1.7"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:libcluster, "~> 3.3"},
@@ -106,7 +111,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:ymlr, "~> 5.1"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:xandra, "~> 0.19"},
       {:decimal, "~> 3.0", override: true},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},

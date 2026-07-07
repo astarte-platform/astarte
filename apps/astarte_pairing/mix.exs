@@ -22,17 +22,11 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       description: "Astarte Pairing API"
@@ -46,6 +40,17 @@ defmodule Astarte.Pairing.Mixfile do
     [
       mod: {Astarte.Pairing.Application, []},
       extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -81,7 +86,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:jason, "~> 1.2"},
       {:cbor, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
@@ -95,17 +100,15 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
-      {:cfxxl, github: "ispirata/cfxxl"},
+      {:cfxxl, github: "secomind/cfxxl", branch: "main"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
       {:astarte_events, path: astarte_lib("astarte_events")},

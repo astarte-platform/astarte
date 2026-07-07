@@ -238,8 +238,8 @@ defmodule Astarte.Helpers.FDO do
           :public_key.der_encode(
             :SubjectPublicKeyInfo,
             {:SubjectPublicKeyInfo,
-             {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1},
-              :public_key.der_encode(:EcpkParameters, {:namedCurve, oid})}, device_pub_key_point}
+             {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1}, {:namedCurve, oid}},
+             device_pub_key_point}
           )
       end
 

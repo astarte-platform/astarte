@@ -249,7 +249,6 @@ defmodule Astarte.Export do
       do_process_object_streams(conn, realm, interface_info, fd, state, updated_options)
     else
       {:ok, nil} -> {:ok, state}
-      {:ok, :completed} -> {:ok, state}
       {:error, reason} -> {:error, {reason, :failed_processing_object_stream}}
     end
   end

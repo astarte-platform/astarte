@@ -20,19 +20,18 @@ defmodule Astarte.DataAccess.Data do
   @moduledoc """
   This module provides functions to access data stored in the database, ensuring schema agreement when necessary.
   """
-  require Logger
-  alias Astarte.DataAccess.Consistency
-  import Ecto.Query
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Ecto.UUID
 
-  require Logger
+  import Ecto.Query
 
   @spec fetch_property(
           String.t(),

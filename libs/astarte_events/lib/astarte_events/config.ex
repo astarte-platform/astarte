@@ -39,6 +39,10 @@ defmodule Astarte.Events.Config do
           | {:ssl_options, ssl_options}
           | {:channels, integer()}
 
+  app_env :connection_backoff, :astarte_events, :connection_backoff,
+    type: :integer,
+    default: 10_000
+
   @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
   app_env :amqp_management_ssl_enabled, :astarte_events, :amqp_management_ssl_enabled,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED",

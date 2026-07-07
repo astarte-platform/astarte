@@ -42,7 +42,7 @@ defmodule Astarte.Adapters.Generators do
   @doc false
   def populate_tree_data do
     gen all children <- gen_struct(SimpleStruct) |> list_of(),
-            owner <- gen_struct(ComplexStruct) do
+            %ComplexStruct{} = owner <- gen_struct(ComplexStruct) do
       %ComplexStruct{owner | children: children}
     end
   end
