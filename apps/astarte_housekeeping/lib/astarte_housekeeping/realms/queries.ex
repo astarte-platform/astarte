@@ -1130,7 +1130,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp execute_realm_deletion(realm_name, keyspace_name) do
-    with :ok <- delete_realm_keyspace(keyspace_name),
+    with :ok <- ensure_realm_keyspace_deletion(keyspace_name),
          :ok <- remove_realm(realm_name) do
       :ok
     else
@@ -1154,8 +1154,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    case Repo.fetch_one(query, consistency: consistency) do
+    case Repo.safe_fetch_one(query, consistency: consistency) do
       {:error, :not_found} ->
+        :ok
+
+      {:error, :realm_not_found} ->
         :ok
 
       _ ->
@@ -1167,12 +1170,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp delete_realm_keyspace(keyspace_name) do
+  defp ensure_realm_keyspace_deletion(keyspace_name) do
     query = """
-    DROP KEYSPACE #{keyspace_name}
+    DROP KEYSPACE IF EXISTS #{keyspace_name}
     """
 
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+    with {:ok, _} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end

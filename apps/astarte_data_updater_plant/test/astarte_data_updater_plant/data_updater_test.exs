@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
@@ -1548,6 +1549,53 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert %State{last_seen_message: ^heartbeat_timestamp} =
              dump_state(realm, encoded_device_id)
+  end
+
+  test "capability messages are correctly handled", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    alias Astarte.DataUpdaterPlant.DataUpdater.State
+
+    AMQPTestHelper.clean_queue(helper_name)
+
+    encoded_device_id =
+      :crypto.strong_rand_bytes(16)
+      |> Base.url_encode64(padding: false)
+
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+
+    DatabaseTestHelper.insert_device(realm, device_id)
+
+    timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
+
+    # Make sure a process for the device exists
+    handle_connection(
+      realm,
+      encoded_device_id,
+      "10.0.0.1",
+      timestamp_us_x_10
+    )
+
+    capabilities_timestamp = make_timestamp("2023-05-12T18:05:32+00:00")
+
+    capabilities_payload =
+      %{
+        "purge_properties_compression_format" => "plaintext"
+      }
+      |> Cyanide.encode!()
+
+    handle_capabilities(
+      realm,
+      encoded_device_id,
+      capabilities_payload,
+      capabilities_timestamp
+    )
+
+    assert %State{last_seen_message: ^capabilities_timestamp, capabilities: device_capabilities} =
+             dump_state(realm, encoded_device_id)
+
+    assert %Capabilities{purge_properties_compression_format: :plaintext} = device_capabilities
   end
 
   setup [:set_mox_from_context, :verify_on_exit!]
