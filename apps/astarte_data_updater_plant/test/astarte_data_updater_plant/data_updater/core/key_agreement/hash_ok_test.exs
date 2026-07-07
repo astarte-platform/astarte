@@ -59,13 +59,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOkTest do
       ]
 
       for payload <- invalid_payloads do
-        assert {:error, :invalid_payload} = HashOk.cbor_decode(payload)
+        assert {:error, :invalid_argument, "invalid HashOk payload"} = HashOk.cbor_decode(payload)
       end
     end
 
     test "returns error for invalid malformed CBOR binary" do
       invalid_cbor = <<0xFF>>
-      assert {:error, :invalid_payload} = HashOk.cbor_decode(invalid_cbor)
+
+      assert {:error, :invalid_argument, "invalid HashOk payload"} =
+               HashOk.cbor_decode(invalid_cbor)
     end
   end
 

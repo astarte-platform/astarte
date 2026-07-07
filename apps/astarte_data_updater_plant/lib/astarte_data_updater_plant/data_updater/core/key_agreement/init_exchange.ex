@@ -35,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
 
   use TypedStruct
 
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias COSE.Keys.ECC
   alias COSE.Keys.Key
   alias COSE.Keys.OKP
@@ -110,11 +111,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   @doc """
   Decodes and validates a raw CBOR payload received on the `control/keyAgreement/0` topic.
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
+  @spec decode(binary()) :: {:ok, t()} | {:error, ExchangeFailed.reason(), String.t()}
   def decode(payload) when is_binary(payload) do
     case CBOR.decode(payload) do
       {:ok, raw, _rest} -> parse(raw)
-      {:error, _reason} -> {:error, :invalid_payload}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid payload"}
     end
   end
 
@@ -136,12 +137,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
     end
   end
 
-  defp parse(_), do: {:error, :invalid_payload}
+  defp parse(_), do: {:error, :invalid_argument, "invalid payload"}
 
   defp decode_cose_key(key_suite, cose_key_map) do
-    with {:ok, cose_key} <- COSE.Keys.decode(cose_key_map),
-         :ok <- validate_key_suite_compatibility(key_suite, cose_key) do
+    with {:ok, cose_key} <- decode_key(cose_key_map),
+         :ok <- check_suite_compatibility(key_suite, cose_key) do
       {:ok, cose_key}
+    end
+  end
+
+  defp decode_key(cose_key_map) do
+    case COSE.Keys.decode(cose_key_map) do
+      {:ok, cose_key} -> {:ok, cose_key}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid COSE key"}
+    end
+  end
+
+  defp check_suite_compatibility(key_suite, cose_key) do
+    case validate_key_suite_compatibility(key_suite, cose_key) do
+      :ok ->
+        :ok
+
+      {:error, :key_type_mismatch} ->
+        {:error, :unprocessable_entity, "key type does not match declared suite"}
     end
   end
 
@@ -154,26 +172,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange do
   defp validate_key_suite_compatibility(_, _), do: {:error, :key_type_mismatch}
 
   defp unwrap_bytes(%CBOR.Tag{tag: :bytes, value: value}), do: {:ok, value}
-  defp unwrap_bytes(_), do: {:error, :invalid_payload}
+  defp unwrap_bytes(_), do: {:error, :invalid_argument, "invalid payload"}
 
   defp decode_cbor(bytes) do
     case CBOR.decode(bytes) do
       {:ok, decoded, _rest} -> {:ok, decoded}
-      {:error, _reason} -> {:error, :invalid_payload}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid payload"}
     end
   end
 
   defp parse_key_suite(int) when is_integer(int) do
     case Ecto.Type.cast(@key_suites, int) do
       {:ok, suite} -> {:ok, suite}
-      _ -> {:error, :unsupported_key_type}
+      _ -> {:error, :unprocessable_entity, "unsupported key type"}
     end
   end
 
-  defp parse_key_suite(_), do: {:error, :unsupported_key_type}
+  defp parse_key_suite(_), do: {:error, :unprocessable_entity, "unsupported key type"}
 
   defp validate_hkdf_salt(salt) when byte_size(salt) == @hkdf_salt_size, do: :ok
-  defp validate_hkdf_salt(_), do: {:error, :invalid_hkdf_salt}
+  defp validate_hkdf_salt(_), do: {:error, :invalid_argument, "invalid HKDF salt"}
 
   @doc """
   Returns the Ecto.Enum parameterized type for all supported key-agreement suites.

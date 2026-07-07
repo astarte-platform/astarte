@@ -38,6 +38,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk do
   use TypedStruct
 
   alias __MODULE__, as: HashOk
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
 
   typedstruct enforce: true do
     @typedoc "HashOk acknowledgement message referencing the associated SecretHash seq_num."
@@ -60,11 +61,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk do
   Decodes and validates a raw CBOR payload received on the
   `control/keyAgreement/3` topic.
   """
-  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, :invalid_payload}
+  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, ExchangeFailed.reason(), String.t()}
   def cbor_decode(payload) when is_binary(payload) do
     case CBOR.decode(payload) do
       {:ok, raw, _rest} -> decode(raw)
-      {:error, _reason} -> {:error, :invalid_payload}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid HashOk payload"}
     end
   end
 
@@ -72,5 +73,5 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk do
     {:ok, %HashOk{seq_num: seq_num}}
   end
 
-  defp decode(_), do: {:error, :invalid_payload}
+  defp decode(_), do: {:error, :invalid_argument, "invalid HashOk payload"}
 end

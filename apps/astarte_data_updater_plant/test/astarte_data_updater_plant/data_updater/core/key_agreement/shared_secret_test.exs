@@ -106,7 +106,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecretTes
       ecc_key = ECC.generate(:es256)
       salt = :crypto.strong_rand_bytes(32)
 
-      assert {:error, :key_mismatch_or_unsupported} =
+      assert {:error, :unprocessable_entity, "unsupported or mismatched key"} =
                SharedSecret.derive(okp_key, ecc_key, salt)
     end
 
@@ -116,7 +116,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecretTes
       peer = OKP.generate(:enc)
       salt = :crypto.strong_rand_bytes(32)
 
-      assert {:error, _} = SharedSecret.derive(pub_only, peer, salt)
+      assert {:error, :unprocessable_entity, "key derivation failed"} =
+               SharedSecret.derive(pub_only, peer, salt)
     end
   end
 end

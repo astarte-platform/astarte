@@ -39,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   | `:handshake_started`                              | `{:handshake_completed, secret}`  | `:established`       |
   | `:established`                                    | `:secret_reconfirmed`             | `:established`       |
   """
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
   require Logger
@@ -66,10 +67,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   externally by the caller.
 
   Returns `{:ok, new_state}` when the transition represents a valid protocol
-  step, or `{:error, :invalid_transition}` when the (state, event) pair is
-  not permitted.
+  step, or `{:error, reason, message}`, shaped for
+  `Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed`
   """
-  @spec transition(t(), term()) :: {:ok, t()} | {:error, :invalid_transition}
+  @spec transition(t(), term()) :: {:ok, t()} | {:error, ExchangeFailed.reason(), String.t()}
 
   # `:reset` is always valid, covers session reconnect and post-failure recovery
   def transition(_current_state, :reset) do
@@ -114,7 +115,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
       "Handshake: tried to transition with event #{inspect(event)} from state #{inspect(current_state)}"
     )
 
-    {:error, :invalid_transition}
+    {:error, :unprocessable_entity, "invalid transition"}
   end
 
   @doc """

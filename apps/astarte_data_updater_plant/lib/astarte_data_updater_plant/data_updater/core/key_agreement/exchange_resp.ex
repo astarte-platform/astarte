@@ -39,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp do
   use TypedStruct
 
   alias __MODULE__, as: ExchangeResp
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias COSE.Keys.ECC
   alias COSE.Keys.Key
@@ -97,11 +98,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp do
   `control/keyAgreement/1` topic.
   Requires the expected key_type from the corresponding InitExchange to validate compatibility.
   """
-  @spec cbor_decode(binary(), atom()) :: {:ok, t()} | {:error, atom()}
+  @spec cbor_decode(binary(), atom()) ::
+          {:ok, t()} | {:error, ExchangeFailed.reason(), String.t()}
   def cbor_decode(payload, expected_key_type) when is_binary(payload) do
     case CBOR.decode(payload) do
       {:ok, raw, _rest} -> decode(raw, expected_key_type)
-      {:error, _reason} -> {:error, :invalid_payload}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid payload"}
     end
   end
 
@@ -114,7 +116,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp do
     end
   end
 
-  defp decode(_, _expected_key_type), do: {:error, :invalid_payload}
+  defp decode(_, _expected_key_type), do: {:error, :invalid_argument, "invalid payload"}
 
   # Validate the key against the algorithm specified in InitExchange
   defp decode_cose_key(cose_key_map, expected_key_type) do
@@ -128,20 +130,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp do
         {:ok, key}
 
       {:ok, _} ->
-        {:error, :key_type_mismatch}
+        {:error, :unprocessable_entity, "unsupported key type"}
 
       {:error, _} ->
-        {:error, :invalid_cose_key}
+        {:error, :invalid_argument, "invalid COSE key"}
     end
   end
 
   defp unwrap_bytes(%CBOR.Tag{tag: :bytes, value: value}), do: {:ok, value}
-  defp unwrap_bytes(_), do: {:error, :invalid_payload}
+  defp unwrap_bytes(_), do: {:error, :invalid_argument, "invalid payload"}
 
   defp decode_cbor(bytes) do
     case CBOR.decode(bytes) do
       {:ok, decoded, _rest} -> {:ok, decoded}
-      {:error, _reason} -> {:error, :invalid_payload}
+      {:error, _reason} -> {:error, :invalid_argument, "invalid payload"}
     end
   end
 end
