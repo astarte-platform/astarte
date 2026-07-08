@@ -23,28 +23,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk do
   Represents the HashOk (type 3) key-agreement message published on the
   `<realm>/<device>/control/keyAgreement/3` MQTT control topic.
 
-  It carries the internal key-suite atom which is cast to and from an integer
-  for CBOR encoding using `InitExchange.supported_key_suites()`.
+  Sent by either party to acknowledge that a received `SecretHash` (type 2)
+  message matched the locally derived shared secret. It carries the
+  `seq_num` of the `SecretHash` message being acknowledged, so that the
+  counterpart can associate this confirmation with the correct request.
+
+  ## Message structure:
+
+      [
+        seq_num :: uint   # sequence number taken from the associated SecretHash message
+      ]
   """
 
   use TypedStruct
 
   alias __MODULE__, as: HashOk
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
 
   typedstruct enforce: true do
-    @typedoc "HashOk acknowledgement message containing the key-suite algorithm atom."
-    field :key_type, InitExchange.key_suite()
+    @typedoc "HashOk acknowledgement message referencing the associated SecretHash seq_num."
+    field :seq_num, non_neg_integer()
   end
 
   @doc """
   Returns the list representation of a `%HashOk{}` ready for CBOR encoding.
   """
   @spec encode(t()) :: list()
-  def encode(%HashOk{} = msg) do
-    {:ok, key_type_id} = Ecto.Type.dump(InitExchange.supported_key_suites(), msg.key_type)
-    [key_type_id]
-  end
+  def encode(%HashOk{seq_num: seq_num}), do: [seq_num]
 
   @doc """
   CBOR-encodes a `%HashOk{}` for transmission.
@@ -64,11 +68,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk do
     end
   end
 
-  defp decode([key_type]) when is_integer(key_type) and key_type >= 0 do
-    case Ecto.Type.cast(InitExchange.supported_key_suites(), key_type) do
-      {:ok, suite} -> {:ok, %HashOk{key_type: suite}}
-      _ -> {:error, :invalid_payload}
-    end
+  defp decode([seq_num]) when is_integer(seq_num) and seq_num >= 0 do
+    {:ok, %HashOk{seq_num: seq_num}}
   end
 
   defp decode(_), do: {:error, :invalid_payload}
