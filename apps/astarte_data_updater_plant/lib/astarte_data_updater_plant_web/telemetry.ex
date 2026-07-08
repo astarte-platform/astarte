@@ -214,7 +214,21 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       counter("astarte.data_updater_plant.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
-      )
+      ),
+
+      # encrypted endpoints metrics
+      last_value("astarte.data_updater_plant.realm_dek.status",
+        measurement: fn _measurements, metadata ->
+          case metadata.status do
+            :not_set -> 0
+            :set -> 1
+            :failed -> 2
+          end
+        end,
+        tags: [:realm]
+      ),
+      counter("astarte.data_updater_plant.device_key_agreement.succeeded",
+      tags: [:realm])
     ]
   end
 

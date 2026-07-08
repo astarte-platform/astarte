@@ -34,9 +34,19 @@ defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCache do
     [
       name: @dek_cache_name,
       ttl_check_interval: :timer.seconds(1),
-      global_ttl: :timer.seconds(@dek_cache_ttl)
+      global_ttl: :timer.seconds(@dek_cache_ttl),
+      callback: &__MODULE__.handle/1
     ]
   end
+
+  # intercept any DEK deletion operation (both explicit and due to TTL expiration)
+  # and emit a telemetry event to notify it
+  def handle({:delete, _pid, realm_name}) do
+    emit_dek_telemetry_event(realm_name, :not_set)
+  end
+
+  # don't perform specific actions for other cache operations
+  def handle(_), do: :ok
 
   @spec fetch_data_encryption_key(String.t()) :: {:ok, map()} | {:error, atom()}
   def fetch_data_encryption_key(realm_name) do
@@ -49,13 +59,26 @@ defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCache do
     namespace = Core.realm_kek_namespace_tokens(realm_name) |> Path.join()
 
     case Secrets.generate_dek(@kek_key_name, namespace) do
-      {:ok, _dek} = dek_entry -> dek_entry
-      _ -> {:error, :dek_generation_error}
+      {:ok, _dek} = dek_entry ->
+        emit_dek_telemetry_event(realm_name, :set)
+        dek_entry
+
+      _ ->
+        emit_dek_telemetry_event(realm_name, :failed)
+        {:error, :dek_generation_error}
     end
   end
 
   @spec reset_realm_dek(String.t()) :: :ok
   def reset_realm_dek(realm_name) do
     ConCache.delete(@dek_cache_name, realm_name)
+  end
+
+  defp emit_dek_telemetry_event(realm, status) when status in [:set, :not_set, :failed] do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :realm_dek, :status],
+      %{},
+      %{realm: realm, status: status}
+    )
   end
 end
