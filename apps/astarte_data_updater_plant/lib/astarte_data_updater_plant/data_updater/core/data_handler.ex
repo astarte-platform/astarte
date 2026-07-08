@@ -435,6 +435,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           error: :key_agreement_error
         }
 
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+          %{},
+          %{realm: context.state.realm, reason: :key_agreement_error}
+        )
+
         # TODO consider whether to make it a soft error, and do not disconnect the device
         Core.Error.handle_error(context, error, ask_clean_session: true)
     end
@@ -453,6 +459,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           error_name: "decryption_error",
           error: :decryption_error
         }
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+          %{},
+          %{realm: context.state.realm, reason: :decryption_error}
+        )
 
         # TODO consider whether to make it a soft error, and do not disconnect the device
         Core.Error.handle_error(context, error, ask_clean_session: true)
