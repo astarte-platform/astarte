@@ -186,6 +186,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
               "[keyAgreement/0] State machine transition failed: #{inspect(reason)} - #{message}"
             )
 
+            _ =
+              send_exchange_failed(
+                new_state.realm,
+                new_state.device_id,
+                init_exchange.seq_num,
+                reason,
+                message
+              )
+
             context = %{
               state: new_state,
               payload: payload,
@@ -228,6 +237,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           "[keyAgreement/0] payload validation failed: #{inspect(reason)} - #{message}",
           tag: "key_agreement_invalid_payload"
         )
+
+        _ = send_exchange_failed(new_state.realm, new_state.device_id, 0, reason, message)
 
         context = %{
           state: new_state,
@@ -296,7 +307,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     case HashOk.cbor_decode(payload) do
-      {:ok, %HashOk{}} ->
+      {:ok, %HashOk{seq_num: seq_num}} ->
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok],
           %{payload_size: byte_size(payload)},
@@ -322,6 +333,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
               "[keyAgreement/3] State transition failed: #{inspect(reason)} - #{message}"
             )
 
+            _ =
+              send_exchange_failed(
+                new_state.realm,
+                new_state.device_id,
+                seq_num,
+                reason,
+                message
+              )
+
             context = %{
               state: new_state,
               payload: payload,
@@ -345,6 +365,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           "[keyAgreement/3] payload validation failed: #{inspect(reason)} - #{message}",
           tag: "hash_ok_invalid_payload"
         )
+
+        _ = send_exchange_failed(new_state.realm, new_state.device_id, 0, reason, message)
 
         context = %{
           state: new_state,

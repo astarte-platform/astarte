@@ -403,6 +403,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         :ok
       end)
 
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok,
+                %ExchangeFailed{reason: :unprocessable_entity, error_msg: "invalid transition"}} =
+                 ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
       assert {{:discard, _result, new_state, {:continue, continue_arg}}, log} =
                with_log(fn ->
                  ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
@@ -424,6 +437,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                                                               _meta,
                                                               _ts ->
         :ok
+      end)
+
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok, %ExchangeFailed{seq_num: 0}} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       :ok
@@ -1130,6 +1154,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         :ok
       end)
 
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok, %ExchangeFailed{seq_num: 0}} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
                ControlHandler.handle_control(state, "/keyAgreement/3", payload, 0)
 
@@ -1147,6 +1182,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                                                               _meta,
                                                               _ts ->
         :ok
+      end)
+
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
+
+        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert qos == 2
+
+        assert {:ok,
+                %ExchangeFailed{
+                  seq_num: 1,
+                  reason: :unprocessable_entity,
+                  error_msg: "invalid transition"
+                }} = ExchangeFailed.cbor_decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert {{:discard, _result, new_state, {:continue, continue_arg}}, log} =
