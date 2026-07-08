@@ -40,36 +40,64 @@ defmodule Astarte.Secrets.DataEncryptionKeyCacheTest do
   setup %{realm_name: realm_name} do
     DEKCache.reset_realm_dek(realm_name)
 
-    :ok
+    # gathering telemetry events for the DEK cache status
+    telemetry_handler_ref =
+      :telemetry_test.attach_event_handlers(self(), [
+        [:astarte, :data_updater_plant, :realm_dek]
+      ])
+
+    on_exit(fn -> :telemetry.detach(telemetry_handler_ref) end)
+
+    %{telemetry_handler_ref: telemetry_handler_ref}
   end
 
   describe "dek cache" do
     test "autonomously retrieves and stores DEKs, and allows to fetch them", %{
-      realm_name: realm_name
+      realm_name: realm_name,
+      telemetry_handler_ref: telemetry_handler_ref
     } do
       assert {:ok, %{plaintext: _pt, ciphertext: _ct} = dek_entry} =
                DEKCache.fetch_data_encryption_key(realm_name)
+
+      # telemetry event is emitted notifying successful setting of DEK
+      assert_received {[:astarte, :data_updater_plant, :realm_dek], ^telemetry_handler_ref,
+                       %{status: :set}, %{realm: ^realm_name}}
 
       # DEK is persisting in cache
       {:ok, dek_entry_2} = DEKCache.fetch_data_encryption_key(realm_name)
       assert dek_entry == dek_entry_2
     end
 
-    test "can be reset at runtime", %{realm_name: realm_name} do
+    test "can be reset at runtime", %{
+      realm_name: realm_name,
+      telemetry_handler_ref: telemetry_handler_ref
+    } do
       {:ok, dek_entry} = DEKCache.fetch_data_encryption_key(realm_name)
 
-      # force cache reset, expect new DEK to be generated
+      # force cache reset, expect new DEK to be generated at next retrieval
       DEKCache.reset_realm_dek(realm_name)
+
+      # telemetry event is emitted notifying deletion of DEK
+      assert_received {[:astarte, :data_updater_plant, :realm_dek], ^telemetry_handler_ref,
+                       %{status: :not_set}, %{realm: ^realm_name}}
+
       {:ok, dek_entry_renewed} = DEKCache.fetch_data_encryption_key(realm_name)
       assert dek_entry != dek_entry_renewed
     end
 
-    test "returns an error if a DEK could not be renewed", %{realm_name: realm_name} do
+    test "returns an error if a DEK could not be renewed", %{
+      realm_name: realm_name,
+      telemetry_handler_ref: telemetry_handler_ref
+    } do
       Mimic.expect(Astarte.Secrets, :generate_dek, fn _, _ ->
         {:error, "something bad happened"}
       end)
 
       assert {:error, :dek_generation_error} == DEKCache.fetch_data_encryption_key(realm_name)
+
+      # telemetry event is emitted notifying failed setting of DEK
+      assert_received {[:astarte, :data_updater_plant, :realm_dek], ^telemetry_handler_ref,
+                       %{status: :failed}, %{realm: ^realm_name}}
     end
   end
 end
