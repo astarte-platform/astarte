@@ -408,7 +408,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                  ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
                end)
 
-      assert log =~ "State machine transition failed: :invalid_transition"
+      assert log =~ "State machine transition failed: :unprocessable_entity - invalid transition"
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
   end
@@ -718,13 +718,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       }
 
       expect(SharedSecret, :derive, fn _my_key, _peer_key, _salt ->
-        {:error, {:ecdh_failed, "boom"}}
+        {:error, :unprocessable_entity, "key derivation failed"}
       end)
 
       expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
         assert {:ok,
                 %ExchangeFailed{
-                  reason: :internal_server_error,
+                  reason: :unprocessable_entity,
                   error_msg: "key derivation failed"
                 }} = ExchangeFailed.cbor_decode(payload_bytes)
 
@@ -737,9 +737,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                end)
 
       assert log =~
-               "[keyAgreement/1] Processing failed: :internal_server_error - key derivation failed"
+               "[keyAgreement/1] Processing failed: :unprocessable_entity - key derivation failed"
 
-      assert {:failed, :internal_server_error} = new_state.encrypted_endpoints_key
+      assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
     end
 
     test "sends ExchangeFailed with a generic message when the handshake state transition unexpectedly fails",
@@ -758,7 +758,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       }
 
       expect(HandshakeState, :transition, fn _current_state, {:handshake_completed, _secret} ->
-        {:error, :invalid_transition}
+        {:error, :internal_server_error, "unexpected error"}
       end)
 
       expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
@@ -1055,7 +1055,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         assert {:ok,
                 %ExchangeFailed{
                   seq_num: seq_num,
-                  reason: :internal_server_error,
+                  reason: :unprocessable_entity,
                   error_msg: "no shared secret established"
                 }} = ExchangeFailed.cbor_decode(payload_bytes)
 
@@ -1154,7 +1154,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                  ControlHandler.handle_control(state, "/keyAgreement/3", payload, 0)
                end)
 
-      assert log =~ "[keyAgreement/3] State transition failed: :invalid_transition"
+      assert log =~
+               "[keyAgreement/3] State transition failed: :unprocessable_entity - invalid transition"
+
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
   end

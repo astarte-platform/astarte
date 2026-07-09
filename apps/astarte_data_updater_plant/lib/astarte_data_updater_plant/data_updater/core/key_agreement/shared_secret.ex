@@ -23,7 +23,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret do
   Requires the `hkdf` hex package.
   """
 
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias COSE.Keys.ECC
+  alias COSE.Keys.Key
   alias COSE.Keys.OKP
 
   @hkdf_info "astarte-kdf"
@@ -34,15 +36,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret do
   Derives a 256-bit AES-GCM symmetric key using the given COSE keys and salt.
   Supports both X25519 (OKP) and P-256 (ECC).
   """
+  @spec derive(Key.t(), Key.t(), binary()) ::
+          {:ok, binary()} | {:error, ExchangeFailed.reason(), String.t()}
   def derive(my_cose_key, peer_cose_key, salt) do
-    with {:ok, raw_ecdh_secret} <- compute_ecdh(my_cose_key, peer_cose_key) do
-      # Extract the pseudo-random key (PRK)
-      prk = HKDF.extract(:sha256, raw_ecdh_secret, salt)
+    case compute_ecdh(my_cose_key, peer_cose_key) do
+      {:ok, raw_ecdh_secret} ->
+        # Extract the pseudo-random key (PRK)
+        prk = HKDF.extract(:sha256, raw_ecdh_secret, salt)
 
-      # Expand to exactly 32 bytes (256 bits) for AES-256-GCM
-      final_key = HKDF.expand(:sha256, prk, 32, @hkdf_info)
+        # Expand to exactly 32 bytes (256 bits) for AES-256-GCM
+        final_key = HKDF.expand(:sha256, prk, 32, @hkdf_info)
 
-      {:ok, final_key}
+        {:ok, final_key}
+
+      {:error, :key_mismatch_or_unsupported} ->
+        {:error, :unprocessable_entity, "unsupported or mismatched key"}
+
+      {:error, {:ecdh_failed, _detail}} ->
+        {:error, :unprocessable_entity, "key derivation failed"}
     end
   end
 

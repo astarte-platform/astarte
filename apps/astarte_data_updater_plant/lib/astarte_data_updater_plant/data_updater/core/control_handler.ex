@@ -183,8 +183,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           {:ok, final_state} ->
             {:ack, :ok, final_state}
 
-          {:error, reason} ->
-            Logger.error("[keyAgreement/0] State machine transition failed: #{inspect(reason)}")
+          {:error, reason, message} ->
+            Logger.error(
+              "[keyAgreement/0] State machine transition failed: #{inspect(reason)} - #{message}"
+            )
 
             context = %{
               state: new_state,
@@ -194,7 +196,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             }
 
             error = %{
-              message: "keyAgreement/0 state machine transition failed: #{inspect(reason)}",
+              message:
+                "keyAgreement/0 state machine transition failed: #{inspect(reason)} - #{message}",
+              logger_metadata: [tag: "key_agreement_transition_error"],
+              error_name: "key_agreement_transition_error",
+              error: :key_agreement_transition_error
+            }
+
+            Core.Error.handle_error(context, error)
+
+          {:error, reason} ->
+            Logger.error("[keyAgreement/0] Failed to send ExchangeResp: #{inspect(reason)}")
+
+            context = %{
+              state: new_state,
+              payload: payload,
+              path: "/keyAgreement/0",
+              timestamp: timestamp
+            }
+
+            error = %{
+              message: "keyAgreement/0 failed to send ExchangeResp: #{inspect(reason)}",
               logger_metadata: [tag: "key_agreement_transition_error"],
               error_name: "key_agreement_transition_error",
               error: :key_agreement_transition_error
@@ -203,9 +225,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             Core.Error.handle_error(context, error)
         end
 
-      {:error, reason} ->
+      {:error, reason, message} ->
         Logger.warning(
-          "[keyAgreement/0] payload validation failed: #{inspect(reason)}",
+          "[keyAgreement/0] payload validation failed: #{inspect(reason)} - #{message}",
           tag: "key_agreement_invalid_payload"
         )
 
@@ -218,7 +240,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         error = %{
           message:
-            "Invalid keyAgreement/0 payload (#{inspect(reason)}): " <>
+            "Invalid keyAgreement/0 payload (#{inspect(reason)}: #{message}): " <>
               inspect(Base.encode64(payload)),
           logger_metadata: [tag: "key_agreement_error"],
           error_name: "key_agreement_error",
@@ -297,8 +319,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
             {:ack, :ok, final_state}
 
-          {:error, reason} ->
-            Logger.error("[keyAgreement/3] State transition failed: #{inspect(reason)}")
+          {:error, reason, message} ->
+            Logger.error(
+              "[keyAgreement/3] State transition failed: #{inspect(reason)} - #{message}"
+            )
 
             context = %{
               state: new_state,
@@ -308,7 +332,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             }
 
             error = %{
-              message: "keyAgreement/3 state machine transition failed: #{inspect(reason)}",
+              message:
+                "keyAgreement/3 state machine transition failed: #{inspect(reason)} - #{message}",
               logger_metadata: [tag: "key_agreement_transition_error"],
               error_name: "key_agreement_transition_error",
               error: :key_agreement_transition_error
@@ -317,9 +342,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             Core.Error.handle_error(context, error)
         end
 
-      {:error, reason} ->
+      {:error, reason, message} ->
         Logger.warning(
-          "[keyAgreement/3] payload validation failed: #{inspect(reason)}",
+          "[keyAgreement/3] payload validation failed: #{inspect(reason)} - #{message}",
           tag: "hash_ok_invalid_payload"
         )
 
@@ -460,7 +485,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         state.realm,
         state.device_id,
         seq_num,
-        :internal_server_error,
+        :unprocessable_entity,
         "no shared secret established"
       )
 
@@ -481,11 +506,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp process_key_agreement(
          %{encrypted_endpoints_key: {:handshake_started, data}} = state,
          payload,
-         timestamp
+         _timestamp
        ) do
-    with {:ok, exchange_resp} <- decode_exchange_resp(state, payload, timestamp, data.key_type),
-         {:ok, shared_secret} <- derive_shared_secret(state, data.init_exchange, exchange_resp),
-         {:ok, new_key_state} <- transition_key_agreement(state, shared_secret) do
+    with {:ok, exchange_resp} <- ExchangeResp.cbor_decode(payload, data.key_type),
+         {:ok, shared_secret} <-
+           SharedSecret.derive(
+             data.init_exchange.public_key,
+             exchange_resp.public_key,
+             data.init_exchange.hkdf_salt
+           ),
+         {:ok, new_key_state} <-
+           HandshakeState.transition(
+             state.encrypted_endpoints_key,
+             {:handshake_completed, shared_secret}
+           ) do
       :telemetry.execute(
         [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
         %{payload_size: byte_size(payload)},
@@ -522,58 +556,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp process_key_agreement(state, _payload, _timestamp) do
     Logger.warning("[keyAgreement/1] Unexpected response received.")
     {:ack, :ok, state}
-  end
-
-  defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
-    case ExchangeResp.cbor_decode(payload, expected_key_type) do
-      {:ok, exchange_resp} ->
-        {:ok, exchange_resp}
-
-      {:error, :key_type_mismatch = reason} ->
-        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
-        {:error, :unprocessable_entity, "unsupported key type"}
-
-      {:error, :invalid_cose_key = reason} ->
-        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
-        {:error, :invalid_argument, "invalid COSE key"}
-
-      {:error, reason} ->
-        Logger.warning("[keyAgreement/1] ExchangeResp decoding failed: #{inspect(reason)}")
-        {:error, :invalid_argument, "invalid payload"}
-    end
-  end
-
-  defp derive_shared_secret(_state, init_exchange, exchange_resp) do
-    case SharedSecret.derive(
-           init_exchange.public_key,
-           exchange_resp.public_key,
-           init_exchange.hkdf_salt
-         ) do
-      {:ok, shared_secret} ->
-        {:ok, shared_secret}
-
-      {:error, :key_mismatch_or_unsupported = reason} ->
-        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
-        {:error, :unprocessable_entity, "unsupported or mismatched key"}
-
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
-        {:error, :internal_server_error, "key derivation failed"}
-    end
-  end
-
-  defp transition_key_agreement(state, shared_secret) do
-    case HandshakeState.transition(
-           state.encrypted_endpoints_key,
-           {:handshake_completed, shared_secret}
-         ) do
-      {:ok, new_key_state} ->
-        {:ok, new_key_state}
-
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] State machine transition failed: #{inspect(reason)}")
-        {:error, :internal_server_error, "unexpected error"}
-    end
   end
 
   defp process_exchange_failed(state, payload, timestamp) do
