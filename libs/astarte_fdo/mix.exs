@@ -60,7 +60,6 @@ defmodule Astarte.FDO.MixProject do
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:httpoison, "~> 2.2"},
       {:castore, "~> 1.0"},
       {:mimic, "~> 1.11", only: :test},
       {:stream_data, "~> 1.1", only: :test},
@@ -70,7 +69,10 @@ defmodule Astarte.FDO.MixProject do
       {:phoenix, "~> 1.7"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:decimal, "~> 3.0", override: true}
+      {:decimal, "~> 3.0", override: true},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 end

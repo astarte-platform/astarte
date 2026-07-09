@@ -84,7 +84,10 @@ defmodule Astarte.DataAccess.Mixfile do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mimic, "~> 1.7.4", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

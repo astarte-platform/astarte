@@ -105,7 +105,10 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:hkdf, "~> 0.3.0"}
+      {:hkdf, "~> 0.3.0"},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

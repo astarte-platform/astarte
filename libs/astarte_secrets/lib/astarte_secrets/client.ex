@@ -23,6 +23,9 @@ defmodule Astarte.Secrets.Client do
 
   use HTTPoison.Base
 
+  # Ignore the dialyzer warning for the macro-injected stream_next/1 function
+  @dialyzer {:nowarn_function, stream_next: 1}
+
   alias Astarte.Secrets.Config
   alias HTTPoison.AsyncResponse
   alias HTTPoison.Error
@@ -88,7 +91,11 @@ defmodule Astarte.Secrets.Client do
       ssl: Config.bao_ssl_options!()
     ]
 
-    Keyword.merge(auth_opts, options)
+    auth_opts
+    |> Keyword.merge(options)
+    |> Keyword.update(:hackney, [pool: false], fn hackney_opts ->
+      Keyword.put(hackney_opts, :pool, false)
+    end)
   end
 
   # add here custom headers for OpenBao API calls

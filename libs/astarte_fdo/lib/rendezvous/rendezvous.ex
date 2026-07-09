@@ -30,8 +30,7 @@ defmodule Astarte.FDO.Rendezvous do
 
   def send_hello do
     headers = [
-      {"Content-Type", "application/cbor"},
-      {"Content-Length", "0"}
+      {"Content-Type", "application/cbor"}
     ]
 
     request_body = CBORCore.empty_payload()

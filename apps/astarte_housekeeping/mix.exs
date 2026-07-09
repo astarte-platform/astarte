@@ -91,7 +91,6 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:mimic, "~> 1.11", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:httpoison, "~> 2.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_events, path: astarte_lib("astarte_events")},
       {:astarte_secrets, path: astarte_lib("astarte_secrets")},
@@ -101,7 +100,10 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
       {:xandra, github: "whatyouhide/xandra", override: true},
-      {:decimal, "~> 3.0", override: true}
+      {:decimal, "~> 3.0", override: true},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

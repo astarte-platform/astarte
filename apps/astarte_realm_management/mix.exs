@@ -105,7 +105,10 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
       {:xandra, github: "whatyouhide/xandra", override: true},
-      {:decimal, "~> 3.0", override: true}
+      {:decimal, "~> 3.0", override: true},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

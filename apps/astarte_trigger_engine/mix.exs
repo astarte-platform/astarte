@@ -69,7 +69,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
-      {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.11"},
       {:telemetry, "~> 1.0"},
@@ -94,7 +93,10 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:mox, "~> 0.5", only: :test},
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

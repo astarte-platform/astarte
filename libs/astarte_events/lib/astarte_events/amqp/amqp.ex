@@ -24,6 +24,9 @@ defmodule Astarte.Events.AMQP do
   """
   alias Astarte.Events.Config
 
+  # Ignore the dialyzer warning for the macro-injected stream_next/1 function
+  @dialyzer {:nowarn_function, stream_next: 1}
+
   @impl true
   def process_request_url(url) do
     Config.amqp_management_base_url!() <> url
@@ -33,7 +36,8 @@ defmodule Astarte.Events.AMQP do
   def process_request_options(options) do
     auth_opts = [
       hackney: [
-        basic_auth: {Config.amqp_management_username!(), Config.amqp_management_password!()}
+        basic_auth: {Config.amqp_management_username!(), Config.amqp_management_password!()},
+        pool: false
       ],
       ssl: Config.ssl_management_options!()
     ]

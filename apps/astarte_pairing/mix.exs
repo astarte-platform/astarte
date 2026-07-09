@@ -112,11 +112,12 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_fdo, path: astarte_lib("astarte_fdo")},
       {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
-      # HTTP client needed by some tests, override to avoid conflicts with cfxxl
-      {:httpoison, "~> 2.2", override: true},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 

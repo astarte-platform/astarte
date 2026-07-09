@@ -59,9 +59,11 @@ defmodule AstarteE2E.MixProject do
       {:observer_cli, "~> 1.5"},
       {:bamboo, "~> 1.6"},
       {:bamboo_config_adapter, "~> 1.0"},
-      {:httpoison, "~> 2.0"},
       {:hukai, "~> 0.3"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
 
