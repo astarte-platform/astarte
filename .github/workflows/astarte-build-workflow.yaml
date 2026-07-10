@@ -11,23 +11,33 @@ jobs:
       matrix:
         app:
           - name: astarte-housekeeping
+            context: ./
             dockerfile: apps/astarte_housekeeping/Dockerfile
-            tag: astarte/astarte_housekeeping:1.3-snapshot
+            tag: astarte/astarte_housekeeping:1.3.1
           - name: astarte-realm-management
+            context: ./
             dockerfile: apps/astarte_realm_management/Dockerfile
-            tag: astarte/astarte_realm_management:1.3-snapshot
+            tag: astarte/astarte_realm_management:1.3.1
           - name: astarte-pairing
+            context: ./
             dockerfile: apps/astarte_pairing/Dockerfile
-            tag: astarte/astarte_pairing:1.3-snapshot
+            tag: astarte/astarte_pairing:1.3.1
           - name: astarte-appengine-api
+            context: ./
             dockerfile: apps/astarte_appengine_api/Dockerfile
-            tag: astarte/astarte_appengine_api:1.3-snapshot
+            tag: astarte/astarte_appengine_api:1.3.1
           - name: astarte-data-updater-plant
+            context: ./
             dockerfile: apps/astarte_data_updater_plant/Dockerfile
-            tag: astarte/astarte_data_updater_plant:1.3-snapshot
+            tag: astarte/astarte_data_updater_plant:1.3.1
           - name: astarte-trigger-engine
+            context: ./
             dockerfile: apps/astarte_trigger_engine/Dockerfile
-            tag: astarte/astarte_trigger_engine:1.3-snapshot
+            tag: astarte/astarte_trigger_engine:1.3.1
+          - name: astarte-dashboard
+            context: ./astarte-dashboard/
+            dockerfile: astarte-dashboard/Dockerfile
+            tag: astarte/astarte-dashboard:1.3.1
     steps:
       - uses: actions/checkout@v2
       - name: Setup Docker Buildx
@@ -41,7 +51,7 @@ jobs:
       - name: Build ${{ matrix.app.name }}
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.app.context }}
           file: ${{ matrix.app.dockerfile }}
           push: false
           cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
