@@ -136,7 +136,7 @@ defmodule Astarte.Helpers.Database do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities capabilities,
-        shared_secret blob,
+        shared_secret session_key,
 
         PRIMARY KEY (device_id)
       );
@@ -409,6 +409,13 @@ defmodule Astarte.Helpers.Database do
     """
   ]
 
+  @create_session_key_type """
+  CREATE TYPE #{Realm.keyspace_name(@test_realm)}.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   def insert_empty_device(device_id) do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
@@ -441,6 +448,8 @@ defmodule Astarte.Helpers.Database do
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
         Repo.query!(@create_capabilities_type)
+
+        Repo.query!(@create_session_key_type)
 
         Repo.query!(@create_devices_table)
 

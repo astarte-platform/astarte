@@ -54,6 +54,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.Events.Triggers.Cache
+  alias COSE.Keys.Symmetric
 
   setup :verify_on_exit!
 
@@ -1628,7 +1629,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     helper_name: helper_name
   } do
     AMQPTestHelper.clean_queue(helper_name)
-    random_binary = :crypto.strong_rand_bytes(16)
+    shared_secret = %Symmetric{alg: :aes_256_gcm, k: :crypto.strong_rand_bytes(32)}
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1638,7 +1639,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(realm, device_id)
 
-    Queries.save_shared_secret(realm, device_id, random_binary)
+    Queries.save_shared_secret(realm, device_id, shared_secret)
 
     handle_connection(
       realm,

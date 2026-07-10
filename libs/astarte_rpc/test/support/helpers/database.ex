@@ -99,7 +99,7 @@ defmodule Astarte.RPC.Helpers.Database do
     capabilities capabilities,
 
     groups map<text, timeuuid>,
-    shared_secret blob,
+    shared_secret session_key,
 
     PRIMARY KEY (device_id)
   )
@@ -286,6 +286,13 @@ defmodule Astarte.RPC.Helpers.Database do
     """
   ]
 
+  @create_session_key_type """
+  CREATE TYPE :keyspace.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace)
@@ -307,6 +314,7 @@ defmodule Astarte.RPC.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

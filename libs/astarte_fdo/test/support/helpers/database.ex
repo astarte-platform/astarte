@@ -156,7 +156,7 @@ defmodule Astarte.FDO.Helpers.Database do
     capabilities capabilities,
 
     groups map<text, timeuuid>,
-    shared_secret blob,
+    shared_secret session_key,
 
     PRIMARY KEY (device_id)
   )

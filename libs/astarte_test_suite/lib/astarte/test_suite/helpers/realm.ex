@@ -177,7 +177,6 @@ defmodule Astarte.TestSuite.Helpers.Realm do
       last_seen_ip inet,
       attributes map<varchar, varchar>,
       groups map<text, timeuuid>,
-      shared_secret blob,
       PRIMARY KEY (device_id)
     );
     """

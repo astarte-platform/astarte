@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
+  alias COSE.Keys.Symmetric
 
   @type interface_name :: String.t()
   @type policy_name :: String.t()
@@ -114,6 +115,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :last_datastream_maximum_retention_refresh, non_neg_integer(), default: 0
     field :capabilities, Capabilities.t(), default: %Capabilities{}
     field :encrypted_endpoints_key, HandshakeState.t(), default: :uninitialized
-    field :shared_secret, binary()
+    field :shared_secret, Symmetric.t()
   end
 end

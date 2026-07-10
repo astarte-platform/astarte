@@ -208,7 +208,6 @@ defmodule Astarte.AppEngine.API.Device do
            ),
          {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
-         wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
          interface_type = interface_descriptor.type,
          reliability = mapping.reliability,
          publish_opts = build_publish_opts(interface_type, reliability),
@@ -217,8 +216,9 @@ defmodule Astarte.AppEngine.API.Device do
            maybe_apply_transport_encryption(
              realm_name,
              mapping,
-             wrapped_value,
-             device_id
+             value,
+             device_id,
+             mapping.value_type
            ),
          :ok <-
            ensure_publish(
@@ -264,18 +264,25 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp maybe_apply_transport_encryption(realm_name, %Mapping{} = mapping, value, device_id) do
+  defp maybe_apply_transport_encryption(
+         realm_name,
+         %Mapping{} = mapping,
+         value,
+         device_id,
+         expected_types
+       ) do
     encrypted_endpoints = extract_encrypted_endpoints([mapping])
 
     maybe_apply_transport_encryption_with_endpoints(
       realm_name,
       encrypted_endpoints,
       value,
-      device_id
+      device_id,
+      expected_types
     )
   end
 
-  defp maybe_apply_transport_encryption(realm_name, mappings, value, device_id)
+  defp maybe_apply_transport_encryption(realm_name, mappings, value, device_id, expected_types)
        when is_list(mappings) do
     encrypted_endpoints = extract_encrypted_endpoints(mappings)
 
@@ -283,7 +290,8 @@ defmodule Astarte.AppEngine.API.Device do
       realm_name,
       encrypted_endpoints,
       value,
-      device_id
+      device_id,
+      expected_types
     )
   end
 
@@ -291,34 +299,20 @@ defmodule Astarte.AppEngine.API.Device do
          realm_name,
          encrypted_endpoints,
          value,
-         device_id
+         device_id,
+         expected_types
        )
        when is_list(encrypted_endpoints) do
     should_encrypt_transport_payload? = encrypted_endpoints != []
 
     if should_encrypt_transport_payload? do
-      encoded_device_id = Device.encode_device_id(device_id)
-
-      with {:ok, device_status} <- get_device_status!(realm_name, encoded_device_id),
-           :ok <- check_shared_secret(device_status.shared_secret) do
-        encrypt_aes_gcm_binary(value, device_status.shared_secret)
+      with {:ok, shared_secret} <- Queries.retrieve_shared_secret(realm_name, device_id) do
+        bson_value = Cyanide.encode!(%{v: value})
+        EncryptedMessages.encrypt(bson_value, shared_secret.k, shared_secret.alg)
       end
     else
-      value
+      wrap_to_bson_struct(expected_types, value)
     end
-  end
-
-  defp check_shared_secret(nil), do: {:error, :device_not_ready_for_encryption}
-  defp check_shared_secret(_), do: :ok
-
-  defp encrypt_aes_gcm_binary(value, shared_secret) do
-    plaintext = normalize_transport_payload(value)
-    EncryptedMessages.encrypt(plaintext, shared_secret, :aes_256_gcm)
-  end
-
-  defp normalize_transport_payload(value) do
-    # Used for object aggregated interfaces
-    :erlang.term_to_binary(value)
   end
 
   # Helper to calculate TTL and build DB options
@@ -532,7 +526,6 @@ defmodule Astarte.AppEngine.API.Device do
            Map.new(mappings_by_key, fn {k, %Mapping{value_type: t}} -> {k, t} end),
          {:ok, value} <- InterfaceValue.cast_value(expected_types, raw_value),
          :ok <- validate_value(mappings_by_key, value),
-         wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
@@ -541,8 +534,9 @@ defmodule Astarte.AppEngine.API.Device do
            maybe_apply_transport_encryption(
              realm_name,
              mappings,
-             wrapped_value,
-             device_id
+             value,
+             device_id,
+             expected_types
            ),
          :ok <-
            ensure_publish(

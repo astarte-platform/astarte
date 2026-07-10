@@ -25,6 +25,7 @@ defmodule Astarte.DataAccess.Devices.Device do
   alias Astarte.Core.Device.Capabilities
   alias Astarte.DataAccess.DateTime, as: DateTimeMs
   alias Astarte.DataAccess.UUID
+  alias COSE.Keys.Symmetric
 
   @primary_key {:device_id, UUID, autogenerate: false}
   typed_schema "devices" do
@@ -68,6 +69,6 @@ defmodule Astarte.DataAccess.Devices.Device do
     field :protocol_revision, :integer
     field :total_received_bytes, :integer
     field :total_received_msgs, :integer
-    field :shared_secret, :binary
+    field :shared_secret, Exandra.EmbeddedType, using: Symmetric
   end
 end

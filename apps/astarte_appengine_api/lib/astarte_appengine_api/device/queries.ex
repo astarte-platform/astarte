@@ -243,8 +243,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     :exchanged_bytes_by_interface,
     :groups,
     :old_introspection,
-    :inhibit_credentials_request,
-    :shared_secret
+    :inhibit_credentials_request
   ]
 
   defp truncate_datetime(nil), do: nil
@@ -855,8 +854,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
       groups: groups,
       old_introspection: old_introspection,
-      inhibit_credentials_request: credentials_inhibited,
-      shared_secret: shared_secret
+      inhibit_credentials_request: credentials_inhibited
     } = device
 
     introspection =
@@ -922,12 +920,29 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       previous_interfaces: previous_interfaces,
-      groups: groups,
-      shared_secret: shared_secret
+      groups: groups
     }
   end
 
+  def retrieve_shared_secret(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    query =
+      from d in DatabaseDevice,
+        prefix: ^keyspace_name,
+        select: d.shared_secret
+
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    case Repo.fetch(query, device_id, opts) do
+      {:ok, nil} -> {:error, :device_not_ready_for_encryption}
+      {:ok, shared_secret} -> {:ok, shared_secret}
+      error -> error
+    end
+  end
+
   # TODO This is copied from DUP
+  @doc false
   def save_shared_secret(realm, device_id, shared_secret) do
     keyspace_name = Realm.keyspace_name(realm)
 

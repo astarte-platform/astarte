@@ -38,6 +38,8 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   alias Astarte.Secrets.EncryptedMessages
 
+  alias COSE.Keys.Symmetric
+
   describe "get_interface_value" do
     setup context do
       %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
@@ -117,10 +119,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
         device: device
       } = context
 
-      random_binary = :crypto.strong_rand_bytes(32)
+      shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
       {:ok, device_id} = CoreDevice.decode_device_id(device.encoded_id)
 
-      :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, random_binary)
+      :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, shared_secret)
 
       encrypted_server_interfaces =
         interfaces
@@ -164,7 +166,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
               device,
               interface_to_update,
               mapping_update,
-              random_binary
+              shared_secret
             )
 
           {:ok, %InterfaceValues{data: result}} =
@@ -356,11 +358,17 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   defp decrypt_value(encrypted_value, shared_secret) do
     case EncryptedMessages.decrypt(
            encrypted_value,
-           shared_secret,
-           :aes_256_gcm
+           shared_secret.k,
+           shared_secret.alg
          ) do
       {:ok, decrypted_value} ->
-        :erlang.binary_to_term(decrypted_value)
+        case Cyanide.decode(decrypted_value) do
+          {:ok, %{"v" => value}} ->
+            value
+
+          _ ->
+            :erlang.binary_to_term(decrypted_value)
+        end
 
       {:error, reason} ->
         flunk("Unable to decrypt published value: #{inspect(reason)}")

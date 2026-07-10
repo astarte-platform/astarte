@@ -97,7 +97,7 @@ defmodule Astarte.Helpers.Database do
     attributes map<varchar, varchar>,
     capabilities capabilities,
     groups map<text, timeuuid>,
-    shared_secret blob,
+    shared_secret session_key,
 
     PRIMARY KEY (device_id)
   )
@@ -230,10 +230,18 @@ defmodule Astarte.Helpers.Database do
   )
   """
 
+  @create_session_key_type """
+  CREATE TYPE :keyspace.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   def setup!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

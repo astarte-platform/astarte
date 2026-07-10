@@ -23,7 +23,7 @@ defmodule Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice d
 
   def change do
     alter table(:devices) do
-      add :shared_secret, :binary
+      add :shared_secret, :session_key
     end
   end
 end
