@@ -61,7 +61,8 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true},
       {:astarte_adapters, path: "../astarte_adapters"},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
     ]
@@ -71,6 +72,7 @@ defmodule Astarte.DataAccess.Mixfile do
   defp deps do
     [
       {:exandra, "~> 0.13"},
+      {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
       {:cose, github: "secomind/cose-elixir"},

@@ -43,6 +43,7 @@ defmodule AstarteSecrets.MixProject do
 
   defp deps do
     [
+      {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_generators, path: "../astarte_generators", only: :test},
       {:castore, "~> 1.0"},

@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_housekeeping] Added HOUSEKEEPING_DEFAULT_DATASTREAM_MAXIMUM_STORAGE_RETENTION to set default, instance wise, realm default realm data retention, expressed in seconds
 
+## [1.3.1] - 2026-07-13
+
+### Fixed
+
+- Solve capabilities message stalling queues
+- [astarte_housekeeping] Allow resuming partially completed realm deletions
+- Use network topology as default realm replication
+- Fix simple strategy realm creation without replication factor
+
+### Changed
+
+- Immediately delete devices in device deletion best case scenario
+
 ## [1.3.0] - 2026-05-06
 
 ### Changed

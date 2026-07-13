@@ -61,7 +61,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true}
     ]
   end
 
@@ -79,6 +79,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:plug_cowboy, "~> 2.1"},
       {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:decimal, "~> 3.0", override: true},
       {:exandra, github: "vinniefranco/exandra", override: true},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},

@@ -65,7 +65,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true}
     ]
   end
 
@@ -89,6 +89,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
+      {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},

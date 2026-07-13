@@ -59,7 +59,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},
@@ -85,6 +86,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},
       {:xandra, "~> 0.13"},
+      {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:skogsra, "~> 2.2"},
@@ -92,7 +94,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
-      {:observer_cli, "~> 1.5"},
+      {:observer_cli, "~> 1.8"},
+      {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"},

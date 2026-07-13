@@ -61,7 +61,8 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -100,6 +101,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
+      {:decimal, "~> 3.0", override: true},
       {:xandra, "~> 0.19", override: true},
       {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},

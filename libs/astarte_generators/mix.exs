@@ -41,7 +41,7 @@ defmodule Astarte.Core.Generators.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true}
     ]
   end
 

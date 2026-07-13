@@ -51,7 +51,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
@@ -80,10 +81,12 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:typedstruct, "~> 0.5"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
+      {:decimal, "~> 3.0", override: true},
       {:exandra, "~> 0.13"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
-      {:observer_cli, "~> 1.5"},
+      {:observer_cli, "~> 1.8"},
+      {:recon, "2.5.6", override: true},
       {:current_rabbit_pool, "~> 1.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
