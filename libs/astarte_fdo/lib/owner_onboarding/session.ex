@@ -118,7 +118,13 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end
   end
 
-  def cleanup_previous_session(realm_name, guid) do
+  defp cleanup_previous_session(realm_name, guid) do
+    with :ok <- cleanup_device(realm_name, guid) do
+      Queries.delete_session(realm_name, guid)
+    end
+  end
+
+  defp cleanup_device(realm_name, guid) do
     case fetch(realm_name, guid) do
       {:ok, %Session{device_id: device_id}} when device_id != nil ->
         # Device was registered, delete it

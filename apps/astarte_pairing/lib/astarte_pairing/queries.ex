@@ -139,19 +139,6 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.update(prefix: keyspace_name, consistency: consistency)
   end
 
-  def remove_device_ttl(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-
-    with {:ok, device} <- Astarte.DataAccess.Device.fetch(realm_name, device_id) do
-      device
-      |> Repo.insert(
-        prefix: keyspace_name,
-        consistency: consistency
-      )
-    end
-  end
-
   def fetch_device_registration_limit(realm_name) do
     keyspace = Realm.astarte_keyspace_name()
 

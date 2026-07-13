@@ -19,7 +19,6 @@
 defmodule Astarte.DataAccess.FDO.QueriesTest do
   use ExUnit.Case
 
-  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.Queries
@@ -117,13 +116,15 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
   end
 
   describe "session" do
-    test "store and fetch session" do
+    test "store, fetch, delete session" do
       guid = random_guid()
       session = %TO2Session{guid: guid, nonce: :crypto.strong_rand_bytes(16)}
 
       assert :ok = Queries.store_session(@realm, guid, session)
       assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
       assert fetched.guid == guid
+      assert Queries.delete_session(@realm, guid) == :ok
+      assert {:error, _} = Queries.fetch_session(@realm, guid)
     end
 
     test "fetch session returns error when not found" do
@@ -219,25 +220,6 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       assert %{status: :created} = Repo.get(OwnershipVoucher, guid, opts)
       assert :ok == Queries.mark_voucher_as_claimed(@realm, guid)
       assert %{status: :claimed} = Repo.get(OwnershipVoucher, guid, opts)
-    end
-  end
-
-  describe "remove_device_ttl/2" do
-    setup do
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.seed_data(conn)
-      end)
-    end
-
-    test "re-inserts an existing device without TTL" do
-      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
-
-      assert {:ok, _device} = Queries.remove_device_ttl(@realm, device_id)
-    end
-
-    test "returns error for a missing device" do
-      missing_id = :crypto.strong_rand_bytes(16)
-      assert {:error, :device_not_found} = Queries.remove_device_ttl(@realm, missing_id)
     end
   end
 

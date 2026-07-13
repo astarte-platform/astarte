@@ -21,6 +21,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.OwnerOnboarding.Session
@@ -68,6 +69,35 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
 
       assert {:ok, _, _} = Session.new(realm_name, hello_device, ownership_voucher)
+    end
+
+    test "cleans up previous device session", context do
+      %{
+        realm: realm_name,
+        hello_device: hello_device,
+        ownership_voucher: ownership_voucher
+      } = context
+
+      guid = hello_device.guid
+
+      assert {:ok, token_1, _session} =
+               Session.new(
+                 realm_name,
+                 hello_device,
+                 ownership_voucher
+               )
+
+      Queries
+      |> expect(:delete_session, fn ^realm_name, ^guid -> :ok end)
+
+      assert {:ok, token_2, _session} =
+               Session.new(
+                 realm_name,
+                 hello_device,
+                 ownership_voucher
+               )
+
+      assert token_1 != token_2
     end
   end
 

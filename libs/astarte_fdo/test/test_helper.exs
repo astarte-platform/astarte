@@ -29,6 +29,7 @@ Application.put_env(:astarte_fdo, :base_url_protocol, :http)
 modules = [
   :hackney,
   Astarte.DataAccess.Config,
+  Astarte.DataAccess.FDO.Queries,
   Astarte.FDO.Config,
   Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo,
   Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady,
