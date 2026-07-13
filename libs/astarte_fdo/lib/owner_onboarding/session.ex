@@ -182,7 +182,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
         end
 
       :done ->
-        {:ok, session, OwnerServiceInfo.empty()}
+        {:ok, session, OwnerServiceInfo.done()}
     end
   end
 

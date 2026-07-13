@@ -75,6 +75,35 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
     |> CBOR.encode()
   end
 
+  @doc """
+  Decodes a CBOR encoded owner service info message
+  """
+  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, reason :: atom()}
+  def cbor_decode(owner_service_info_binary) do
+    with {:ok, owner_service_info, _} <- CBOR.decode(owner_service_info_binary) do
+      decode(owner_service_info)
+    end
+  end
+
+  @spec decode(list()) :: {:ok, t()} | {:error, :message_body_error}
+  def decode(owner_service_info) do
+    with [is_more_service_info, is_done, encoded_service_info_chunk] <- owner_service_info,
+         true <- is_boolean(is_more_service_info),
+         true <- is_boolean(is_done),
+         {:ok, service_info} <- ServiceInfo.decode_map(encoded_service_info_chunk) do
+      result =
+        %OwnerServiceInfo{
+          is_more_service_info: is_more_service_info,
+          is_done: is_done,
+          service_info: service_info
+        }
+
+      {:ok, result}
+    else
+      _ -> {:error, :message_body_error}
+    end
+  end
+
   def encode_with_service_info_chunk(owner_service_info, encoded_service_info_chunk) do
     %OwnerServiceInfo{is_more_service_info: is_more_service_info, is_done: is_done} =
       owner_service_info
@@ -119,6 +148,19 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
     %OwnerServiceInfo{
       is_more_service_info: false,
       is_done: false,
+      service_info: %{}
+    }
+  end
+
+  def done do
+    build_done_owner_service_info()
+    |> OwnerServiceInfo.encode()
+  end
+
+  defp build_done_owner_service_info do
+    %OwnerServiceInfo{
+      is_more_service_info: false,
+      is_done: true,
       service_info: %{}
     }
   end
