@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       elixir: "~> 1.15",
-      version: "1.4.0-rc.0",
+      version: "1.4.0-rc.1",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -60,7 +60,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core,
-       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true},
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.1", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},

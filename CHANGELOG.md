@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.4.0-rc.1] - 2026-07-13
+
 ### Added
 
 - [astarte_housekeeping] Added HOUSEKEEPING_DEFAULT_DATASTREAM_MAXIMUM_STORAGE_RETENTION to set default, instance wise, realm default realm data retention, expressed in seconds
+
+### Fixed
+
+- [fdo] Do not crash when using rotated keys as owner keys
+- [fdo] Delete devices from unfinished sessions
+- [fdo] Delete old sessions from device
+- [fdo] Properly respond to service info messages after IsDone=True
+- [astarte_realm_management] Properly show default values for all mapping parameters
+
+### Changed
+
+- Enable FDO by default
 
 ## [1.3.1] - 2026-07-13
 

@@ -52,7 +52,7 @@ defmodule Astarte.FDO.Core.MixProject do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.0", override: true}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.1", override: true}
     ]
   end
 
