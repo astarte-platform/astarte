@@ -180,7 +180,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
       assert is_binary(encoded_owner_service_info)
     end
 
-    test "returns empty owner service info when all chunks are sent", %{
+    test "returns done owner service info when all chunks are sent", %{
       realm: realm_name,
       session: session,
       device_id: device_id
@@ -210,9 +210,9 @@ defmodule Astarte.FDO.ServiceInfoTest do
         service_info: %{}
       }
 
-      empty_owner_message = OwnerServiceInfo.empty()
+      done_owner_message = OwnerServiceInfo.done()
 
-      assert {:ok, empty_owner_message} ==
+      assert {:ok, done_owner_message} ==
                ServiceInfo.build_owner_service_info(
                  realm_name,
                  session_after,

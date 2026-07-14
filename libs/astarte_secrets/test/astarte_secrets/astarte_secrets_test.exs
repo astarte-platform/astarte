@@ -272,6 +272,12 @@ defmodule Astarte.SecretsTest do
       %{realm_name: realm_name, key: key} = context
       assert {:ok, ^key} = Secrets.fetch_realm_kek(realm_name)
     end
+
+    @tag base_namespace: "admin"
+    test "returns the realm kek when using a base namespace", context do
+      %{realm_name: realm_name, key: key} = context
+      assert {:ok, ^key} = Secrets.fetch_realm_kek(realm_name)
+    end
   end
 
   describe "successfully create and fetch a key pair in Secrets" do

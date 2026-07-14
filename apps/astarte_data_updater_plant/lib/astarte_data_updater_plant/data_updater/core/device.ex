@@ -408,15 +408,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   end
 
   def prune_device_properties(state, decoded_payload, timestamp) do
-    {:ok, paths_set} =
-      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
+    with {:ok, paths_set} <-
+           PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection) do
+      Enum.each(state.introspection, fn {interface, _} ->
+        # TODO: check result here
+        Core.Interface.prune_interface(state, interface, paths_set, timestamp)
+      end)
 
-    Enum.each(state.introspection, fn {interface, _} ->
-      # TODO: check result here
-      Core.Interface.prune_interface(state, interface, paths_set, timestamp)
-    end)
-
-    :ok
+      :ok
+    end
   end
 
   def resend_all_properties(state) do

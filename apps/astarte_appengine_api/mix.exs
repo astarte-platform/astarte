@@ -60,7 +60,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -100,7 +100,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:skogsra, "~> 2.2"},
       {:castore, "~> 1.0.0"},
-      {:observer_cli, "~> 1.5"},
+      {:observer_cli, "~> 1.8"},
+      {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},

@@ -7,31 +7,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.4.0-rc.2] - 2026-07-14
+
+## [1.4.0-rc.1] - 2026-07-13
+
 ### Added
 
 - [astarte_housekeeping] Added HOUSEKEEPING_DEFAULT_DATASTREAM_MAXIMUM_STORAGE_RETENTION to set default, instance wise, realm default realm data retention, expressed in seconds
 
-## [1.3.0] - 2026-05-06
-
-### Changed
-
-- [astarte_housekeeping] When `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` is not set, the `astarte` keyspace is now created using `NetworkTopologyStrategy` with a replication map derived from the current ScyllaDB network topology (one replica per node in each datacenter), instead of falling back to `SimpleStrategy` with replication factor 1.
-- [astarte_housekeeping] When creating a realm without specifying its replication strategy, the strategy used in the `astarte` keyspace is applied as default.
-
 ### Fixed
 
-- [astarte_housekeeping] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
-- [astarte_pairing] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
-
-## [1.3.0-rc.2] - 2026-04-08
-
-### Added
-
-- [astarte_realm_management] realm migrations now create vhost for amqp triggers
+- [fdo] Do not crash when using rotated keys as owner keys
+- [fdo] Delete devices from unfinished sessions
+- [fdo] Delete old sessions from device
+- [fdo] Properly respond to service info messages after IsDone=True
+- [astarte_realm_management] Properly show default values for all mapping parameters
 
 ### Changed
 
-- [astarte_pairing] FDO feature is enabled for all installations, removed environment variable `PAIRING_ENABLE_FDO`.
+- Enable FDO by default
 
 ## [1.4.0-rc.0] - 2026-04-08
 
@@ -54,7 +48,42 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
 
-## [1.3.0] - Unreleased
+## [1.3.2] - 2026-07-14
+
+## Fixed
+
+- Avoid crash on invalid properties message
+
+## [1.3.1] - 2026-07-13
+
+### Fixed
+
+- Solve capabilities message stalling queues
+- [astarte_housekeeping] Allow resuming partially completed realm deletions
+- Use network topology as default realm replication
+- Fix simple strategy realm creation without replication factor
+
+### Changed
+
+- Immediately delete devices in device deletion best case scenario
+
+## [1.3.0] - 2026-05-06
+
+### Changed
+
+- [astarte_housekeeping] When `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` is not set, the `astarte` keyspace is now created using `NetworkTopologyStrategy` with a replication map derived from the current ScyllaDB network topology (one replica per node in each datacenter), instead of falling back to `SimpleStrategy` with replication factor 1.
+- [astarte_housekeeping] When creating a realm without specifying its replication strategy, the strategy used in the `astarte` keyspace is applied as default.
+
+### Fixed
+
+- [astarte_housekeeping] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
+- [astarte_pairing] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
+
+## [1.3.0-rc.2] - 2026-04-08
+
+### Added
+
+- [astarte_realm_management] realm migrations now create vhost for amqp triggers
 
 ### Changed
 

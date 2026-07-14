@@ -47,6 +47,12 @@ defmodule Astarte.Secrets.Config do
     os_env: "ASTARTE_VAULT_TOKEN",
     type: :binary
 
+  @envdoc "Base namespace in which to create all subnamespaces"
+  app_env :vault_base_namespace, :astarte_secrets, :vault_base_namespace,
+    os_env: "ASTARTE_VAULT_BASE_NAMESPACE",
+    type: :binary,
+    default: "/"
+
   @envdoc "Enable SSL for the Vault connection. If not specified, SSL is disabled."
   app_env :bao_ssl_enabled, :astarte_secrets, :bao_ssl_enabled,
     os_env: "ASTARTE_VAULT_SSL_ENABLED",

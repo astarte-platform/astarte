@@ -167,6 +167,22 @@ defmodule Astarte.Helpers.DataUpdater do
     :ok = ensure_publish(value, publish_opts, realm, device_id)
   end
 
+  def handle_capabilities(realm, encoded_device_id, value, timestamp) do
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+
+    headers =
+      headers_fixture(realm, encoded_device_id, x_astarte_msg_type: "capabilities")
+
+    publish_opts = [
+      headers: headers,
+      message_id: generate_message_id(realm, encoded_device_id, timestamp),
+      timestamp: timestamp,
+      sharding_key: {realm, device_id}
+    ]
+
+    :ok = ensure_publish(value, publish_opts, realm, device_id)
+  end
+
   def handle_disconnection(realm, encoded_device_id, timestamp) do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 

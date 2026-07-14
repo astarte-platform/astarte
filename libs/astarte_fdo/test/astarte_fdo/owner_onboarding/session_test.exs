@@ -21,7 +21,9 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
+  alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.RPC.RealmManagement
@@ -68,6 +70,35 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
 
       assert {:ok, _, _} = Session.new(realm_name, hello_device, ownership_voucher)
+    end
+
+    test "cleans up previous device session", context do
+      %{
+        realm: realm_name,
+        hello_device: hello_device,
+        ownership_voucher: ownership_voucher
+      } = context
+
+      guid = hello_device.guid
+
+      assert {:ok, token_1, _session} =
+               Session.new(
+                 realm_name,
+                 hello_device,
+                 ownership_voucher
+               )
+
+      Queries
+      |> expect(:delete_session, fn ^realm_name, ^guid -> :ok end)
+
+      assert {:ok, token_2, _session} =
+               Session.new(
+                 realm_name,
+                 hello_device,
+                 ownership_voucher
+               )
+
+      assert token_1 != token_2
     end
   end
 
@@ -240,6 +271,86 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, derived_session} = Session.derive_key(session, realm_name)
       assert %Symmetric{k: key_bytes, alg: :aes_256_gcm} = derived_session.sevk
       assert byte_size(key_bytes) == 32
+    end
+  end
+
+  describe "next_owner_service_info_chunk/2" do
+    setup %{realm: realm_name} do
+      {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
+      {:ok, p384_owner_key} = Keys.from_pem(owner_key_pem)
+
+      device_id = p384_voucher.header.guid
+
+      hello_device =
+        HelloDevice.generate(
+          device_id: device_id,
+          kex_name: "ECDH384",
+          easig_info: :es384
+        )
+
+      {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
+
+      {:ok, _token, session} =
+        Session.new(realm_name, hello_device, p384_voucher)
+
+      {:ok, session} =
+        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+
+      chunks = [<<1>>, <<2>>]
+      {:ok, session} = Session.add_owner_service_info(session, realm_name, chunks)
+
+      %{session: session, chunks: chunks}
+    end
+
+    test "returns the first chunk the first time", context do
+      %{realm_name: realm_name, session: session, chunks: chunks} = context
+
+      first_chunk = Enum.at(chunks, 0)
+
+      assert {:ok, new_session, ^first_chunk} =
+               Session.next_owner_service_info_chunk(session, realm_name)
+
+      assert new_session.last_chunk_sent == 0
+    end
+
+    test "returns later chunks with subsequent calls", context do
+      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      second_chunk = Enum.at(chunks, 1)
+
+      {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session, realm_name)
+
+      assert {:ok, new_session, ^second_chunk} =
+               Session.next_owner_service_info_chunk(session, realm_name)
+
+      assert new_session.last_chunk_sent == 1
+    end
+
+    test "returns done after it's sent all messages", context do
+      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      done_chunk = OwnerServiceInfo.done()
+      chunks_len = Enum.count(chunks)
+
+      # zero base index
+      last_chunk = chunks_len - 1
+
+      # consume the chunks
+      session =
+        for _ <- 1..chunks_len, reduce: session do
+          session ->
+            {:ok, session, _next_chunk} =
+              Session.next_owner_service_info_chunk(session, realm_name)
+
+            session
+        end
+
+      assert {:ok, session_1, ^done_chunk} =
+               Session.next_owner_service_info_chunk(session, realm_name)
+
+      assert {:ok, session_2, ^done_chunk} =
+               Session.next_owner_service_info_chunk(session_1, realm_name)
+
+      assert session_1.last_chunk_sent == last_chunk
+      assert session_2.last_chunk_sent == last_chunk
     end
   end
 

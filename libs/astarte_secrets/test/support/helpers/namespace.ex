@@ -22,6 +22,8 @@ defmodule Astarte.Helpers.Namespace do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Secrets
+  alias Astarte.Secrets.Config
+  alias Astarte.Secrets.Core
 
   def namespace_tokens_setup(context) do
     realm_name = "realm#{System.unique_integer([:positive])}"
@@ -50,6 +52,16 @@ defmodule Astarte.Helpers.Namespace do
 
   def create_realm_kek(context) do
     %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+    base_namespace = Map.get(context, :base_namespace, "")
+
+    if base_namespace != "" do
+      {:ok, _} = Core.create_nested_namespace([base_namespace])
+
+      Config
+      |> stub(:vault_base_namespace, fn -> {:ok, base_namespace} end)
+      |> stub(:vault_base_namespace!, fn -> base_namespace end)
+    end
+
     {:ok, key} = Secrets.create_realm_kek(realm_name, key_algorithm)
     %{key: key}
   end

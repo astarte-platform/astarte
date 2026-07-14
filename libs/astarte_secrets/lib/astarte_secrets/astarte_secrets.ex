@@ -49,7 +49,7 @@ defmodule Astarte.Secrets do
   """
   @spec fetch_realm_kek(String.t()) :: {:ok, Key.t()} | :error
   def fetch_realm_kek(realm_name) do
-    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Enum.join("/")
+    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Core.tokens_to_namespace()
     get_key(@realm_kek_key_name, namespace: namespace)
   end
 

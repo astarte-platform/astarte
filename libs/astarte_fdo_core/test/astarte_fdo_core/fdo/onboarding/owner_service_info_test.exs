@@ -86,6 +86,32 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfoTest do
     end
   end
 
+  describe "empty/0" do
+    test "returns an empty owner service info" do
+      result = OwnerServiceInfo.empty()
+      assert {:ok, owner_service_info} = OwnerServiceInfo.cbor_decode(result)
+
+      assert owner_service_info == %OwnerServiceInfo{
+               is_done: false,
+               is_more_service_info: false,
+               service_info: %{}
+             }
+    end
+  end
+
+  describe "done/0" do
+    test "returns an empty owner service info with isdone=true" do
+      result = OwnerServiceInfo.done()
+      assert {:ok, owner_service_info} = OwnerServiceInfo.cbor_decode(result)
+
+      assert owner_service_info == %OwnerServiceInfo{
+               is_done: true,
+               is_more_service_info: false,
+               service_info: %{}
+             }
+    end
+  end
+
   describe "to_cbor_list/1" do
     test "returns the raw list required for CBOR encoding" do
       msg = %OwnerServiceInfo{

@@ -11,23 +11,40 @@ jobs:
       matrix:
         app:
           - name: astarte-housekeeping
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_housekeeping
             tag: astarte/astarte_housekeeping:snapshot
           - name: astarte-realm-management
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_realm_management
             tag: astarte/astarte_realm_management:snapshot
           - name: astarte-pairing
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_pairing
             tag: astarte/astarte_pairing:snapshot
           - name: astarte-appengine-api
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_appengine_api
             tag: astarte/astarte_appengine_api:snapshot
           - name: astarte-data-updater-plant
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_data_updater_plant
             tag: astarte/astarte_data_updater_plant:snapshot
           - name: astarte-trigger-engine
+            context: ./
+            dockerfile: ./Dockerfile
             service: astarte_trigger_engine
             tag: astarte/astarte_trigger_engine:snapshot
+          - name: astarte-dashboard
+            context: ./astarte-dashboard/
+            dockerfile: astarte-dashboard/Dockerfile
+            service: astarte-dashboard
+            tag: astarte/astarte-dashboard:snapshot
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       - name: Setup Docker Buildx
@@ -41,8 +58,9 @@ jobs:
       - name: Build ${{ matrix.app.name }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: .
+          context: ${{ matrix.app.context }}
           build-args: SERVICE=${{ matrix.app.service }}
+          file: ${{ matrix.app.dockerfile }}
           push: false
           cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}

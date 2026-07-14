@@ -24,26 +24,12 @@ defmodule Astarte.DataAccess.FDO.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
   require Logger
-
-  def remove_device_ttl(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-
-    with {:ok, device} <- Device.fetch(realm_name, device_id) do
-      device
-      |> Repo.insert(
-        prefix: keyspace_name,
-        consistency: consistency
-      )
-    end
-  end
 
   def get_ownership_voucher(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
@@ -162,6 +148,15 @@ defmodule Astarte.DataAccess.FDO.Queries do
     with {:ok, _} <- Repo.insert(session, opts) do
       :ok
     end
+  end
+
+  def delete_session(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    Repo.delete(%TO2Session{guid: guid}, opts)
+    :ok
   end
 
   def add_session_max_owner_service_info_size(realm_name, guid, size) do
