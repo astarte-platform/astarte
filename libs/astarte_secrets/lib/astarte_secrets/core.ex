@@ -407,7 +407,7 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  def list_namespaces(base_namespace \\ "", acc \\ MapSet.new()) do
+  def list_namespaces(base_namespace \\ "/", acc \\ MapSet.new()) do
     with {:ok, children} <- list_relative_namespaces(base_namespace) do
       child_namespaces = children |> Enum.map(&(base_namespace <> &1))
       acc = child_namespaces |> MapSet.new() |> MapSet.union(acc)
@@ -569,7 +569,7 @@ defmodule Astarte.Secrets.Core do
     with {:ok, algorithm} <- key_type_to_string(key_algorithm) do
       namespace =
         namespace_tokens(realm_name, nil, algorithm)
-        |> Enum.join("/")
+        |> tokens_to_namespace()
 
       case Secrets.get_key(key_name, namespace: namespace) do
         {:ok, key} -> {:ok, key}
@@ -583,5 +583,16 @@ defmodule Astarte.Secrets.Core do
     # but is actually an operational endpoint
     keys = Enum.reject(keys, fn key -> key == "import/" end)
     {:ok, keys}
+  end
+
+  @doc """
+  Returns the final namespace name from a list of tokens
+  """
+  @spec tokens_to_namespace([String.t()]) :: String.t()
+  def tokens_to_namespace(namespace_tokens) do
+    base_namespace = Config.vault_base_namespace!()
+
+    [base_namespace | namespace_tokens]
+    |> Path.join()
   end
 end

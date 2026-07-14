@@ -168,9 +168,9 @@ defmodule Astarte.Secrets.CoreTest do
       |> stub(:vault_base_namespace!, fn -> base_namespace end)
     end
 
-    namespace = "some/namespace/path"
+    namespace = "/some/namespace/path"
     tokens = namespace |> String.split("/", trim: true)
-    all_namespaces = ["some/", "some/namespace/", "some/namespace/path/"]
+    all_namespaces = ["/some/", "/some/namespace/", "/some/namespace/path/"]
 
     %{
       final_namespace: namespace,
