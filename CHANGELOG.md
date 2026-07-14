@@ -5,12 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+## [1.4.0-rc.2] - 2026-07-14
+
+## [1.4.0-rc.1] - 2026-07-13
+
 ## [1.4.0-rc.0] - 2026-04-07
 
 ### Changed
 
 - Update VerneMQ to 2.0.1
 - Use mississippi as AMQP publisher
+
+## [1.3.2] - 2026-07-14
+
+## [1.3.1] - 2026-07-10
+
+## [1.3.0] - 2026-05-05
+
+## [1.3.0-rc.2] - 2026-01-23
 
 ## [1.3.0-rc.1] - 2026-01-23
 
@@ -21,6 +35,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add the option to enable keepalive for scylladb connections, using the environment variable
   `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__ENABLE_KEEPALIVE`. Defaults to `true`
 - Devices can now declare support for optional Astarte MQTT v1 features to Astarte via capabilities
+
+## [1.2.2] - 2026-04-27
+
+## [1.2.2-rc.0] 2026-04-08
+
+### Fixed
+
+- Avoid race conditions preventing correct processing of device deletion requests
 
 ## [1.2.1] 2026-03-06
 
@@ -73,7 +95,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added support for multiple Astarte instances sharing the same database,
   the following env variable has been added:
   - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__ASTARTE_INSTANCE_ID`
-  (defaults to ``)
+    (defaults to ``)
 - Added support for `capabilities` message topic at `/<realm name>/<device name>/capabilities`
 
 ### Changed
