@@ -23,6 +23,7 @@ defmodule Astarte.Housekeeping.Health do
 
   alias Astarte.DataAccess.Health, as: DatabaseHealth
   alias Astarte.Housekeeping.Health
+  alias Astarte.Housekeeping.Realms.Queries
 
   @doc """
   Gets the backend health, and raises if it's not healthy.
@@ -39,6 +40,17 @@ defmodule Astarte.Housekeeping.Health do
   Gets the backend health.
   """
   def get_health do
-    DatabaseHealth.get_health()
+    db_health = DatabaseHealth.get_health()
+
+    case db_health do
+      status when status in [:ready, :degraded] ->
+        case Queries.fetch_keyspace_replication() do
+          {:ok, _replication} -> status
+          {:error, _reason} -> :bad
+        end
+
+      status ->
+        status
+    end
   end
 end
