@@ -24,6 +24,7 @@ defmodule Astarte.Secrets.Core do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Secrets
   alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Config
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
   alias HTTPoison.Response
@@ -336,7 +337,10 @@ defmodule Astarte.Secrets.Core do
   defp user_tokens(user_id), do: ["user_id", user_id]
 
   def create_nested_namespace(namespace_tokens) do
-    Enum.reduce_while(namespace_tokens, {:ok, ""}, fn new_namespace, {:ok, base_namespace} ->
+    init_namespace = Config.vault_base_namespace!()
+
+    Enum.reduce_while(namespace_tokens, {:ok, init_namespace}, fn new_namespace,
+                                                                  {:ok, base_namespace} ->
       headers = []
       options = [namespace: base_namespace]
 

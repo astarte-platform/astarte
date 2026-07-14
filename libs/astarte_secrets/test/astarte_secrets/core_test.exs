@@ -32,7 +32,7 @@ defmodule Astarte.Secrets.CoreTest do
   describe "namespace_tokens/3" do
     setup :namespace_tokens_setup
 
-    test "always starts with fdo_owner_keys", context do
+    test "starts with fdo_owner_keys", context do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert ["fdo_owner_keys" | _] =
@@ -129,14 +129,55 @@ defmodule Astarte.Secrets.CoreTest do
 
       assert MapSet.subset?(namespaces, fetched_namespaces)
     end
+
+    @tag base_namespace: "admin"
+    test "respects base namespace option", context do
+      %{tokens: tokens, base_namespace: base_namespace} = context
+
+      assert {:ok, namespace} = Core.create_nested_namespace(tokens)
+      assert String.starts_with?(namespace, base_namespace <> "/")
+    end
+
+    @tag base_namespace: "admin"
+    test "does not create base namespace", context do
+      %{tokens: tokens, base_namespace: base_namespace} = context
+
+      Client
+      |> stub(:post, fn path, body, headers, options ->
+        if path == "/sys/namespaces/#{base_namespace}" and
+             Keyword.get(options, :namespace, "") == "" do
+          flunk("called create namespace on base namespace")
+        else
+          Mimic.call_original(Client, :post, [path, body, headers, options])
+        end
+      end)
+
+      assert {:ok, namespace} = Core.create_nested_namespace(tokens)
+      assert String.starts_with?(namespace, base_namespace <> "/")
+    end
   end
 
-  defp create_nested_namespace_setup(_context) do
+  defp create_nested_namespace_setup(context) do
+    base_namespace = Map.get(context, :base_namespace, "")
+
+    if base_namespace != "" do
+      {:ok, _} = Core.create_nested_namespace([base_namespace])
+
+      Config
+      |> stub(:vault_base_namespace, fn -> {:ok, base_namespace} end)
+      |> stub(:vault_base_namespace!, fn -> base_namespace end)
+    end
+
     namespace = "some/namespace/path"
     tokens = namespace |> String.split("/", trim: true)
     all_namespaces = ["some/", "some/namespace/", "some/namespace/path/"]
 
-    %{final_namespace: namespace, tokens: tokens, all_namespaces: all_namespaces}
+    %{
+      final_namespace: namespace,
+      tokens: tokens,
+      all_namespaces: all_namespaces,
+      base_namespace: base_namespace
+    }
   end
 
   describe "key_type_to_string/1" do
