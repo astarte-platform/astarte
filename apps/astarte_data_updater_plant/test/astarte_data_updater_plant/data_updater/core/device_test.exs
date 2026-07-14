@@ -213,6 +213,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
 
       assert actual_paths == expected_paths
     end
+
+    test "returns error for invalid payload", context do
+      %{state: state} = context
+      invalid_payload = <<0, 0, 0, 0, 24, 149, 3, 0, 0, 0, 0, 1>>
+
+      assert {:error, :invalid_properties} =
+               Core.Device.prune_device_properties(state, invalid_payload, DateTime.utc_now())
+    end
   end
 
   describe "resend_all_properties/1" do

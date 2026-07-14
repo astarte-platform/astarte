@@ -69,41 +69,40 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     decompression_start = System.monotonic_time()
 
-    case decode_payload(state, payload) do
-      {:ok, decoded_payload} ->
-        # Track successful decompression
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
-          %{
-            duration: System.monotonic_time() - decompression_start,
-            compressed_size: byte_size(payload),
-            uncompressed_size: byte_size(decoded_payload)
-          },
-          %{realm: new_state.realm, result: "success"}
-        )
-
-        :ok = Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms)
-        MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
-        # Track properties prune with payload
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :properties_prune],
-          %{
-            duration: System.monotonic_time() - start_time,
-            payload_size: byte_size(payload)
-          },
-          %{realm: new_state.realm, prune_type: "with_payload"}
-        )
-
+    with {:ok, decoded_payload} <- decode_payload(state, payload),
+         :ok <- Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms) do
+      # Track successful decompression
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
         %{
-          new_state
-          | total_received_msgs: new_state.total_received_msgs + 1,
-            total_received_bytes:
-              new_state.total_received_bytes + byte_size(payload) +
-                byte_size("/producer/properties")
-        }
+          duration: System.monotonic_time() - decompression_start,
+          compressed_size: byte_size(payload),
+          uncompressed_size: byte_size(decoded_payload)
+        },
+        %{realm: new_state.realm, result: "success"}
+      )
 
-      :error ->
+      MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
+      # Track properties prune with payload
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :control_handler, :properties_prune],
+        %{
+          duration: System.monotonic_time() - start_time,
+          payload_size: byte_size(payload)
+        },
+        %{realm: new_state.realm, prune_type: "with_payload"}
+      )
+
+      %{
+        new_state
+        | total_received_msgs: new_state.total_received_msgs + 1,
+          total_received_bytes:
+            new_state.total_received_bytes + byte_size(payload) +
+              byte_size("/producer/properties")
+      }
+    else
+      _ ->
         # Track failed decompression
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
