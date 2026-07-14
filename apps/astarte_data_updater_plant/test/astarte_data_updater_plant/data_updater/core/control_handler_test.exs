@@ -1078,7 +1078,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       expect(VMQPlugin, :publish, fn _topic, payload_bytes, _qos ->
         assert {:ok,
                 %ExchangeFailed{
-                  seq_num: seq_num,
+                  seq_num: _seq_num,
                   reason: :unprocessable_entity,
                   error_msg: "no shared secret established"
                 }} = ExchangeFailed.cbor_decode(payload_bytes)
