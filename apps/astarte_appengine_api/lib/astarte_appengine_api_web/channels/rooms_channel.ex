@@ -39,39 +39,74 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
     user = socket.assigns[:user]
     realm = socket.assigns[:realm]
 
-    with true <- join_authorized?(room_name, user, realm),
-         :ok <- maybe_start_room(realm, room_name),
-         :ok <- Room.join(room_name) do
-      {:ok, Socket.assign(socket, :room_name, room_name)}
-    else
+    case join_authorized?(room_name, user, realm) do
+      true ->
+        start_and_join_room(realm, room_name, socket)
+
       false ->
         # Join unauthorized
         {:error, %{reason: "unauthorized"}}
-
-      {:error, :room_not_started} ->
-        {:error, %{reason: "room can't be started"}}
     end
   end
 
   def handle_in("watch", payload, socket) do
     changeset = WatchRequest.changeset(%WatchRequest{}, payload)
 
-    with {:ok, request} <- Ecto.Changeset.apply_action(changeset, :insert),
-         user <- socket.assigns[:user],
-         true <- watch_authorized?(request, user),
-         :ok <- Room.watch(socket.assigns[:room_name], request) do
-      payload = WatchRequestView.render("watch_request.json", %{watch_request: request})
-      broadcast(socket, "watch_added", payload)
-      {:reply, :ok, socket}
-    else
+    case Ecto.Changeset.apply_action(changeset, :insert) do
+      {:ok, request} ->
+        authorize_watch(request, socket)
+
       {:error, %Ecto.Changeset{} = changeset} ->
         # Malformed watch request
         response = ChangesetView.render("error.json", %{changeset: changeset})
         {:reply, {:error, response}, socket}
+    end
+  end
+
+  def handle_in("unwatch", payload, socket) do
+    changeset = UnwatchRequest.changeset(%UnwatchRequest{}, payload)
+
+    # TODO: authorize unwatch?
+    case Ecto.Changeset.apply_action(changeset, :insert) do
+      {:ok, %UnwatchRequest{name: watch_name}} ->
+        do_unwatch(socket, watch_name)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        # Malformed watch request
+        response = ChangesetView.render("error.json", %{changeset: changeset})
+        {:reply, {:error, response}, socket}
+    end
+  end
+
+  defp start_and_join_room(realm, room_name, socket) do
+    case maybe_start_room(realm, room_name) do
+      :ok ->
+        :ok = Room.join(room_name)
+        {:ok, Socket.assign(socket, :room_name, room_name)}
+
+      {:error, :room_not_started} ->
+        {:error, %{reason: "room can't be started"}}
+    end
+  end
+
+  defp authorize_watch(request, socket) do
+    user = socket.assigns[:user]
+
+    case watch_authorized?(request, user) do
+      true ->
+        do_watch(request, socket)
 
       false ->
-        # watch_authorized? returned false
         {:reply, {:error, %{reason: "unauthorized"}}, socket}
+    end
+  end
+
+  defp do_watch(request, socket) do
+    case Room.watch(socket.assigns[:room_name], request) do
+      :ok ->
+        payload = WatchRequestView.render("watch_request.json", %{watch_request: request})
+        broadcast(socket, "watch_added", payload)
+        {:reply, :ok, socket}
 
       {:error, :duplicate_watch} ->
         {:reply, {:error, %{reason: "already existing"}}, socket}
@@ -82,20 +117,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
     end
   end
 
-  def handle_in("unwatch", payload, socket) do
-    changeset = UnwatchRequest.changeset(%UnwatchRequest{}, payload)
-
-    # TODO: authorize unwatch?
-    with {:ok, %UnwatchRequest{name: watch_name}} <-
-           Ecto.Changeset.apply_action(changeset, :insert),
-         :ok <- Room.unwatch(socket.assigns[:room_name], watch_name) do
-      broadcast(socket, "watch_removed", %{name: watch_name})
-      {:reply, :ok, socket}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        # Malformed watch request
-        response = ChangesetView.render("error.json", %{changeset: changeset})
-        {:reply, {:error, response}, socket}
+  defp do_unwatch(socket, watch_name) do
+    case Room.unwatch(socket.assigns[:room_name], watch_name) do
+      :ok ->
+        broadcast(socket, "watch_removed", %{name: watch_name})
+        {:reply, :ok, socket}
 
       {:error, :not_found} ->
         {:reply, {:error, %{reason: "not found"}}, socket}

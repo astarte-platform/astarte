@@ -81,25 +81,35 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   def add_device(realm_name, group_name, device_changeset) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    with {:ok, %{device_id: device_id}} <-
-           Ecto.Changeset.apply_action(device_changeset, :insert),
-         {:group_exists?, true} <-
-           {:group_exists?, group_exists?(keyspace, group_name)},
-         :ok <- check_valid_device_for_group(keyspace, group_name, device_id),
-         :ok <- add_to_group(keyspace, group_name, [device_id]) do
-      :ok
-    else
-      {:group_exists?, false} ->
+    case Ecto.Changeset.apply_action(device_changeset, :insert) do
+      {:ok, %{device_id: device_id}} ->
+        add_device_to_group(keyspace, group_name, device_id, device_changeset)
+
+      {:error, %Ecto.Changeset{} = error_changeset} ->
+        {:error, error_changeset}
+    end
+  end
+
+  defp add_device_to_group(keyspace, group_name, device_id, device_changeset) do
+    case group_exists?(keyspace, group_name) do
+      true ->
+        add_valid_device_to_group(keyspace, group_name, device_id, device_changeset)
+
+      false ->
         {:error, :group_not_found}
+    end
+  end
+
+  defp add_valid_device_to_group(keyspace, group_name, device_id, device_changeset) do
+    case check_valid_device_for_group(keyspace, group_name, device_id) do
+      :ok ->
+        add_to_group(keyspace, group_name, [device_id])
 
       {:error, :device_not_found} ->
         error_changeset =
           device_changeset
           |> Ecto.Changeset.add_error(:device_id, "does not exist")
 
-        {:error, error_changeset}
-
-      {:error, %Ecto.Changeset{} = error_changeset} ->
         {:error, error_changeset}
 
       {:error, reason} ->
@@ -110,16 +120,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   def remove_device(realm_name, group_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    with {:group_exists?, true} <-
-           {:group_exists?, group_exists?(keyspace, group_name)},
-         :ok <- remove_from_group(keyspace, group_name, device_id) do
-      :ok
-    else
-      {:group_exists?, false} ->
-        {:error, :group_not_found}
+    case group_exists?(keyspace, group_name) do
+      true ->
+        remove_from_group(keyspace, group_name, device_id)
 
-      {:error, reason} ->
-        {:error, reason}
+      false ->
+        {:error, :group_not_found}
     end
   end
 

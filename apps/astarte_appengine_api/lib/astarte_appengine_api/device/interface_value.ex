@@ -25,16 +25,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
   """
   def cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
     Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
-           {:ok, normalized_value} <- cast_value(expected_type, value) do
-        {:cont, {:ok, Map.put(acc, key, normalized_value)}}
-      else
-        {:error, reason, expected} ->
-          {:halt, {:error, reason, expected}}
-
-        :error ->
-          {:halt, {:error, :unexpected_object_key}}
-      end
+      cast_object_value(expected_types, key, value, acc)
     end)
   end
 
@@ -146,6 +137,26 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
 
   def cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
+  end
+
+  defp cast_object_value(expected_types, key, value, acc) do
+    case Map.fetch(expected_types, key) do
+      {:ok, expected_type} ->
+        merge_cast_value(expected_type, key, value, acc)
+
+      :error ->
+        {:halt, {:error, :unexpected_object_key}}
+    end
+  end
+
+  defp merge_cast_value(expected_type, key, value, acc) do
+    case cast_value(expected_type, value) do
+      {:ok, normalized_value} ->
+        {:cont, {:ok, Map.put(acc, key, normalized_value)}}
+
+      {:error, reason, expected} ->
+        {:halt, {:error, reason, expected}}
+    end
   end
 
   defp map_while_ok(values, fun) when is_list(values) do

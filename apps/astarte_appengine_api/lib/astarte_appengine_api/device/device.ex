@@ -200,55 +200,89 @@ defmodule Astarte.AppEngine.API.Device do
         path,
         raw_value
       ) do
-    with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
-         mapping =
-           Mapping.from_db_result!(
-             Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
-           ),
-         {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
-         :ok <- validate_value_type(mapping.value_type, value),
-         wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
-         interface_type = interface_descriptor.type,
-         reliability = mapping.reliability,
-         publish_opts = build_publish_opts(interface_type, reliability),
-         interface_name = interface_descriptor.name,
-         :ok <-
-           ensure_publish(
-             realm_name,
-             device_id,
-             interface_name,
-             path,
-             wrapped_value,
-             publish_opts
-           ) do
-      opts = build_database_opts(realm_name, mapping)
-      now = DateTime.utc_now()
+    ctx = %{
+      realm_name: realm_name,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      path: path,
+      raw_value: raw_value
+    }
 
-      ctx = %{
-        realm: realm_name,
-        device: device_id,
-        desc: interface_descriptor,
-        mapping: mapping,
-        end_id: endpoint_id,
-        opts: opts
-      }
+    case get_endpoint_ids(interface_descriptor.automaton, path) do
+      {:ok, [endpoint_id]} ->
+        cast_individual_value(ctx, endpoint_id)
 
-      data = %{
-        path: path,
-        val: value,
-        raw: raw_value,
-        now: now
-      }
-
-      persist_individual_value(ctx, data)
-    else
       {:error, :endpoint_guess_not_allowed} ->
         _ = Logger.warning("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
         {:error, :read_only_resource}
+    end
+  end
+
+  defp cast_individual_value(ctx, endpoint_id) do
+    %{realm_name: realm_name, interface_descriptor: interface_descriptor, raw_value: raw_value} =
+      ctx
+
+    mapping =
+      Mapping.from_db_result!(
+        Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
+      )
+
+    case InterfaceValue.cast_value(mapping.value_type, raw_value) do
+      {:ok, value} ->
+        validate_individual_value(ctx, endpoint_id, mapping, value)
 
       {:error, :unexpected_value_type, expected: value_type} ->
         _ = Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
+    end
+  end
+
+  defp validate_individual_value(ctx, endpoint_id, mapping, value) do
+    case validate_value_type(mapping.value_type, value) do
+      :ok ->
+        publish_individual_value(ctx, endpoint_id, mapping, value)
+
+      {:error, reason} ->
+        _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
+        {:error, reason}
+    end
+  end
+
+  defp publish_individual_value(ctx, endpoint_id, mapping, value) do
+    %{
+      realm_name: realm_name,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      path: path,
+      raw_value: raw_value
+    } = ctx
+
+    wrapped_value = wrap_to_bson_struct(mapping.value_type, value)
+    publish_opts = build_publish_opts(interface_descriptor.type, mapping.reliability)
+    interface_name = interface_descriptor.name
+
+    case ensure_publish(realm_name, device_id, interface_name, path, wrapped_value, publish_opts) do
+      :ok ->
+        opts = build_database_opts(realm_name, mapping)
+        now = DateTime.utc_now()
+
+        db_ctx = %{
+          realm: realm_name,
+          device: device_id,
+          desc: interface_descriptor,
+          mapping: mapping,
+          end_id: endpoint_id,
+          opts: opts
+        }
+
+        data = %{
+          path: path,
+          val: value,
+          raw: raw_value,
+          now: now
+        }
+
+        persist_individual_value(db_ctx, data)
 
       {:error, reason} ->
         _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
@@ -369,35 +403,28 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:ok, %Mapping{endpoint_id: endpoint_id}}
     else
-      {:ok, _endpoint_id} ->
-        # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
-        Logger.warning(
-          "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
-            "the common prefix",
-          tag: "invalid_path"
-        )
-
-        {:error, :mapping_not_found}
-
-      {:error, :not_found} ->
-        Logger.warning(
-          "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}",
-          tag: "invalid_path"
-        )
-
-        {:error, :mapping_not_found}
-
-      {:error, :invalid_object_aggregation_path} ->
-        Logger.warning(
-          "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}",
-          tag: "invalid_path"
-        )
-
+      error ->
+        log_invalid_aggregation_path(error, path, interface_descriptor)
         {:error, :mapping_not_found}
     end
+  end
+
+  defp log_invalid_aggregation_path({:ok, _endpoint_id}, path, interface_descriptor) do
+    # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
+    Logger.warning(
+      "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
+        "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
+        "the common prefix",
+      tag: "invalid_path"
+    )
+  end
+
+  defp log_invalid_aggregation_path(_error, path, interface_descriptor) do
+    Logger.warning(
+      "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
+        "interface #{inspect(interface_descriptor.name)}",
+      tag: "invalid_path"
+    )
   end
 
   defp check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
@@ -500,38 +527,38 @@ defmodule Astarte.AppEngine.API.Device do
         now: now
       })
     else
-      {:error, :unexpected_value_type, expected: value_type} ->
-        Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
-        {:error, :unexpected_value_type, expected: value_type}
-
-      {:error, :invalid_object_aggregation_path} ->
-        Logger.warning("Error while trying to publish on path for object aggregated interface.",
-          tag: "invalid_object_aggregation_path"
-        )
-
-        {:error, :invalid_object_aggregation_path}
-
-      {:error, :mapping_not_found} ->
-        {:error, :mapping_not_found}
-
-      {:error, :missing_required_mapping} ->
-        Logger.warning("Missing required mapping in object interface update.",
-          tag: "missing_required_mapping"
-        )
-
-        {:error, :missing_required_mapping}
-
-      {:error, :database_error} ->
-        Logger.warning("Error while trying to retrieve ttl.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning(
-          "Unhandled error while updating object interface values: #{inspect(reason)}."
-        )
-
-        {:error, reason}
+      error ->
+        log_object_update_error(error)
+        error
     end
+  end
+
+  defp log_object_update_error({:error, :unexpected_value_type, expected: _value_type}) do
+    Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
+  end
+
+  defp log_object_update_error({:error, :invalid_object_aggregation_path}) do
+    Logger.warning("Error while trying to publish on path for object aggregated interface.",
+      tag: "invalid_object_aggregation_path"
+    )
+  end
+
+  defp log_object_update_error({:error, :mapping_not_found}) do
+    :ok
+  end
+
+  defp log_object_update_error({:error, :missing_required_mapping}) do
+    Logger.warning("Missing required mapping in object interface update.",
+      tag: "missing_required_mapping"
+    )
+  end
+
+  defp log_object_update_error({:error, :database_error}) do
+    Logger.warning("Error while trying to retrieve ttl.", tag: "database_error")
+  end
+
+  defp log_object_update_error({:error, reason}) do
+    Logger.warning("Unhandled error while updating object interface values: #{inspect(reason)}.")
   end
 
   defp handle_object_value_storage(%{
@@ -677,34 +704,40 @@ defmodule Astarte.AppEngine.API.Device do
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
-         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
-         {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
-         path <- "/" <> no_prefix_path do
-      if interface_descriptor.aggregation == :individual do
-        update_individual_interface_values(
-          realm_name,
-          device_id,
-          interface_descriptor,
-          path,
-          raw_value
-        )
-      else
-        update_object_interface_values(
-          realm_name,
-          device_id,
-          interface_descriptor,
-          path,
-          raw_value
-        )
-      end
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row) do
+      path = "/" <> no_prefix_path
+      write_interface_values(realm_name, device_id, interface_descriptor, path, raw_value)
     else
-      {:ownership, :device} ->
-        _ = Logger.warning("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
-        {:error, :cannot_write_to_device_owned}
-
       {:error, reason} ->
         _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
+    end
+  end
+
+  defp write_interface_values(realm_name, device_id, interface_descriptor, path, raw_value) do
+    case interface_descriptor.ownership do
+      :server ->
+        if interface_descriptor.aggregation == :individual do
+          update_individual_interface_values(
+            realm_name,
+            device_id,
+            interface_descriptor,
+            path,
+            raw_value
+          )
+        else
+          update_object_interface_values(
+            realm_name,
+            device_id,
+            interface_descriptor,
+            path,
+            raw_value
+          )
+        end
+
+      :device ->
+        _ = Logger.warning("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
+        {:error, :cannot_write_to_device_owned}
     end
   end
 
@@ -883,18 +916,9 @@ defmodule Astarte.AppEngine.API.Device do
   defp validate_value_type(mappings_by_key, object)
        when is_map(mappings_by_key) and is_map(object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
-           :ok <- validate_value_type(expected_type, value) do
-        {:cont, :ok}
-      else
-        {:error, reason, expected} ->
-          {:halt, {:error, reason, expected}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-
-        :error ->
-          {:halt, {:error, :unexpected_object_key}}
+      case fetch_and_validate_value_type(mappings_by_key, key, value) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
       end
     end)
   end
@@ -909,6 +933,16 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp fetch_and_validate_value_type(mappings_by_key, key, value) do
+    case Map.fetch(mappings_by_key, key) do
+      {:ok, %Mapping{value_type: expected_type}} ->
+        validate_value_type(expected_type, value)
+
+      :error ->
+        {:error, :unexpected_object_key}
     end
   end
 
@@ -962,16 +996,14 @@ defmodule Astarte.AppEngine.API.Device do
 
       perform_value_deletion(insert_context)
     else
-      {:ownership, :device} ->
-        {:error, :cannot_write_to_device_owned}
-
-      {:error, :endpoint_guess_not_allowed} ->
-        {:error, :read_only_resource}
-
-      {:error, reason} ->
-        {:error, reason}
+      error ->
+        {:error, remap_delete_error(error)}
     end
   end
+
+  defp remap_delete_error({:ownership, :device}), do: :cannot_write_to_device_owned
+  defp remap_delete_error({:error, :endpoint_guess_not_allowed}), do: :read_only_resource
+  defp remap_delete_error({:error, reason}), do: reason
 
   defp perform_value_deletion(
          %InsertContext{

@@ -33,17 +33,9 @@ defmodule Astarte.Pairing.Config.CQExNodes do
       value
       |> String.split(",", trim: true)
       |> Enum.reduce_while([], fn host_port_str, acc ->
-        trimmed_str = String.trim(host_port_str)
-
-        with [host, port_str] <- String.split(trimmed_str, ":", parts: 2),
-             {port, ""} <- Integer.parse(port_str) do
-          {:cont, [{host, port} | acc]}
-        else
-          [host] ->
-            {:cont, [{host, @default_port} | acc]}
-
-          _ ->
-            {:halt, :error}
+        case parse_host_port(String.trim(host_port_str)) do
+          {:ok, host_port} -> {:cont, [host_port | acc]}
+          :error -> {:halt, :error}
         end
       end)
 
@@ -58,5 +50,25 @@ defmodule Astarte.Pairing.Config.CQExNodes do
 
   def cast(_) do
     :error
+  end
+
+  defp parse_host_port(trimmed_str) do
+    case String.split(trimmed_str, ":", parts: 2) do
+      [host, port_str] ->
+        parse_port(host, port_str)
+
+      [host] ->
+        {:ok, {host, @default_port}}
+
+      _ ->
+        :error
+    end
+  end
+
+  defp parse_port(host, port_str) do
+    case Integer.parse(port_str) do
+      {port, ""} -> {:ok, {host, port}}
+      _ -> :error
+    end
   end
 end

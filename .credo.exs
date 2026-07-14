@@ -12,14 +12,15 @@
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       plugins: [],
-      requires: [],
+      requires: ["../../checks/*.ex"],
       strict: true,
       parse_timeout: 5000,
       color: true,
       checks: [
         {Credo.Check.Design.TagFIXME, [priority: :normal, exit_status: 0]},
         {Credo.Check.Design.TagTODO, [priority: :normal, exit_status: 0]},
-        {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 100]}
+        {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 100]},
+        {Astarte.Credo.Check.Refactor.SimpleElse, []}
       ]
     }
   ]

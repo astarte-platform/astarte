@@ -46,25 +46,35 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   # API
 
   def start_link(args) do
-    with {:ok, room_name} <- Keyword.fetch(args, :room_name),
-         true <- Keyword.has_key?(args, :realm),
-         {:ok, pid} <- GenServer.start_link(__MODULE__, args, name: via_tuple(room_name)) do
-      {:ok, pid}
-    else
+    case Keyword.fetch(args, :room_name) do
+      {:ok, room_name} ->
+        start_room(args, room_name)
+
       :error ->
         # No room_name in args
         {:error, :no_room_name}
+    end
+  end
+
+  defp start_room(args, room_name) do
+    case Keyword.has_key?(args, :realm) do
+      true ->
+        start_genserver(args, room_name)
 
       false ->
         # No realm name in args
         {:error, :no_realm_name}
+    end
+  end
 
+  defp start_genserver(args, room_name) do
+    case GenServer.start_link(__MODULE__, args, name: via_tuple(room_name)) do
       {:error, {:already_started, pid}} ->
         # Already started, we don't care
         {:ok, pid}
 
       other ->
-        # Relay everything else
+        # Relay everything else (including {:ok, pid})
         other
     end
   end
@@ -145,15 +155,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       %{realm: state.realm}
     )
 
-    with {:duplicate, false} <- {:duplicate, Map.has_key?(watch_name_to_id, watch_request.name)},
-         {:ok, new_state} <- do_watch(watch_request, state) do
-      {:reply, :ok, new_state}
-    else
-      {:duplicate, true} ->
-        {:reply, {:error, :duplicate_watch}, state}
+    case Map.has_key?(watch_name_to_id, watch_request.name) do
+      false ->
+        perform_watch(watch_request, state)
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      true ->
+        {:reply, {:error, :duplicate_watch}, state}
     end
   end
 
@@ -169,21 +176,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       %{realm: state.realm}
     )
 
-    with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
-         {:ok, %WatchRequest{} = watch_request} <- Map.fetch(watch_id_to_request, trigger_id),
-         {:ok, new_state} <- do_unwatch(watch_request, trigger_id, state) do
-      {:reply, :ok, new_state}
-    else
+    case Map.fetch(watch_name_to_id, watch_name) do
+      {:ok, trigger_id} ->
+        fetch_watch_request(trigger_id, watch_id_to_request, state)
+
       :error ->
         {:reply, {:error, :not_found}, state}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Volatile trigger delete failed, reason: #{inspect(reason)}.",
-            tag: "delete_volatile_trigger_failed"
-          )
-
-        {:reply, {:error, :unwatch_failed}, state}
     end
   end
 
@@ -210,6 +208,41 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       end
 
     {:reply, reply, state}
+  end
+
+  defp perform_watch(watch_request, state) do
+    case do_watch(watch_request, state) do
+      {:ok, new_state} ->
+        {:reply, :ok, new_state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  defp fetch_watch_request(trigger_id, watch_id_to_request, state) do
+    case Map.fetch(watch_id_to_request, trigger_id) do
+      {:ok, %WatchRequest{} = watch_request} ->
+        perform_unwatch(watch_request, trigger_id, state)
+
+      :error ->
+        {:reply, {:error, :not_found}, state}
+    end
+  end
+
+  defp perform_unwatch(watch_request, trigger_id, state) do
+    case do_unwatch(watch_request, trigger_id, state) do
+      {:ok, new_state} ->
+        {:reply, :ok, new_state}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning("Volatile trigger delete failed, reason: #{inspect(reason)}.",
+            tag: "delete_volatile_trigger_failed"
+          )
+
+        {:reply, {:error, :unwatch_failed}, state}
+    end
   end
 
   @impl true
@@ -295,15 +328,9 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
       {:ok, new_state}
     else
-      {:error, %{error_name: reason}} ->
-        _ =
-          Logger.warning("Volatile trigger install failed, reason: #{inspect(reason)}.",
-            tag: "install_volatile_trigger_failed"
-          )
+      {:error, error} ->
+        reason = extract_error_reason(error)
 
-        {:error, reason}
-
-      {:error, reason} ->
         _ =
           Logger.warning("Volatile trigger install failed, reason: #{inspect(reason)}.",
             tag: "install_volatile_trigger_failed"
@@ -404,16 +431,13 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
          :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
       :ok
     else
-      {:error, :device_does_not_exist} ->
-        {:error, :device_does_not_exist}
-
-      {:error, %{error_name: reason}} ->
-        {:error, reason}
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, error} ->
+        {:error, extract_error_reason(error)}
     end
   end
+
+  defp extract_error_reason(%{error_name: reason}), do: reason
+  defp extract_error_reason(reason), do: reason
 
   defp build_volatile_trigger(room_uuid, trigger_id, simple_trigger_config) do
     %TaggedSimpleTrigger{

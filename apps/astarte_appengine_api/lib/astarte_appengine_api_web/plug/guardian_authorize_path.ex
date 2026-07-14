@@ -24,22 +24,21 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   plug :authorize
 
   defp authorize(conn, opts) do
-    with %User{authorizations: authorizations} <- AuthGuardian.Plug.current_resource(conn),
-         {:ok, auth_path} <- build_auth_path(conn),
-         :ok <- check_path_authorized(conn.method, auth_path, authorizations) do
-      conn
-    else
-      {:error, :invalid_auth_path} ->
-        _ =
-          Logger.warning(
-            "Can't build auth_path with path_params: #{inspect(conn.path_params)} " <>
-              "path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}",
-            tag: "invalid_request"
-          )
+    %User{authorizations: authorizations} = AuthGuardian.Plug.current_resource(conn)
 
+    case build_auth_path(conn) do
+      {:ok, auth_path} ->
+        authorize_path(conn, opts, auth_path, authorizations)
+
+      {:error, :invalid_auth_path} ->
+        reject_invalid_auth_path(conn, opts)
+    end
+  end
+
+  defp authorize_path(conn, opts, auth_path, authorizations) do
+    case check_path_authorized(conn.method, auth_path, authorizations) do
+      :ok ->
         conn
-        |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
-        |> halt()
 
       {:error, {:unauthorized, method, auth_path, authorizations}} ->
         _ =
@@ -54,6 +53,19 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
         |> FallbackController.auth_error({:unauthorized, :authorization_path_not_matched}, opts)
         |> halt()
     end
+  end
+
+  defp reject_invalid_auth_path(conn, opts) do
+    _ =
+      Logger.warning(
+        "Can't build auth_path with path_params: #{inspect(conn.path_params)} " <>
+          "path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}",
+        tag: "invalid_request"
+      )
+
+    conn
+    |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
+    |> halt()
   end
 
   defp build_auth_path(conn) do
@@ -96,16 +108,21 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do
-    with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
-         {:ok, method_regex} <- build_regex(method_auth),
+    case String.split(authorization_string, ":", parts: 3) do
+      [method_auth, _opts, path_auth] ->
+        build_regex_pair(method_auth, path_auth)
+
+      _ ->
+        {:error, :invalid_authorization_string}
+    end
+  end
+
+  defp build_regex_pair(method_auth, path_auth) do
+    with {:ok, method_regex} <- build_regex(method_auth),
          {:ok, path_regex} <- build_regex(path_auth) do
       {:ok, {method_regex, path_regex}}
     else
-      [] ->
-        {:error, :invalid_authorization_string}
-
-      _ ->
-        {:error, :invalid_regex}
+      _ -> {:error, :invalid_regex}
     end
   end
 

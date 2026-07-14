@@ -40,16 +40,13 @@ defmodule Astarte.RealmManagement.RealmConfig do
   end
 
   def update_auth_config(realm, new_config_params) do
-    with %Ecto.Changeset{valid?: true} = changeset <-
-           AuthConfig.changeset(%AuthConfig{}, new_config_params),
-         %AuthConfig{jwt_public_key_pem: pem} <- Ecto.Changeset.apply_changes(changeset) do
-      Queries.update_jwt_public_key_pem(realm, pem)
-    else
+    case AuthConfig.changeset(%AuthConfig{}, new_config_params) do
+      %Ecto.Changeset{valid?: true} = changeset ->
+        %AuthConfig{jwt_public_key_pem: pem} = Ecto.Changeset.apply_changes(changeset)
+        Queries.update_jwt_public_key_pem(realm, pem)
+
       %Ecto.Changeset{valid?: false} = changeset ->
         {:error, %{changeset | action: :update}}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 end

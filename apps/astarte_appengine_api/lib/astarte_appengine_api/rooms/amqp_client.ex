@@ -112,14 +112,21 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
       pid: conn_pid
     } = conn
 
-    with true <- Process.alive?(conn_pid),
-         {:ok, chan} <- setup_channel(conn) do
-      {:noreply, chan}
-    else
+    case Process.alive?(conn_pid) do
+      true ->
+        reopen_channel(conn)
+
       # Connection process is dead
       false ->
         {:ok, new_state} = connect()
         {:noreply, new_state}
+    end
+  end
+
+  defp reopen_channel(conn) do
+    case setup_channel(conn) do
+      {:ok, chan} ->
+        {:noreply, chan}
 
       # If setup_channel fails, we start a new connection, after closing the previous one
       _ ->
@@ -134,20 +141,22 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
          {:ok, chan} <- setup_channel(conn) do
       {:ok, chan}
     else
-      {:error, reason} ->
-        _ =
-          Logger.warning("RabbitMQ Connection error: #{inspect(reason)}.",
-            tag: "rooms_events_conn_err"
-          )
-
-        retry_after(@connection_backoff)
-        {:ok, :not_connected}
-
-      _ ->
-        _ = Logger.warning("Unknown RabbitMQ connection error.", tag: "rooms_events_conn_err")
+      error ->
+        log_connection_error(error)
         retry_after(@connection_backoff)
         {:ok, :not_connected}
     end
+  end
+
+  defp log_connection_error({:error, reason}) do
+    _ =
+      Logger.warning("RabbitMQ Connection error: #{inspect(reason)}.",
+        tag: "rooms_events_conn_err"
+      )
+  end
+
+  defp log_connection_error(_error) do
+    _ = Logger.warning("Unknown RabbitMQ connection error.", tag: "rooms_events_conn_err")
   end
 
   defp setup_channel(%Connection{} = conn) do

@@ -51,31 +51,9 @@ defmodule Astarte.Pairing.Engine do
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
-         {:authorized?, true} <-
-           {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
-         {:credentials_inhibited?, false} <-
-           {:credentials_inhibited?, device.inhibit_credentials_request},
-         _ <- CFSSLCredentials.revoke(device.cert_serial, device.cert_aki),
-         encoded_device_id <- Device.encode_device_id(device_id),
-         {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
-           CFSSLCredentials.get_certificate(csr, realm, encoded_device_id),
-         {:ok, _device} <-
-           Queries.update_device_after_credentials_request(
-             realm,
-             device,
-             cert_data,
-             ip_tuple,
-             device.first_credentials_request
-           ) do
-      {:ok, %{client_crt: cert}}
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id) do
+      authorize_credentials_request(device, credentials_secret, device_id, ip_tuple, realm, csr)
     else
-      {:authorized?, false} ->
-        {:error, :forbidden}
-
-      {:credentials_inhibited?, true} ->
-        {:error, :credentials_request_inhibited}
-
       {:error, reason} ->
         {:error, reason}
     end
@@ -96,29 +74,66 @@ defmodule Astarte.Pairing.Engine do
     {:error, :unknown_protocol}
   end
 
+  defp authorize_credentials_request(device, credentials_secret, device_id, ip_tuple, realm, csr) do
+    case CredentialsSecret.verify(credentials_secret, device.credentials_secret) do
+      true ->
+        check_credentials_inhibited(device, device_id, ip_tuple, realm, csr)
+
+      false ->
+        {:error, :forbidden}
+    end
+  end
+
+  defp check_credentials_inhibited(device, device_id, ip_tuple, realm, csr) do
+    case device.inhibit_credentials_request do
+      false ->
+        issue_credentials(device, device_id, ip_tuple, realm, csr)
+
+      true ->
+        {:error, :credentials_request_inhibited}
+    end
+  end
+
+  defp issue_credentials(device, device_id, ip_tuple, realm, csr) do
+    _ = CFSSLCredentials.revoke(device.cert_serial, device.cert_aki)
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    with {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
+           CFSSLCredentials.get_certificate(csr, realm, encoded_device_id),
+         {:ok, _device} <-
+           Queries.update_device_after_credentials_request(
+             realm,
+             device,
+             cert_data,
+             ip_tuple,
+             device.first_credentials_request
+           ) do
+      {:ok, %{client_crt: cert}}
+    end
+  end
+
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
-         {:authorized?, true} <-
-           {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)} do
-      device_status = device_status_string(device)
-      protocols = get_protocol_info()
-
-      {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id) do
+      authorize_get_info(device, credentials_secret)
     else
-      {:authorized?, false} ->
+      error ->
+        {:error, remap_lookup_error(error)}
+    end
+  end
+
+  defp authorize_get_info(device, credentials_secret) do
+    case CredentialsSecret.verify(credentials_secret, device.credentials_secret) do
+      true ->
+        device_status = device_status_string(device)
+        protocols = get_protocol_info()
+
+        {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
+
+      false ->
         {:error, :forbidden}
-
-      {:credentials_inhibited?, true} ->
-        {:error, :credentials_request_inhibited}
-
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
@@ -137,11 +152,8 @@ defmodule Astarte.Pairing.Engine do
            DataAccessDevice.register(realm, device_id, hardware_id, secret_hash, opts) do
       {:ok, credentials_secret}
     else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
+      error ->
+        {:error, remap_lookup_error(error)}
     end
   end
 
@@ -198,22 +210,11 @@ defmodule Astarte.Pairing.Engine do
     )
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
-         {:authorized?, true} <-
-           {:authorized?, CredentialsSecret.verify(secret, device.credentials_secret)} do
-      CertVerifier.verify(client_crt, Config.ca_cert!())
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id) do
+      authorize_verify_credentials(device, secret, client_crt)
     else
-      {:authorized?, false} ->
-        {:error, :forbidden}
-
-      {:credentials_inhibited?, true} ->
-        {:error, :credentials_request_inhibited}
-
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
+      error ->
+        {:error, remap_lookup_error(error)}
     end
   end
 
@@ -223,6 +224,16 @@ defmodule Astarte.Pairing.Engine do
     )
 
     {:error, :unknown_protocol}
+  end
+
+  defp authorize_verify_credentials(device, secret, client_crt) do
+    case CredentialsSecret.verify(secret, device.credentials_secret) do
+      true ->
+        CertVerifier.verify(client_crt, Config.ca_cert!())
+
+      false ->
+        {:error, :forbidden}
+    end
   end
 
   defp device_status_string(device) do
@@ -249,4 +260,7 @@ defmodule Astarte.Pairing.Engine do
       {:error, _} -> {:error, :invalid_ip}
     end
   end
+
+  defp remap_lookup_error({:error, :shutdown}), do: :realm_not_found
+  defp remap_lookup_error({:error, reason}), do: reason
 end

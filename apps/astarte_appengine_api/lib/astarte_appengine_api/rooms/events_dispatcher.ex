@@ -48,13 +48,19 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           DateTime.from_unix!(timestamp_ms, :millisecond)
       end
 
-    with {:room_pid, [{pid, _}]} <-
-           {:room_pid,
-            Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id})},
-         :ok <- Room.broadcast_event(pid, simple_trigger_id, device_id, timestamp, event) do
-      :ok
-    else
-      {:room_pid, []} ->
+    case Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id}) do
+      [{pid, _}] ->
+        broadcast_to_room(
+          pid,
+          simple_event,
+          simple_trigger_id,
+          device_id,
+          timestamp,
+          event,
+          realm
+        )
+
+      [] ->
         # The room is dead, uninstall the trigger
         _ =
           Logger.warning("Dispatch: unexisting room for event #{inspect(simple_event)}.",
@@ -69,6 +75,13 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
 
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
         {:error, :no_room_for_event}
+    end
+  end
+
+  defp broadcast_to_room(pid, simple_event, simple_trigger_id, device_id, timestamp, event, realm) do
+    case Room.broadcast_event(pid, simple_trigger_id, device_id, timestamp, event) do
+      :ok ->
+        :ok
 
       {:error, :trigger_not_found} ->
         # The room has unwatched the trigger, uninstall it again

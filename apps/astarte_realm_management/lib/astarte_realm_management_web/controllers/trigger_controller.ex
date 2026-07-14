@@ -169,10 +169,21 @@ defmodule Astarte.RealmManagementWeb.TriggerController do
   end
 
   def delete(conn, %{"realm_name" => realm_name, "trigger_name" => trigger_name}) do
-    with {:ok, %Trigger{} = trigger} <- Triggers.get_trigger(realm_name, trigger_name),
-         {:ok, %Trigger{}} <- Triggers.delete_trigger(realm_name, trigger) do
-      send_resp(conn, :no_content, "")
-    else
+    case Triggers.get_trigger(realm_name, trigger_name) do
+      {:ok, %Trigger{} = trigger} ->
+        delete_trigger(conn, realm_name, trigger)
+
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
+    end
+  end
+
+  defp delete_trigger(conn, realm_name, trigger) do
+    case Triggers.delete_trigger(realm_name, trigger) do
+      {:ok, %Trigger{}} ->
+        send_resp(conn, :no_content, "")
+
       {:error, :cannot_delete_simple_trigger} ->
         conn
         |> put_status(:internal_server_error)

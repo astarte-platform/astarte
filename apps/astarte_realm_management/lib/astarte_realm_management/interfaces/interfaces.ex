@@ -279,21 +279,31 @@ defmodule Astarte.RealmManagement.Interfaces do
 
   defp extract_changed_mappings(old_mappings, changed_mappings) do
     Enum.reduce_while(old_mappings, {:ok, %{}}, fn {mapping_id, old_mapping}, {:ok, acc} ->
-      with {:ok, updated_mapping} <- Map.fetch(changed_mappings, mapping_id),
-           {:allowed, true} <- {:allowed, allowed_mapping_update?(old_mapping, updated_mapping)},
-           {:updated, true} <- {:updated, mapping_updated?(old_mapping, updated_mapping)} do
-        {:cont, {:ok, Map.put(acc, mapping_id, updated_mapping)}}
-      else
-        :error ->
-          {:halt, {:error, :missing_endpoints}}
-
-        {:allowed, false} ->
-          {:halt, {:error, :incompatible_endpoint_change}}
-
-        {:updated, false} ->
-          {:cont, {:ok, acc}}
-      end
+      merge_changed_mapping(mapping_id, old_mapping, changed_mappings, acc)
     end)
+  end
+
+  defp merge_changed_mapping(mapping_id, old_mapping, changed_mappings, acc) do
+    case Map.fetch(changed_mappings, mapping_id) do
+      {:ok, updated_mapping} ->
+        classify_mapping_update(mapping_id, old_mapping, updated_mapping, acc)
+
+      :error ->
+        {:halt, {:error, :missing_endpoints}}
+    end
+  end
+
+  defp classify_mapping_update(mapping_id, old_mapping, updated_mapping, acc) do
+    cond do
+      not allowed_mapping_update?(old_mapping, updated_mapping) ->
+        {:halt, {:error, :incompatible_endpoint_change}}
+
+      mapping_updated?(old_mapping, updated_mapping) ->
+        {:cont, {:ok, Map.put(acc, mapping_id, updated_mapping)}}
+
+      true ->
+        {:cont, {:ok, acc}}
+    end
   end
 
   defp allowed_mapping_update?(mapping, upd_mapping) do

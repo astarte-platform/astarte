@@ -41,12 +41,19 @@ defmodule Astarte.Pairing.Agent.DeviceRegistrationRequest do
   end
 
   defp validate_hw_id(changeset, field) do
-    with {:ok, hw_id} <- fetch_change(changeset, field),
-         {:ok, _decoded_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-      changeset
-    else
+    case fetch_change(changeset, field) do
+      {:ok, hw_id} ->
+        validate_decoded_hw_id(changeset, field, hw_id)
+
       # No hw_id, already handled
       :error ->
+        changeset
+    end
+  end
+
+  defp validate_decoded_hw_id(changeset, field, hw_id) do
+    case Device.decode_device_id(hw_id, allow_extended_id: true) do
+      {:ok, _decoded_id} ->
         changeset
 
       _ ->

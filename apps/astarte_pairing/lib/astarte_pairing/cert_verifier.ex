@@ -47,11 +47,8 @@ defmodule Astarte.Pairing.CertVerifier do
 
       {:ok, %{valid: true, timestamp: timestamp, until: until}}
     else
-      {:error, {:bad_cert, reason}} ->
-        {:ok, %{valid: false, timestamp: timestamp, reason: reason}}
-
-      {:error, reason} ->
-        {:ok, %{valid: false, timestamp: timestamp, reason: reason}}
+      {:error, error} ->
+        {:ok, %{valid: false, timestamp: timestamp, reason: extract_reason(error)}}
     end
   end
 
@@ -61,4 +58,7 @@ defmodule Astarte.Pairing.CertVerifier do
       _other -> {:error, :invalid_certificate}
     end
   end
+
+  defp extract_reason({:bad_cert, reason}), do: reason
+  defp extract_reason(reason), do: reason
 end

@@ -234,18 +234,23 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         "interface_name" => interface_name,
         "major_version" => major_version
       }) do
-    with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
-         {:ok, interface_source} <-
-           Interfaces.fetch_interface(realm_name, interface_name, parsed_major) do
-      render(conn, "show.json", interface: interface_source)
-    else
-      {:major_parsing, _} ->
-        {:error, :invalid_major}
+    case Integer.parse(major_version) do
+      {parsed_major, ""} ->
+        Interfaces.fetch_interface(realm_name, interface_name, parsed_major)
+        |> handle_show_result(conn)
 
-      # To FallbackController
-      {:error, other} ->
-        {:error, other}
+      _ ->
+        {:error, :invalid_major}
     end
+  end
+
+  defp handle_show_result({:ok, interface_source}, conn) do
+    render(conn, "show.json", interface: interface_source)
+  end
+
+  # To FallbackController
+  defp handle_show_result({:error, other}, _conn) do
+    {:error, other}
   end
 
   def update(
@@ -264,62 +269,79 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         true
       end
 
-    with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
-         :ok <-
-           Interfaces.update_interface(realm_name, interface_name, parsed_major, interface_params,
-             async_operation: async_operation
-           ) do
-      send_resp(conn, :no_content, "")
-    else
-      {:major_parsing, _} ->
+    case Integer.parse(major_version) do
+      {parsed_major, ""} ->
+        Interfaces.update_interface(
+          realm_name,
+          interface_name,
+          parsed_major,
+          interface_params,
+          async_operation: async_operation
+        )
+        |> handle_update_result(conn)
+
+      _ ->
         {:error, :invalid_major}
-
-      # API side errors
-      {:error, :name_not_matching = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      {:error, :major_version_not_matching = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      # Backend side errors
-      {:error, :interface_major_version_does_not_exist = err_atom} ->
-        conn
-        |> put_status(:not_found)
-        |> render(err_atom)
-
-      {:error, :minor_version_not_increased = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      {:error, :invalid_update = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      {:error, :downgrade_not_allowed = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      {:error, :missing_endpoints = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      {:error, :incompatible_endpoint_change = err_atom} ->
-        conn
-        |> put_status(:conflict)
-        |> render(err_atom)
-
-      # Let FallbackController handle the rest
-      {:error, other} ->
-        {:error, other}
     end
+  end
+
+  defp handle_update_result(:ok, conn) do
+    send_resp(conn, :no_content, "")
+  end
+
+  # API side errors
+  defp handle_update_result({:error, :name_not_matching = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :major_version_not_matching = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  # Backend side errors
+  defp handle_update_result({:error, :interface_major_version_does_not_exist = err_atom}, conn) do
+    conn
+    |> put_status(:not_found)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :minor_version_not_increased = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :invalid_update = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :downgrade_not_allowed = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :missing_endpoints = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  defp handle_update_result({:error, :incompatible_endpoint_change = err_atom}, conn) do
+    conn
+    |> put_status(:conflict)
+    |> render(err_atom)
+  end
+
+  # Let FallbackController handle the rest
+  defp handle_update_result({:error, other}, _conn) do
+    {:error, other}
   end
 
   def delete(

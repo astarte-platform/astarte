@@ -205,17 +205,28 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
         "group_name" => group_name,
         "device_id" => device_id
       }) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
-         {:ok, interfaces} <- Device.list_interfaces(realm_name, device_id) do
-      conn
-      |> put_view(InterfaceValuesView)
-      |> render("index.json", interfaces: interfaces)
-    else
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} ->
+        list_group_device_interfaces(conn, realm_name, device_id)
+
       {:ok, false} ->
         {:error, :device_not_found}
 
       {:error, reason} ->
         # To FallbackController
+        {:error, reason}
+    end
+  end
+
+  defp list_group_device_interfaces(conn, realm_name, device_id) do
+    case Device.list_interfaces(realm_name, device_id) do
+      {:ok, interfaces} ->
+        conn
+        |> put_view(InterfaceValuesView)
+        |> render("index.json", interfaces: interfaces)
+
+      # To FallbackController
+      {:error, reason} ->
         {:error, reason}
     end
   end
@@ -238,19 +249,10 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
            "path" => path
          } = parameters
        ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
-         {:ok, %InterfaceValues{} = interface_values} <-
-           Device.get_interface_values!(
-             realm_name,
-             device_id,
-             interface,
-             path,
-             parameters
-           ) do
-      conn
-      |> put_view(InterfaceValuesView)
-      |> render("show.json", interface_values: interface_values)
-    else
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} ->
+        show_interface_values(conn, realm_name, device_id, interface, path, parameters)
+
       {:ok, false} ->
         {:error, :device_not_found}
 
@@ -269,23 +271,41 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
            "interface" => interface
          } = parameters
        ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
-         {:ok, %InterfaceValues{} = interface_values} <-
-           Device.get_interface_values!(
-             realm_name,
-             device_id,
-             interface,
-             parameters
-           ) do
-      conn
-      |> put_view(InterfaceValuesView)
-      |> render("show.json", interface_values: interface_values)
-    else
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} ->
+        show_interface_values(conn, realm_name, device_id, interface, parameters)
+
       {:ok, false} ->
         {:error, :device_not_found}
 
       {:error, reason} ->
         # To FallbackController
+        {:error, reason}
+    end
+  end
+
+  defp show_interface_values(conn, realm_name, device_id, interface, path, parameters) do
+    case Device.get_interface_values!(realm_name, device_id, interface, path, parameters) do
+      {:ok, %InterfaceValues{} = interface_values} ->
+        conn
+        |> put_view(InterfaceValuesView)
+        |> render("show.json", interface_values: interface_values)
+
+      # To FallbackController
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp show_interface_values(conn, realm_name, device_id, interface, parameters) do
+    case Device.get_interface_values!(realm_name, device_id, interface, parameters) do
+      {:ok, %InterfaceValues{} = interface_values} ->
+        conn
+        |> put_view(InterfaceValuesView)
+        |> render("show.json", interface_values: interface_values)
+
+      # To FallbackController
+      {:error, reason} ->
         {:error, reason}
     end
   end
@@ -301,22 +321,31 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
           "data" => value
         } = parameters
       ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
-         {:ok, %InterfaceValues{} = interface_values} <-
-           Device.update_interface_values(
-             realm_name,
-             device_id,
-             interface,
-             path,
-             value,
-             parameters
-           ) do
-      conn
-      |> put_view(InterfaceValuesView)
-      |> render("show.json", interface_values: interface_values)
-    else
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} ->
+        update_interface_values(conn, realm_name, device_id, interface, path, value, parameters)
+
       {:ok, false} ->
         {:error, :device_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp update_interface_values(conn, realm_name, device_id, interface, path, value, parameters) do
+    case Device.update_interface_values(
+           realm_name,
+           device_id,
+           interface,
+           path,
+           value,
+           parameters
+         ) do
+      {:ok, %InterfaceValues{} = interface_values} ->
+        conn
+        |> put_view(InterfaceValuesView)
+        |> render("show.json", interface_values: interface_values)
 
       {:error, reason} ->
         {:error, reason}
@@ -330,12 +359,22 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
         "interface" => interface,
         "path" => path
       }) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
-         :ok <- Device.delete_interface_values(realm_name, device_id, interface, path) do
-      send_resp(conn, :no_content, "")
-    else
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} ->
+        delete_interface_values(conn, realm_name, device_id, interface, path)
+
       {:ok, false} ->
         {:error, :device_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp delete_interface_values(conn, realm_name, device_id, interface, path) do
+    case Device.delete_interface_values(realm_name, device_id, interface, path) do
+      :ok ->
+        send_resp(conn, :no_content, "")
 
       {:error, reason} ->
         {:error, reason}
