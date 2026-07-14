@@ -1,0 +1,44 @@
+body {
+    font-family: "Montserrat", sans-serif;
+  }
+  .sensor-id-search-div,
+  .list-group-item {
+    background: #f3f3f3;
+  }
+  .main-row .input-group .form-control {
+    height: 2.5rem;
+  }
+  
+  .main-card.card .btn img {
+    height: 0.9375rem;
+  }
+  .main-row .input-group .form-control,
+  .font-14 {
+    font-size: 0.875rem;
+  }
+  .main-card {
+    box-shadow: 0 0.0625rem 0.25rem 0 rgba(0, 0, 0, 0.09);
+  }
+  .list-div-main .list-group-item,
+  .list-div-main .list-group-item:first-child {
+    border-radius: 0;
+  }
+  .bg-sensor-theme {
+    background-color: #6aa8d8;
+    border: 1px solid #6aa8d8;
+  }
+  
+  .font-14:hover {
+    background-color: #6aa8d8;
+    border: 1px solid #6aa8d8;
+  }
+  
+  .font-14:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: 0;
+  }
+  
+  .sensor-values-card{
+    width: 300px;
+  }
+  
