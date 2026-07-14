@@ -1,6 +1,6 @@
 %{
   "artificery": {:hex, :artificery, "0.4.4", "04ef46408596052053f0152b08d86b31a85b63862613f7fc13d6fb4f64819f6a", [:mix], [], "hexpm", "b897b4986dc1bb3e2f5c86de5bb4ea101b656441d16fc0db73622c09c18e96b7"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "1b7032b59e0bbfbb13630bf5befae028e6154691", [tag: "v1.4.0-rc.1"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "c8f829dc4190f6d7716240e145bd3aa049086216", [tag: "v1.4.0-rc.2"]},
   "b58": {:hex, :b58, "1.0.3", "d300d6ae5a3de956a54b9e8220e924e4fee1a349de983df2340fe61e0e464202", [:mix], [], "hexpm", "af62a98a8661fd89978cf3a3a4b5b2ebe82209de6ac6164f0b112e36af72fc59"},
   "castore": {:hex, :castore, "1.0.17", "4f9770d2d45fbd91dcf6bd404cf64e7e58fed04fadda0923dc32acca0badffa2", [:mix], [], "hexpm", "12d24b9d80b910dd3953e165636d68f147a31db945d2dcb9365e441f8b5351e5"},
   "cbor": {:hex, :cbor, "1.0.2", "9b0af85af291a556e10a0ffd48ba9a21a75e711828fafd3af193d56d95f0907f", [:mix], [], "hexpm", "edbc9b4a16eb93a582437b9b249c340a75af03958e338fb43d8c1be9fc65b864"},
