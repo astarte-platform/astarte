@@ -13,31 +13,31 @@ jobs:
           - name: astarte-housekeeping
             context: ./
             dockerfile: apps/astarte_housekeeping/Dockerfile
-            tag: astarte/astarte_housekeeping:1.3.1
+            tag: astarte/astarte_housekeeping:1.3.2
           - name: astarte-realm-management
             context: ./
             dockerfile: apps/astarte_realm_management/Dockerfile
-            tag: astarte/astarte_realm_management:1.3.1
+            tag: astarte/astarte_realm_management:1.3.2
           - name: astarte-pairing
             context: ./
             dockerfile: apps/astarte_pairing/Dockerfile
-            tag: astarte/astarte_pairing:1.3.1
+            tag: astarte/astarte_pairing:1.3.2
           - name: astarte-appengine-api
             context: ./
             dockerfile: apps/astarte_appengine_api/Dockerfile
-            tag: astarte/astarte_appengine_api:1.3.1
+            tag: astarte/astarte_appengine_api:1.3.2
           - name: astarte-data-updater-plant
             context: ./
             dockerfile: apps/astarte_data_updater_plant/Dockerfile
-            tag: astarte/astarte_data_updater_plant:1.3.1
+            tag: astarte/astarte_data_updater_plant:1.3.2
           - name: astarte-trigger-engine
             context: ./
             dockerfile: apps/astarte_trigger_engine/Dockerfile
-            tag: astarte/astarte_trigger_engine:1.3.1
+            tag: astarte/astarte_trigger_engine:1.3.2
           - name: astarte-dashboard
             context: ./astarte-dashboard/
             dockerfile: astarte-dashboard/Dockerfile
-            tag: astarte/astarte-dashboard:1.3.1
+            tag: astarte/astarte-dashboard:1.3.2
     steps:
       - uses: actions/checkout@v2
       - name: Setup Docker Buildx
