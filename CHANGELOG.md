@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.4.0-rc.2] - 2026-07-14
+
 ## [1.4.0-rc.1] - 2026-07-13
 
 ## [1.4.0-rc.0] - 2026-04-07
@@ -91,7 +93,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added support for multiple Astarte instances sharing the same database,
   the following env variable has been added:
   - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__ASTARTE_INSTANCE_ID`
-  (defaults to ``)
+    (defaults to ``)
 - Added support for `capabilities` message topic at `/<realm name>/<device name>/capabilities`
 
 ### Changed
