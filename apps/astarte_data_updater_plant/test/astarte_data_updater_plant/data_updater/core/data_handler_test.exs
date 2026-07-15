@@ -29,6 +29,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.Secrets
+  alias Astarte.Secrets.EncryptedMessages
+  alias COSE.Keys.Symmetric
 
   setup_all context do
     keyspace = Realm.keyspace_name(context.realm)
@@ -43,6 +45,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   setup context do
     timestamp = System.system_time(:microsecond) * 10
     start = System.monotonic_time()
+    # retrieve shared key to encrypt test messages from device
+    shared_key = context.state.shared_secret
 
     # create dummy payload to be sent by device, specific per interface type
     payload_value =
@@ -62,7 +66,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
           nil
       end
 
-    {:ok, payload_encoded} = %{"v" => payload_value} |> Cyanide.encode()
+    payload_encoded =
+      %{"v" => payload_value}
+      |> Cyanide.encode!()
+      |> EncryptedMessages.encrypt(shared_key.k, shared_key.alg)
 
     %{
       payload: payload_encoded,

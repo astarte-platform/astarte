@@ -60,7 +60,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     }
   end
 
-  setup_all do
+  setup_all %{state: state} do
+    uninitialized_key_state = %{
+      state
+      | encrypted_endpoints_key: :uninitialized,
+        shared_secret: nil
+    }
+
     init_exchange = InitExchange.new(0)
     init_exchange_payload = InitExchange.cbor_encode(init_exchange)
 
@@ -135,6 +141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     invalid_secret_hash_payload = SecretHash.cbor_encode(invalid_secret_hash)
 
     %{
+      state: uninitialized_key_state,
       init_exchange: init_exchange,
       init_exchange_payload: init_exchange_payload,
       p256_init_exchange: p256_init_exchange,

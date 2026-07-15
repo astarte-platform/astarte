@@ -33,14 +33,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.Secrets.EncryptedMessages
+  alias COSE.Keys.Symmetric
 
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
 
-  setup_all %{realm_name: realm_name, device: device} do
+  setup_all %{realm_name: realm_name, device: device, interfaces: interfaces} do
     state = dump_state(realm_name, device.encoded_id)
 
-    %{state: state}
+    # separate interfaces with encrypted endpoints from 'normal' ones
+    # (to avoid breaking other tests that are not designed to handle encryption)
+    {interfaces_encrypted_endpoints, interfaces} =
+      separate_encrypted_endpoint_interfaces(interfaces)
+
+    %{
+      state: state,
+      interfaces: interfaces,
+      interfaces_encrypted_endpoints: interfaces_encrypted_endpoints
+    }
   end
 
   describe "handle_data/6 errors with" do
@@ -488,6 +499,97 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                  System.monotonic_time()
                )
     end
+
+    test "shared key not currently established when receiving encrypted payloads", context do
+      %{
+        state: state,
+        interfaces_encrypted_endpoints: interfaces
+      } = context
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+      shared_key = state.shared_secret
+
+      payload =
+        %{v: "a_value"}
+        |> Cyanide.encode!()
+        |> EncryptedMessages.encrypt(shared_key.k, shared_key.alg)
+
+      # key appears as not established yet
+      state_without_established_key = %{state | encrypted_endpoints_key: :uninitialized}
+
+      test_interface_name = "test.EncryptedIndividualDatastreamInterface"
+      interface = Enum.find(interfaces, &(&1.name == test_interface_name))
+
+      encrypted_mapping = Enum.find(interface.mappings, & &1.encrypted)
+
+      endpoint_path = encrypted_mapping.endpoint
+
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:disconnect, fn %{client_id: _client_id, discard_state: _discard_state} ->
+        :ok
+      end)
+
+      assert {:discard, :key_agreement_error, _, _} =
+               DataHandler.handle_data(
+                 state_without_established_key,
+                 test_interface_name,
+                 endpoint_path,
+                 payload,
+                 timestamp,
+                 start
+               )
+    end
+
+    test "issues during decryption phase when receiving encrypted payloads", context do
+      %{
+        state: state,
+        interfaces_encrypted_endpoints: interfaces
+      } = context
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+      shared_key = state.shared_secret
+
+      payload =
+        %{v: "a_value"}
+        |> Cyanide.encode!()
+        |> EncryptedMessages.encrypt(shared_key.k, shared_key.alg)
+
+      # key used for decryption does not match with key used for encryption
+      state_with_wrong_shared_key = %{
+        state
+        | shared_secret: %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+      }
+
+      test_interface_name = "test.EncryptedIndividualDatastreamInterface"
+      interface = Enum.find(interfaces, &(&1.name == test_interface_name))
+
+      encrypted_mapping = Enum.find(interface.mappings, & &1.encrypted)
+
+      endpoint_path = encrypted_mapping.endpoint
+
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:disconnect, fn %{client_id: _client_id, discard_state: _discard_state} ->
+        :ok
+      end)
+
+      assert {:discard, :decryption_error, _, _} =
+               DataHandler.handle_data(
+                 state_with_wrong_shared_key,
+                 test_interface_name,
+                 endpoint_path,
+                 payload,
+                 timestamp,
+                 start
+               )
+    end
+  end
+
+  defp separate_encrypted_endpoint_interfaces(interfaces) do
+    Enum.split_with(interfaces, fn interface ->
+      Enum.any?(interface.mappings, &Map.get(&1, :encrypted))
+    end)
   end
 
   defp discard_error(context, error), do: {:discard, error.error, context.state}
