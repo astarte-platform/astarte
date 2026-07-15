@@ -33,14 +33,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.Secrets.EncryptedMessages
+  alias COSE.Keys.Symmetric
 
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
 
-  setup_all %{realm_name: realm_name, device: device} do
+  setup_all %{realm_name: realm_name, device: device, interfaces: interfaces} do
     state = dump_state(realm_name, device.encoded_id)
 
-    %{state: state}
+    # separate interfaces with encrypted endpoints from 'normal' ones
+    # (to be used in tests specifically designed for encrypted interfaces)
+    interfaces_encrypted_endpoints =
+      Enum.filter(interfaces, fn interface ->
+        Enum.any?(interface.mappings, & &1.encrypted)
+      end)
+
+    %{
+      state: state,
+      interfaces: interfaces,
+      interfaces_encrypted_endpoints: interfaces_encrypted_endpoints
+    }
   end
 
   describe "handle_data/6 errors with" do
@@ -297,6 +310,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: start
       } =
         gen_context(state, device_owned_interfaces)
@@ -305,7 +319,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
       {:ok, _descriptor, new_state} =
         Core.Interface.maybe_handle_cache_miss(nil, interface, state)
 
-      expect(PayloadsDecoder, :decode_bson_payload, fn ^payload, ^timestamp ->
+      expect(PayloadsDecoder, :decode_bson_payload, fn ^plaintext_payload, ^timestamp ->
         {:error, :undecodable_bson_payload}
       end)
 
@@ -335,6 +349,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: start
       } =
         gen_context(state, device_owned_interfaces)
@@ -343,7 +358,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
       {:ok, _descriptor, new_state} =
         Core.Interface.maybe_handle_cache_miss(nil, interface, state)
 
-      expect(PayloadsDecoder, :decode_bson_payload, fn ^payload, ^timestamp ->
+      expect(PayloadsDecoder, :decode_bson_payload, fn ^plaintext_payload, ^timestamp ->
         {:ok, {%UnexpectedValueType{}, DateTime.utc_now(), nil}}
       end)
 
@@ -373,6 +388,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: start
       } =
         gen_context(state, device_owned_interfaces)
@@ -381,7 +397,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
       {:ok, _descriptor, new_state} =
         Core.Interface.maybe_handle_cache_miss(nil, interface, state)
 
-      expect(PayloadsDecoder, :decode_bson_payload, fn ^payload, ^timestamp ->
+      expect(PayloadsDecoder, :decode_bson_payload, fn ^plaintext_payload, ^timestamp ->
         {:ok, {%{"an_unexpected_key" => nil}, DateTime.utc_now(), nil}}
       end)
 
@@ -411,6 +427,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: start
       } =
         gen_non_empty_value_context(state, device_owned_interfaces)
@@ -421,7 +438,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
 
       expect(ValueType, :validate_value, fn _, value ->
         {:ok, {payload_value, _, _}} =
-          PayloadsDecoder.decode_bson_payload(payload, DateTime.utc_now(:millisecond))
+          PayloadsDecoder.decode_bson_payload(plaintext_payload, DateTime.utc_now(:millisecond))
 
         assert valid_value?(payload_value, value)
 
@@ -488,6 +505,83 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                  System.monotonic_time()
                )
     end
+
+    test "shared key not currently established when receiving encrypted payloads", context do
+      %{
+        state: state,
+        interfaces_encrypted_endpoints: interfaces
+      } = context
+
+      %{
+        state: state,
+        interface: interface,
+        path: path,
+        payload: payload
+      } =
+        gen_context(state, interfaces)
+        |> Enum.at(0)
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+
+      # key appears as not established yet
+      state_without_established_key = %{state | encrypted_endpoints_key: :uninitialized}
+
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:disconnect, fn %{client_id: _client_id, discard_state: _discard_state} ->
+        :ok
+      end)
+
+      assert {:discard, :key_agreement_error, _, _} =
+               DataHandler.handle_data(
+                 state_without_established_key,
+                 interface,
+                 path,
+                 payload,
+                 timestamp,
+                 start
+               )
+    end
+
+    test "issues during decryption phase when receiving encrypted payloads", context do
+      %{
+        state: state,
+        interfaces_encrypted_endpoints: interfaces
+      } = context
+
+      %{
+        state: state,
+        interface: interface,
+        path: path,
+        payload: payload
+      } =
+        gen_context(state, interfaces)
+        |> Enum.at(0)
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+
+      # key used for decryption does not match with key used for encryption
+      state_with_wrong_shared_key = %{
+        state
+        | shared_secret: %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+      }
+
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:disconnect, fn %{client_id: _client_id, discard_state: _discard_state} ->
+        :ok
+      end)
+
+      assert {:discard, :decryption_error, _, _} =
+               DataHandler.handle_data(
+                 state_with_wrong_shared_key,
+                 interface,
+                 path,
+                 payload,
+                 timestamp,
+                 start
+               )
+    end
   end
 
   defp discard_error(context, error), do: {:discard, error.error, context.state}
@@ -496,12 +590,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
     gen all interface <- member_of(interfaces),
             update <- valid_mapping_update_for(interface) |> filter(&(&1.value != %{})),
             timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
-      payload =
+      plaintext_payload =
         %{
           "v" => update.value,
           "t" => timestamp
         }
         |> Cyanide.encode!()
+
+      payload = maybe_encrypt_payload(plaintext_payload, interface, state.shared_secret)
 
       %{
         state: state,
@@ -509,6 +605,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: update.path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: System.monotonic_time()
       }
     end
@@ -518,12 +615,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
     gen all interface <- member_of(interfaces),
             update <- valid_mapping_update_for(interface),
             timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
-      payload =
+      plaintext_payload =
         %{
           "v" => update.value,
           "t" => timestamp
         }
         |> Cyanide.encode!()
+
+      payload = maybe_encrypt_payload(plaintext_payload, interface, state.shared_secret)
 
       %{
         state: state,
@@ -531,8 +630,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         path: update.path,
         timestamp: timestamp,
         payload: payload,
+        plaintext_payload: plaintext_payload,
         start: System.monotonic_time()
       }
+    end
+  end
+
+  # supporting generated interfaces potentially containing encrypted endpoints
+  defp maybe_encrypt_payload(payload, interface, shared_key) do
+    encryption_required = Enum.any?(interface.mappings, & &1.encrypted)
+
+    case encryption_required do
+      true -> EncryptedMessages.encrypt(payload, shared_key)
+      false -> payload
     end
   end
 
