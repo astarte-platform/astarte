@@ -341,15 +341,12 @@ defmodule Astarte.Secrets.Core do
 
     Enum.reduce_while(namespace_tokens, {:ok, init_namespace}, fn new_namespace,
                                                                   {:ok, base_namespace} ->
-      headers = []
-      options = [namespace: base_namespace]
-
-      case Client.post("/sys/namespaces/#{new_namespace}", "", headers, options) do
-        {:ok, %HTTPoison.Response{status_code: 200}} ->
+      case ensure_namespace_created(base_namespace, new_namespace) do
+        :ok ->
           new_base_namespace = Path.join(base_namespace, new_namespace)
           {:cont, {:ok, new_base_namespace}}
 
-        error ->
+        {:error, error} ->
           "Error creating new namespace #{new_namespace} on #{base_namespace}: #{inspect(error)}"
           |> Logger.error()
 
@@ -450,6 +447,29 @@ defmodule Astarte.Secrets.Core do
 
       error ->
         {:halt, error}
+    end
+  end
+
+  defp ensure_namespace_created(base_namespace, new_namespace) do
+    # check if namespace already exists; if not, attempt to create it
+    headers = []
+    options = [namespace: base_namespace]
+
+    case Client.get("sys/namespaces/#{new_namespace}", headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200}} ->
+        :ok
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        case Client.post("/sys/namespaces/#{new_namespace}", "", headers, options) do
+          {:ok, %HTTPoison.Response{status_code: 200}} ->
+            :ok
+
+          error ->
+            {:error, error}
+        end
+
+      error ->
+        {:error, error}
     end
   end
 
