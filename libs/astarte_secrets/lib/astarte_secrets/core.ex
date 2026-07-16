@@ -455,7 +455,7 @@ defmodule Astarte.Secrets.Core do
     headers = []
     options = [namespace: base_namespace]
 
-    case Client.get("sys/namespaces/#{new_namespace}", headers, options) do
+    case Client.get("/sys/namespaces/#{new_namespace}", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200}} ->
         :ok
 
