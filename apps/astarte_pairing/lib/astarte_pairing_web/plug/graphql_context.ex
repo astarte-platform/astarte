@@ -16,6 +16,12 @@ defmodule Astarte.PairingWeb.Plug.GraphQLContext do
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
+  # A minimal structural check for JWTs: three non-empty dot-separated segments
+  # using base64url characters (header.payload.signature).  Credentials
+  # secrets are short random strings without embedded dots, so this regex
+  # reliably distinguishes them from JWTs without trying to decode the token.
+  @jwt_pattern ~r/^[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+$/
+
   defmodule ErrorHandler do
     @behaviour Guardian.Plug.ErrorHandler
     def auth_error(conn, _error, _opts), do: conn
@@ -27,8 +33,11 @@ defmodule Astarte.PairingWeb.Plug.GraphQLContext do
     raw_token = conn |> get_req_header("authorization") |> find_secret()
     realm = conn |> get_req_header("astarte-realm") |> List.first()
 
-    # Check if the token is a JWT (has dots) or a raw credentials secret
-    is_jwt = is_binary(raw_token) and length(String.split(raw_token, ".")) == 3
+    # Determine whether the token looks like a JWT (header.payload.signature)
+    # or a raw device credentials secret.  We use a proper structural regex
+    # rather than just counting dots so that a credentials secret that happens
+    # to contain exactly two dots cannot be mistaken for a JWT.
+    is_jwt = is_binary(raw_token) and Regex.match?(@jwt_pattern, raw_token)
 
     {conn, current_user} =
       if is_jwt do

@@ -5,6 +5,10 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
   alias Astarte.PairingWeb.GraphQL.Auth, as: GraphQLAuth
   require Logger
 
+  # We keep the store ID cache key as a module attribute.
+  @openfga_store_id_env "ASTARTE_PAIRING_OPENFGA_STORE_ID"
+  @openfga_store_id_cache_key :openfga_store_id
+
   def call(resolution, opts) do
     if Config.authentication_disabled?() do
       resolution
@@ -24,7 +28,11 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
     legacy_method = Keyword.get(opts, :legacy_method)
     legacy_path_fn = Keyword.get(opts, :legacy_path_fn)
 
-    openfga_url = System.get_env("ASTARTE_PAIRING_OPENFGA_URL") || "http://localhost:8080"
+    openfga_url =
+      Application.get_env(:astarte_pairing, :openfga_url) ||
+        System.get_env("ASTARTE_PAIRING_OPENFGA_URL") ||
+        "http://localhost:8080"
+
     store_id = get_or_fetch_store_id(openfga_url)
 
     if is_nil(store_id) or store_id == "" do
@@ -40,20 +48,38 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
       end
     else
       user = Map.get(context, :current_user)
+      Logger.info("==> [OpenFGA] Current user from context: #{inspect(user)}")
 
+      # Derive a stable user identifier from the resource loaded by Guardian.
+      # Only a non-nil :id field or "sub" claim is accepted. Any other shape
+      # (including a %User{id: nil}) results in nil, which will trigger the
+      # {:user, _} -> Unauthorized branch below instead of sneaking past
+      # authorization as a fabricated identity.
       user_id =
         case user do
           nil -> nil
           %{id: id} when not is_nil(id) -> id
           %{"sub" => sub} when not is_nil(sub) -> sub
-          _ -> "generic_agent"
+          _ -> nil
         end
+
+      Logger.info(
+        "==> [OpenFGA] Authorizing user_id: #{inspect(user_id)} for relation: #{relation} on target_type: #{target_type}"
+      )
 
       with {:user, uid} when not is_nil(uid) <- {:user, user_id},
            {:realm, realm_name} when not is_nil(realm_name) <-
              {:realm, Map.get(context, :realm_name)},
            :ok <-
-             check_openfga(uid, relation, target_type, realm_name, resolution.arguments, store_id, openfga_url) do
+             check_openfga(
+               uid,
+               relation,
+               target_type,
+               realm_name,
+               resolution.arguments,
+               store_id,
+               openfga_url
+             ) do
         resolution
       else
         {:user, _} ->
@@ -134,11 +160,11 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
 
   defp get_or_fetch_store_id(openfga_url) do
     # First, try to see if it was provided via ENV
-    env_store_id = System.get_env("ASTARTE_PAIRING_OPENFGA_STORE_ID")
+    env_store_id = System.get_env(@openfga_store_id_env)
 
     if is_nil(env_store_id) or env_store_id == "" do
-      # If not in ENV, check if we have it cached
-      case :persistent_term.get(:openfga_store_id, nil) do
+      # If not in ENV, check if we have it cached in :persistent_term
+      case :persistent_term.get(@openfga_store_id_cache_key, nil) do
         nil ->
           # If not cached, query OpenFGA for the first available store
           Logger.info("==> [OpenFGA] Fetching store id dynamically from #{openfga_url}/stores")
@@ -147,9 +173,12 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
             {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
               case Jason.decode(body) do
                 {:ok, %{"stores" => [%{"id" => id} | _]}} ->
-                  # Cache the ID for future requests
+                  # Cache the ID for future requests.
+                  # Note: :persistent_term is write-optimised for reads and
+                  # rarely changes. To force a refresh, restart the BEAM or
+                  # set ASTARTE_PAIRING_OPENFGA_STORE_ID explicitly.
                   Logger.info("==> [OpenFGA] Found and cached store id: #{id}")
-                  :persistent_term.put(:openfga_store_id, id)
+                  :persistent_term.put(@openfga_store_id_cache_key, id)
                   id
 
                 _ ->

@@ -196,17 +196,15 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGATest do
     assert %Absinthe.Resolution{errors: ["Internal Server Error during authorization"]} = result
   end
 
-  test "uses 'generic_agent' if user struct has no valid id or sub" do
+  test "returns Unauthorized if user struct has no valid id or sub" do
     System.put_env("ASTARTE_PAIRING_OPENFGA_STORE_ID", "store123")
 
-    # Verifichiamo che la chiamata HTTP contenga esattamente "user:generic_agent"
-    expect(HTTPoison, :post, fn _url, body, _headers ->
-      decoded = Jason.decode!(body)
-      assert decoded["tuple_key"]["user"] == "user:generic_agent"
-      {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"allowed" => true})}}
-    end)
+    # No HTTPoison call should be made — authorization must be rejected
+    # before reaching the OpenFGA check endpoint.
 
-    # Ricreiamo la ESATTA struct che ha causato il bug: id presente, ma a nil!
+    # A %User{id: nil} cannot be mapped to a stable user identifier, so the
+    # middleware must return an Unauthorized error instead of falling back to
+    # a fabricated "generic_agent" identity.
     resolution = %Absinthe.Resolution{
       context: %{
         realm_name: "testrealm",
@@ -216,7 +214,10 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGATest do
 
     opts = [relation: "device_register", target: :realm]
 
-    # La chiamata deve passare con successo usando l'identificativo di fallback
-    assert AuthorizeFGA.call(resolution, opts) == resolution
+    result = AuthorizeFGA.call(resolution, opts)
+
+    assert %Absinthe.Resolution{
+             errors: ["Unauthorized: Missing valid user session"]
+           } = result
   end
 end
