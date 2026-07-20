@@ -42,6 +42,9 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
           |> Logger.warning(tag: "rpc_not_started")
 
         ok ->
+          "RPC server: started successfully: #{inspect(ok)}"
+          |> Logger.debug(tag: "rpc_started")
+
           ok
       end
 
