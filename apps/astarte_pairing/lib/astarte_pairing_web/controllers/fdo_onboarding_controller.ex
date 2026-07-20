@@ -432,26 +432,65 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
 
     with {:ok, device_service_info} <- DeviceServiceInfo.decode(conn.assigns.body),
-         device_id <- generate_device_id(device_service_info),
-         encoded_device_id <- Device.encode_device_id(device_id),
-         {:ok, session} <- Session.add_device_id(conn.assigns.to2_session, realm_name, device_id),
-         {:ok, credentials_secret} <-
-           Engine.register_device(realm_name, encoded_device_id, unconfirmed: true),
          {:ok, response} <-
-           ServiceInfo.build_owner_service_info(
+           build_owner_service_info_response(
              realm_name,
-             session,
-             device_service_info,
-             encoded_device_id,
-             credentials_secret
+             conn.assigns.to2_session,
+             device_service_info
            ) do
       conn
       |> render("secure.cbor", %{cbor_response: response})
     end
   end
 
-  defp generate_device_id(%DeviceServiceInfo{service_info: %{{"devmod", "sn"} => %{value: sn}}}),
-    do: UUID.uuid5(:oid, sn, :raw)
+  defp build_owner_service_info_response(
+         realm_name,
+         session,
+         %DeviceServiceInfo{is_more_service_info: true} = device_service_info
+       ) do
+    ServiceInfo.build_owner_service_info(realm_name, session, device_service_info)
+  end
+
+  defp build_owner_service_info_response(
+         realm_name,
+         session,
+         %DeviceServiceInfo{is_more_service_info: false, service_info: service_info} =
+           device_service_info
+       )
+       when map_size(service_info) == 0 do
+    ServiceInfo.build_owner_service_info(realm_name, session, device_service_info)
+  end
+
+  defp build_owner_service_info_response(
+         realm_name,
+         session,
+         %DeviceServiceInfo{is_more_service_info: false, service_info: service_info}
+       ) do
+    with {:ok, session} <-
+           Session.add_device_service_info(session, realm_name, service_info) do
+      decoded_service_info =
+        Session.decode_device_service_info(session.device_service_info)
+
+      device_id = generate_device_id(decoded_service_info)
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      with {:ok, session} <-
+             Session.add_device_id(session, realm_name, device_id),
+           {:ok, credentials_secret} <-
+             Engine.register_device(realm_name, encoded_device_id, unconfirmed: true) do
+        ServiceInfo.build_owner_service_info(
+          realm_name,
+          session,
+          encoded_device_id,
+          credentials_secret
+        )
+      end
+    end
+  end
+
+  defp generate_device_id(%{{"devmod", "sn"} => %{"value" => sn}}) do
+    UUID.uuid5(:oid, sn, :raw)
+  end
 
   defp generate_device_id(_), do: Device.random_device_id()
 end
