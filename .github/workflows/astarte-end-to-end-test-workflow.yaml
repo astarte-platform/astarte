@@ -16,8 +16,6 @@ on:
   workflow_call:
 
 env:
-  elixir_version: "1.15"
-  otp_version: "26.1"
   CLEA_DEV_BASE: ""
   CLEA_DEV_REALM: ""
   CLEA_DEV_REALM_TOKEN: ""

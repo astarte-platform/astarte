@@ -1,0 +1,778 @@
+11:16:29.403	|INFO | Starting application v1.5.0-dev.  module=Astarte.DataUpdaterPlant.Application function=start/2 tag=data_updater_plant_app_start
+11:16:29.440	|INFO | Running Astarte.DataUpdaterPlantWeb.Router with Bandit 1.11.1 at 0.0.0.0:4000 (http)  module=Bandit function=start_link/1
+11:16:29.477	|DEBUG| AMQPEventsProducer initialized  module=Astarte.Events.AMQPEvents.Producer function=init_producer/0 tag=event_producer_init_ok
+11:16:29.477	|INFO | AMQPTriggers dynamic supervisor init.  module=Astarte.Events.AMQPTriggers.VHostSupervisor function=init/1 tag=amqp_triggers_sup_init
+11:16:29.490	|INFO | Starting Horde.RegistryImpl with name Registry.DataUpdaterRPC  module=Horde.RegistryImpl function=init/1
+11:16:29.494	|INFO | Starting Horde.RegistryImpl with name Registry.VMQPluginRPC  module=Horde.RegistryImpl function=init/1
+11:16:29.500	|INFO | Starting Horde.DynamicSupervisorImpl with name Astarte.DataUpdaterPlant.RPC.Supervisor  module=Horde.DynamicSupervisorImpl function=init/1
+11:16:29.503	|INFO | ConsumersSupervisor init.  module=Mississippi.Consumer function=init/1
+11:16:29.505	|INFO | Starting Horde.RegistryImpl with name Mississippi.Consumer.DataUpdater.Registry  module=Horde.RegistryImpl function=init/1
+11:16:29.505	|INFO | Starting Horde.RegistryImpl with name Mississippi.Consumer.MessageTracker.Registry  module=Horde.RegistryImpl function=init/1
+11:16:29.505	|INFO | Starting Horde.RegistryImpl with name Mississippi.Consumer.AMQPDataConsumer.Registry  module=Horde.RegistryImpl function=init/1
+11:16:29.505	|INFO | Starting Horde.DynamicSupervisorImpl with name Mississippi.Consumer.DataUpdater.Supervisor  module=Horde.DynamicSupervisorImpl function=init/1
+11:16:29.505	|INFO | Starting Horde.DynamicSupervisorImpl with name Mississippi.Consumer.MessageTracker.Supervisor  module=Horde.DynamicSupervisorImpl function=init/1
+11:16:29.506	|INFO | Starting Horde.DynamicSupervisorImpl with name Mississippi.Consumer.AMQPDataConsumer.Supervisor  module=Horde.DynamicSupervisorImpl function=init/1
+11:16:29.523	|DEBUG| AMQPDataConsumer for queue astarte_data_0 initialized  module=Mississippi.Consumer.AMQPDataConsumer function=init_consume/1
+11:16:29.542	|DEBUG| Have 1 queues and 10 channels per connection  module=Mississippi.Producer function=init/1
+11:16:29.542	|DEBUG| Have 1 connections a total of 10 channels  module=Mississippi.Producer function=init/1
+11:16:29.546	|DEBUG| EventsProducer initialized  module=Mississippi.Producer.EventsProducer function=init_producer/1
+Running ExUnit with seed: 550410, max_cases: 32
+
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mwarning: Range.new/2 and first..last default to a step of -1 when last < first. Use Range.new(first, last, -1) or first..last//-1, or pass 1 if that was your intention
+  (cyanide 2.0.0) lib/cyanide.ex:147: Cyanide.parse_value/4
+  (cyanide 2.0.0) lib/cyanide.ex:117: Cyanide.parse_value/4
+  (cyanide 2.0.0) lib/cyanide.ex:43: Cyanide.decode/1
+  (astarte_data_updater_plant 1.5.0-dev) lib/astarte_data_updater_plant/data_updater/payloads_decoder.ex:39: Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder.decode_bson_payload/2
+  test/astarte_data_updater_plant/data_updater/payloads_decoder_test.exs:57: anonymous fn/4 in Astarte.DataUpdaterPlant.PayloadsDecoderTest."property individual value payloads optional metadata and timestamp"/1
+  (stream_data 1.2.0) lib/stream_data.ex:2368: StreamData.check_all/7
+  test/astarte_data_updater_plant/data_updater/payloads_decoder_test.exs:45: Astarte.DataUpdaterPlant.PayloadsDecoderTest."property individual value payloads optional metadata and timestamp"/1
+  (ex_unit 1.20.2) lib/ex_unit/runner.ex:533: ExUnit.Runner.exec_test/2
+  (ex_unit 1.20.2) lib/ex_unit/capture_log.ex:127: ExUnit.CaptureLog.with_log/2
+  (ex_unit 1.20.2) lib/ex_unit/runner.ex:482: anonymous fn/3 in ExUnit.Runner.maybe_capture_log/3
+  (stdlib 7.3) timer.erl:599: :timer.tc/2
+  (ex_unit 1.20.2) lib/ex_unit/runner.ex:455: anonymous fn/6 in ExUnit.Runner.spawn_test_monitor/4
+
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m      warning: variable "random_binary" is unused (if the variable is not meant to be used, prefix it with an underscore)
+      │
+ 1699 │     assert %{shared_secret: random_binary} = dump_state(realm, encoded_device_id)
+      │                             ~~~~~~~~~~~~~
+      │
+      └─ test/astarte_data_updater_plant/data_updater_test.exs:1699:29: Astarte.DataUpdaterPlant.DataUpdaterTest."test the shared secret is loaded from the database when the data updater process comes up"/1
+
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m11:17:19.336	|INFO | == Migrated 15 in 4.4s  module=Ecto.Migration.Runner function=log/3
+11:17:19.342	|INFO | == Running 16 Astarte.DataAccess.Database.Migrations.Realm.RecreateDeviceSessions.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.342	|INFO | create table test715realm779.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:17:19.462	|INFO | == Migrated 17 in 4.4s  module=Ecto.Migration.Runner function=log/3
+11:17:19.465	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.465	|INFO | alter table test10realm74.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:19.619	|INFO | == Migrated 17 in 4.3s  module=Ecto.Migration.Runner function=log/3
+11:17:19.624	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.624	|INFO | alter table test11realm75.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:19.752	|INFO | == Migrated 17 in 4.2s  module=Ecto.Migration.Runner function=log/3
+11:17:19.756	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.756	|INFO | alter table test10818realm10882.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:19.828	|INFO | == Migrated 17 in 4.0s  module=Ecto.Migration.Runner function=log/3
+11:17:19.832	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.832	|INFO | alter table test138realm202.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:19.947	|INFO | == Migrated 17 in 4.0s  module=Ecto.Migration.Runner function=log/3
+11:17:19.951	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:19.951	|INFO | alter table test395realm459.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.35	|INFO | == Migrated 17 in 3.9s  module=Ecto.Migration.Runner function=log/3
+11:17:20.38	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.38	|INFO | alter table test519realm583.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.143	|INFO | == Migrated 17 in 3.8s  module=Ecto.Migration.Runner function=log/3
+11:17:20.149	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.149	|INFO | alter table test1607realm1671.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.295	|INFO | == Migrated 17 in 3.7s  module=Ecto.Migration.Runner function=log/3
+11:17:20.301	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.301	|INFO | alter table test270realm334.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.446	|INFO | == Migrated 17 in 3.6s  module=Ecto.Migration.Runner function=log/3
+11:17:20.452	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.452	|INFO | alter table test267realm331.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.575	|INFO | == Migrated 17 in 3.5s  module=Ecto.Migration.Runner function=log/3
+11:17:20.592	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.592	|INFO | alter table test12611realm12675.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:20.757	|INFO | == Migrated 16 in 3.1s  module=Ecto.Migration.Runner function=log/3
+11:17:20.761	|INFO | == Running 17 Astarte.DataAccess.Database.Migrations.Realm.RemoveReplacementData.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.761	|INFO | alter table test1099realm1163.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:17:20.898	|INFO | == Migrated 17 in 3.1s  module=Ecto.Migration.Runner function=log/3
+11:17:20.902	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:20.902	|INFO | alter table test11202realm11266.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:21.72	|INFO | == Migrated 16 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:21.76	|INFO | == Running 17 Astarte.DataAccess.Database.Migrations.Realm.RemoveReplacementData.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:21.76	|INFO | alter table test839realm903.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:17:21.466	|INFO | == Migrated 18 in 2.8s  module=Ecto.Migration.Runner function=log/3
+11:17:21.473	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:21.473	|INFO | alter table test266realm330.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:21.635	|INFO | == Migrated 18 in 2.8s  module=Ecto.Migration.Runner function=log/3
+11:17:21.640	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:21.640	|INFO | alter table test139realm203.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+[32m.[0m11:17:24.393	|INFO | == Migrated 16 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:24.397	|INFO | == Running 17 Astarte.DataAccess.Database.Migrations.Realm.RemoveReplacementData.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:24.397	|INFO | alter table test715realm779.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:17:24.537	|INFO | == Migrated 18 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:24.546	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:24.546	|INFO | alter table test10realm74.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:24.678	|INFO | == Migrated 18 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:24.681	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:24.681	|INFO | alter table test11realm75.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:24.819	|INFO | == Migrated 18 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:24.823	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:24.823	|INFO | alter table test10818realm10882.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:24.941	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:24.945	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:24.945	|INFO | alter table test138realm202.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.70	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.74	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.74	|INFO | alter table test395realm459.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.195	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.199	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.199	|INFO | alter table test519realm583.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.332	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.336	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.336	|INFO | alter table test1607realm1671.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.478	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.481	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.481	|INFO | alter table test270realm334.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.591	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.594	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.594	|INFO | alter table test267realm331.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.713	|INFO | == Migrated 18 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:25.718	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.718	|INFO | alter table test12611realm12675.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.854	|INFO | == Migrated 17 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:25.859	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.859	|INFO | alter table test1099realm1163.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:25.981	|INFO | == Migrated 18 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:25.988	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:25.988	|INFO | alter table test11202realm11266.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:26.115	|INFO | == Migrated 17 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:26.118	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:26.118	|INFO | alter table test839realm903.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:26.551	|INFO | == Migrated 19 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:26.555	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:26.555	|INFO | alter table test266realm330.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m11:17:27.55	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.64	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.64	|INFO | alter table test10realm74.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.196	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.199	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.199	|INFO | alter table test11realm75.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.317	|INFO | == Migrated 19 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:27.322	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.322	|INFO | alter table test10818realm10882.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.476	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.482	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.482	|INFO | alter table test138realm202.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.585	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.589	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.589	|INFO | alter table test395realm459.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.718	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.723	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.723	|INFO | alter table test519realm583.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:27.870	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:27.876	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:27.876	|INFO | alter table test1607realm1671.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.22	|INFO | == Migrated 19 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:28.27	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.27	|INFO | alter table test270realm334.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.195	|INFO | == Migrated 19 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:28.199	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.199	|INFO | alter table test267realm331.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.357	|INFO | == Migrated 19 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:28.366	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.366	|INFO | alter table test12611realm12675.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.482	|INFO | == Migrated 18 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:28.486	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.486	|INFO | alter table test1099realm1163.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.637	|INFO | == Migrated 19 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:28.641	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.641	|INFO | alter table test11202realm11266.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.821	|INFO | == Migrated 18 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:28.824	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.825	|INFO | alter table test839realm903.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:28.987	|INFO | == Migrated 20 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:28.991	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:28.991	|INFO | create table test266realm330.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:29.95	|INFO | == Migrated 20 in 2.3s  module=Ecto.Migration.Runner function=log/3
+11:17:29.99	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:29.99	|INFO | create table test139realm203.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:29.222	|INFO | == Migrated 18 in 2.3s  module=Ecto.Migration.Runner function=log/3
+11:17:29.226	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:29.226	|INFO | alter table test715realm779.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:32.226	|INFO | == Migrated 20 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:32.231	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.231	|INFO | create table test10realm74.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.340	|INFO | == Migrated 20 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:32.345	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.345	|INFO | create table test11realm75.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.506	|INFO | == Migrated 20 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:32.510	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.510	|INFO | create table test10818realm10882.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.631	|INFO | == Migrated 20 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:32.638	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.638	|INFO | create table test138realm202.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.702	|INFO | == Migrated 20 in 5.1s  module=Ecto.Migration.Runner function=log/3
+11:17:32.706	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.706	|INFO | create table test395realm459.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.803	|INFO | == Migrated 20 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:32.806	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.807	|INFO | create table test519realm583.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:32.913	|INFO | == Migrated 20 in 5.0s  module=Ecto.Migration.Runner function=log/3
+11:17:32.916	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:32.916	|INFO | create table test1607realm1671.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:33.13	|INFO | == Migrated 20 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.20	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.20	|INFO | create table test270realm334.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:33.152	|INFO | == Migrated 20 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.159	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.159	|INFO | create table test267realm331.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:33.281	|INFO | == Migrated 20 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.284	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.285	|INFO | create table test12611realm12675.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:33.435	|INFO | == Migrated 19 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.445	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.445	|INFO | alter table test1099realm1163.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:33.618	|INFO | == Migrated 20 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.622	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.622	|INFO | create table test11202realm11266.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:33.741	|INFO | == Migrated 19 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.745	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.745	|INFO | alter table test839realm903.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:33.923	|INFO | == Migrated 21 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:33.927	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:33.927	|INFO | alter table test266realm330.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:34.92	|INFO | == Migrated 21 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:34.96	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.96	|INFO | alter table test139realm203.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:34.218	|INFO | == Migrated 19 in 4.9s  module=Ecto.Migration.Runner function=log/3
+11:17:34.221	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.222	|INFO | alter table test715realm779.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:17:34.386	|INFO | == Migrated 21 in 2.1s  module=Ecto.Migration.Runner function=log/3
+11:17:34.390	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.390	|INFO | alter table test10realm74.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:34.643	|INFO | == Migrated 21 in 2.2s  module=Ecto.Migration.Runner function=log/3
+11:17:34.651	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.651	|INFO | alter table test11realm75.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:34.804	|INFO | == Migrated 21 in 2.2s  module=Ecto.Migration.Runner function=log/3
+11:17:34.810	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.810	|INFO | alter table test10818realm10882.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:34.971	|INFO | == Migrated 21 in 2.3s  module=Ecto.Migration.Runner function=log/3
+11:17:34.975	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:34.975	|INFO | alter table test138realm202.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:35.159	|INFO | == Migrated 21 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:35.163	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:35.163	|INFO | alter table test395realm459.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:35.342	|INFO | == Migrated 21 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:35.346	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:35.346	|INFO | alter table test519realm583.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:35.485	|INFO | == Migrated 21 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:35.490	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:35.490	|INFO | alter table test1607realm1671.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:35.640	|INFO | == Migrated 21 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:35.643	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:35.643	|INFO | alter table test270realm334.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:35.811	|INFO | == Migrated 21 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:35.816	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:35.816	|INFO | alter table test267realm331.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:36.33	|INFO | == Migrated 21 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.38	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.38	|INFO | alter table test12611realm12675.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:36.179	|INFO | == Migrated 20 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.188	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.188	|INFO | create table test1099realm1163.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:36.332	|INFO | == Migrated 21 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.336	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.336	|INFO | alter table test11202realm11266.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:36.472	|INFO | == Migrated 20 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.478	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.478	|INFO | create table test839realm903.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:36.653	|INFO | == Migrated 22 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.658	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.658	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:36.663	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.663	|INFO | alter table test266realm330.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:36.802	|INFO | == Migrated 22 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:36.807	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.807	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:36.810	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:36.810	|INFO | alter table test139realm203.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.7	|INFO | == Migrated 20 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:37.13	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.13	|INFO | create table test715realm779.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:17:37.156	|INFO | == Migrated 22 in 2.7s  module=Ecto.Migration.Runner function=log/3
+11:17:37.160	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.160	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.165	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.165	|INFO | alter table test10realm74.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.311	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:37.317	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.318	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.325	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.326	|INFO | alter table test11realm75.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.484	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:37.488	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.488	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.491	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.491	|INFO | alter table test10818realm10882.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.639	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:37.646	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.646	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.651	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.651	|INFO | alter table test138realm202.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.787	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:37.791	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.791	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.796	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.796	|INFO | alter table test395realm459.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:37.937	|INFO | == Migrated 22 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:37.943	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.944	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:37.948	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:37.949	|INFO | alter table test519realm583.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:38.117	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:38.122	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.122	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:38.125	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.126	|INFO | alter table test1607realm1671.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:38.279	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:38.283	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.283	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:38.286	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.286	|INFO | alter table test270realm334.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:38.455	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:38.458	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.459	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:38.461	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.461	|INFO | alter table test267realm331.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:38.588	|INFO | == Migrated 22 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:38.594	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.594	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:38.598	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.598	|INFO | alter table test12611realm12675.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:38.798	|INFO | == Migrated 21 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:38.801	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.801	|INFO | alter table test1099realm1163.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:38.950	|INFO | == Migrated 22 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:38.953	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.954	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:38.956	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:38.956	|INFO | alter table test11202realm11266.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:39.145	|INFO | == Migrated 21 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:39.149	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.149	|INFO | alter table test839realm903.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:39.258	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:39.265	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.265	|INFO | alter table test266realm330.devices  module=Ecto.Migration.Runner function=log/3
+11:17:39.426	|INFO | == Migrated 24 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:39.429	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.429	|INFO | alter table test139realm203.devices  module=Ecto.Migration.Runner function=log/3
+11:17:39.623	|INFO | == Migrated 21 in 2.6s  module=Ecto.Migration.Runner function=log/3
+11:17:39.627	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.627	|INFO | alter table test715realm779.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:17:39.762	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:39.769	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.769	|INFO | alter table test10realm74.devices  module=Ecto.Migration.Runner function=log/3
+11:17:39.906	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:39.909	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:39.909	|INFO | alter table test11realm75.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.58	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:40.61	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.62	|INFO | alter table test10818realm10882.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.207	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:40.211	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.211	|INFO | alter table test138realm202.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.331	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:40.334	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.334	|INFO | alter table test395realm459.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.479	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:40.484	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.484	|INFO | alter table test519realm583.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.632	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:40.636	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.636	|INFO | alter table test1607realm1671.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.753	|INFO | == Migrated 24 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:40.757	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.757	|INFO | alter table test270realm334.devices  module=Ecto.Migration.Runner function=log/3
+11:17:40.899	|INFO | == Migrated 24 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:40.902	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:40.903	|INFO | alter table test267realm331.devices  module=Ecto.Migration.Runner function=log/3
+11:17:41.33	|INFO | == Migrated 24 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:41.37	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.37	|INFO | alter table test12611realm12675.devices  module=Ecto.Migration.Runner function=log/3
+11:17:41.173	|INFO | == Migrated 22 in 2.3s  module=Ecto.Migration.Runner function=log/3
+11:17:41.178	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.179	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:41.184	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.184	|INFO | alter table test1099realm1163.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:41.419	|INFO | == Migrated 24 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:41.425	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.425	|INFO | alter table test11202realm11266.devices  module=Ecto.Migration.Runner function=log/3
+11:17:41.554	|INFO | == Migrated 22 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:41.559	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.559	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:41.563	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:41.563	|INFO | alter table test839realm903.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:41.687	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:41.687	|INFO | Finished migrating realm.  realm=realm330 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:41.860	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:41.860	|INFO | Finished migrating realm.  realm=realm203 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.159	|INFO | == Migrated 22 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:42.164	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:42.165	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:17:42.173	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:42.173	|INFO | alter table test715realm779.endpoints  module=Ecto.Migration.Runner function=log/3
+11:17:42.289	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:42.290	|INFO | Finished migrating realm.  realm=realm74 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.410	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:42.411	|INFO | Finished migrating realm.  realm=realm75 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.572	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:42.573	|INFO | Finished migrating realm.  realm=realm10882 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.705	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:42.705	|INFO | Finished migrating realm.  realm=realm202 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.813	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:42.814	|INFO | Finished migrating realm.  realm=realm459 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:42.944	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:42.944	|INFO | Finished migrating realm.  realm=realm583 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:43.95	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:43.96	|INFO | Finished migrating realm.  realm=realm1671 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:43.270	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:43.271	|INFO | Finished migrating realm.  realm=realm334 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:43.432	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:43.433	|INFO | Finished migrating realm.  realm=realm331 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:43.568	|INFO | == Migrated 25 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:43.568	|INFO | Finished migrating realm.  realm=realm12675 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:43.708	|INFO | == Migrated 24 in 2.5s  module=Ecto.Migration.Runner function=log/3
+11:17:43.712	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:43.712	|INFO | alter table test1099realm1163.devices  module=Ecto.Migration.Runner function=log/3
+11:17:43.884	|INFO | == Migrated 25 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:43.885	|INFO | Finished migrating realm.  realm=realm11266 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+11:17:44.44	|INFO | == Migrated 24 in 2.4s  module=Ecto.Migration.Runner function=log/3
+11:17:44.48	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:17:44.48	|INFO | alter table test839realm903.devices  module=Ecto.Migration.Runner function=log/3
+Handling data with sharding_key {"realm11266", <<213, 75, 72, 43, 12, 3, 79, 181, 172, 178, 68, 125, 100, 252, 44, 205>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<144, 89, 226, 93, 34, 222, 78, 138, 187, 118, 165, 112, 235, 33, 163, 33>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<205, 251, 17, 197, 193, 62, 70, 153, 146, 237, 223, 94, 149, 198, 53, 189>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<114, 209, 27, 79, 224, 175, 74, 200, 134, 170, 188, 241, 234, 243, 99, 253>>}
+[32m.[0mHandling data with sharding_key {"realm330", <<39, 60, 196, 233, 158, 83, 64, 249, 158, 168, 139, 65, 237, 110, 164, 122>>}
+[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm1671", <<94, 75, 44, 47, 159, 128, 68, 182, 132, 32, 47, 241, 6, 2, 122, 148>>}
+
+
+  1) test handle_internal/4 handles heartbeat messages (Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest)
+     [1m[30mtest/astarte_data_updater_plant/data_updater/core/internal_test.exs:35[0m
+     [31m** (Mimic.UnexpectedCallError) Astarte.DataUpdaterPlant.DataUpdater.Core.HeartbeatHandler.handle_heartbeat/2 called in process #PID<0.7467.0> but expectations are already fulfilled[0m
+     [36mcode: [0mCore.InternalHandler.handle_internal(
+     [36mstacktrace:[0m
+       (mimic 2.3.0) lib/mimic/server.ex:145: Mimic.Server.do_apply/5
+       test/astarte_data_updater_plant/data_updater/core/internal_test.exs:47: (test)
+
+[32m.[0m[32m.[0mHandling data with sharding_key {"realm12675", <<34, 215, 33, 119, 45, 105, 66, 194, 136, 66, 181, 66, 193, 12, 157, 138>>}
+Handling data with sharding_key {"realm75", <<160, 134, 11, 122, 179, 12, 78, 89, 130, 255, 141, 142, 17, 232, 243, 125>>}
+[32m.[0m[32m.[0mHandling data with sharding_key {"realm459", <<51, 130, 51, 57, 180, 245, 73, 102, 159, 149, 83, 25, 238, 157, 119, 145>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm583", <<98, 96, 204, 210, 144, 205, 74, 17, 143, 196, 26, 93, 2, 220, 85, 249>>}
+Handling data with sharding_key {"realm334", <<23, 118, 30, 94, 84, 91, 64, 224, 174, 162, 43, 217, 180, 172, 63, 234>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm203", <<1, 75, 124, 85, 34, 193, 74, 246, 184, 30, 89, 213, 0, 138, 10, 146>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm74", <<34, 172, 240, 147, 229, 25, 77, 103, 160, 162, 253, 217, 134, 80, 211, 115>>}
+Handling data with sharding_key {"realm1163", <<182, 11, 213, 30, 42, 178, 68, 1, 171, 231, 121, 76, 50, 112, 145, 27>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm202", <<127, 144, 143, 221, 79, 123, 76, 153, 178, 46, 75, 141, 166, 15, 208, 69>>}
+Handling data with sharding_key {"realm10882", <<150, 229, 144, 71, 160, 135, 73, 18, 138, 179, 152, 157, 66, 90, 41, 227>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm903", <<220, 82, 234, 175, 74, 83, 66, 71, 158, 86, 221, 227, 122, 131, 20, 74>>}
+Handling data with sharding_key {"realm779", <<207, 75, 56, 206, 9, 203, 71, 138, 169, 151, 132, 75, 240, 91, 80, 17>>}
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m?[0m[33m?[0m[33m?[0m[33m?[0m[33m?[0m[33m?[0m[33m?[0m
+
+  1) Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest: failure on setup_all callback, all tests have been invalidated
+     [31m** (Xandra.Error) unconfigured table cr_b_v8[0m
+     [36mstacktrace:[0m
+       (ecto_sql 3.13.4) lib/ecto/adapters/sql.ex:1113: Ecto.Adapters.SQL.raise_sql_call_error/1
+       (exandra 0.16.0) lib/exandra.ex:410: Exandra.insert_all/8
+       (ecto 3.13.5) lib/ecto/repo/schema.ex:84: Ecto.Repo.Schema.do_insert_all/7
+       (astarte_data_access 1.5.0-dev) lib/astarte_data_access/device.ex:461: Astarte.DataAccess.Device.insert_value_into_db/1
+       (astarte_data_updater_plant 1.5.0-dev) test/support/helpers/database.ex:367: anonymous fn/6 in Astarte.Helpers.Database.insert_values/5
+       (elixir 1.20.2) lib/enum.ex:4706: Enum.scan_list/3
+       (astarte_data_updater_plant 1.5.0-dev) test/support/cases/device.ex:188: Astarte.Cases.Device.populate/4
+       (astarte_data_updater_plant 1.5.0-dev) test/support/cases/device.ex:153: anonymous fn/4 in Astarte.Cases.Device.populate_interfaces/1
+       (elixir 1.20.2) lib/enum.ex:1725: Enum."-map/2-lists^map/1-1-"/2
+       (elixir 1.20.2) lib/enum.ex:1725: Enum."-map/2-lists^map/1-1-"/2
+       (astarte_data_updater_plant 1.5.0-dev) test/support/cases/device.ex:150: Astarte.Cases.Device.populate_interfaces/1
+       test/astarte_data_updater_plant/data_updater/core/interface_test.exs:21: Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest.__ex_unit__/2
+
+Handling data with sharding_key {"realm30594", <<187, 248, 180, 176, 20, 18, 79, 156, 132, 33, 202, 187, 44, 81, 131, 174>>}
+[32m.[0mHandling data with sharding_key {"realm48770", <<206, 180, 211, 175, 128, 130, 69, 222, 184, 63, 94, 95, 246, 94, 182, 41>>}
+
+
+  2) test retrieve_realms!/0 returns the list of realms (Astarte.DataUpdaterPlant.DataUpdater.QueriesTest)
+     [1m[30mtest/astarte_data_updater_plant/data_updater/queries_test.exs:410[0m
+     [31m** (ExUnit.TimeoutError) test timed out after 120000ms. You can change the timeout:
+
+       1. per test by setting "@tag timeout: x" (accepts :infinity)
+       2. per test module by setting "@moduletag timeout: x" (accepts :infinity)
+       3. globally via "ExUnit.start(timeout: x)" configuration
+       4. by running "mix test --timeout x" which sets timeout
+       5. or by running "mix test --trace" which sets timeout to infinity
+          (useful when using IEx.pry/0)
+
+     where "x" is the timeout given as integer in milliseconds (defaults to 60_000).
+     [0m
+     [36mstacktrace:[0m
+       (elixir 1.20.2) lib/task.ex:883: Task.await_receive/3
+       (ecto_sql 3.13.4) lib/ecto/migrator.ex:585: Ecto.Migrator.lock_for_migrations/4
+       (ecto_sql 3.13.4) lib/ecto/migrator.ex:757: anonymous fn/5 in Ecto.Migrator.migrate/4
+       (elixir 1.20.2) lib/enum.ex:2622: Enum."-reduce/3-lists^foldl/2-0-"/3
+       (ecto_sql 3.13.4) lib/ecto/migrator.ex:756: Ecto.Migrator.migrate/4
+       (astarte_data_access 1.5.0-dev) lib/astarte_data_access/database/database.ex:115: Astarte.DataAccess.Database.migrate_realm/1
+       (astarte_data_updater_plant 1.5.0-dev) test/support/helpers/database.ex:143: Astarte.Helpers.Database.setup_realm_keyspace!/1
+       (astarte_data_updater_plant 1.5.0-dev) test/support/helpers/database.ex:131: Astarte.Helpers.Database.setup!/1
+       (astarte_data_updater_plant 1.5.0-dev) test/support/cases/data.ex:70: anonymous fn/2 in Astarte.Cases.Data.setup_instance/2
+       (elixir 1.20.2) lib/enum.ex:2622: Enum."-reduce/3-lists^foldl/2-0-"/3
+       (astarte_data_updater_plant 1.5.0-dev) test/support/cases/data.ex:69: Astarte.Cases.Data.setup_instance/2
+       test/astarte_data_updater_plant/data_updater/queries_test.exs:405: Astarte.DataUpdaterPlant.DataUpdater.QueriesTest.__ex_unit_setup_5_0/1
+       Astarte.DataUpdaterPlant.DataUpdater.QueriesTest.__ex_unit_describe_5/1
+       (ex_unit 1.20.2) lib/ex_unit/runner.ex:526: ExUnit.Runner.exec_test_setup/2
+       (ex_unit 1.20.2) lib/ex_unit/runner.ex:459: anonymous fn/2 in ExUnit.Runner.spawn_test_monitor/4
+       (ex_unit 1.20.2) lib/ex_unit/capture_log.ex:127: ExUnit.CaptureLog.with_log/2
+       (ex_unit 1.20.2) lib/ex_unit/runner.ex:482: anonymous fn/3 in ExUnit.Runner.maybe_capture_log/3
+       (stdlib 7.3) timer.erl:599: :timer.tc/2
+       (ex_unit 1.20.2) lib/ex_unit/runner.ex:455: anonymous fn/6 in ExUnit.Runner.spawn_test_monitor/4
+
+[32m.[0m[32m.[0m[32m.[0mHandling data with sharding_key {"realm11266", <<66, 216, 143, 3, 77, 185, 65, 190, 147, 97, 218, 251, 43, 12, 139, 208>>}
+[32m.[0mHandling data with sharding_key {"realm27267", <<163, 15, 61, 16, 2, 30, 74, 32, 144, 73, 172, 160, 91, 153, 117, 241>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<38, 61, 108, 40, 87, 81, 76, 122, 155, 188, 61, 113, 81, 118, 213, 111>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<230, 173, 169, 49, 188, 5, 70, 51, 189, 34, 54, 119, 111, 111, 85, 234>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<157, 142, 133, 108, 169, 74, 75, 96, 187, 70, 222, 34, 124, 76, 110, 31>>}
+[32m.[0mHandling data with sharding_key {"realm50370", <<237, 94, 32, 237, 61, 187, 78, 112, 135, 133, 89, 214, 147, 204, 204, 183>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<105, 165, 169, 66, 139, 221, 70, 178, 130, 157, 144, 184, 241, 70, 30, 68>>}
+[32m.[0mHandling data with sharding_key {"realm51074", <<14, 1, 185, 225, 123, 189, 64, 208, 136, 206, 166, 94, 124, 226, 4, 116>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<225, 99, 196, 227, 242, 192, 75, 56, 158, 92, 172, 50, 1, 207, 4, 72>>}
+[32m.[0mHandling data with sharding_key {"realm11266", <<247, 41, 177, 27, 33, 168, 66, 159, 161, 4, 238, 83, 255, 250, 21, 253>>}
+[32m.[0m
+
+  3) test events producer reconnects in case of error (Astarte.DataUpdaterPlant.AMQPEventsProducerTest)
+     [1m[30mtest/astarte_data_updater_plant/amqp_events_producer_test.exs:28[0m
+     [31mAssertion failed, no matching message after 100ms
+     The process mailbox is empty.[0m
+     [36mcode: [0massert_receive :reconnection_done
+     [36mstacktrace:[0m
+       test/astarte_data_updater_plant/amqp_events_producer_test.exs:48: (test)
+
+     The following output was logged:
+     11:21:25.11	|WARNING| RabbitMQ channel crashed: :normal. Trying to reconnect...  module=Astarte.Events.AMQPEvents.Producer function=handle_info/2 tag=events_producer_conn_lost
+     11:21:25.12	|WARNING| Failed to check out channel for producer: :disconnected  module=Astarte.Events.AMQPEvents.Producer function=checkout_channel/1 tag=event_producer_channel_checkout_fail
+     11:21:25.12	|WARNING| Retrying connection in 0 ms  module=Astarte.Events.AMQPEvents.Producer function=schedule_connect/0
+     11:21:25.14	|WARNING| Failed to check out channel for producer: :out_of_channels  module=Astarte.Events.AMQPEvents.Producer function=checkout_channel/1 tag=event_producer_channel_checkout_fail
+     11:21:25.15	|WARNING| Retrying connection in 0 ms  module=Astarte.Events.AMQPEvents.Producer function=schedule_connect/0
+     11:21:25.16	|ERROR| GenServer Astarte.Events.AMQPEvents.Producer terminating
+     ** (Mimic.UnexpectedCallError) AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled
+         (mimic 2.3.0) lib/mimic/server.ex:145: Mimic.Server.do_apply/5
+         test/astarte_data_updater_plant/amqp_events_producer_test.exs:38: anonymous fn/2 in Astarte.DataUpdaterPlant.AMQPEventsProducerTest."test events producer reconnects in case of error"/1
+         (astarte_events 1.5.0-dev) lib/astarte_events/amqp_events/producer.ex:155: Astarte.Events.AMQPEvents.Producer.checkout_channel/1
+         (astarte_events 1.5.0-dev) lib/astarte_events/amqp_events/producer.ex:140: Astarte.Events.AMQPEvents.Producer.init_producer/0
+         (astarte_events 1.5.0-dev) lib/astarte_events/amqp_events/producer.ex:124: Astarte.Events.AMQPEvents.Producer.handle_info/2
+         (stdlib 7.3) gen_server.erl:2434: :gen_server.try_handle_info/3
+         (stdlib 7.3) gen_server.erl:2420: :gen_server.handle_msg/3
+         (stdlib 7.3) proc_lib.erl:333: :proc_lib.init_p_do_apply/3
+     Last message: :init
+     State: :not_connected  module=gen_server function=error_info/7
+     11:21:25.22	|DEBUG| AMQPEventsProducer initialized  module=Astarte.Events.AMQPEvents.Producer function=init_producer/0 tag=event_producer_init_ok
+     11:21:25.20	|ERROR| GenServer #PID<0.12098.0> terminating
+     ** (stop) ~c"stopping because dependent process <0.1022.0> died: {\#{message =>\n                                                        <<\"AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled\">>,\n                                                       '__struct__' =>\n                                                        'Elixir.Mimic.UnexpectedCallError',\n                                                       '__exception__' =>\n                                                        true},\n                                                     [{'Elixir.Mimic.Server',\n                                                       do_apply,5,\n                                                       [{file,\n                                                         \"lib/mimic/server.ex\"},\n                                                        {line,145}]},\n                                                      {'Elixir.Astarte.DataUpdaterPlant.AMQPEventsProducerTest',\n                                                       '-test events producer reconnects in case of error/1-fun-0-',\n                                                       2,\n                                                       [{file,\n                                                         \"test/astarte_data_updater_plant/amqp_events_producer_test.exs\"},\n                                                        {line,38}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       checkout_channel,1,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,155}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       init_producer,0,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,140}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       handle_info,2,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,124}]},\n                                                      {gen_server,\n                                                       try_handle_info,3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2434}]},\n                                                      {gen_server,handle_msg,\n                                                       3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2420}]},\n                                                      {proc_lib,\n                                                       init_p_do_apply,3,\n                                                       [{file,\"proc_lib.erl\"},\n                                                        {line,333}]}]}"
+     Last message: {:EXIT, #PID<0.1022.0>, {%Mimic.UnexpectedCallError{message: "AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled"}, [{Mimic.Server, :do_apply, 5, [file: ~c"lib/mimic/server.ex", line: 145]}, {Astarte.DataUpdaterPlant.AMQPEventsProducerTest, :"-test events producer reconnects in case of error/1-fun-0-", 2, [file: ~c"test/astarte_data_updater_plant/amqp_events_producer_test.exs", line: 38]}, {Astarte.Events.AMQPEvents.Producer, :checkout_channel, 1, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 155]}, {Astarte.Events.AMQPEvents.Producer, :init_producer, 0, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 140]}, {Astarte.Events.AMQPEvents.Producer, :handle_info, 2, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 124]}, {:gen_server, :try_handle_info, 3, [file: ~c"gen_server.erl", line: 2434]}, {:gen_server, :handle_msg, 3, [file: ~c"gen_server.erl", line: 2420]}, {:proc_lib, :init_p_do_apply, 3, [file: ~c"proc_lib.erl", line: 333]}]}}
+     State: {:state, :amqp_network_connection, {:state, #Port<0.167>, "client 127.0.0.1:36352 -> 127.0.0.1:5672", 10, #PID<0.12101.0>, 131072, #PID<0.12097.0>, :undefined, false}, #PID<0.12100.0>, {:amqp_params_network, "guest", {:plaintext, "guest"}, "/", ~c"localhost", 5672, 13, 0, 10, 50000, :none, [&:amqp_auth_mechanisms.plain/3, &:amqp_auth_mechanisms.amqplain/3], [], []}, 13, [{"capabilities", :table, [{"publisher_confirms", :bool, true}, {"exchange_exchange_bindings", :bool, true}, {"basic.nack", :bool, true}, {"consumer_cancel_notify", :bool, true}, {"connection.blocked", :bool, true}, {"consumer_priorities", :bool, true}, {"authentication_failure_close", :bool, true}, {"per_consumer_qos", :bool, true}, {"direct_reply_to", :bool, true}]}, {"cluster_name", :longstr, "rabbit@800eaa55b3cd"}, {"copyright", :longstr, "Copyright (c) 2007-2025 Broadcom Inc and/or its subsidiaries"}, {"information", :longstr, "Licensed under the MPL 2.0. Website: https://rabbitmq.com"}, {"platform", :longstr, "Erlang/OTP 27.3.4.2"}, {"product", :longstr, "RabbitMQ"}, {"version", :longstr, "4.1.3"}], :none, %{}, false}  module=gen_server function=error_info/7
+     11:21:25.20	|ERROR| GenServer #PID<0.12109.0> terminating
+     ** (stop) ~c"stopping because dependent process <0.1022.0> died: {\#{message =>\n                                                        <<\"AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled\">>,\n                                                       '__struct__' =>\n                                                        'Elixir.Mimic.UnexpectedCallError',\n                                                       '__exception__' =>\n                                                        true},\n                                                     [{'Elixir.Mimic.Server',\n                                                       do_apply,5,\n                                                       [{file,\n                                                         \"lib/mimic/server.ex\"},\n                                                        {line,145}]},\n                                                      {'Elixir.Astarte.DataUpdaterPlant.AMQPEventsProducerTest',\n                                                       '-test events producer reconnects in case of error/1-fun-0-',\n                                                       2,\n                                                       [{file,\n                                                         \"test/astarte_data_updater_plant/amqp_events_producer_test.exs\"},\n                                                        {line,38}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       checkout_channel,1,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,155}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       init_producer,0,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,140}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       handle_info,2,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,124}]},\n                                                      {gen_server,\n                                                       try_handle_info,3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2434}]},\n                                                      {gen_server,handle_msg,\n                                                       3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2420}]},\n                                                      {proc_lib,\n                                                       init_p_do_apply,3,\n                                                       [{file,\"proc_lib.erl\"},\n                                                        {line,333}]}]}"
+     Last message: {:EXIT, #PID<0.1022.0>, {%Mimic.UnexpectedCallError{message: "AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled"}, [{Mimic.Server, :do_apply, 5, [file: ~c"lib/mimic/server.ex", line: 145]}, {Astarte.DataUpdaterPlant.AMQPEventsProducerTest, :"-test events producer reconnects in case of error/1-fun-0-", 2, [file: ~c"test/astarte_data_updater_plant/amqp_events_producer_test.exs", line: 38]}, {Astarte.Events.AMQPEvents.Producer, :checkout_channel, 1, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 155]}, {Astarte.Events.AMQPEvents.Producer, :init_producer, 0, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 140]}, {Astarte.Events.AMQPEvents.Producer, :handle_info, 2, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 124]}, {:gen_server, :try_handle_info, 3, [file: ~c"gen_server.erl", line: 2434]}, {:gen_server, :handle_msg, 3, [file: ~c"gen_server.erl", line: 2420]}, {:proc_lib, :init_p_do_apply, 3, [file: ~c"proc_lib.erl", line: 333]}]}}
+     State: {:state, :amqp_network_connection, {:state, #Port<0.168>, "client 127.0.0.1:36356 -> 127.0.0.1:5672", 10, #PID<0.12112.0>, 131072, #PID<0.12108.0>, :undefined, false}, #PID<0.12111.0>, {:amqp_params_network, "guest", {:plaintext, "guest"}, "/", ~c"localhost", 5672, 13, 0, 10, 50000, :none, [&:amqp_auth_mechanisms.plain/3, &:amqp_auth_mechanisms.amqplain/3], [], []}, 13, [{"capabilities", :table, [{"publisher_confirms", :bool, true}, {"exchange_exchange_bindings", :bool, true}, {"basic.nack", :bool, true}, {"consumer_cancel_notify", :bool, true}, {"connection.blocked", :bool, true}, {"consumer_priorities", :bool, true}, {"authentication_failure_close", :bool, true}, {"per_consumer_qos", :bool, true}, {"direct_reply_to", :bool, true}]}, {"cluster_name", :longstr, "rabbit@800eaa55b3cd"}, {"copyright", :longstr, "Copyright (c) 2007-2025 Broadcom Inc and/or its subsidiaries"}, {"information", :longstr, "Licensed under the MPL 2.0. Website: https://rabbitmq.com"}, {"platform", :longstr, "Erlang/OTP 27.3.4.2"}, {"product", :longstr, "RabbitMQ"}, {"version", :longstr, "4.1.3"}], :none, %{}, false}  module=gen_server function=error_info/7
+     11:21:25.20	|ERROR| GenServer #PID<0.1025.0> terminating
+     ** (stop) ~c"stopping because dependent process <0.1022.0> died: {\#{message =>\n                                                        <<\"AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled\">>,\n                                                       '__struct__' =>\n                                                        'Elixir.Mimic.UnexpectedCallError',\n                                                       '__exception__' =>\n                                                        true},\n                                                     [{'Elixir.Mimic.Server',\n                                                       do_apply,5,\n                                                       [{file,\n                                                         \"lib/mimic/server.ex\"},\n                                                        {line,145}]},\n                                                      {'Elixir.Astarte.DataUpdaterPlant.AMQPEventsProducerTest',\n                                                       '-test events producer reconnects in case of error/1-fun-0-',\n                                                       2,\n                                                       [{file,\n                                                         \"test/astarte_data_updater_plant/amqp_events_producer_test.exs\"},\n                                                        {line,38}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       checkout_channel,1,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,155}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       init_producer,0,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,140}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       handle_info,2,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,124}]},\n                                                      {gen_server,\n                                                       try_handle_info,3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2434}]},\n                                                      {gen_server,handle_msg,\n                                                       3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2420}]},\n                                                      {proc_lib,\n                                                       init_p_do_apply,3,\n                                                       [{file,\"proc_lib.erl\"},\n                                                        {line,333}]}]}"
+     Last message: {:EXIT, #PID<0.1022.0>, {%Mimic.UnexpectedCallError{message: "AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled"}, [{Mimic.Server, :do_apply, 5, [file: ~c"lib/mimic/server.ex", line: 145]}, {Astarte.DataUpdaterPlant.AMQPEventsProducerTest, :"-test events producer reconnects in case of error/1-fun-0-", 2, [file: ~c"test/astarte_data_updater_plant/amqp_events_producer_test.exs", line: 38]}, {Astarte.Events.AMQPEvents.Producer, :checkout_channel, 1, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 155]}, {Astarte.Events.AMQPEvents.Producer, :init_producer, 0, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 140]}, {Astarte.Events.AMQPEvents.Producer, :handle_info, 2, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 124]}, {:gen_server, :try_handle_info, 3, [file: ~c"gen_server.erl", line: 2434]}, {:gen_server, :handle_msg, 3, [file: ~c"gen_server.erl", line: 2420]}, {:proc_lib, :init_p_do_apply, 3, [file: ~c"proc_lib.erl", line: 333]}]}}
+     State: {:state, :amqp_network_connection, {:state, #Port<0.50>, "client 127.0.0.1:44346 -> 127.0.0.1:5672", 10, #PID<0.1028.0>, 131072, #PID<0.1024.0>, :undefined, false}, #PID<0.1027.0>, {:amqp_params_network, "guest", {:plaintext, "guest"}, "/", ~c"localhost", 5672, 13, 0, 10, 50000, :none, [&:amqp_auth_mechanisms.plain/3, &:amqp_auth_mechanisms.amqplain/3], [], []}, 13, [{"capabilities", :table, [{"publisher_confirms", :bool, true}, {"exchange_exchange_bindings", :bool, true}, {"basic.nack", :bool, true}, {"consumer_cancel_notify", :bool, true}, {"connection.blocked", :bool, true}, {"consumer_priorities", :bool, true}, {"authentication_failure_close", :bool, true}, {"per_consumer_qos", :bool, true}, {"direct_reply_to", :bool, true}]}, {"cluster_name", :longstr, "rabbit@800eaa55b3cd"}, {"copyright", :longstr, "Copyright (c) 2007-2025 Broadcom Inc and/or its subsidiaries"}, {"information", :longstr, "Licensed under the MPL 2.0. Website: https://rabbitmq.com"}, {"platform", :longstr, "Erlang/OTP 27.3.4.2"}, {"product", :longstr, "RabbitMQ"}, {"version", :longstr, "4.1.3"}], :none, %{}, false}  module=gen_server function=error_info/7
+     11:21:25.20	|ERROR| GenServer #PID<0.12120.0> terminating
+     ** (stop) ~c"stopping because dependent process <0.1022.0> died: {\#{message =>\n                                                        <<\"AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled\">>,\n                                                       '__struct__' =>\n                                                        'Elixir.Mimic.UnexpectedCallError',\n                                                       '__exception__' =>\n                                                        true},\n                                                     [{'Elixir.Mimic.Server',\n                                                       do_apply,5,\n                                                       [{file,\n                                                         \"lib/mimic/server.ex\"},\n                                                        {line,145}]},\n                                                      {'Elixir.Astarte.DataUpdaterPlant.AMQPEventsProducerTest',\n                                                       '-test events producer reconnects in case of error/1-fun-0-',\n                                                       2,\n                                                       [{file,\n                                                         \"test/astarte_data_updater_plant/amqp_events_producer_test.exs\"},\n                                                        {line,38}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       checkout_channel,1,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,155}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       init_producer,0,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,140}]},\n                                                      {'Elixir.Astarte.Events.AMQPEvents.Producer',\n                                                       handle_info,2,\n                                                       [{file,\n                                                         \"lib/astarte_events/amqp_events/producer.ex\"},\n                                                        {line,124}]},\n                                                      {gen_server,\n                                                       try_handle_info,3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2434}]},\n                                                      {gen_server,handle_msg,\n                                                       3,\n                                                       [{file,\n                                                         \"gen_server.erl\"},\n                                                        {line,2420}]},\n                                                      {proc_lib,\n                                                       init_p_do_apply,3,\n                                                       [{file,\"proc_lib.erl\"},\n                                                        {line,333}]}]}"
+     Last message: {:EXIT, #PID<0.1022.0>, {%Mimic.UnexpectedCallError{message: "AMQP.Channel.open/1 called in process #PID<0.1022.0> but expectations are already fulfilled"}, [{Mimic.Server, :do_apply, 5, [file: ~c"lib/mimic/server.ex", line: 145]}, {Astarte.DataUpdaterPlant.AMQPEventsProducerTest, :"-test events producer reconnects in case of error/1-fun-0-", 2, [file: ~c"test/astarte_data_updater_plant/amqp_events_producer_test.exs", line: 38]}, {Astarte.Events.AMQPEvents.Producer, :checkout_channel, 1, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 155]}, {Astarte.Events.AMQPEvents.Producer, :init_producer, 0, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 140]}, {Astarte.Events.AMQPEvents.Producer, :handle_info, 2, [file: ~c"lib/astarte_events/amqp_events/producer.ex", line: 124]}, {:gen_server, :try_handle_info, 3, [file: ~c"gen_server.erl", line: 2434]}, {:gen_server, :handle_msg, 3, [file: ~c"gen_server.erl", line: 2420]}, {:proc_lib, :init_p_do_apply, 3, [file: ~c"proc_lib.erl", line: 333]}]}}
+     State: {:state, :amqp_network_connection, {:state, #Port<0.169>, "client 127.0.0.1:36360 -> 127.0.0.1:5672", 10, #PID<0.12123.0>, 131072, #PID<0.12119.0>, :undefined, false}, #PID<0.12122.0>, {:amqp_params_network, "guest", {:plaintext, "guest"}, "/", ~c"localhost", 5672, 13, 0, 10, 50000, :none, [&:amqp_auth_mechanisms.plain/3, &:amqp_auth_mechanisms.amqplain/3], [], []}, 13, [{"capabilities", :table, [{"publisher_confirms", :bool, true}, {"exchange_exchange_bindings", :bool, true}, {"basic.nack", :bool, true}, {"consumer_cancel_notify", :bool, true}, {"connection.blocked", :bool, true}, {"consumer_priorities", :bool, true}, {"authentication_failure_close", :bool, true}, {"per_consumer_qos", :bool, true}, {"direct_reply_to", :bool, true}]}, {"cluster_name", :longstr, "rabbit@800eaa55b3cd"}, {"copyright", :longstr, "Copyright (c) 2007-2025 Broadcom Inc and/or its subsidiaries"}, {"information", :longstr, "Licensed under the MPL 2.0. Website: https://rabbitmq.com"}, {"platform", :longstr, "Erlang/OTP 27.3.4.2"}, {"product", :longstr, "RabbitMQ"}, {"version", :longstr, "4.1.3"}], :none, %{}, false}  module=gen_server function=error_info/7
+     
+11:21:25.224	|INFO | Starting to migrate realm.  realm=autotestrealm52226 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_started
+11:21:25.435	|INFO | == Running 1 Astarte.DataAccess.Database.Migrations.Realm.MigrateSchemaVersion.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:25.435	|WARNING| Database error: unconfigured table kv_store.  module=Astarte.DataAccess.Repo function=handle_database_error/1 tag=database_error
+11:21:25.435	|INFO | == Migrated 1 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:25.445	|INFO | == Running 2 Astarte.DataAccess.Database.Migrations.Realm.InitDatabase.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:25.446	|INFO | create table autotestrealm52226.kv_store  module=Ecto.Migration.Runner function=log/3
+11:21:25.583	|INFO | create table autotestrealm52226.names  module=Ecto.Migration.Runner function=log/3
+11:21:25.649	|INFO | create table autotestrealm52226.devices  module=Ecto.Migration.Runner function=log/3
+11:21:25.723	|INFO | create table autotestrealm52226.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:25.799	|INFO | create table autotestrealm52226.interfaces  module=Ecto.Migration.Runner function=log/3
+11:21:25.882	|INFO | create table autotestrealm52226.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:21:25.995	|INFO | create table autotestrealm52226.simple_triggers  module=Ecto.Migration.Runner function=log/3
+11:21:26.128	|INFO | == Migrated 2 in 0.6s  module=Ecto.Migration.Runner function=log/3
+11:21:26.131	|INFO | == Running 3 Astarte.DataAccess.Database.Migrations.Realm.CreateGroupedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.131	|INFO | create table autotestrealm52226.grouped_devices  module=Ecto.Migration.Runner function=log/3
+11:21:26.239	|INFO | == Migrated 3 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:26.245	|INFO | == Running 4 Astarte.DataAccess.Database.Migrations.Realm.AddGroupsAndInterfaceStats.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.245	|INFO | alter table autotestrealm52226.devices  module=Ecto.Migration.Runner function=log/3
+11:21:26.366	|INFO | == Migrated 4 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:26.370	|INFO | == Running 5 Astarte.DataAccess.Database.Migrations.Realm.AddDatabaseRetentionTTLAndPolicy.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.370	|INFO | alter table autotestrealm52226.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:26.513	|INFO | == Migrated 5 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:26.517	|INFO | == Running 6 Astarte.DataAccess.Database.Migrations.Realm.AddAttributes.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.517	|INFO | alter table autotestrealm52226.devices  module=Ecto.Migration.Runner function=log/3
+11:21:26.713	|INFO | == Migrated 6 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:26.719	|INFO | == Running 7 Astarte.DataAccess.Database.Migrations.Realm.CreateDeletionInProgress.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.719	|INFO | create table autotestrealm52226.deletion_in_progress  module=Ecto.Migration.Runner function=log/3
+11:21:26.944	|INFO | == Migrated 7 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:26.947	|INFO | == Running 8 Astarte.DataAccess.Database.Migrations.Realm.CreateCapabilitiesType.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:26.947	|INFO | execute "CREATE TYPE autotestrealm52226.capabilities (purge_properties_compression_format int)"  module=Ecto.Migration.Runner function=log/3
+11:21:27.41	|INFO | == Migrated 8 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:27.44	|INFO | == Running 9 Astarte.DataAccess.Database.Migrations.Realm.AddCapabilities.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:27.45	|INFO | alter table autotestrealm52226.devices  module=Ecto.Migration.Runner function=log/3
+11:21:27.202	|INFO | == Migrated 9 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:27.206	|INFO | == Running 10 Astarte.DataAccess.Database.Migrations.Realm.AddGroupsToDeletionInProgress.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:27.206	|INFO | alter table autotestrealm52226.deletion_in_progress  module=Ecto.Migration.Runner function=log/3
+11:21:27.370	|INFO | == Migrated 10 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:27.374	|INFO | == Running 11 Astarte.DataAccess.Database.Migrations.Realm.CreateOwnershipVoucher.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:27.374	|INFO | create table autotestrealm52226.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:27.928	|INFO | == Migrated 11 in 0.5s  module=Ecto.Migration.Runner function=log/3
+11:21:27.935	|INFO | == Running 12 Astarte.DataAccess.Database.Migrations.Realm.CreateDeviceSessions.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:27.935	|INFO | create table autotestrealm52226.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:28.179	|INFO | == Migrated 12 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:28.183	|INFO | == Running 13 Astarte.DataAccess.Database.Migrations.Realm.AddRequired.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:28.183	|INFO | alter table autotestrealm52226.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:28.328	|INFO | == Migrated 13 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:28.332	|INFO | == Running 14 Astarte.DataAccess.Database.Migrations.Realm.CreateSessionKeyType.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:28.332	|INFO | execute "CREATE TYPE autotestrealm52226.session_key (alg int, k blob)"  module=Ecto.Migration.Runner function=log/3
+11:21:28.425	|INFO | == Migrated 14 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:28.429	|INFO | == Running 15 Astarte.DataAccess.Database.Migrations.Realm.DropDeviceSessions.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:28.429	|INFO | drop table autotestrealm52226.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:29.208	|INFO | == Migrated 15 in 0.7s  module=Ecto.Migration.Runner function=log/3
+11:21:29.212	|INFO | == Running 16 Astarte.DataAccess.Database.Migrations.Realm.RecreateDeviceSessions.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.212	|INFO | create table autotestrealm52226.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:29.430	|INFO | == Migrated 16 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:29.434	|INFO | == Running 17 Astarte.DataAccess.Database.Migrations.Realm.RemoveReplacementData.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.434	|INFO | alter table autotestrealm52226.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:29.495	|DEBUG| Reconciling devices for whom deletion shall begin  module=Astarte.DataUpdater.DeletionScheduler function=handle_info/2
+11:21:29.496	|ERROR| GenServer Astarte.DataUpdater.DeletionScheduler terminating
+** (Xandra.Error) Keyspace astarte does not exist
+    (ecto_sql 3.13.4) lib/ecto/adapters/sql.ex:1113: Ecto.Adapters.SQL.raise_sql_call_error/1
+    (ecto_sql 3.13.4) lib/ecto/adapters/sql.ex:1011: Ecto.Adapters.SQL.execute/6
+    (ecto 3.13.5) lib/ecto/repo/queryable.ex:241: Ecto.Repo.Queryable.execute/4
+    (ecto 3.13.5) lib/ecto/repo/queryable.ex:19: Ecto.Repo.Queryable.all/3
+    (astarte_data_updater_plant 1.5.0-dev) lib/astarte_data_updater_plant/data_updater/deletion_scheduler.ex:69: Astarte.DataUpdater.DeletionScheduler.retrieve_devices_to_delete!/0
+    (astarte_data_updater_plant 1.5.0-dev) lib/astarte_data_updater_plant/data_updater/deletion_scheduler.ex:56: Astarte.DataUpdater.DeletionScheduler.start_device_deletion!/0
+    (astarte_data_updater_plant 1.5.0-dev) lib/astarte_data_updater_plant/data_updater/deletion_scheduler.ex:50: Astarte.DataUpdater.DeletionScheduler.handle_info/2
+    (stdlib 7.3) gen_server.erl:2434: :gen_server.try_handle_info/3
+    (stdlib 7.3) gen_server.erl:2420: :gen_server.handle_msg/3
+    (stdlib 7.3) proc_lib.erl:333: :proc_lib.init_p_do_apply/3
+Last message: :delete_devices
+State: %{}  module=gen_server function=error_info/7
+11:21:29.497	|INFO | Starting Horde.DynamicSupervisorImpl with name Astarte.DataUpdaterPlant.RPC.Supervisor  module=Horde.DynamicSupervisorImpl function=init/1
+11:21:29.531	|INFO | == Migrated 17 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:29.536	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.536	|INFO | alter table autotestrealm52226.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:29.658	|INFO | == Migrated 18 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:29.662	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.662	|INFO | alter table autotestrealm52226.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:29.807	|INFO | == Migrated 19 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:29.813	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.813	|INFO | alter table autotestrealm52226.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:29.925	|INFO | == Migrated 20 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:29.933	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:29.933	|INFO | create table autotestrealm52226.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:21:30.106	|INFO | == Migrated 21 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:30.110	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:30.110	|INFO | alter table autotestrealm52226.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:21:30.240	|INFO | == Migrated 22 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:30.244	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:30.244	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:30.247	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:30.247	|INFO | alter table autotestrealm52226.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:30.394	|INFO | == Migrated 24 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:30.398	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:30.398	|INFO | alter table autotestrealm52226.devices  module=Ecto.Migration.Runner function=log/3
+11:21:30.550	|INFO | == Migrated 25 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:30.551	|INFO | Finished migrating realm.  realm=autotestrealm52226 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+[32m.[0m[32m.[0m11:21:36.742	|INFO | Starting to migrate Astarte keyspace.  module=Astarte.DataAccess.Database function=migrate_astarte/0 tag=astarte_migration_started
+11:21:36.971	|INFO | == Running 1 Astarte.DataAccess.Database.Migrations.Astarte.MigrateSchemaVersion.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:36.972	|WARNING| Database error: unconfigured table kv_store.  module=Astarte.DataAccess.Repo function=handle_database_error/1 tag=database_error
+11:21:36.972	|INFO | == Migrated 1 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:36.979	|INFO | == Running 2 Astarte.DataAccess.Database.Migrations.Astarte.InitDatabase.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:36.980	|INFO | create table test1222astarte.realms  module=Ecto.Migration.Runner function=log/3
+11:21:37.145	|INFO | create table test1222astarte.astarte_schema  module=Ecto.Migration.Runner function=log/3
+11:21:37.222	|INFO | == Migrated 2 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:37.228	|INFO | == Running 3 Astarte.DataAccess.Database.Migrations.Astarte.DropAstarteSchema.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:37.228	|INFO | drop table if exists test1222astarte.astarte_schema  module=Ecto.Migration.Runner function=log/3
+11:21:37.725	|INFO | == Migrated 3 in 0.4s  module=Ecto.Migration.Runner function=log/3
+11:21:37.730	|INFO | == Running 4 Astarte.DataAccess.Database.Migrations.Astarte.RemoveReplicationFactor.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:37.730	|INFO | alter table test1222astarte.realms  module=Ecto.Migration.Runner function=log/3
+11:21:37.844	|INFO | == Migrated 4 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:37.851	|INFO | == Running 5 Astarte.DataAccess.Database.Migrations.Astarte.AddDeviceRegistrationLimit.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:37.851	|INFO | alter table test1222astarte.realms  module=Ecto.Migration.Runner function=log/3
+11:21:37.958	|INFO | == Migrated 5 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:37.961	|INFO | == Running 6 Astarte.DataAccess.Database.Migrations.Astarte.CreateKVStore.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:37.962	|INFO | create table if not exists test1222astarte.kv_store  module=Ecto.Migration.Runner function=log/3
+11:21:38.182	|INFO | == Migrated 6 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:38.183	|INFO | Finished migrating Astarte keyspace.  module=Astarte.DataAccess.Database function=migrate_astarte/0 tag=astarte_migration_finished
+11:21:38.320	|INFO | Starting to migrate realm.  realm=realm1286 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_started
+11:21:38.446	|INFO | == Running 1 Astarte.DataAccess.Database.Migrations.Realm.MigrateSchemaVersion.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:38.447	|WARNING| Database error: unconfigured table kv_store.  module=Astarte.DataAccess.Repo function=handle_database_error/1 tag=database_error
+11:21:38.447	|INFO | == Migrated 1 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:38.461	|INFO | == Running 2 Astarte.DataAccess.Database.Migrations.Realm.InitDatabase.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:38.461	|INFO | create table test1222realm1286.kv_store  module=Ecto.Migration.Runner function=log/3
+11:21:38.589	|INFO | create table test1222realm1286.names  module=Ecto.Migration.Runner function=log/3
+11:21:38.710	|INFO | create table test1222realm1286.devices  module=Ecto.Migration.Runner function=log/3
+11:21:38.808	|INFO | create table test1222realm1286.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:38.937	|INFO | create table test1222realm1286.interfaces  module=Ecto.Migration.Runner function=log/3
+11:21:39.93	|INFO | create table test1222realm1286.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:21:39.254	|INFO | create table test1222realm1286.simple_triggers  module=Ecto.Migration.Runner function=log/3
+11:21:39.447	|INFO | == Migrated 2 in 0.9s  module=Ecto.Migration.Runner function=log/3
+11:21:39.451	|INFO | == Running 3 Astarte.DataAccess.Database.Migrations.Realm.CreateGroupedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:39.451	|INFO | create table test1222realm1286.grouped_devices  module=Ecto.Migration.Runner function=log/3
+11:21:39.610	|INFO | == Migrated 3 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:39.614	|INFO | == Running 4 Astarte.DataAccess.Database.Migrations.Realm.AddGroupsAndInterfaceStats.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:39.614	|INFO | alter table test1222realm1286.devices  module=Ecto.Migration.Runner function=log/3
+11:21:39.814	|INFO | == Migrated 4 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:39.820	|INFO | == Running 5 Astarte.DataAccess.Database.Migrations.Realm.AddDatabaseRetentionTTLAndPolicy.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:39.820	|INFO | alter table test1222realm1286.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:39.996	|INFO | == Migrated 5 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:39.999	|INFO | == Running 6 Astarte.DataAccess.Database.Migrations.Realm.AddAttributes.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:39.999	|INFO | alter table test1222realm1286.devices  module=Ecto.Migration.Runner function=log/3
+11:21:40.184	|INFO | == Migrated 6 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:40.187	|INFO | == Running 7 Astarte.DataAccess.Database.Migrations.Realm.CreateDeletionInProgress.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:40.187	|INFO | create table test1222realm1286.deletion_in_progress  module=Ecto.Migration.Runner function=log/3
+11:21:40.410	|INFO | == Migrated 7 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:40.414	|INFO | == Running 8 Astarte.DataAccess.Database.Migrations.Realm.CreateCapabilitiesType.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:40.414	|INFO | execute "CREATE TYPE test1222realm1286.capabilities (purge_properties_compression_format int)"  module=Ecto.Migration.Runner function=log/3
+11:21:40.529	|INFO | == Migrated 8 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:40.533	|INFO | == Running 9 Astarte.DataAccess.Database.Migrations.Realm.AddCapabilities.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:40.533	|INFO | alter table test1222realm1286.devices  module=Ecto.Migration.Runner function=log/3
+11:21:40.676	|INFO | == Migrated 9 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:40.680	|INFO | == Running 10 Astarte.DataAccess.Database.Migrations.Realm.AddGroupsToDeletionInProgress.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:40.680	|INFO | alter table test1222realm1286.deletion_in_progress  module=Ecto.Migration.Runner function=log/3
+11:21:40.897	|INFO | == Migrated 10 in 0.2s  module=Ecto.Migration.Runner function=log/3
+11:21:40.903	|INFO | == Running 11 Astarte.DataAccess.Database.Migrations.Realm.CreateOwnershipVoucher.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:40.903	|INFO | create table test1222realm1286.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:41.277	|INFO | == Migrated 11 in 0.3s  module=Ecto.Migration.Runner function=log/3
+11:21:41.281	|INFO | == Running 12 Astarte.DataAccess.Database.Migrations.Realm.CreateDeviceSessions.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:41.281	|INFO | create table test1222realm1286.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:41.461	|INFO | == Migrated 12 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:41.470	|INFO | == Running 13 Astarte.DataAccess.Database.Migrations.Realm.AddRequired.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:41.470	|INFO | alter table test1222realm1286.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:41.626	|INFO | == Migrated 13 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:41.631	|INFO | == Running 14 Astarte.DataAccess.Database.Migrations.Realm.CreateSessionKeyType.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:41.631	|INFO | execute "CREATE TYPE test1222realm1286.session_key (alg int, k blob)"  module=Ecto.Migration.Runner function=log/3
+11:21:41.743	|INFO | == Migrated 14 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:41.747	|INFO | == Running 15 Astarte.DataAccess.Database.Migrations.Realm.DropDeviceSessions.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:41.747	|INFO | drop table test1222realm1286.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:42.578	|INFO | == Migrated 15 in 0.8s  module=Ecto.Migration.Runner function=log/3
+11:21:42.582	|INFO | == Running 16 Astarte.DataAccess.Database.Migrations.Realm.RecreateDeviceSessions.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:42.582	|INFO | create table test1222realm1286.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:42.761	|INFO | == Migrated 16 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:42.764	|INFO | == Running 17 Astarte.DataAccess.Database.Migrations.Realm.RemoveReplacementData.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:42.764	|INFO | alter table test1222realm1286.to2_sessions  module=Ecto.Migration.Runner function=log/3
+11:21:42.893	|INFO | == Migrated 17 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:42.896	|INFO | == Running 18 Astarte.DataAccess.Database.Migrations.Realm.RemovePrivateKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:42.896	|INFO | alter table test1222realm1286.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:42.979	|INFO | == Migrated 18 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:42.983	|INFO | == Running 19 Astarte.DataAccess.Database.Migrations.Realm.AddReplacementDataAndRemoteKey.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:42.983	|INFO | alter table test1222realm1286.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:43.114	|INFO | == Migrated 19 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:43.118	|INFO | == Running 20 Astarte.DataAccess.Database.Migrations.Realm.AddStatus.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.118	|INFO | alter table test1222realm1286.ownership_vouchers  module=Ecto.Migration.Runner function=log/3
+11:21:43.195	|INFO | == Migrated 20 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:43.200	|INFO | == Running 21 Astarte.DataAccess.Database.Migrations.Realm.CreateUnconfirmedDevices.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.200	|INFO | create table test1222realm1286.unconfirmed_devices  module=Ecto.Migration.Runner function=log/3
+11:21:43.312	|INFO | == Migrated 21 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:43.318	|INFO | == Running 22 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualProperties.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.318	|INFO | alter table test1222realm1286.individual_properties  module=Ecto.Migration.Runner function=log/3
+11:21:43.413	|INFO | == Migrated 22 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:43.441	|INFO | == Running 23 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams.up/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.442	|INFO | == Migrated 23 in 0.0s  module=Ecto.Migration.Runner function=log/3
+11:21:43.457	|INFO | == Running 24 Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToEndpoints.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.457	|INFO | alter table test1222realm1286.endpoints  module=Ecto.Migration.Runner function=log/3
+11:21:43.581	|INFO | == Migrated 24 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:43.585	|INFO | == Running 25 Astarte.DataAccess.Database.Migrations.Realm.AddSharedSecretToDevice.change/0 forward  module=Ecto.Migration.Runner function=log/3
+11:21:43.585	|INFO | alter table test1222realm1286.devices  module=Ecto.Migration.Runner function=log/3
+11:21:43.707	|INFO | == Migrated 25 in 0.1s  module=Ecto.Migration.Runner function=log/3
+11:21:43.708	|INFO | Finished migrating realm.  realm=realm1286 module=Astarte.DataAccess.Database function=migrate_realm/1 tag=realm_migration_finished
+[32m.[0m[32m.[0m[32m.[0m
+Finished in 318.3 seconds (295.4s async, 22.9s sync)
+
+Result: 263/266 passed (26/26 properties, 237/240 tests), 7 invalid
+[31mFailed: 3 tests[0m

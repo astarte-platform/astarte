@@ -42,7 +42,7 @@ defmodule Astarte.DataUpdaterPlant.Health do
   def get_health do
     DatabaseHealth.get_health()
     |> from_database_health()
-    |> cast_health_check(&vernemq_health/0)
+    |> cast_health_check(&Health.vernemq_health/0)
     |> tap(&emit_telemetry/1)
   end
 
@@ -58,7 +58,8 @@ defmodule Astarte.DataUpdaterPlant.Health do
   end
 
   # Check if VerneMQ service is available via Horde registry lookup
-  defp vernemq_health do
+  @doc false
+  def vernemq_health do
     case Horde.Registry.lookup(Registry.VMQPluginRPC, :server) do
       [] ->
         Logger.warning("VerneMQ RPC server not found in registry", tag: "vernemq_health_check")

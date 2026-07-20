@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bullseye-20230612-slim AS builder
+FROM hexpm/elixir:1.20.2-erlang-28.5.0.3-debian-trixie-20260623-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -24,7 +24,7 @@ COPY tools/astarte_e2e/mix.exs ./
 COPY tools/astarte_e2e/mix.lock ./
 COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-RUN mix do deps.get, deps.compile --skip-local-deps
+RUN mix do deps.get + deps.compile --skip-local-deps
 
 COPY libs ./libraries
 RUN mix deps.compile
@@ -33,10 +33,10 @@ RUN mix deps.compile
 COPY tools/astarte_e2e .
 
 # Build and release
-RUN mix do compile, release
+RUN mix do compile + release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:bullseye-20230612-slim
+FROM debian:trixie-20260623-slim
 
 WORKDIR /app
 
@@ -47,7 +47,7 @@ ENV LANG=C.UTF-8
 
 # We need SSL
 RUN apt-get update -y && \
-    apt-get install libssl1.1 ca-certificates -y --no-install-recommends && \
+    apt-get install openssl ca-certificates -y --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 # We have to redefine this here since it goes out of scope for each build stage

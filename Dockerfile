@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim AS builder
+FROM hexpm/elixir:1.20.2-erlang-28.5.0.3-debian-trixie-20260623-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -42,7 +42,7 @@ COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
 COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
 COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
-RUN mix do deps.get, deps.compile --skip-local-deps
+RUN mix do deps.get + deps.compile --skip-local-deps
 
 COPY libs ./libraries
 RUN mix deps.compile
@@ -51,10 +51,10 @@ RUN mix deps.compile
 COPY apps/$SERVICE .
 
 # Build and release
-RUN mix do compile, release
+RUN mix do compile + release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:bookworm-20230612-slim
+FROM debian:trixie-20260623-slim
 
 WORKDIR /app
 

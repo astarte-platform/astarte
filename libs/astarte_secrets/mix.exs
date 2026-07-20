@@ -23,7 +23,7 @@ defmodule AstarteSecrets.MixProject do
     [
       app: :astarte_secrets,
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       test_coverage: [tool: ExCoveralls],
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -51,7 +51,8 @@ defmodule AstarteSecrets.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mimic, "~> 1.11", only: :test},
+      {:httpoison, "~> 2.2"},
+      {:mimic, "~> 2.3", only: :test},
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
       {:x509, "~> 0.8"},

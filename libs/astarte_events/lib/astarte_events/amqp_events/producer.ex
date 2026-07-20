@@ -23,11 +23,11 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   require Logger
   use GenServer
 
+  alias AMQP.Basic
   alias AMQP.Channel
+  alias AMQP.Connection
+  alias AMQP.Exchange
   alias Astarte.Events.Config
-
-  @connection_backoff Application.compile_env(:astarte_events, :connection_backoff, 10_000)
-  alias ExRabbitPool.RabbitMQ
 
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -58,7 +58,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
-    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
+    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
 
     {:reply, reply, chan}
   end
@@ -66,7 +66,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   def handle_call({:declare_exchange, exchange}, _from, chan) do
     # TODO: we need to decide who is responsible of deleting the exchange once it is
     # no longer needed
-    reply = RabbitMQ.declare_exchange(chan, exchange, type: :direct, durable: true)
+    reply = Exchange.declare(chan, exchange, :direct, durable: true)
 
     {:reply, reply, chan}
   end
@@ -79,6 +79,31 @@ defmodule Astarte.Events.AMQPEvents.Producer do
       %{},
       %{reason: inspect(reason)}
     )
+
+    Logger.warning("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reconnect...",
+      tag: "events_producer_conn_lost"
+    )
+
+    case init_producer() do
+      {:ok, channel} ->
+        {:noreply, channel}
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, :not_connected}
+    end
+  end
+
+  @impl true
+  def handle_info({:EXIT, conn_pid, reason}, %{conn: %{pid: conn_pid}} = channel) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :astarte_events, :amqp_events_producer, :channel_crash],
+      %{},
+      %{reason: inspect(reason)}
+    )
+
+    close_channel(channel)
 
     Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "events_producer_conn_lost"
@@ -110,10 +135,10 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   def handle_info(:init, chan), do: {:noreply, chan}
 
   defp init_producer do
-    conn = ExRabbitPool.get_connection_worker(:astarte_events_producer_pool)
-
-    with {:ok, channel} <- checkout_channel(conn),
-         :ok <- declare_default_events_exchange(channel, conn) do
+    with {:ok, conn} <- Connection.open(Config.amqp_options!()),
+         true = Process.link(conn.pid),
+         {:ok, channel} <- checkout_channel(conn),
+         :ok <- declare_default_events_exchange(channel) do
       %Channel{pid: channel_pid} = channel
       _ref = Process.monitor(channel_pid)
 
@@ -127,7 +152,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   end
 
   defp checkout_channel(conn) do
-    with {:error, reason} <- ExRabbitPool.checkout_channel(conn) do
+    with {:error, reason} <- Channel.open(conn) do
       _ =
         Logger.warning(
           "Failed to check out channel for producer: #{inspect(reason)}",
@@ -138,25 +163,32 @@ defmodule Astarte.Events.AMQPEvents.Producer do
     end
   end
 
-  defp declare_default_events_exchange(channel, conn) do
+  defp declare_default_events_exchange(channel) do
     with {:error, reason} <-
-           RabbitMQ.declare_exchange(channel, Config.amqp_events_exchange_name!(),
-             type: :direct,
-             durable: true
-           ) do
+           Exchange.declare(channel, Config.amqp_events_exchange_name!(), :direct, durable: true) do
       Logger.warning(
         "Error declaring AMQPEvents.Producer default events exchange: #{inspect(reason)}",
         tag: "event_producer_init_fail"
       )
 
       # Something went wrong, let's put the channel back where it belongs
-      _ = ExRabbitPool.checkin_channel(conn, channel)
+      close_channel(channel)
       {:error, :event_producer_init_fail}
     end
   end
 
+  defp close_channel(channel) do
+    if Process.alive?(channel.pid) do
+      Channel.close(channel)
+      Process.unlink(channel.conn.pid)
+      Connection.close(channel.conn)
+    end
+
+    :ok
+  end
+
   defp schedule_connect do
-    _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
-    Process.send_after(self(), :init, @connection_backoff)
+    _ = Logger.warning("Retrying connection in #{Config.connection_backoff!()} ms")
+    Process.send_after(self(), :init, Config.connection_backoff!())
   end
 end

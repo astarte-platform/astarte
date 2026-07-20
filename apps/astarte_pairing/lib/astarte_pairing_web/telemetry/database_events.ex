@@ -35,7 +35,6 @@ defmodule Astarte.PairingWeb.Telemetry.DatabaseEvents do
     [:failed_to_connect]
   ]
 
-  require Logger
   alias Astarte.PairingWeb.TelemetryTaskSupervisor
 
   @doc """

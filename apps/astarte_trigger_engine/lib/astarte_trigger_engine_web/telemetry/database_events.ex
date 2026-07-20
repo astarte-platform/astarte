@@ -35,7 +35,6 @@ defmodule Astarte.TriggerEngineWeb.Telemetry.DatabaseEvents do
     [:failed_to_connect]
   ]
 
-  require Logger
   alias Astarte.TriggerEngineWeb.TelemetryTaskSupervisor
 
   @doc """

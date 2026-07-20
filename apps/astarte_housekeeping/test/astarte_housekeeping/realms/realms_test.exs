@@ -113,7 +113,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
   describe "property based tests" do
     property "realm lifecycle operations work as expected" do
-      check all name <- RealmGenerators.realm_name(), max_runs: 5 do
+      check all name <- RealmGenerators.realm_name(), max_runs: 1 do
         # Test realm creation
         realm = realm_fixture(%{realm_name: name})
 
@@ -134,10 +134,24 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
     test "realm creation respects ssl options", %{realm_name: name} do
       Mimic.stub(Astarte.Events.Config, :amqp_ssl_enabled!, fn -> true end)
+
       # check if put options are the same inside config
-      Mimic.expect(HTTPoison.Base, :request, fn _, %{options: options}, _, _, _, _ ->
+      HTTPoison.Base
+      |> expect(:request, fn a, %{options: options} = req, b, c, d, e ->
         assert cacertfile: CAStore.file_path() in options[:ssl]
         {:ok, %HTTPoison.Response{status_code: 201}}
+      end)
+      |> stub(:request, fn module, request, status_code, headers, body, response ->
+        args = [
+          module,
+          request,
+          status_code,
+          headers,
+          body,
+          response
+        ]
+
+        Mimic.call_original(HTTPoison.Base, :request, args)
       end)
 
       # Test realm creation

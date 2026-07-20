@@ -21,18 +21,12 @@ defmodule Astarte.Events.Mixfile do
   def project do
     [
       app: :astarte_events,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
     ]
@@ -44,20 +38,30 @@ defmodule Astarte.Events.Mixfile do
     ]
   end
 
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   # Compile order is relevant: we make sure support files are available when testing
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
       {:con_cache, "~> 1.1"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:current_rabbit_pool, "~> 1.1"},
       {:skogsra, "~> 2.2"},
       {:mox, "~> 1.0", only: :test},
-      {:mimic, "~> 1.11", only: [:dev, :test]},
+      {:mimic, "~> 2.3", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},

@@ -22,17 +22,11 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       version: "1.5.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       description: "Astarte Pairing API"
@@ -46,6 +40,17 @@ defmodule Astarte.Pairing.Mixfile do
     [
       mod: {Astarte.Pairing.Application, []},
       extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -102,10 +107,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:bcrypt_elixir, "~> 2.2"},
       {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
       {:astarte_events, path: astarte_lib("astarte_events")},

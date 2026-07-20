@@ -1,6 +1,5 @@
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumerTest do
-  use Astarte.Cases.FakeRabbitPool, async: true
-  use Astarte.Cases.Policy
+  use Astarte.Cases.Policy, async: true
   use Mimic
 
   alias AMQP.Channel
@@ -22,11 +21,26 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumerTest do
     test "monitors the channel process", args do
       %{realm_name: realm_name, policy: policy} = args
 
+      # We need to trap in case the connection crashes before we receive the DOWN
+      Process.flag(:trap_exit, true)
+
       {:ok, channel, monitor} = Impl.connect(realm_name, policy)
       %{pid: pid} = channel
       kill_channel(channel)
 
       assert_receive {:DOWN, ^monitor, :process, ^pid, _reason}
+    end
+
+    @tag :unit
+    test "monitors the connection process", args do
+      %{realm_name: realm_name, policy: policy} = args
+
+      Process.flag(:trap_exit, true)
+      {:ok, channel, _monitor} = Impl.connect(realm_name, policy)
+      %{conn: %{pid: conn_pid}} = channel
+      Process.exit(conn_pid, :kill)
+
+      assert_receive {:EXIT, ^conn_pid, _reason}
     end
   end
 end

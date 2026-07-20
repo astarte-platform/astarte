@@ -22,8 +22,10 @@ defmodule Astarte.RealmManagement.RealmConfig do
 
   This module handles the retrieval and update of realm-specific configuration settings, such as JWT authentication credentials, device registration limits, and datastream storage retention policies.
   """
+
   alias Astarte.RealmManagement.RealmConfig.AuthConfig
   alias Astarte.RealmManagement.RealmConfig.Queries
+  alias Ecto.Changeset
 
   def get_auth_config(realm) do
     with {:ok, jwt_public_key_pem} <- Queries.fetch_jwt_public_key_pem(realm) do
@@ -40,16 +42,10 @@ defmodule Astarte.RealmManagement.RealmConfig do
   end
 
   def update_auth_config(realm, new_config_params) do
-    with %Ecto.Changeset{valid?: true} = changeset <-
-           AuthConfig.changeset(%AuthConfig{}, new_config_params),
-         %AuthConfig{jwt_public_key_pem: pem} <- Ecto.Changeset.apply_changes(changeset) do
-      Queries.update_jwt_public_key_pem(realm, pem)
-    else
-      %Ecto.Changeset{valid?: false} = changeset ->
-        {:error, %{changeset | action: :update}}
+    changeset = AuthConfig.changeset(%AuthConfig{}, new_config_params)
 
-      {:error, reason} ->
-        {:error, reason}
+    with {:ok, auth_config} <- Changeset.apply_action(changeset, :update) do
+      Queries.update_jwt_public_key_pem(realm, auth_config.jwt_public_key_pem)
     end
   end
 end

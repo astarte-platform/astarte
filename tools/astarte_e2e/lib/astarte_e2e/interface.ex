@@ -17,8 +17,6 @@
 #
 
 defmodule AstarteE2E.Interface do
-  require Logger
-
   alias AstarteE2E.Config
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 

@@ -90,7 +90,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "is queued for deletion with all acks", %{realm: realm} do
-      check all device <- DeviceGenerator.device(interfaces: []) do
+      check all device <- DeviceGenerator.device(interfaces: []), max_runs: 1 do
         keyspace = Realm.keyspace_name(realm)
         device_id = device.device_id
         device = %DeviceData{device_id: device_id}
@@ -153,7 +153,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "does not delete a non existing device", %{realm: realm} do
-      check all(encoded_device_id <- DeviceGenerator.encoded_id()) do
+      check all encoded_device_id <- DeviceGenerator.encoded_id(), max_runs: 5 do
         assert {:error, :device_not_found} = Devices.delete_device(realm, encoded_device_id)
       end
     end

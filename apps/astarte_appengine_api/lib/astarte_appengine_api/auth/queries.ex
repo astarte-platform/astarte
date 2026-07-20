@@ -29,8 +29,6 @@ defmodule Astarte.AppEngine.API.Auth.Queries do
 
   import Ecto.Query
 
-  require Logger
-
   def fetch_public_key(realm_name) do
     keyspace_name = Realm.keyspace_name(realm_name)
 

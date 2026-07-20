@@ -23,7 +23,6 @@ defmodule Astarte.Events.AMQPEvents.Supervisor do
   use Supervisor
 
   alias Astarte.Events.AMQPEvents.Producer
-  alias Astarte.Events.Config
 
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, opts)
@@ -31,15 +30,7 @@ defmodule Astarte.Events.AMQPEvents.Supervisor do
 
   @impl true
   def init(_init_arg) do
-    events_pool =
-      Supervisor.child_spec(
-        {ExRabbitPool.PoolSupervisor,
-         rabbitmq_config: Config.amqp_options!(), connection_pools: [Config.events_pool_config!()]},
-        id: :astarte_events_producer_pool
-      )
-
     [
-      events_pool,
       Producer
     ]
     |> Supervisor.init(strategy: :rest_for_one)

@@ -23,8 +23,6 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.CreateRequest do
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
 
-  require Logger
-
   import Ecto.Changeset
 
   typed_embedded_schema do

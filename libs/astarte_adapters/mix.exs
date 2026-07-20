@@ -4,23 +4,28 @@ defmodule Astarte.Adapters.MixProject do
   def project do
     [
       app: :astarte_adapters,
-      version: "1.3.2",
-      elixir: "~> 1.15",
+      version: "1.5.0-dev",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       description: description(),
       package: package(),
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps(),
       source_url: "https://github.com/astarte-platform/astarte/libs/astarte_adapters",
       homepage_url: "https://astarte-platform.org/"
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 

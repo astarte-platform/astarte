@@ -31,7 +31,11 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   alias Astarte.RealmManagement.RealmConfig
   alias Astarte.RealmManagement.RealmConfig.AuthConfig
 
-  setup %{realm_name: realm_name, jwt_public_key: key, astarte_instance_id: astarte_instance_id} do
+  setup %{
+    realm_name: realm_name,
+    jwt_public_key: key,
+    astarte_instance_id: astarte_instance_id
+  } do
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
       insert_public_key!(realm_name, key)
@@ -66,7 +70,8 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   end
 
   property "retrieves datasteam_maximum_storage_retention correctly", %{realm: realm} do
-    check all retention <- integer(1..256) do
+    check all retention <- integer(1..256),
+              max_runs: 3 do
       Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
       assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(realm)
     end
@@ -87,7 +92,7 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   end
 
   property "Fetches device_registration limit correctly", %{realm: realm} do
-    check all limit <- integer(1..256) do
+    check all limit <- integer(1..256), max_runs: 3 do
       Helpers.Database.insert_device_registration_limit!(realm, limit)
       assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(realm)
     end

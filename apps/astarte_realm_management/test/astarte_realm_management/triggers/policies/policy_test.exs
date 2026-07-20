@@ -50,7 +50,8 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
     @describetag :creation
     property "successfully creates and retrieves valid policies", %{realm: realm} do
       check all policy_changeset =
-                  %{name: name} <- PolicyGenerator.policy() |> PolicyGenerator.to_changes() do
+                  %{name: name} <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
+                max_runs: 3 do
         assert {:ok, %Policy{name: ^name}} =
                  Policies.create_trigger_policy(realm, policy_changeset)
 

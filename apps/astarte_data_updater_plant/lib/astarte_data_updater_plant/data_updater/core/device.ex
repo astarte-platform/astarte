@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -350,7 +351,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   Sets a device as disconnected, this does not foce device disconnection, but
   rather informs other astarte components that a device has been disconnected.
   """
-  def set_device_disconnected(state, timestamp) do
+  def set_device_disconnected(%State{} = state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(

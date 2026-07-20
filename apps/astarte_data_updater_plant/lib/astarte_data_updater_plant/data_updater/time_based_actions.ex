@@ -83,21 +83,21 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
   def reload_device_deletion_status_on_expiry(state, timestamp) do
     if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
          timestamp do
-      new_state = maybe_start_device_deletion(state, timestamp)
+      %State{} = new_state = maybe_start_device_deletion(state, timestamp)
       %State{new_state | last_deletion_in_progress_refresh: timestamp}
     else
       state
     end
   end
 
-  defp maybe_start_device_deletion(state, timestamp) do
+  defp maybe_start_device_deletion(%State{} = state, timestamp) do
     %State{realm: realm, device_id: device_id} = state
 
     if should_start_device_deletion?(realm, device_id) do
       encoded_device_id = Device.encode_device_id(device_id)
 
       :ok = force_device_deletion_from_broker(realm, encoded_device_id)
-      new_state = Core.Device.set_device_disconnected(state, timestamp)
+      %State{} = new_state = Core.Device.set_device_disconnected(state, timestamp)
 
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
@@ -148,7 +148,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
     end
   end
 
-  def reload_datastream_maximum_storage_retention_on_expiry(state, timestamp) do
+  def reload_datastream_maximum_storage_retention_on_expiry(%State{} = state, timestamp) do
     if state.last_datastream_maximum_retention_refresh +
          @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
          timestamp do

@@ -43,6 +43,4 @@ defmodule AstarteE2E.Config.JWTPublicKeyPEMType do
       end
     end
   end
-
-  def cast(_), do: :error
 end

@@ -29,8 +29,6 @@ defmodule Astarte.RealmManagementWeb.AuthTest do
 
   @expected_data []
 
-  require Logger
-
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end

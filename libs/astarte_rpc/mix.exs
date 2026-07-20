@@ -23,17 +23,9 @@ defmodule Astarte.RPC.MixProject do
     [
       app: :astarte_rpc,
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
-        "mneme.test": :test,
-        "mneme.watch": :test
-      ],
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [plt_add_apps: [:ex_unit, :astarte_events]],
       deps: deps()
@@ -44,6 +36,19 @@ defmodule Astarte.RPC.MixProject do
     [
       extra_applications: [:logger],
       mod: {Astarte.RPC.Application, []}
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "mneme.test": :test,
+        "mneme.watch": :test
+      ]
     ]
   end
 
@@ -60,7 +65,7 @@ defmodule Astarte.RPC.MixProject do
       {:mneme, "~> 0.10", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
-      {:mimic, "~> 1.11", only: [:test, :dev]},
+      {:mimic, "~> 2.3", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},
       {:skogsra, "~> 2.0"},
       {:typedstruct, "~> 0.5"},

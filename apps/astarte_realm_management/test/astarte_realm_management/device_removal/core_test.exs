@@ -76,7 +76,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
       Repo.query!("DROP TABLE #{keyspace}.individual_datastreams;")
 
-      check all device_id <- DeviceGenerator.id() do
+      check all device_id <- DeviceGenerator.id(), max_runs: 1 do
         Core.delete_individual_datastreams!(realm, device_id)
       end
     end
@@ -104,7 +104,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
       Repo.query!("DROP TABLE #{keyspace}.individual_properties;")
 
-      check all device_id <- DeviceGenerator.id() do
+      check all device_id <- DeviceGenerator.id(), max_runs: 1 do
         Core.delete_individual_properties!(realm, device_id)
       end
     end

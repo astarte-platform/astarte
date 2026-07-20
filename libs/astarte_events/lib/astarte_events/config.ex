@@ -39,6 +39,10 @@ defmodule Astarte.Events.Config do
           | {:ssl_options, ssl_options}
           | {:channels, integer()}
 
+  app_env :connection_backoff, :astarte_events, :connection_backoff,
+    type: :integer,
+    default: 10_000
+
   @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
   app_env :amqp_management_ssl_enabled, :astarte_events, :amqp_management_ssl_enabled,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED",
@@ -284,18 +288,6 @@ defmodule Astarte.Events.Config do
       server_name = amqp_ssl_custom_sni!() || amqp_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
-  end
-
-  # Since we have only one producer, this is not configurable
-  def events_connection_number!, do: 1
-
-  def events_pool_config! do
-    [
-      name: {:local, :astarte_events_producer_pool},
-      worker_module: ExRabbitPool.Worker.RabbitConnection,
-      size: events_connection_number!(),
-      max_overflow: 0
-    ]
   end
 
   defdelegate astarte_instance_id!, to: DataAccessConfig
