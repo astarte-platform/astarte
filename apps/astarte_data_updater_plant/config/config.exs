@@ -22,6 +22,8 @@ config :logger, :console,
     :tag
   ]
 
+config :logger, level: :debug
+
 config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
 
 config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300
