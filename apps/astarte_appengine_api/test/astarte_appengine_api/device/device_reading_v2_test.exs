@@ -356,11 +356,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   end
 
   defp decrypt_value(encrypted_value, shared_secret) do
-    case EncryptedMessages.decrypt(
-           encrypted_value,
-           shared_secret.k,
-           shared_secret.alg
-         ) do
+    case EncryptedMessages.decrypt(encrypted_value, shared_secret) do
       {:ok, decrypted_value} ->
         case Cyanide.decode(decrypted_value) do
           {:ok, %{"v" => value}} ->

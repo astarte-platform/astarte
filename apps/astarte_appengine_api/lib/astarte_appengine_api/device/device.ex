@@ -308,7 +308,7 @@ defmodule Astarte.AppEngine.API.Device do
     if should_encrypt_transport_payload? do
       with {:ok, shared_secret} <- Queries.retrieve_shared_secret(realm_name, device_id) do
         bson_value = Cyanide.encode!(%{v: value})
-        EncryptedMessages.encrypt(bson_value, shared_secret.k, shared_secret.alg)
+        EncryptedMessages.encrypt(bson_value, shared_secret)
       end
     else
       wrap_to_bson_struct(expected_types, value)
