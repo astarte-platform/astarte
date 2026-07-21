@@ -81,6 +81,16 @@ curl -s -X POST "http://localhost:8081/stores/${STORE_ID}/write" \
         },
         {
           "user": "user:test_user_id",
+          "relation": "fdo_manage",
+          "object": "realm:test"
+        },
+        {
+          "user": "user:test_user_id",
+          "relation": "fdo_read",
+          "object": "realm:test"
+        },
+        {
+          "user": "user:test_user_id",
           "relation": "can_unregister",
           "object": "device:f0VMRgIBAQAAAAAAAAAAAA"
         },

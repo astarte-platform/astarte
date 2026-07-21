@@ -1,11 +1,12 @@
 defmodule Astarte.PairingWeb.GraphQL.Schema do
   use Absinthe.Schema
 
-  import_types(Astarte.PairingWeb.GraphQL.Types.{DeviceTypes, AgentTypes})
+  import_types(Astarte.PairingWeb.GraphQL.Types.{DeviceTypes, AgentTypes, FdoTypes})
 
   # Create an alias to avoid writing the full name of the resolver
   alias Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver
   alias Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver
+  alias Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver
   alias Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA
 
   # QUERIES (Read-only)
@@ -15,6 +16,61 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       arg(:hw_id, non_null(:string))
 
       resolve(&DeviceResolver.get_device/3)
+    end
+
+    @desc "List registered owner keys in the realm"
+    field :list_owner_keys, :owner_keys_map do
+      arg(:key_algorithm, :key_algorithm)
+
+      middleware(AuthorizeFGA,
+        relation: "fdo_read",
+        target: :realm,
+        legacy_method: "GET",
+        legacy_path: "fdo/owner_keys"
+      )
+
+      resolve(&FdoResolver.list_owner_keys/3)
+    end
+
+    @desc "Get details of a specific owner key"
+    field :get_owner_key, :owner_key do
+      arg(:key_algorithm, non_null(:key_algorithm))
+      arg(:key_name, non_null(:string))
+
+      middleware(AuthorizeFGA,
+        relation: "fdo_read",
+        target: :realm,
+        legacy_method: "GET",
+        legacy_path_fn: fn args -> "fdo/owner_keys/#{args.key_algorithm}/#{args.key_name}" end
+      )
+
+      resolve(&FdoResolver.get_owner_key/3)
+    end
+
+    @desc "List owner keys compatible with a given ownership voucher"
+    field :owner_keys_for_voucher, :owner_keys_map do
+      arg(:ownership_voucher, non_null(:string))
+
+      middleware(AuthorizeFGA,
+        relation: "fdo_read",
+        target: :realm,
+        legacy_method: "POST",
+        legacy_path: "fdo/owner_keys_for_voucher"
+      )
+
+      resolve(&FdoResolver.owner_keys_for_voucher/3)
+    end
+
+    @desc "List registered ownership vouchers in the realm"
+    field :list_ownership_vouchers, list_of(:ownership_voucher) do
+      middleware(AuthorizeFGA,
+        relation: "fdo_read",
+        target: :realm,
+        legacy_method: "GET",
+        legacy_path: "fdo/ownership_vouchers"
+      )
+
+      resolve(&FdoResolver.list_ownership_vouchers/3)
     end
   end
 
@@ -83,6 +139,42 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       )
 
       resolve(&DeviceResolver.verify_credentials/3)
+    end
+
+    @desc "Create or upload an owner key"
+    field :create_or_upload_owner_key, :string do
+      arg(:action, non_null(:string))
+      arg(:key_name, non_null(:string))
+      arg(:key_data, :string)
+      arg(:key_algorithm, :key_algorithm)
+
+      middleware(AuthorizeFGA,
+        relation: "fdo_manage",
+        target: :realm,
+        legacy_method: "POST",
+        legacy_path: "fdo/owner_keys"
+      )
+
+      resolve(&FdoResolver.create_or_upload_owner_key/3)
+    end
+
+    @desc "Register a device ownership voucher"
+    field :register_ownership_voucher, :register_ownership_voucher_response do
+      arg(:ownership_voucher, non_null(:string))
+      arg(:key_name, non_null(:string))
+      arg(:key_algorithm, non_null(:key_algorithm))
+      arg(:replacement_public_key, :string)
+      arg(:replacement_guid, :string)
+      arg(:replacement_rendezvous_info, :string)
+
+      middleware(AuthorizeFGA,
+        relation: "fdo_manage",
+        target: :realm,
+        legacy_method: "POST",
+        legacy_path: "fdo/ownership_vouchers"
+      )
+
+      resolve(&FdoResolver.register_ownership_voucher/3)
     end
   end
 end
