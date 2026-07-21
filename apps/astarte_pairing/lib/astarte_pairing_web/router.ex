@@ -33,6 +33,10 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
+  pipeline :graphql do
+    plug Astarte.PairingWeb.Plug.GraphQLContext
+  end
+
   pipeline :fdo do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
@@ -103,6 +107,19 @@ defmodule Astarte.PairingWeb.Router do
       delete "/ownership_vouchers/:guid", OwnershipVoucherController, :delete_ownership_voucher
       post "/ownership_vouchers/:guid/to0", OwnershipVoucherController, :run_to0
     end
+  end
+
+  scope "/v1" do
+    pipe_through [:graphql]
+    forward "/graphql", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
+  end
+
+  scope "/v1" do
+    pipe_through [:graphql]
+
+    forward "/graphiql", Absinthe.Plug.GraphiQL,
+      schema: Astarte.PairingWeb.GraphQL.Schema,
+      interface: :playground
   end
 
   scope "/version", Astarte.PairingWeb do
