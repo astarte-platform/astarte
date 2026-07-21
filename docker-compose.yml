@@ -78,6 +78,7 @@ services:
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
       ASTARTE_VAULT_URL: "http://openbao:8200"
+      ASTARTE_PAIRING_OPENFGA_URL: "http://openfga:8080"
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:
@@ -265,6 +266,16 @@ services:
       - "traefik.http.routers.fdo-rendezvous.entrypoints=web"
       - "traefik.http.routers.fdo-rendezvous.service=fdo-rendezvous"
       - "traefik.http.services.fdo-rendezvous.loadbalancer.server.port=8041"
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=memory
+      - OPENFGA_PLAYGROUND_ENABLED=true
+    ports:
+      - "8081:8080" # API HTTP (usata dal nostro middleware)
+      - "3000:3000" # Interfaccia Web di OpenFGA (Playground)
+    restart: on-failure
 
   # RabbitMQ
   rabbitmq:
