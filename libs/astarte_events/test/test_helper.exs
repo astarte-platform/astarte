@@ -6,7 +6,7 @@ Mimic.copy(Astarte.Events.TriggersHandler.Core)
 {:ok, _pid} =
   Supervisor.start_link(
     [
-      {Astarte.Events.AMQPEvents.Supervisor, []},
+      {Astarte.Events.AMQPEvents.Producer, []},
       {Astarte.Events.AMQPTriggers.Supervisor, []},
       {Astarte.Events.Triggers.Supervisor, []}
     ],

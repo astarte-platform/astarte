@@ -71,7 +71,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
       {:cbor, "~> 1.0"},
       {:con_cache, "~> 1.0"},
@@ -85,7 +85,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
       {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
-      {:current_rabbit_pool, "~> 1.1"},
       {:libcluster, "~> 3.3"},
       {:horde, "~> 0.9", override: true},
       {:pretty_log, "~> 0.1"},

@@ -31,11 +31,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducerTest do
     channel = :sys.get_state(pid)
     assert is_struct(channel, Channel)
 
-    ExRabbitPool
-    |> expect(:checkout_channel, fn _conn -> {:error, :disconnected} end)
-    |> expect(:checkout_channel, fn _conn -> {:error, :out_of_channels} end)
-    |> expect(:checkout_channel, fn conn ->
-      res = Mimic.call_original(ExRabbitPool, :checkout_channel, [conn])
+    Channel
+    |> expect(:open, fn _conn -> {:error, :disconnected} end)
+    |> expect(:open, fn _conn -> {:error, :out_of_channels} end)
+    |> expect(:open, fn conn ->
+      res = Channel.open(conn)
       send(test_pid, :reconnection_done)
 
       res

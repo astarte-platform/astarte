@@ -105,7 +105,8 @@ defmodule Astarte.TriggerEngine.Config do
     type: :integer,
     default: 4000
 
-  @envdoc "The number of connections to RabbitMQ used to consume events"
+  @envdoc "DEPRECATED: The number of connections to RabbitMQ used to consume events"
+  @deprecated "This option is ignored, one connection for each consumer is used instead"
   app_env :events_consumer_connection_number,
           :astarte_trigger_engine,
           :events_consumer_connection_number,
@@ -185,19 +186,6 @@ defmodule Astarte.TriggerEngine.Config do
       server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
-  end
-
-  def events_consumer_pool_config! do
-    [
-      name: {:local, :events_consumer_pool},
-      worker_module: ExRabbitPool.Worker.RabbitConnection,
-      size: events_consumer_connection_number!(),
-      max_overflow: 0
-    ]
-  end
-
-  def amqp_adapter! do
-    Application.get_env(:astarte_trigger_engine, :amqp_adapter)
   end
 
   def events_consumer! do

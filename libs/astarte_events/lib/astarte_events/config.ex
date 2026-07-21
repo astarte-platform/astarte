@@ -286,18 +286,6 @@ defmodule Astarte.Events.Config do
     end
   end
 
-  # Since we have only one producer, this is not configurable
-  def events_connection_number!, do: 1
-
-  def events_pool_config! do
-    [
-      name: {:local, :astarte_events_producer_pool},
-      worker_module: ExRabbitPool.Worker.RabbitConnection,
-      size: events_connection_number!(),
-      max_overflow: 0
-    ]
-  end
-
   defdelegate astarte_instance_id!, to: DataAccessConfig
   defdelegate astarte_instance_id, to: DataAccessConfig
   defdelegate xandra_options!, to: DataAccessConfig

@@ -21,7 +21,10 @@ defmodule Astarte.TriggerEngine.Health do
   Performs health checks of the Pairing service
   """
 
+  alias AMQP.Channel
+  alias AMQP.Connection
   alias Astarte.DataAccess.Health, as: DatabaseHealth
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Health
 
   @type health :: :ready | :bad
@@ -55,11 +58,23 @@ defmodule Astarte.TriggerEngine.Health do
   end
 
   defp amqp_health do
-    pid = ExRabbitPool.get_connection_worker(:events_consumer_pool)
+    case Connection.open(Config.amqp_consumer_options!()) do
+      {:ok, conn} ->
+        result =
+          case Channel.open(conn) do
+            {:ok, channel} ->
+              Channel.close(channel)
+              :ready
 
-    case ExRabbitPool.checkout_channel(pid) do
-      {:ok, _channel} -> :ready
-      {:error, _} -> :bad
+            _ ->
+              :bad
+          end
+
+        Connection.close(conn)
+        result
+
+      _ ->
+        :bad
     end
   end
 

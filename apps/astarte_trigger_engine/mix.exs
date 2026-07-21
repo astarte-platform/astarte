@@ -65,7 +65,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
@@ -87,7 +87,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
-      {:current_rabbit_pool, "~> 1.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},

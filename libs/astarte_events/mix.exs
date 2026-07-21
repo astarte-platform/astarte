@@ -50,11 +50,10 @@ defmodule Astarte.Events.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
       {:con_cache, "~> 1.1"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:current_rabbit_pool, "~> 1.1"},
       {:skogsra, "~> 2.2"},
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},

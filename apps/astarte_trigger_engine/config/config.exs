@@ -43,8 +43,6 @@ config :astarte_trigger_engine, :amqp_events_routing_key, "trigger_engine"
 
 config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsConsumer
 
-config :astarte_trigger_engine, :amqp_adapter, ExRabbitPool.RabbitMQ
-
 config :astarte_trigger_engine, ecto_repos: [Astarte.DataAccess.Repo]
 
 import_config "#{config_env()}.exs"
