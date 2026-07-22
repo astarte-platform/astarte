@@ -22,9 +22,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SignatureInfo do
   including encoding, decoding, and validation against the ownership voucher.
   """
 
-  alias Astarte.FDO.Core.OwnershipVoucher
-  alias COSE.Keys.ECC
-
   @type t :: :es256 | :es384 | :rs256 | :rs384 | {:eipd10, binary()} | {:eipd11, binary()}
 
   @type device_signature ::
@@ -65,20 +62,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SignatureInfo do
     end
   end
 
-  @spec validate(t(), OwnershipVoucher.t()) :: {:ok, device_signature()} | :error
-  def validate(sig_info, ownership_voucher) do
-    with {:ok, device_public_key} <- OwnershipVoucher.device_public_key(ownership_voucher) do
-      case {sig_info, device_public_key} do
-        {{:eipd10, _gid}, nil} -> {:ok, sig_info}
-        {{:eipd11, _gid}, nil} -> {:ok, sig_info}
-        {_, nil} -> :error
-        {:es256, pub_key} -> parse_es256_key(pub_key)
-        {:es384, pub_key} -> parse_es384_key(pub_key)
-        _ -> :error
-      end
-    end
-  end
-
   def device_signature_to_database_params(device_signature) do
     case device_signature do
       {epid, gid} when epid in [:epid10, :epid11] ->
@@ -96,42 +79,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SignatureInfo do
 
       %{sig_type: ec, device_public_key: device_pub} when ec in [:es256, :es384] ->
         {:ok, {ec, :erlang.binary_to_term(device_pub)}}
-
-      _ ->
-        :error
-    end
-  end
-
-  defp parse_es256_key(pub_key) do
-    case pub_key do
-      {:ECPoint, <<4, x::binary-size(32), y::binary-size(32)>>} ->
-        key =
-          %ECC{
-            alg: :es256,
-            crv: :p256,
-            x: x,
-            y: y
-          }
-
-        {:ok, {:es256, key}}
-
-      _ ->
-        :error
-    end
-  end
-
-  defp parse_es384_key(pub_key) do
-    case pub_key do
-      {:ECPoint, <<4, x::binary-size(48), y::binary-size(48)>>} ->
-        key =
-          %ECC{
-            alg: :es384,
-            crv: :p384,
-            x: x,
-            y: y
-          }
-
-        {:ok, {:es384, key}}
 
       _ ->
         :error
