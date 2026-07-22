@@ -60,6 +60,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     }
   end
 
+  setup do
+    # gathering telemetry events for the key agreement FSM
+    telemetry_handler_ref =
+      :telemetry_test.attach_event_handlers(self(), [
+        [:astarte, :data_updater_plant, :device_key_agreement, :succeeded]
+      ])
+
+    on_exit(fn -> :telemetry.detach(telemetry_handler_ref) end)
+
+    %{telemetry_handler_ref: telemetry_handler_ref}
+  end
+
   setup_all do
     init_exchange = InitExchange.new(0)
     init_exchange_payload = InitExchange.cbor_encode(init_exchange)
@@ -324,7 +336,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   describe "/keyAgreement/0" do
     test "acks a valid CBOR InitExchange payload and increments message counters",
          context do
-      %{state: state, init_exchange_payload: payload} = context
+      %{
+        state: state,
+        init_exchange_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
+      } = context
 
       expect(VMQPlugin, :publish, 1, fn topic, _payload_bytes, qos ->
         encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
@@ -345,6 +361,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
                new_state.encrypted_endpoints_key
+
+      realm = state.realm
+      # telemetry event is emitted notifying successful establishment of shared key
+      assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+                       ^telemetry_handler_ref, %{}, %{realm: ^realm}}
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do

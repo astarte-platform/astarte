@@ -433,6 +433,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
              state_after_receive,
              {:handshake_completed, shared_secret}
            ) do
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+        %{},
+        %{realm: new_state.realm}
+      )
+
       final_state = %{
         new_state
         | total_received_msgs: new_state.total_received_msgs + 1,
