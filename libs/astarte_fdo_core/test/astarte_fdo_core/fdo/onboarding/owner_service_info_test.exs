@@ -124,4 +124,57 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfoTest do
                OwnerServiceInfo.to_cbor_list(msg)
     end
   end
+
+  describe "encode_with_service_info_chunk/2" do
+    test "encodes flags and pre-encoded service info chunk" do
+      msg = %OwnerServiceInfo{
+        is_more_service_info: true,
+        is_done: false,
+        service_info: %{}
+      }
+
+      encoded_chunk = [["astarte:realm", CBOR.encode("test_realm") |> COSE.tag_as_byte()]]
+      encoded = OwnerServiceInfo.encode_with_service_info_chunk(msg, encoded_chunk)
+
+      assert {:ok, %OwnerServiceInfo{} = decoded} = OwnerServiceInfo.cbor_decode(encoded)
+      assert "test_realm" == decoded.service_info[{"astarte", "realm"}]
+    end
+  end
+
+  describe "build/4" do
+    test "builds owner service info with astarte keys and modules metadata" do
+      built =
+        OwnerServiceInfo.build(
+          "test_realm",
+          "credentials_secret",
+          "encoded_device_id",
+          "https://api.example.com"
+        )
+
+      assert %OwnerServiceInfo{
+               is_more_service_info: false,
+               is_done: true,
+               service_info: service_info
+             } =
+               built
+
+      assert service_info["astarte:active"] == true
+      assert service_info["astarte:realm"] == "test_realm"
+      assert service_info["astarte:secret"] == "credentials_secret"
+      assert service_info["astarte:baseurl"] == "https://api.example.com"
+      assert service_info["astarte:deviceid"] == "encoded_device_id"
+      assert service_info["astarte:nummodules"] == 5
+
+      assert [5, 5 | modules] = service_info["astarte:modules"]
+
+      assert Enum.sort(modules) ==
+               Enum.sort([
+                 "astarte:active",
+                 "astarte:realm",
+                 "astarte:secret",
+                 "astarte:baseurl",
+                 "astarte:deviceid"
+               ])
+    end
+  end
 end
