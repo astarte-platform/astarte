@@ -22,36 +22,35 @@ defmodule Astarte.Secrets.EncryptedMessages do
   the COSE Encrypt0 standard.
   """
 
+  alias COSE.Keys.Symmetric
   alias COSE.Messages.Encrypt0
   require Logger
 
   @doc """
-  Encrypts device data wrapping it into a COSE binary payload.
-  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
+  Encrypts device data wrapping it into a COSE binary payload, using the
+  given symmetric COSE key. The key's `alg` field is the cipher suite
+  determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
   """
-  @spec encrypt(binary(), binary(), atom()) :: binary()
-  def encrypt(plaintext, session_key, key_type) do
+  @spec encrypt(binary(), Symmetric.t()) :: binary()
+  def encrypt(plaintext, %Symmetric{} = symmetric_key) do
     iv = :crypto.strong_rand_bytes(12)
-    uhdr = %{iv: iv}
+    uhdr = %{iv: COSE.tag_as_byte(iv)}
     msg = Encrypt0.build(plaintext, %{}, uhdr)
-    key = %{k: session_key}
 
-    Encrypt0.encrypt_encode(msg, key_type, key, iv)
+    Encrypt0.encrypt_encode(msg, symmetric_key.alg, symmetric_key, iv)
   end
 
   @doc """
-  Decrypts a COSE Encrypt0 binary payload using the shared `session_key`.
-  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
+  Decrypts a COSE Encrypt0 binary payload using the given symmetric COSE key.
+  The key's `alg` field is the cipher suite determined during the handshake
+  (e.g., :aes_128_gcm, :aes_256_gcm).
   """
-  @spec decrypt(binary(), binary(), atom()) :: {:ok, binary()} | {:error, atom()}
-  def decrypt(cbor_binary, session_key, key_type) do
-    key = %{k: session_key}
+  @spec decrypt(binary(), Symmetric.t()) :: {:ok, binary()} | {:error, atom()}
+  def decrypt(cbor_binary, %Symmetric{} = symmetric_key) do
+    case Encrypt0.decrypt_decode(cbor_binary, symmetric_key.alg, symmetric_key) do
+      {:ok, decrypted_msg} ->
+        {:ok, decrypted_msg.payload}
 
-    with {:ok, msg} <- Encrypt0.decode_cbor(cbor_binary),
-         iv when is_binary(iv) <- msg.uhdr.iv,
-         {:ok, decrypted_msg} <- Encrypt0.decrypt(msg, key_type, key, iv) do
-      {:ok, decrypted_msg.payload}
-    else
       error ->
         Logger.warning(
           "Rejected invalid or malformed device data during decryption: #{inspect(error)}"

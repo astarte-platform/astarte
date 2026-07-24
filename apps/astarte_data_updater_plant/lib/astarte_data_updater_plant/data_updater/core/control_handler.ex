@@ -36,6 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias COSE.Keys.Symmetric
 
   require Logger
 
@@ -422,23 +423,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
            ),
          {:ok, exchange_resp} <-
            send_exchange_resp(new_state.realm, new_state.device_id, init_exchange),
-         {:ok, shared_secret} <-
-           SharedSecret.derive(
-             exchange_resp.public_key,
-             init_exchange.public_key,
-             init_exchange.hkdf_salt
-           ),
+         {:ok, symmetric_key} <- SharedSecret.derive(init_exchange, exchange_resp),
          {:ok, established_key_state} <-
            HandshakeState.transition(
              state_after_receive,
-             {:handshake_completed, shared_secret}
-           ) do
+             {:handshake_completed, symmetric_key.k}
+           ),
+         :ok <- persist_shared_secret(new_state.realm, new_state.device_id, symmetric_key) do
       final_state = %{
         new_state
         | total_received_msgs: new_state.total_received_msgs + 1,
           total_received_bytes:
             new_state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0"),
-          encrypted_endpoints_key: established_key_state
+          encrypted_endpoints_key: established_key_state,
+          shared_secret: symmetric_key
       }
 
       {:ok, final_state}
@@ -529,17 +527,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
          _timestamp
        ) do
     with {:ok, exchange_resp} <- ExchangeResp.cbor_decode(payload, data.key_type),
-         {:ok, shared_secret} <-
-           SharedSecret.derive(
-             data.init_exchange.public_key,
-             exchange_resp.public_key,
-             data.init_exchange.hkdf_salt
-           ),
+         {:ok, symmetric_key} <- SharedSecret.derive(data.init_exchange, exchange_resp),
          {:ok, new_key_state} <-
            HandshakeState.transition(
              state.encrypted_endpoints_key,
-             {:handshake_completed, shared_secret}
-           ) do
+             {:handshake_completed, symmetric_key.k}
+           ),
+         :ok <- persist_shared_secret(state.realm, state.device_id, symmetric_key) do
       :telemetry.execute(
         [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
         %{payload_size: byte_size(payload)},
@@ -549,6 +543,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       final_state = %{
         state
         | encrypted_endpoints_key: new_key_state,
+          shared_secret: symmetric_key,
           total_received_msgs: state.total_received_msgs + 1,
           total_received_bytes:
             state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
@@ -576,6 +571,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   defp process_key_agreement(state, _payload, _timestamp) do
     Logger.warning("[keyAgreement/1] Unexpected response received.")
     {:ack, :ok, state}
+  end
+
+  defp persist_shared_secret(realm, device_id, %Symmetric{} = symmetric_key) do
+    case Queries.save_shared_secret(realm, device_id, symmetric_key) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        {:error, :internal_server_error, "failed to persist shared secret: #{inspect(reason)}"}
+    end
   end
 
   defp process_exchange_failed(state, payload, timestamp) do

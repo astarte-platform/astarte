@@ -39,8 +39,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+  alias COSE.Keys.Symmetric
 
   setup do
     Mox.verify_on_exit!()
@@ -343,8 +345,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0")
 
-      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm, shared_secret: secret}} =
                new_state.encrypted_endpoints_key
+
+      assert new_state.shared_secret == %Symmetric{alg: :aes_256_gcm, k: secret}
+
+      assert %{shared_secret: %Symmetric{alg: :aes_256_gcm, k: ^secret}} =
+               Queries.get_device_status(state.realm, state.device_id)
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do
@@ -520,6 +527,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
              }}
       }
 
+      symmetric_key = %Symmetric{alg: :aes_256_gcm, k: :crypto.strong_rand_bytes(32)}
+      expect(SharedSecret, :derive, fn _init_exchange, _exchange_resp -> {:ok, symmetric_key} end)
+
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
 
@@ -528,8 +538,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
 
-      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm, shared_secret: secret}} =
                new_state.encrypted_endpoints_key
+
+      assert secret == symmetric_key.k
+      assert new_state.shared_secret == symmetric_key
+
+      assert %{shared_secret: ^symmetric_key} =
+               Queries.get_device_status(state.realm, state.device_id)
     end
 
     test "acks a valid CBOR ExchangeResp payload with a P-256 key", context do
@@ -546,6 +562,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm
              }}
       }
+
+      symmetric_key = %Symmetric{alg: :aes_256_gcm, k: :crypto.strong_rand_bytes(32)}
+      expect(SharedSecret, :derive, fn _init_exchange, _exchange_resp -> {:ok, symmetric_key} end)
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
@@ -741,7 +760,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
              %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
       }
 
-      expect(SharedSecret, :derive, fn _my_key, _peer_key, _salt ->
+      expect(SharedSecret, :derive, fn _init_exchange, _exchange_resp ->
         {:error, :unprocessable_entity, "key derivation failed"}
       end)
 
@@ -780,6 +799,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
             {:handshake_started,
              %{init_exchange: init_exchange, key_type: :ecdh_x25519_hkdf_sha256_aes_256_gcm}}
       }
+
+      symmetric_key = %Symmetric{alg: :aes_256_gcm, k: :crypto.strong_rand_bytes(32)}
+      expect(SharedSecret, :derive, fn _init_exchange, _exchange_resp -> {:ok, symmetric_key} end)
 
       expect(HandshakeState, :transition, fn _current_state, {:handshake_completed, _secret} ->
         {:error, :internal_server_error, "unexpected error"}

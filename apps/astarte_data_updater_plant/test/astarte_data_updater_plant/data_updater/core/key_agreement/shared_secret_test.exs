@@ -21,103 +21,62 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecretTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias COSE.Keys.ECC
-  alias COSE.Keys.OKP
 
-  describe "derive/3 with X25519" do
-    test "produces a 32-byte key" do
-      alice = OKP.generate(:enc)
-      bob = OKP.generate(:enc)
-      salt = :crypto.strong_rand_bytes(32)
+  defp handshake_pair(key_type) do
+    init_exchange = InitExchange.new(0, key_type)
+    exchange_resp = ExchangeResp.new(init_exchange)
+    {init_exchange, exchange_resp}
+  end
 
-      assert {:ok, key} = SharedSecret.derive(alice, bob, salt)
-      assert byte_size(key) == 32
+  describe "derive/2 with X25519" do
+    test "produces a 32-byte AES-256-GCM key" do
+      {init_exchange, exchange_resp} = handshake_pair(:ecdh_x25519_hkdf_sha256_aes_256_gcm)
+
+      assert {:ok, symmetric_key} = SharedSecret.derive(init_exchange, exchange_resp)
+      assert symmetric_key.alg == :aes_256_gcm
+      assert byte_size(symmetric_key.k) == 32
     end
 
-    test "both sides derive the same key" do
-      alice = OKP.generate(:enc)
-      bob = OKP.generate(:enc)
-      salt = :crypto.strong_rand_bytes(32)
+    test "different handshakes produce different keys" do
+      {init_exchange1, exchange_resp1} = handshake_pair(:ecdh_x25519_hkdf_sha256_aes_256_gcm)
+      {init_exchange2, exchange_resp2} = handshake_pair(:ecdh_x25519_hkdf_sha256_aes_256_gcm)
 
-      assert {:ok, key_ab} = SharedSecret.derive(alice, bob, salt)
-      assert {:ok, key_ba} = SharedSecret.derive(bob, alice, salt)
-      assert key_ab == key_ba
-    end
-
-    test "different salts produce different keys" do
-      alice = OKP.generate(:enc)
-      bob = OKP.generate(:enc)
-      salt1 = :crypto.strong_rand_bytes(32)
-      salt2 = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, key1} = SharedSecret.derive(alice, bob, salt1)
-      assert {:ok, key2} = SharedSecret.derive(alice, bob, salt2)
-      assert key1 != key2
-    end
-
-    test "different key pairs produce different keys" do
-      alice = OKP.generate(:enc)
-      bob = OKP.generate(:enc)
-      carol = OKP.generate(:enc)
-      salt = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, key_ab} = SharedSecret.derive(alice, bob, salt)
-      assert {:ok, key_ac} = SharedSecret.derive(alice, carol, salt)
-      assert key_ab != key_ac
+      assert {:ok, key1} = SharedSecret.derive(init_exchange1, exchange_resp1)
+      assert {:ok, key2} = SharedSecret.derive(init_exchange2, exchange_resp2)
+      assert key1.k != key2.k
     end
   end
 
-  describe "derive/3 with P-256" do
-    test "produces a 32-byte key" do
-      alice = ECC.generate(:es256)
-      bob = ECC.generate(:es256)
-      salt = :crypto.strong_rand_bytes(32)
+  describe "derive/2 with P-256" do
+    test "produces a 32-byte AES-256-GCM key" do
+      {init_exchange, exchange_resp} = handshake_pair(:ecdh_p256_hkdf_sha256_aes_256_gcm)
 
-      assert {:ok, key} = SharedSecret.derive(alice, bob, salt)
-      assert byte_size(key) == 32
-    end
-
-    test "both sides derive the same key" do
-      alice = ECC.generate(:es256)
-      bob = ECC.generate(:es256)
-      salt = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, key_ab} = SharedSecret.derive(alice, bob, salt)
-      assert {:ok, key_ba} = SharedSecret.derive(bob, alice, salt)
-      assert key_ab == key_ba
-    end
-
-    test "different salts produce different keys" do
-      alice = ECC.generate(:es256)
-      bob = ECC.generate(:es256)
-      salt1 = :crypto.strong_rand_bytes(32)
-      salt2 = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, key1} = SharedSecret.derive(alice, bob, salt1)
-      assert {:ok, key2} = SharedSecret.derive(alice, bob, salt2)
-      assert key1 != key2
+      assert {:ok, symmetric_key} = SharedSecret.derive(init_exchange, exchange_resp)
+      assert symmetric_key.alg == :aes_256_gcm
+      assert byte_size(symmetric_key.k) == 32
     end
   end
 
-  describe "derive/3 error cases" do
+  describe "derive/2 error cases" do
     test "returns error when key types are mismatched (OKP vs ECC)" do
-      okp_key = OKP.generate(:enc)
+      {okp_init_exchange, _} = handshake_pair(:ecdh_x25519_hkdf_sha256_aes_256_gcm)
       ecc_key = ECC.generate(:es256)
-      salt = :crypto.strong_rand_bytes(32)
+      exchange_resp = %ExchangeResp{seq_num: 0, public_key: ecc_key}
 
       assert {:error, :unprocessable_entity, "unsupported or mismatched key"} =
-               SharedSecret.derive(okp_key, ecc_key, salt)
+               SharedSecret.derive(okp_init_exchange, exchange_resp)
     end
 
-    test "returns error when my_key has no private component" do
-      full = OKP.generate(:enc)
-      pub_only = %OKP{full | d: nil}
-      peer = OKP.generate(:enc)
-      salt = :crypto.strong_rand_bytes(32)
+    test "returns error when exchange_resp has no private component" do
+      {init_exchange, exchange_resp} = handshake_pair(:ecdh_x25519_hkdf_sha256_aes_256_gcm)
+      peer_only_resp = Map.update!(exchange_resp, :public_key, &%{&1 | d: nil})
 
       assert {:error, :unprocessable_entity, "key derivation failed"} =
-               SharedSecret.derive(pub_only, peer, salt)
+               SharedSecret.derive(init_exchange, peer_only_resp)
     end
   end
 end

@@ -738,12 +738,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def save_shared_secret(realm, device_id, shared_secret) do
     keyspace_name = Realm.keyspace_name(realm)
 
-    device =
+    changeset =
       %Device{device_id: device_id}
       |> Ecto.Changeset.change(%{shared_secret: shared_secret})
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
-    Repo.update!(device, opts)
-    :ok
+
+    case Repo.safe_update(changeset, opts) do
+      {:ok, _device} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot save shared secret for device #{CoreDevice.encode_device_id(device_id)}: #{inspect(reason)}",
+          realm: realm,
+          tag: "save_shared_secret_fail"
+        )
+
+        {:error, reason}
+    end
   end
 end
