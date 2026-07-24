@@ -36,6 +36,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
+  alias Astarte.Secrets
   alias Astarte.Secrets.EncryptedMessages
 
   alias COSE.Keys.Symmetric
@@ -122,7 +123,22 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
       {:ok, device_id} = CoreDevice.decode_device_id(device.encoded_id)
 
-      :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, shared_secret)
+      Mimic.stub(Astarte.Secrets, :encrypt_with_kek, fn _realm_name, plaintext ->
+        {:ok, "vault:v1:" <> Base.encode64(plaintext)}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :decrypt_with_kek, fn _realm_name, ciphertext ->
+        with "vault:v1:" <> encoded <- ciphertext,
+             {:ok, plaintext} <- Base.decode64(encoded) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+      end)
+
+      with {:ok, encrypted_secret} <- encrypt_shared_secret(realm_name, shared_secret) do
+        :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, encrypted_secret)
+      end
 
       encrypted_server_interfaces =
         interfaces
@@ -130,10 +146,6 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
           interface.ownership == :device and
             Enum.any?(interface.mappings, & &1.encrypted)
         end)
-
-      Mimic.stub(Astarte.Secrets.Core, :realm_kek_namespace_tokens, fn _realm_name ->
-        ["astarte_encrypted_messages_kek", "default_instance", realm_name]
-      end)
 
       Mimic.stub(Astarte.Secrets, :generate_dek, fn _type, _namespace ->
         {:ok, %{plaintext: :binary.copy(<<1>>, 32), ciphertext: :binary.copy(<<1>>, 32)}}
@@ -353,6 +365,13 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   defp normalize_path(path) do
     "/" <> String.trim(path, "/")
+  end
+
+  defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do
+    with {:ok, encrypted_key} <-
+           Secrets.encrypt_with_kek(realm, symmetric_key.k) do
+      {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
+    end
   end
 
   defp decrypt_value(encrypted_value, shared_secret) do
