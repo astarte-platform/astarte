@@ -55,6 +55,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.Events.Triggers.Cache
+  alias Astarte.Secrets
   alias COSE.Keys.Symmetric
 
   setup :verify_on_exit!
@@ -1687,7 +1688,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(realm, device_id)
 
-    Queries.save_shared_secret(realm, device_id, shared_secret)
+    {:ok, _} = Secrets.create_realm_kek(realm)
+    {:ok, kek} = Secrets.fetch_realm_kek(realm)
+
+    {:ok, encrypted_key} =
+      Secrets.encrypt_with_key(kek.name, shared_secret.k, namespace: kek.namespace)
+
+    encrypted_shared_secret = %Symmetric{shared_secret | k: encrypted_key}
+
+    Queries.save_shared_secret(realm, device_id, encrypted_shared_secret)
 
     handle_connection(
       realm,
@@ -1696,7 +1705,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-12-09T14:00:32+00:00")
     )
 
-    assert %{shared_secret: random_binary} = dump_state(realm, encoded_device_id)
+    assert %{shared_secret: loaded_shared_secret} = dump_state(realm, encoded_device_id)
+    assert loaded_shared_secret == shared_secret
   end
 
   defp generate_disconnection_trigger_data do

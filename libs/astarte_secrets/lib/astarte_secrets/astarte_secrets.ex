@@ -224,6 +224,72 @@ defmodule Astarte.Secrets do
   end
 
   @doc """
+  Encrypts the provided plaintext using OpenBao Transit Engine with the given key.
+  Returns the vault ciphertext.
+  """
+  @spec encrypt_with_key(String.t(), binary(), list()) :: {:ok, String.t()} | :error
+  def encrypt_with_key(key_name, plaintext, options \\ []) do
+    namespace = Keyword.fetch!(options, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(options, [:token])
+
+    req_body =
+      %{plaintext: Base.encode64(plaintext)}
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/encrypt/#{key_name}", req_body, headers, client_opts) do
+      {:ok, %Response{status_code: 200, body: body}} ->
+        with {:ok, data} <- Core.parse_json_data(body),
+             ciphertext when is_binary(ciphertext) <- Map.get(data, "ciphertext") do
+          {:ok, ciphertext}
+        else
+          _ -> :error
+        end
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while encrypting with key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Decrypts the provided vault ciphertext using OpenBao Transit Engine.
+  """
+  @spec decrypt_with_key(String.t(), String.t(), list()) :: {:ok, binary()} | :error
+  def decrypt_with_key(key_name, ciphertext, options \\ []) do
+    namespace = Keyword.fetch!(options, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(options, [:token])
+
+    req_body =
+      %{ciphertext: ciphertext}
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/decrypt/#{key_name}", req_body, headers, client_opts) do
+      {:ok, %Response{status_code: 200, body: body}} ->
+        with {:ok, data} <- Core.parse_json_data(body),
+             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
   Decrypts the provided ciphertext using OpenBao Transit Engine.
   Useful for ASYMKEX where the device encrypts a secret with the owner's RSA public key.
   """

@@ -36,6 +36,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
+  alias Astarte.Secrets
   alias Astarte.Secrets.EncryptedMessages
 
   alias COSE.Keys.Symmetric
@@ -122,7 +123,31 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
       {:ok, device_id} = CoreDevice.decode_device_id(device.encoded_id)
 
-      :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, shared_secret)
+      Mimic.stub(Astarte.Secrets, :fetch_realm_kek, fn _ ->
+        {:ok,
+         %{
+           name: "fake-kek",
+           namespace: "fake-namespace",
+           alg: :aes256_gcm
+         }}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :encrypt_with_key, fn _key_name, plaintext, _opts ->
+        {:ok, "vault:v1:" <> Base.encode64(plaintext)}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :decrypt_with_key, fn _key_name, ciphertext, _opts ->
+        with "vault:v1:" <> encoded <- ciphertext,
+             {:ok, plaintext} <- Base.decode64(encoded) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+      end)
+
+      with {:ok, encrypted_secret} <- encrypt_shared_secret(realm_name, shared_secret) do
+        :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, encrypted_secret)
+      end
 
       encrypted_server_interfaces =
         interfaces
@@ -353,6 +378,14 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
 
   defp normalize_path(path) do
     "/" <> String.trim(path, "/")
+  end
+
+  defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do
+    with {:ok, kek} <- Secrets.fetch_realm_kek(realm),
+         {:ok, encrypted_key} <-
+           Secrets.encrypt_with_key(kek.name, symmetric_key.k, namespace: kek.namespace) do
+      {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
+    end
   end
 
   defp decrypt_value(encrypted_value, shared_secret) do
