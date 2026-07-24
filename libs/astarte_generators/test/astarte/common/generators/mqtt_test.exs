@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ defmodule Astarte.Common.Generators.MQTTTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.MQTT, as: MQTTGenerator
+  import Astarte.Common.Generators.MQTT
 
   @moduletag :common
   @moduletag :mqtt
@@ -33,21 +33,27 @@ defmodule Astarte.Common.Generators.MQTTTest do
     @describetag :success
     @describetag :ut
     property "generate topics do not have empty tokens by default" do
-      check all topic <- MQTTGenerator.mqtt_topic() do
+      check all topic <- mqtt_topic() do
         refute String.contains?(topic, "//")
       end
     end
 
     property "generate topics cannot be a null string by default" do
-      check all topic <- MQTTGenerator.mqtt_topic() do
+      check all topic <- mqtt_topic() do
         refute String.equivalent?(topic, "")
       end
     end
 
     property "generate topics with prefix option honor it" do
-      check all pre <- string(MQTTGenerator.valid_chars()),
-                topic <- MQTTGenerator.mqtt_topic(pre: pre) do
+      check all pre <- mqtt_valid_chars() |> string(),
+                topic <- mqtt_topic(pre: pre) do
         assert String.starts_with?(topic, pre)
+      end
+    end
+
+    property "generate topics can be empty if allow_empty is true" do
+      check all topic <- mqtt_topic(allow_empty: constant(true)), max_runs: 1 do
+        assert is_binary(topic)
       end
     end
   end

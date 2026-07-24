@@ -51,8 +51,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
     ]
   end
 
@@ -84,6 +83,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:xandra, github: "whatyouhide/xandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},

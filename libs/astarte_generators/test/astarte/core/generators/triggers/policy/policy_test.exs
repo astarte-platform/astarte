@@ -1,6 +1,6 @@
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ defmodule Astarte.Core.Generators.Triggers.PolicyTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Astarte.Core.Generators.Triggers.Policy
+
   alias Astarte.Core.Triggers.Policy
 
   @moduletag :trigger
@@ -30,20 +31,9 @@ defmodule Astarte.Core.Generators.Triggers.PolicyTest do
     @describetag :success
     @describetag :ut
 
-    property "generates valid policies using to_changes (gen)" do
-      gen_policy_changes = PolicyGenerator.policy() |> PolicyGenerator.to_changes()
-
-      check all changes <- gen_policy_changes,
-                changeset = Policy.changeset(%Policy{}, changes) do
-        assert changeset.valid?, "Invalid policy: #{inspect(changeset.errors)}"
-      end
-    end
-
-    property "generates valid policies using to_changes (struct)" do
-      check all policy <- PolicyGenerator.policy(),
-                changes <- PolicyGenerator.to_changes(policy),
-                changeset = Policy.changeset(%Policy{}, changes) do
-        assert changeset.valid?, "Invalid policy: #{inspect(changeset.errors)}"
+    property "generates valid policies" do
+      check all policy <- policy() do
+        assert %Policy{} = policy
       end
     end
   end

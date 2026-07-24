@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ defmodule Astarte.Common.Generators.TimestampTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  import Astarte.Common.Generators.Timestamp
 
   @moduletag :common
   @moduletag :timestamp
@@ -31,25 +31,23 @@ defmodule Astarte.Common.Generators.TimestampTest do
   @doc false
   describe "timestamp generator" do
     property "valid generic timestamp" do
-      check all timestamp <- TimestampGenerator.timestamp() do
+      check all timestamp <- timestamp() do
         assert {:ok, _} = DateTime.from_unix(timestamp)
       end
     end
 
     property "valid timestamp using min" do
       check all from_ts <-
-                  TimestampGenerator.timestamp()
-                  |> filter(&(&1 > TimestampGenerator.min_default())),
-                to_ts <- TimestampGenerator.timestamp(min: from_ts) do
+                  timestamp() |> filter(&(&1 > timestamp_min_default())),
+                to_ts <- timestamp(min: from_ts) do
         assert to_ts > from_ts
       end
     end
 
     property "valid timestamp using max" do
       check all to_ts <-
-                  TimestampGenerator.timestamp()
-                  |> filter(&(&1 < TimestampGenerator.max_default())),
-                from_ts <- TimestampGenerator.timestamp(max: to_ts) do
+                  timestamp() |> filter(&(&1 < timestamp_max_default())),
+                from_ts <- timestamp(max: to_ts) do
         assert to_ts > from_ts
       end
     end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.ValueStoredEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent,
-    as: ValueStoredEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.ValueStoredEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,7 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEventTest do
     @describetag :success
     @describetag :ut
     property "generates valid value_stored_event" do
-      check all value_stored_event <- ValueStoredEventGenerator.value_stored_event() do
+      check all value_stored_event <- value_stored_event() do
         assert %ValueStoredEvent{} = value_stored_event
       end
     end

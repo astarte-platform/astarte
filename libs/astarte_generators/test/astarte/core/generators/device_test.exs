@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ defmodule Astarte.Core.Generators.DeviceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   @moduletag :device
 
@@ -34,7 +36,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
   describe "device generator ids" do
     @tag :success
     property "success valid device id size" do
-      check all(device_id <- DeviceGenerator.id()) do
+      check all device_id <- device_id() do
         assert byte_size(device_id) == @device_id_size,
                "Device id is not #{@device_id_size} bytes"
       end
@@ -42,7 +44,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
 
     @tag :success
     property "success encode device id" do
-      check all(device_id <- DeviceGenerator.id()) do
+      check all device_id <- device_id() do
         encoded_device_id_1 = Base.url_encode64(device_id, padding: false)
         encoded_device_id_2 = Device.encode_device_id(device_id)
         assert encoded_device_id_1 == encoded_device_id_2
@@ -51,7 +53,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
 
     @tag :success
     property "success decode device id" do
-      check all(encoded_device_id <- DeviceGenerator.encoded_id()) do
+      check all encoded_device_id <- device_encoded_id() do
         {:ok, device_id_1} = Base.url_decode64(encoded_device_id, padding: false)
         {:ok, device_id_2} = Device.decode_device_id(encoded_device_id)
         assert device_id_1 == device_id_2
@@ -63,7 +65,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
   describe "device generator struct" do
     @tag :success
     property "success base device creation" do
-      check all device <- DeviceGenerator.device() do
+      check all device <- device() do
         refute is_nil(device)
       end
     end
@@ -72,7 +74,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
     @tag issue: 42
     property "device nillable fields" do
       check all device <-
-                  DeviceGenerator.device(
+                  device(
                     last_seen_ip: nil,
                     last_credentials_request_ip: nil,
                     inhibit_credentials_request: nil,
@@ -83,6 +85,29 @@ defmodule Astarte.Core.Generators.DeviceTest do
                     aliases: nil,
                     attributes: nil
                   ) do
+        refute is_nil(device)
+      end
+    end
+  end
+
+  describe "coverage" do
+    property "success device with nil now triggers nil timestamp fallbacks" do
+      check all device <- device(now: nil) do
+        refute is_nil(device)
+      end
+    end
+
+    property "success device with single interface struct" do
+      check all device <- device(interfaces: interface()) do
+        refute is_nil(device)
+      end
+    end
+
+    property "success device with duplicate interfaces triggers map update" do
+      duplicated = gen all i <- interface(), do: [i, i]
+
+      check all duplicate_interfaces <- duplicated,
+                device <- device(interfaces: duplicate_interfaces) do
         refute is_nil(device)
       end
     end

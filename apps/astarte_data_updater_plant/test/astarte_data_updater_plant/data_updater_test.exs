@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1696,7 +1696,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-12-09T14:00:32+00:00")
     )
 
-    assert %{shared_secret: random_binary} = dump_state(realm, encoded_device_id)
+    assert %{shared_secret: _random_binary} = dump_state(realm, encoded_device_id)
   end
 
   defp generate_disconnection_trigger_data do

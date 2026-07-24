@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEventT
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
+  import Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent,
-    as: ValueChangeAppliedEventGenerator
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -34,8 +33,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEventT
     @describetag :success
     @describetag :ut
     property "generates valid value_change_applied_event" do
-      check all value_change_applied_event <-
-                  ValueChangeAppliedEventGenerator.value_change_applied_event() do
+      check all value_change_applied_event <- value_change_applied_event() do
         assert %ValueChangeAppliedEvent{} = value_change_applied_event
       end
     end

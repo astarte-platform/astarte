@@ -20,11 +20,11 @@ defmodule Astarte.RPC.RealmManagementTest do
   use Astarte.RPC.Cases.RPCServer, async: true
   use Mneme
 
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Realm
+
   alias Astarte.RPC.RealmManagement
   alias Astarte.RPC.RealmManagement.DeviceDeletion
-
-  import Astarte.Core.Generators.Realm
-  import Astarte.Core.Generators.Device
 
   test "server_name/0 returns the server name" do
     auto_assert {:via, Horde.Registry, {Astarte.RPC.RealmManagement.Registry, :server}} <-
@@ -54,7 +54,7 @@ defmodule Astarte.RPC.RealmManagementTest do
   describe "delete_device/2" do
     test "calls the rpc" do
       realm_name = realm_name() |> Enum.at(0)
-      encoded_device_id = encoded_id() |> Enum.at(0)
+      encoded_device_id = device_encoded_id() |> Enum.at(0)
       RealmManagement.delete_device(realm_name, encoded_device_id)
 
       assert_receive {:call, :realm_management,

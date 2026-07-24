@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,19 +20,17 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent do
   @moduledoc """
   This module provides generators for Astarte Trigger Simple Event InterfaceRemovedEvent struct.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Core.Generators.Interface
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-
   @spec interface_removed_event() :: StreamData.t(InterfaceRemovedEvent.t())
   @spec interface_removed_event(keyword :: keyword()) :: StreamData.t(InterfaceRemovedEvent.t())
   def interface_removed_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.interface(),
+    params gen all interface <- interface(),
                    %Interface{name: name, major_version: major_version} = interface,
                    interface_name <- constant(name),
                    major_version <- constant(major_version),

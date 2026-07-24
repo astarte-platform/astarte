@@ -17,11 +17,13 @@
 #
 
 defmodule Astarte.PairingWeb.AgentControllerTest do
+  use ExUnitProperties
+
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use Astarte.Cases.Conn, async: true
 
-  use ExUnitProperties
+  import Astarte.Core.Generators.Device
 
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.PairingWeb.Helpers.JWTTestHelper
@@ -120,7 +122,7 @@ defmodule Astarte.PairingWeb.AgentControllerTest do
       realm_name: realm_name
     } do
       interfaces = []
-      device = Astarte.Core.Generators.Device.device(interfaces: interfaces) |> Enum.at(10)
+      device = device(interfaces: interfaces) |> Enum.at(10)
       secret = CredentialsSecret.generate()
       Astarte.Helpers.Device.insert_device_cleanly(realm_name, device, interfaces, secret)
 

@@ -18,23 +18,23 @@
 
 defmodule Astarte.Cases.Device do
   @moduledoc false
-  use ExUnit.CaseTemplate
   use ExUnitProperties
+  use ExUnit.CaseTemplate
 
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.Interface
   import Ecto.Query
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping
+
+  import Astarte.Generators.InterfaceUpdate
+  import Astarte.Helpers.Device
+  import Astarte.Helpers.Interface
 
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
   using do
     quote do
@@ -66,8 +66,7 @@ defmodule Astarte.Cases.Device do
       enable_endpoints_encryption(realm_name, interface_id, endpoint_id)
     end
 
-    device =
-      DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> resize(10) |> Enum.at(0)
+    device = device(interfaces: interfaces_data.interfaces) |> resize(10) |> Enum.at(0)
 
     insert_device_cleanly(realm_name, device, interfaces_data.interfaces)
 
@@ -170,8 +169,8 @@ defmodule Astarte.Cases.Device do
 
     mapping_update =
       case :complete_update in flags do
-        true -> InterfaceUpdateGenerator.valid_complete_mapping_update_for(interface)
-        false -> InterfaceUpdateGenerator.valid_mapping_update_for(interface)
+        true -> valid_complete_mapping_update_for(interface)
+        false -> valid_mapping_update_for(interface)
       end
 
     values =
@@ -255,7 +254,7 @@ defmodule Astarte.Cases.Device do
   end
 
   defp encrypted_endpoint_mapping(:properties, :individual) do
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedPropertiesInterface",
       ownership: :device,
       type: :properties,
@@ -277,7 +276,7 @@ defmodule Astarte.Cases.Device do
   end
 
   defp encrypted_endpoint_mapping(:datastream, :individual) do
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedIndividualDatastreamInterface",
       ownership: :device,
       type: :datastream,
@@ -302,7 +301,7 @@ defmodule Astarte.Cases.Device do
       explicit_timestamp: false
     ]
 
-    mapping_gen = MappingGenerator.mapping(common_mapping_params)
+    mapping_gen = mapping(common_mapping_params)
 
     # generate two encrypted mappings
     mappings =
@@ -325,7 +324,7 @@ defmodule Astarte.Cases.Device do
         [mapping_0, mapping_1]
       end)
 
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedObjectDatastreamInterface",
       ownership: :device,
       type: :datastream,
@@ -407,70 +406,70 @@ defmodule Astarte.Cases.Device do
 
   defp individual_datastream_device do
     [ownership: :device, aggregation: :individual, type: :datastream]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp individual_datastream_server do
     [ownership: :server, aggregation: :individual, type: :datastream]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp object_datastream_device do
     [ownership: :device, aggregation: :object, type: :datastream]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp object_datastream_server do
     [ownership: :server, aggregation: :object, type: :datastream]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp properties_device do
     [ownership: :device, type: :properties]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp properties_server do
     [ownership: :server, type: :properties]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp properties_server_allow_unset do
     [ownership: :server, type: :properties]
-    |> InterfaceGenerator.interface()
+    |> interface()
     |> map(&customize_mappings(&1, allow_unset: true))
   end
 
   defp properties_server_without_unset do
     [ownership: :server, type: :properties]
-    |> InterfaceGenerator.interface()
+    |> interface()
     |> map(&customize_mappings(&1, allow_unset: false))
   end
 
   defp fallible_interfaces do
     [ownership: :server]
-    |> InterfaceGenerator.interface()
+    |> interface()
     |> map(&customize_mappings(&1, value_type: Enum.random(fallible_value_types())))
   end
 
   defp individual_downsampable do
     [aggregation: :individual]
-    |> InterfaceGenerator.interface()
+    |> interface()
     |> map(&customize_mappings(&1, value_type: Enum.random(downsampable_value_types())))
   end
 
   defp object_downsampable do
     [type: :datastream, aggregation: :object]
-    |> InterfaceGenerator.interface()
+    |> interface()
     |> map(&customize_mappings(&1, value_type: Enum.random(downsampable_value_types())))
   end
 
   defp explicit_timestamps do
     [ownership: :server, type: :datastream, explicit_timestamp: true]
-    |> InterfaceGenerator.interface()
+    |> interface()
   end
 
   defp other_interfaces do
-    InterfaceGenerator.interface()
+    interface()
   end
 end

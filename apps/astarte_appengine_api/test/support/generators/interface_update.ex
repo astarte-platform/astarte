@@ -20,11 +20,11 @@ defmodule Astarte.Generators.InterfaceUpdate do
   # TODO: move all these generators to astarte_generators
   use ExUnitProperties
 
+  import Astarte.Common.Generators.Timestamp
+
   import Astarte.Helpers.Device
 
   alias Astarte.Core.Mapping
-
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
   def valid_fallible_mapping_update_for(interface) when interface.aggregation == :individual,
     do: valid_mapping_update_for(interface)
@@ -351,8 +351,8 @@ defmodule Astarte.Generators.InterfaceUpdate do
 
   defp gen_datetime do
     one_of([
-      TimestampGenerator.timestamp(),
-      TimestampGenerator.timestamp()
+      timestamp(),
+      timestamp()
       |> map(&DateTime.from_unix!/1)
       |> map(&DateTime.to_iso8601/1)
     ])

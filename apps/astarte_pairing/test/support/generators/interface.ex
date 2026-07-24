@@ -19,9 +19,9 @@ defmodule Astarte.Generators.Interface do
   @moduledoc false
   use ExUnitProperties
 
-  alias Astarte.Core.Interface
+  import Astarte.Core.Generators.Interface
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Interface
 
   @doc false
   @spec interface_list() :: StreamData.t(list(Interface.t()))
@@ -47,19 +47,18 @@ defmodule Astarte.Generators.Interface do
 
   defp individual_datastream(ownership),
     do:
-      InterfaceGenerator.interface(
+      interface(
         ownership: ownership,
         aggregation: :individual,
         type: :datastream
       )
 
   defp object_datastream(ownership),
-    do:
-      InterfaceGenerator.interface(ownership: ownership, aggregation: :object, type: :datastream)
+    do: interface(ownership: ownership, aggregation: :object, type: :datastream)
 
   defp properties(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, type: :properties)
+    interface(ownership: ownership, type: :properties)
   end
 
-  defp other, do: InterfaceGenerator.interface()
+  defp other, do: interface()
 end

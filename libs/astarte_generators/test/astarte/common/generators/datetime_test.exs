@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ defmodule Astarte.Common.Generators.DateTimeTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  import Astarte.Common.Generators.DateTime
+  import Astarte.Common.Generators.Timestamp
 
   @moduletag :common
   @moduletag :datetime
@@ -32,39 +32,37 @@ defmodule Astarte.Common.Generators.DateTimeTest do
   @doc false
   describe "DateTime generator" do
     property "valid generic DateTime with right precision" do
-      check all date_time <- DateTimeGenerator.date_time() do
+      check all date_time <- date_time() do
         assert %DateTime{microsecond: {_, 6}} = date_time
       end
     end
 
     property "valid DateTime using min" do
-      check all from <-
-                  DateTimeGenerator.date_time()
-                  |> filter(&DateTime.after?(&1, DateTimeGenerator.min_default())),
-                to <- DateTimeGenerator.date_time(min: from) do
+      check all from <- date_time() |> filter(&DateTime.after?(&1, date_time_min_default())),
+                to <- date_time(min: from) do
         assert DateTime.after?(to, from)
       end
     end
 
     property "valid DateTime using max" do
       check all to <-
-                  DateTimeGenerator.date_time()
-                  |> filter(&DateTime.before?(&1, DateTimeGenerator.max_default())),
-                from <- DateTimeGenerator.date_time(max: to) do
+                  date_time()
+                  |> filter(&DateTime.before?(&1, date_time_max_default())),
+                from <- date_time(max: to) do
         assert DateTime.after?(to, from)
       end
     end
 
     @tag :issue
     test "min equals to Timestamp min" do
-      min = TimestampGenerator.min_default(:microsecond) |> DateTime.from_unix!(:microsecond)
-      assert min == DateTimeGenerator.min_default()
+      min = timestamp_min_default(:microsecond) |> DateTime.from_unix!(:microsecond)
+      assert min == date_time_min_default()
     end
 
     @tag :issue
     test "max equals to Timestamp max" do
-      max = TimestampGenerator.max_default(:microsecond) |> DateTime.from_unix!(:microsecond)
-      assert max == DateTimeGenerator.max_default()
+      max = timestamp_max_default(:microsecond) |> DateTime.from_unix!(:microsecond)
+      assert max == date_time_max_default()
     end
   end
 end

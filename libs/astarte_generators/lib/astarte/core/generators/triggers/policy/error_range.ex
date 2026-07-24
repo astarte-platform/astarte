@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy RangeError.
   """
+  use Astarte.Generators.Utilities.ParamsGen
+
   alias Astarte.Core.Generators.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.ErrorRange
-
-  import Astarte.Generators.Utilities.ParamsGen
-
-  use ExUnitProperties
 
   @doc """
   Generates a valid Astarte Triggers Policy ErrorRange from scratch
@@ -36,22 +34,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
     params gen all error_codes <- error_codes(), params: params do
       %ErrorRange{
         error_codes: error_codes
-      }
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(ErrorRange.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(ErrorRange.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %ErrorRange{error_codes: error_codes} <- gen do
-      %{
-        "error_codes" => error_codes
       }
     end
   end

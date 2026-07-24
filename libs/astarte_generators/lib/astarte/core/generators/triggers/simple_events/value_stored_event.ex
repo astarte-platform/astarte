@@ -22,25 +22,25 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent do
   """
   use ExUnitProperties
 
-  import Astarte.Generators.Utilities.ParamsGen
+  use Astarte.Generators.Utilities.ParamsGen
+
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.BSONValue
+  import Astarte.Core.Generators.Mapping.Value
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.ValueStoredEvent
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
-
   @spec value_stored_event() :: StreamData.t(ValueStoredEvent.t())
   @spec value_stored_event(keyword :: keyword()) :: StreamData.t(ValueStoredEvent.t())
   def value_stored_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.interface(),
+    params gen all interface <- interface(),
                    %Interface{name: name} = interface,
-                   value <- ValueGenerator.value(interface: interface),
+                   value <- value(interface: interface),
                    %{path: path} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   bson_value <- BSONValueGenerator.to_bson(%{value | path: path}),
+                   bson_value <- to_bson(%{value | path: path}),
                    params: params do
       %ValueStoredEvent{
         interface: interface_name,

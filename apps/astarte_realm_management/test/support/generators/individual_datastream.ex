@@ -22,29 +22,26 @@ defmodule Astarte.RealmManagement.Generators.IndividualDatastream do
   @moduledoc """
   Generator of `IndividualDatastream`s.
   """
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Generators.Utilities.ParamsGen
+  import Astarte.Common.Generators.DateTime
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping.Value
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
   alias Astarte.DataAccess.Realms.IndividualDatastream
 
-  alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
-
   @doc false
   @spec individual_datastream(params :: keyword()) :: StreamData.t(IndividualDatastream.t())
   def individual_datastream(params \\ []) do
-    params gen all interface <-
-                     InterfaceGenerator.interface(aggregation: :individual, type: :datastream),
-                   value <- ValueGenerator.value(interface: interface),
-                   device_id <- DeviceGenerator.id(),
-                   value_timestamp <- DateTimeGenerator.date_time(),
-                   reception_timestamp <- DateTimeGenerator.date_time(),
+    params gen all interface <- interface(aggregation: :individual, type: :datastream),
+                   value <- value(interface: interface),
+                   device_id <- device_id(),
+                   value_timestamp <- date_time(),
+                   reception_timestamp <- date_time(),
                    reception_timestamp_submillis <- integer(0..10),
                    %Interface{
                      interface_id: interface_id,

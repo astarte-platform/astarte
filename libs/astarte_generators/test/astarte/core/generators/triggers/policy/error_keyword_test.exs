@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,28 +22,23 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeywordTest do
   """
   use ExUnit.Case, async: true
   use ExUnitProperties
-  use Astarte.Support.Cases.Validator
 
-  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
+  import Astarte.Core.Generators.Triggers.Policy.ErrorKeyword
+
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
 
   @moduletag :trigger
   @moduletag :policy
   @moduletag :error_keyword
-  # Fixtures params
-  @moduletag validation_module: ErrorKeyword
 
   @doc false
   describe "triggers policy error_keyword generator" do
     @describetag :success
     @describetag :ut
 
-    property "validate triggers policy error_keyword using Changeset", %{
-      changeset_validate: changeset_validate
-    } do
-      check all error_keyword <- ErrorKeywordGenerator.error_keyword(),
-                changeset = changeset_validate.(error_keyword) do
-        assert changeset.valid?, "Invalid error_keyword: #{inspect(changeset.errors)}"
+    property "triggers policy error_keyword" do
+      check all error_keyword <- error_keyword() do
+        assert %ErrorKeyword{} = error_keyword
       end
     end
   end

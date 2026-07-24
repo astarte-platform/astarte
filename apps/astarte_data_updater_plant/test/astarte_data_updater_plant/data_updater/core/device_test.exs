@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,23 +17,26 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-
-  use Astarte.Cases.DataUpdater
-
   use ExUnitProperties
+  use Astarte.Cases.Data, async: true
   use Mimic
+
+  use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
 
   @moduletag timeout: 180_000
 
-  import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
+  import Astarte.Core.Generators.Device
+
+  import Astarte.InterfaceUpdateGenerators
+
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
+
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
@@ -41,6 +44,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
+
   alias Astarte.Helpers.Database
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
@@ -267,7 +271,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   describe "set_device_disconnected/2" do
     @tag :regression
     test "does not re-insert a deleted device", %{state: state} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       # Simulate a non-existing device by changing the id
       state = %{state | device_id: device_id, connected: false}

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 SECO Mind Srl
+# Copyright 2022 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,14 +20,16 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   use Astarte.Cases.Policy, async: true
   use ExUnitProperties
 
-  import Mox
-  import StreamData
   require Logger
+
+  import Mox
+
+  import Astarte.Core.Generators.Triggers.Policy
 
   alias AMQP.Basic
   alias AMQP.Channel
   alias AMQP.Connection
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
@@ -50,7 +52,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
 
   @tag :unit
   property "Deliveries are acked on successful consume", %{payload: payload, channel: channel} do
-    check all policy <- PolicyGenerator.policy(), meta <- meta(), retry_map <- retry_map() do
+    check all policy <- policy(), meta <- meta(), retry_map <- retry_map() do
       policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
       Mox.expect(MockEventsConsumer, :consume, fn ^payload, _headers -> :ok end)
@@ -116,7 +118,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   property "Messages are discarded when the trigger is not found", args do
     %{payload: payload, channel: channel} = args
 
-    check all policy <- PolicyGenerator.policy(), meta <- meta(), retry_map <- retry_map() do
+    check all policy <- policy(), meta <- meta(), retry_map <- retry_map() do
       policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
 
@@ -136,12 +138,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
 
   defp retry_all_policy(params \\ []) do
     params = Keyword.put_new(params, :error_handlers, member_of(retry_all_handlers()))
-    PolicyGenerator.policy(params)
+    policy(params)
   end
 
   defp discard_all_policy(params \\ []) do
     params = Keyword.put_new(params, :error_handlers, member_of(discard_all_handlers()))
-    PolicyGenerator.policy(params)
+    policy(params)
   end
 
   defp retry_error do

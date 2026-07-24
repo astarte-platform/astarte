@@ -18,7 +18,7 @@ defmodule Astarte.Adapters.MixProject do
       description: description(),
       package: package(),
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps(),
+      deps: deps() ++ astarte_required_modules(),
       source_url: "https://github.com/astarte-platform/astarte/libs/astarte_adapters",
       homepage_url: "https://astarte-platform.org/"
     ]
@@ -33,6 +33,14 @@ defmodule Astarte.Adapters.MixProject do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
+  defp astarte_required_modules() do
+    [
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, path: "../astarte_data_access", runtime: false},
+      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
+    ]
+  end
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
@@ -43,7 +51,6 @@ defmodule Astarte.Adapters.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:typed_ecto_schema, "~> 0.4", only: :test},
       {:excoveralls, "~> 0.15", only: :test},
       {:stream_data, "~> 1.3", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},

@@ -20,13 +20,13 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoderTest do
 
   use Astarte.Cases.Conn
 
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
+  import Astarte.Core.Generators.Group
 
   alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
 
   @tag issue: 904
   property "call/2 decode path" do
-    check all raw <- GroupGenerator.name() do
+    check all raw <- group_name() do
       conn = build_conn()
       # Normally, phx does encoding
       encoded =

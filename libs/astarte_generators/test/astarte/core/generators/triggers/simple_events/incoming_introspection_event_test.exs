@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,14 +20,12 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEve
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEvent
+
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
-
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEvent,
-    as: IncomingIntrospectionEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
@@ -39,11 +37,9 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEve
     do: MapSet.new(Enum.map(interfaces, fn %Interface{name: name} -> name end))
 
   defp gen_interface_introspection do
-    gen all interfaces <- InterfaceGenerator.interface() |> list_of(max_length: 10),
+    gen all interfaces <- interface() |> list_of(max_length: 10),
             %IncomingIntrospectionEvent{introspection_map: introspection_map} <-
-              IncomingIntrospectionEventGenerator.incoming_introspection_event(
-                interfaces: interfaces
-              ),
+              incoming_introspection_event(interfaces: interfaces),
             introspection_keys = introspection_keys(introspection_map),
             interface_names = interface_names(interfaces) do
       {
@@ -59,8 +55,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingIntrospectionEve
     @describetag :success
     @describetag :ut
     property "generates valid incoming_introspection_event" do
-      check all incoming_introspection_event <-
-                  IncomingIntrospectionEventGenerator.incoming_introspection_event() do
+      check all incoming_introspection_event <- incoming_introspection_event() do
         assert %IncomingIntrospectionEvent{} = incoming_introspection_event
       end
     end

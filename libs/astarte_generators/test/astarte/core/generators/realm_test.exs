@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ defmodule Astarte.Core.Generators.RealmTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
+  import Astarte.Core.Generators.Realm
+
   alias Astarte.Core.Realm
 
   @moduletag :realm
@@ -33,7 +34,7 @@ defmodule Astarte.Core.Generators.RealmTest do
   """
   describe "realm generator" do
     property "valid realm name" do
-      check all(realm_name <- RealmGenerator.realm_name()) do
+      check all realm_name <- realm_name() do
         assert Realm.valid_name?(realm_name), "Invalid realm name: #{inspect(realm_name)}"
       end
     end

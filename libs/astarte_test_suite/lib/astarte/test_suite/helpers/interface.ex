@@ -22,8 +22,9 @@ defmodule Astarte.TestSuite.Helpers.Interface do
   import ExUnit.Callbacks, only: [on_exit: 1]
   import Ecto.Query
 
+  import Astarte.Core.CQLUtils, only: [interface_name_to_table_name: 2]
   import Astarte.Core.Generators.Interface, only: [interface: 0]
-  import Astarte.DataAccess.Adapters.Core.InterfaceMapping
+  import Astarte.DataAccess.Adapters.Interface, only: [from_core_interface_to_change: 1]
 
   import Astarte.TestSuite.CaseContext, only: [get!: 3, put!: 5, put_fixture: 3, reduce: 4]
 
@@ -37,8 +38,10 @@ defmodule Astarte.TestSuite.Helpers.Interface do
     reduce(context, :realms, context, fn realm_id, _realm, _instance_id, acc ->
       interface()
       |> Enum.take(interface_number)
-      |> Enum.reduce(acc, fn %Interface{name: name} = interface, inner_acc ->
-        put!(inner_acc, :interfaces, name, interface, realm_id)
+      |> Enum.reduce(acc, fn %Interface{name: name, major_version: major_version} = interface,
+                             inner_acc ->
+        interface_key = interface_name_to_table_name(name, major_version)
+        put!(inner_acc, :interfaces, interface_key, interface, realm_id)
       end)
     end)
   end
@@ -69,65 +72,73 @@ defmodule Astarte.TestSuite.Helpers.Interface do
 
   defp interface_entry(interface) do
     interface
-    |> from_core_interface()
+    |> from_core_interface_to_change()
   end
 
   defp insert_entries(entries_by_keyspace) do
     Enum.map(entries_by_keyspace, fn {keyspace, entries} ->
-      interfaces = Enum.map(entries, &Map.fetch!(&1, :interface))
-      endpoints = Enum.flat_map(entries, &Map.fetch!(&1, :endpoints))
+      endpoint_result =
+        entries
+        |> Enum.flat_map(&Map.fetch!(&1, :endpoints))
+        |> Enum.map(&insert_endpoint(&1, keyspace))
 
-      endpoint_result = Enum.map(endpoints, &insert_endpoint(&1, keyspace))
-      interface_result = Enum.map(interfaces, &insert_interface(&1, keyspace))
+      interface_result =
+        entries
+        |> Enum.map(&Map.fetch!(&1, :interface))
+        |> Enum.map(&insert_interface(&1, keyspace))
 
       %{keyspace: keyspace, result: {endpoint_result, interface_result}}
     end)
   end
 
-  defp insert_endpoint(changeset, keyspace) do
-    case Repo.insert(changeset, prefix: keyspace) do
-      {:ok, struct} ->
-        struct
+  # TODO: use the procedure in `astarte_data_access` asap,
+  # TODO: handling the error as per the comment
+  defp insert_endpoint(changes, keyspace) do
+    changeset = EndpointData.changeset(%EndpointData{}, changes)
+    {:ok, struct} = Repo.insert(changeset, prefix: keyspace)
+    struct
+    # case Repo.insert(changeset, prefix: keyspace) do
+    #   {:ok, struct} ->
+    #     struct
 
-      {:error, reason} ->
-        raise RuntimeError, "failed to insert endpoint into #{keyspace}: #{inspect(reason)}"
-    end
+    #   {:error, reason} ->
+    #     raise RuntimeError, "failed to insert endpoint into #{keyspace}: #{inspect(reason)}"
+    # end
   end
 
-  defp insert_interface(changeset, keyspace) do
-    case Repo.insert(changeset, prefix: keyspace) do
-      {:ok, struct} ->
-        struct
+  # TODO: use the procedure in `astarte_data_access` asap,
+  # TODO: handling the error as per the comment
+  defp insert_interface(changes, keyspace) do
+    changeset = InterfaceData.changeset(%InterfaceData{}, changes)
+    {:ok, struct} = Repo.insert(changeset, prefix: keyspace)
+    struct
+    # case Repo.insert(changeset, prefix: keyspace) do
+    #   {:ok, struct} ->
+    #     struct
 
-      {:error, reason} ->
-        raise RuntimeError, "failed to insert interface into #{keyspace}: #{inspect(reason)}"
-    end
+    #   {:error, reason} ->
+    #     raise RuntimeError, "failed to insert interface into #{keyspace}: #{inspect(reason)}"
+    # end
   end
 
   defp delete_entries(entries_by_keyspace) do
     Enum.each(entries_by_keyspace, fn {keyspace, entries} ->
-      interfaces = Enum.map(entries, &Map.fetch!(&1, :interface))
-      endpoints = Enum.flat_map(entries, &Map.fetch!(&1, :endpoints))
+      Enum.map(entries, &Map.fetch!(&1, :interface))
+      |> Enum.each(&delete_interface(&1, keyspace))
 
-      Enum.each(interfaces, &delete_interface(&1, keyspace))
-      Enum.each(endpoints, &delete_endpoint(&1, keyspace))
+      Enum.flat_map(entries, &Map.fetch!(&1, :endpoints))
+      |> Enum.each(&delete_endpoint(&1, keyspace))
     end)
   end
 
-  defp delete_interface(changeset, keyspace) do
-    name = Ecto.Changeset.get_field(changeset, :name)
-    major_version = Ecto.Changeset.get_field(changeset, :major_version)
-
+  defp delete_interface(%{name: name, major_version: major_version}, keyspace) do
     from(i in InterfaceData,
       where: i.name == ^name and i.major_version == ^major_version
     )
     |> Repo.safe_delete_all(prefix: keyspace)
   end
 
-  defp delete_endpoint(changeset, keyspace) do
-    interface_id = Ecto.Changeset.get_field(changeset, :interface_id)
-    endpoint_id = Ecto.Changeset.get_field(changeset, :endpoint_id)
-
+  defp delete_endpoint(%{interface_id: interface_id, endpoint_id: endpoint_id}, keyspace) do
     from(e in EndpointData,
       where: e.interface_id == ^interface_id and e.endpoint_id == ^endpoint_id
     )
