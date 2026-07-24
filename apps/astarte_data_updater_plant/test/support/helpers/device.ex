@@ -24,6 +24,7 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
+  alias COSE.Keys.Symmetric
 
   import ExUnit.CaptureLog
 
@@ -65,12 +66,15 @@ defmodule Astarte.Helpers.Device do
     introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
     interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
     interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
+    # device <-> Astarte shared key for e2e encryption/decryption of messages
+    shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
 
     device_db_params = %{
       introspection: introspection,
       introspection_minor: introspection_minor,
       exchanged_bytes_by_interface: interfaces_bytes,
-      exchanged_msgs_by_interface: interfaces_msgs
+      exchanged_msgs_by_interface: interfaces_msgs,
+      shared_secret: shared_secret
     }
 
     device_db = struct(Device, Map.merge(device, device_db_params))

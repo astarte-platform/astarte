@@ -33,6 +33,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.Config
+  alias COSE.Keys.Symmetric
 
   import Ecto.Query
   require Logger
@@ -228,6 +229,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # for unset capabilities
     capabilities = normalize_capabilities(stats.capabilities)
 
+    # register the shared key status in DUP state, assuming that if the key is found in db
+    # it has been established correctly
+    encrypted_endpoints_key_status =
+      case stats.shared_secret do
+        %Symmetric{} -> :established
+        _ -> :uninitialized
+      end
+
     %{
       capabilities: capabilities,
       introspection: stats.introspection,
@@ -235,7 +244,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
       initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
-      shared_secret: stats.shared_secret
+      shared_secret: stats.shared_secret,
+      encrypted_endpoints_key: encrypted_endpoints_key_status
     }
   end
 
