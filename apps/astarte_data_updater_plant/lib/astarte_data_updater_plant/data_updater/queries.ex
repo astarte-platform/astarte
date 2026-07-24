@@ -33,6 +33,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   import Ecto.Query
   require Logger
@@ -228,6 +230,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # for unset capabilities
     capabilities = normalize_capabilities(stats.capabilities)
 
+    {:ok, shared_secret} = maybe_decrypt_shared_secret(realm, stats.shared_secret)
+
     %{
       capabilities: capabilities,
       introspection: stats.introspection,
@@ -235,7 +239,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
       initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
-      shared_secret: stats.shared_secret
+      shared_secret: shared_secret
     }
   end
 
@@ -733,6 +737,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> Map.take(nil_keys)
 
     Map.merge(capabilities, defaults)
+  end
+
+  defp maybe_decrypt_shared_secret(_realm, nil), do: {:ok, nil}
+
+  defp maybe_decrypt_shared_secret(realm, %Symmetric{} = shared_secret) do
+    decrypt_shared_secret(realm, shared_secret)
+  end
+
+  defp decrypt_shared_secret(realm, %Symmetric{k: key_material} = shared_secret)
+       when is_binary(key_material) do
+    with {:ok, kek} <- Secrets.fetch_realm_kek(realm),
+         {:ok, decrypted_key} <-
+           Secrets.decrypt_with_key(kek.name, key_material, namespace: kek.namespace) do
+      {:ok, %Symmetric{shared_secret | k: decrypted_key}}
+    end
   end
 
   def save_shared_secret(realm, device_id, shared_secret) do

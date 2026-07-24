@@ -47,6 +47,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   require Logger
 
@@ -935,9 +936,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
 
     case Repo.fetch(query, device_id, opts) do
-      {:ok, nil} -> {:error, :device_not_ready_for_encryption}
-      {:ok, shared_secret} -> {:ok, shared_secret}
-      error -> error
+      {:ok, nil} ->
+        {:error, :device_not_ready_for_encryption}
+
+      {:ok, shared_secret} ->
+        decrypt_shared_secret(realm, shared_secret)
+
+      error ->
+        error
+    end
+  end
+
+  defp decrypt_shared_secret(realm, %Symmetric{k: key_material} = shared_secret)
+       when is_binary(key_material) do
+    with {:ok, kek} <- Secrets.fetch_realm_kek(realm),
+         {:ok, decrypted_key} <-
+           Secrets.decrypt_with_key(kek.name, key_material, namespace: kek.namespace) do
+      {:ok, %Symmetric{shared_secret | k: decrypted_key}}
     end
   end
 

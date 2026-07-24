@@ -36,6 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.Secrets
   alias COSE.Keys.Symmetric
 
   require Logger
@@ -574,12 +575,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   defp persist_shared_secret(realm, device_id, %Symmetric{} = symmetric_key) do
-    case Queries.save_shared_secret(realm, device_id, symmetric_key) do
-      :ok ->
-        :ok
+    with {:ok, encrypted_secret} <- encrypt_shared_secret(realm, symmetric_key) do
+      case Queries.save_shared_secret(realm, device_id, encrypted_secret) do
+        :ok ->
+          :ok
 
-      {:error, reason} ->
-        {:error, :internal_server_error, "failed to persist shared secret: #{inspect(reason)}"}
+        {:error, reason} ->
+          {:error, :internal_server_error, "failed to persist shared secret: #{inspect(reason)}"}
+      end
+    end
+  end
+
+  defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do
+    with {:ok, kek} <- Secrets.fetch_realm_kek(realm),
+         {:ok, encrypted_key} <-
+           Secrets.encrypt_with_key(kek.name, symmetric_key.k, namespace: kek.namespace) do
+      {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
     end
   end
 
