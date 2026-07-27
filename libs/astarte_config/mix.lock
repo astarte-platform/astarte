@@ -1,0 +1,3 @@
+%{
+  "skogsra": {:hex, :skogsra, "2.5.3", "b007c44a2fcd0d2af758e6775bf1f67aad41005c75f7e1e1c8ac68e788f5dc49", [:mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: true]}, {:yamerl, "~> 0.10", [hex: :yamerl, repo: "hexpm", optional: true]}], "hexpm", "c497d8fa6705b1db17bc52c4cf652fcff480f7d6ea7985ba2cd866d04bfc40e7"},
+}
