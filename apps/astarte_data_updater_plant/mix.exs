@@ -75,7 +75,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mississippi, github: "secomind/mississippi"},
+      {:mississippi, github: "secomind/mississippi", branch: "release-1.0"},
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
