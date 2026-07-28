@@ -71,7 +71,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 3.3", override: true},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
