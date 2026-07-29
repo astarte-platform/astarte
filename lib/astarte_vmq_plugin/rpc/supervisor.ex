@@ -55,7 +55,7 @@ defmodule Astarte.VMQ.Plugin.RPC.Supervisor do
     else
       error ->
         # the initialization completed with error, stop the supervisor wrapper
-        :ok = Horde.DynamicSupervisor.stop(supervisor_wrapper_pid)
+        :ok = GenServer.stop(supervisor_wrapper_pid, :invalid_init)
         error
     end
   end
