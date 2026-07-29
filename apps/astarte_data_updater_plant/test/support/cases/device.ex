@@ -228,6 +228,14 @@ defmodule Astarte.Cases.Device do
       {:properties_server, fn acc -> new_interfaces(properties(:server), acc, :list) end},
       {:server_property_with_all_endpoint_types,
        fn acc -> [new_interfaces(all_endpoint_types(:server, :properties), acc, :single)] end},
+      {:individual_datastream_with_all_endpoint_types,
+       fn acc ->
+         [new_interfaces(all_endpoint_types(:device, :datastream, :individual), acc, :single)]
+       end},
+      {:object_datastream_with_all_endpoint_types,
+       fn acc ->
+         [new_interfaces(all_endpoint_types(:device, :datastream, :object), acc, :single)]
+       end},
       {:fixed_endpoint_interface,
        fn acc -> [new_interfaces(fixed_endpoint_interface(), acc, :single)] end},
       {:other_interfaces,
@@ -246,7 +254,11 @@ defmodule Astarte.Cases.Device do
       interfaces: all_interfaces,
       fixed_endpoint_interface: named_interfaces.fixed_endpoint_interface,
       server_property_with_all_endpoint_types:
-        named_interfaces.server_property_with_all_endpoint_types
+        named_interfaces.server_property_with_all_endpoint_types,
+      individual_datastream_with_all_endpoint_types:
+        named_interfaces.individual_datastream_with_all_endpoint_types,
+      object_datastream_with_all_endpoint_types:
+        named_interfaces.object_datastream_with_all_endpoint_types
     }
   end
 
@@ -277,10 +289,16 @@ defmodule Astarte.Cases.Device do
   end
 
   defp all_endpoint_types(ownership, type) do
+    gen all aggregation <- InterfaceGenerator.aggregation(type),
+            interface <- all_endpoint_types(ownership, type, aggregation) do
+      interface
+    end
+  end
+
+  defp all_endpoint_types(ownership, type, aggregation) do
     gen all name <- InterfaceGenerator.name(),
             major <- InterfaceGenerator.major_version(),
-            aggregation <- InterfaceGenerator.aggregation(type),
-            mappings <- all_endpoint_mappings(type, name, major, aggregation),
+            mappings <- all_endpoint_mappings(type, name, major),
             interface <-
               InterfaceGenerator.interface(
                 name: name,
@@ -294,12 +312,15 @@ defmodule Astarte.Cases.Device do
     end
   end
 
-  defp all_endpoint_mappings(type, name, major, :individual) do
+  defp all_endpoint_mappings(type, name, major) do
     gen all retention <- MappingGenerator.retention(type),
             reliability <- MappingGenerator.reliability(type),
             expiry <- MappingGenerator.expiry(type),
             allow_unset <- MappingGenerator.allow_unset(type),
             explicit_timestamp <- MappingGenerator.explicit_timestamp(type),
+            database_retention_policy <- MappingGenerator.database_retention_policy(type),
+            database_retention_ttl <-
+              MappingGenerator.database_retention_ttl(type, database_retention_policy),
             params = [
               interface_major: major,
               interface_type: type,
@@ -308,7 +329,9 @@ defmodule Astarte.Cases.Device do
               reliability: reliability,
               expiry: expiry,
               allow_unset: allow_unset,
-              explicit_timestamp: explicit_timestamp
+              explicit_timestamp: explicit_timestamp,
+              database_retention_policy: database_retention_policy,
+              database_retention_ttl: database_retention_ttl
             ],
             double_mappings <- mappings(:double, params),
             integer_mappings <- mappings(:integer, params),

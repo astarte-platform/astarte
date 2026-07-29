@@ -500,12 +500,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   # TODO: We need tests for this function
-  def validate_value_type(expected_type, %DateTime{} = value) do
+  @spec validate_value_type(Mapping.t() | %{String.t() => Mapping.t()}, any()) ::
+          :ok | {:error, atom()}
+  def validate_value_type(%Mapping{value_type: expected_type}, %DateTime{} = value) do
     ValueType.validate_value(expected_type, value)
   end
 
   # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
-  def validate_value_type(expected_type, %Cyanide.Binary{} = value) do
+  def validate_value_type(%Mapping{value_type: expected_type}, %Cyanide.Binary{} = value) do
     %Cyanide.Binary{subtype: _subtype, data: bin} = value
     validate_value_type(expected_type, bin)
   end
@@ -515,10 +517,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     {:error, :unexpected_value_type}
   end
 
-  def validate_value_type(%Mapping{value_type: expected_type}, value) do
-    validate_value_type(expected_type, value)
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an individual value, but we received an aggregated
+  def validate_value_type(%Mapping{} = _expected_types, %{} = _object) do
+    {:error, :unexpected_value_type}
   end
 
+  def validate_value_type(%Mapping{value_type: expected_type}, value) do
+    if value != nil do
+      ValueType.validate_value(expected_type, value)
+    else
+      :ok
+    end
+  end
+
+  # object interface: validate all the types of the contained mappings
   def validate_value_type(%{} = mappings_by_key, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
       with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
@@ -539,23 +552,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   # TODO: we should test for this kind of unexpected messages
-  # We expected an individual value, but we received an aggregated
-  def validate_value_type(_expected_types, %{} = _object) do
-    {:error, :unexpected_value_type}
-  end
-
-  # TODO: we should test for this kind of unexpected messages
   # We expected an aggregated, but we received an individual
   def validate_value_type(%{} = _expected_types, _object) do
     {:error, :unexpected_value_type}
-  end
-
-  def validate_value_type(expected_type, value) do
-    if value != nil do
-      ValueType.validate_value(expected_type, value)
-    else
-      :ok
-    end
   end
 
   def update_stats(state, interface, major, path, payload) do
