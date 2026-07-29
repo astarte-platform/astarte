@@ -228,33 +228,35 @@ defmodule Astarte.Secrets do
   Useful for ASYMKEX where the device encrypts a secret with the owner's RSA public key.
   """
   @spec decrypt(String.t(), binary(), list()) :: {:ok, binary()} | :error
-  def decrypt(key_name, ciphertext, options \\ []) do
-    namespace = Keyword.fetch!(options, :namespace)
-    client_opts = [namespace: namespace] ++ Keyword.take(options, [:token])
+  def decrypt(key_name, ciphertext, options) do
+    ciphertext = "vault:v1:" <> Base.encode64(ciphertext)
+    Core.decrypt(key_name, ciphertext, options)
+  end
 
-    req_body =
-      %{
-        ciphertext: "vault:v1:" <> Base.encode64(ciphertext)
-      }
-      |> Jason.encode!()
+  @doc """
+  Encrypts the provided plaintext using OpenBao Transit Engine with the given key.
+  Returns the vault ciphertext.
+  """
+  @spec encrypt_with_kek(String.t(), binary(), list()) :: {:ok, String.t()} | :error
+  def encrypt_with_kek(realm_name, plaintext, options \\ []) do
+    with {:ok, key} <- fetch_realm_kek(realm_name) do
+      client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
+      Core.encrypt(key.name, plaintext, client_opts)
+    end
+  end
 
-    headers = [{"Content-Type", "application/json"}]
+  @doc """
+  Decrypts the provided vault ciphertext using OpenBao Transit Engine.
+  """
+  @spec decrypt_with_kek(String.t(), String.t(), list()) :: {:ok, binary()} | :error
+  def decrypt_with_kek(realm_name, ciphertext, options \\ []) do
+    case fetch_realm_kek(realm_name) do
+      {:ok, key} ->
+        client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
+        Core.decrypt(key.name, ciphertext, client_opts)
 
-    case Client.post("/transit/decrypt/#{key_name}", req_body, headers, client_opts) do
-      {:ok, %Response{status_code: 200, body: body}} ->
-        with {:ok, data} <- Core.parse_json_data(body),
-             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
-             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
-          {:ok, plaintext}
-        else
-          _ -> :error
-        end
-
-      error_resp ->
-        Logger.error(
-          "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
-        )
-
+      :error ->
+        Logger.error("Encountered error while fetching realm KEK for realm #{realm_name}")
         :error
     end
   end

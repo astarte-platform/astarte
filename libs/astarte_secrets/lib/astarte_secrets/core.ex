@@ -696,4 +696,60 @@ defmodule Astarte.Secrets.Core do
     [base_namespace | namespace_tokens]
     |> Path.join()
   end
+
+  @spec encrypt(String.t(), binary(), list()) :: {:ok, String.t()} | :error
+  def encrypt(key_name, plaintext, options) do
+    req_body =
+      %{plaintext: Base.encode64(plaintext)}
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/encrypt/#{key_name}", req_body, headers, options) do
+      {:ok, %Response{status_code: 200, body: body}} ->
+        with {:ok, data} <- parse_json_data(body),
+             ciphertext when is_binary(ciphertext) <- Map.get(data, "ciphertext") do
+          {:ok, ciphertext}
+        else
+          _ -> :error
+        end
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while encrypting with key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Decrypts a vault ciphertext using OpenBao Transit Engine with the given key.
+  """
+  @spec decrypt(String.t(), String.t(), list()) :: {:ok, binary()} | :error
+  def decrypt(key_name, ciphertext, options) do
+    req_body =
+      %{ciphertext: ciphertext}
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/decrypt/#{key_name}", req_body, headers, options) do
+      {:ok, %Response{status_code: 200, body: body}} ->
+        with {:ok, data} <- parse_json_data(body),
+             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
 end
