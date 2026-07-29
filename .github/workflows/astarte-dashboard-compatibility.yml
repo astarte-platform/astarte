@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         node_version:
           - 22
     steps:

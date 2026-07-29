@@ -21,7 +21,7 @@ on:
 
 jobs:
   generate_openapi_specs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +63,7 @@ jobs:
   docs:
     needs:
       - generate_openapi_specs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       # Checkout the source
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
