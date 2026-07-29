@@ -83,6 +83,12 @@ defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
              GenServer.call(rpc_server, {:start_device_deletion, {realm_name, encoded_device_id}})
   end
 
+  test "the server is a child to the rpc supervisor", %{rpc_server: rpc_server} do
+    children = Horde.DynamicSupervisor.which_children(Astarte.DataUpdaterPlant.RPC.Supervisor)
+
+    assert [{_id, ^rpc_server, _type, _modules}] = children
+  end
+
   defp answer, do: one_of([oks(), errors()])
 
   defp oks do

@@ -30,25 +30,9 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
   def start_link(init_arg, opts \\ []) do
     opts = [{:name, __MODULE__} | opts]
 
-    with {:ok, pid} <- Horde.DynamicSupervisor.start_link(__MODULE__, init_arg, opts) do
-      Horde.DynamicSupervisor.start_child(pid, Astarte.DataUpdaterPlant.RPC.Server)
-      |> case do
-        :ignore ->
-          "RPC server: start ignored"
-          |> Logger.warning(tag: "rpc_not_started")
-
-        {:error, reason} ->
-          "RPC server: error during startup: #{inspect(reason)}"
-          |> Logger.warning(tag: "rpc_not_started")
-
-        ok ->
-          "RPC server: started successfully: #{inspect(ok)}"
-          |> Logger.debug(tag: "rpc_started")
-
-          ok
-      end
-
-      {:ok, pid}
+    with {:ok, supervisor_wrapper_pid} <-
+           Horde.DynamicSupervisor.start_link(__MODULE__, init_arg, opts) do
+      initialize_horde_supervisor(supervisor_wrapper_pid)
     end
   end
 
@@ -62,5 +46,65 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
     ]
     |> Keyword.merge(init_arg)
     |> Horde.DynamicSupervisor.init()
+  end
+
+  defp initialize_horde_supervisor(supervisor_wrapper_pid) do
+    with {:ok, supervisor_pid} <- supervisor_pid(supervisor_wrapper_pid),
+         :ok <- start_rpc_server(supervisor_pid) do
+      {:ok, supervisor_wrapper_pid}
+    else
+      error ->
+        # the initialization completed with error, stop the supervisor wrapper
+        :ok = Horde.DynamicSupervisor.stop(supervisor_wrapper_pid)
+        error
+    end
+  end
+
+  defp start_rpc_server(supervisor) do
+    Horde.DynamicSupervisor.start_child(supervisor, Astarte.DataUpdaterPlant.RPC.Server)
+    |> case do
+      {:ok, _pid} = ok ->
+        "RPC server: started successfully: #{inspect(ok)}"
+        |> Logger.debug(tag: "rpc_started")
+
+        :ok
+
+      {:ok, _pid, _info} = ok ->
+        "RPC server: started successfully: #{inspect(ok)}"
+        |> Logger.debug(tag: "rpc_started")
+
+        :ok
+
+      {:error, {:already_started, _pid}} = ok ->
+        "RPC server: already running: #{inspect(ok)}"
+        |> Logger.debug(tag: "rpc_started")
+
+        :ok
+
+      :ignore ->
+        "RPC server: start ignored"
+        |> Logger.warning(tag: "rpc_not_started")
+
+        {:error, :rpc_start_ignored}
+
+      {:error, reason} ->
+        "RPC server: error during startup: #{inspect(reason)}"
+        |> Logger.warning(tag: "rpc_not_started")
+
+        {:error, :rpc_start_error}
+    end
+  end
+
+  defp supervisor_pid(supervisor_wrapper_pid) do
+    supervisor_wrapper_pid
+    |> Horde.DynamicSupervisor.which_children()
+    |> Enum.find_value(fn {id, child, _type, _modules} ->
+      id == Horde.DynamicSupervisorImpl && child
+    end)
+    |> case do
+      nil -> {:error, :supervisor_impl_not_found}
+      pid when is_pid(pid) -> {:ok, pid}
+      child -> {:error, {:supervisor_impl_not_ready, child}}
+    end
   end
 end
