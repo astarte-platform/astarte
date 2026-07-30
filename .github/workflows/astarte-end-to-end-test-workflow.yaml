@@ -31,7 +31,7 @@ jobs:
   end-to-end-test:
     needs: [e2e-build, astarte-build]
     name: End-to-end Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       - name: Initialize docker compose files
