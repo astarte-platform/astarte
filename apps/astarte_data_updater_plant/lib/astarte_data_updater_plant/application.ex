@@ -43,6 +43,11 @@ defmodule Astarte.DataUpdaterPlant.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
+    # Force more frequent garbage collections (default fullsweep_after is 65535) so that
+    # data retained by long-lived AMQP consumer processes get reclaimed instead of
+    # accumulating as uncollected garbage.
+    :erlang.system_flag(:fullsweep_after, Config.fullsweep_after!())
+
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
       {Astarte.Events.AMQPEvents.Supervisor, []},

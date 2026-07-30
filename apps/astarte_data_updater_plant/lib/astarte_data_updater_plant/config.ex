@@ -241,6 +241,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: Astarte.DataUpdaterPlant.Config.TelemetryType,
           default: :expose
 
+  @envdoc """
+  The number of minor garbage collections a process performs before a full sweep is forced, i.e. Erlang's `fullsweep_after` system flag. AMQP consumer processes handle a high volume of short-lived message payloads; with the VM's default of 65535, a full sweep can be delayed long enough for those binaries to pile up as uncollected garbage. Lowering this value forces more frequent full sweeps.
+  """
+  app_env :fullsweep_after, :astarte_data_updater_plant, :fullsweep_after,
+    os_env: "DATA_UPDATER_PLANT_FULLSWEEP_AFTER",
+    type: :integer,
+    default: 20
+
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number! do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
