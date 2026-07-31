@@ -22,7 +22,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
   def project do
     [
       app: :astarte_vmq_plugin,
-      version: "1.4.0-rc.2",
+      version: "1.4.0-rc.3",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -77,7 +77,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.2", override: true}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.3", override: true}
     ]
   end
 
@@ -87,7 +87,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:amqp, "~> 3.3"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mississippi, github: "secomind/mississippi"},
+      {:mississippi, github: "secomind/mississippi", branch: "release-1.0"},
       {:pretty_log, "~> 0.1"},
       {:flatlog, github: "annopaolo/flatlog"},
       {:horde, "~> 0.9"},

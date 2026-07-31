@@ -1,7 +1,7 @@
 %{
   "amqp": {:hex, :amqp, "3.3.0", "056d9f4bac96c3ab5a904b321e70e78b91ba594766a1fc2f32afd9c016d9f43b", [:mix], [{:amqp_client, "~> 3.9", [hex: :amqp_client, repo: "hexpm", optional: false]}], "hexpm", "8d3ae139d2646c630d674a1b8d68c7f85134f9e8b2a1c3dd5621616994b10a8b"},
   "amqp_client": {:hex, :amqp_client, "3.12.10", "dcc0d5d0037fa2b486c6eb8b52695503765b96f919e38ca864a7b300b829742d", [:make, :rebar3], [{:credentials_obfuscation, "3.4.0", [hex: :credentials_obfuscation, repo: "hexpm", optional: false]}, {:rabbit_common, "3.12.10", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm", "16a23959899a82d9c2534ed1dcf1fa281d3b660fb7f78426b880647f0a53731f"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "c8f829dc4190f6d7716240e145bd3aa049086216", [tag: "v1.4.0-rc.2"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "46856d36f8b0fd3709f20dc14afc5e4258543e50", [tag: "v1.4.0-rc.3"]},
   "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "fac08cf4152601d345b4f177a145ad888ad35f3b", []},
   "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "c0d77760fb12256a23a2d00e1a119496a089fa9d", []},
   "castore": {:hex, :castore, "1.0.7", "b651241514e5f6956028147fe6637f7ac13802537e895a724f90bf3e36ddd1dd", [:mix], [], "hexpm", "da7785a4b0d2a021cd1292a60875a784b6caef71e76bf4917bdee1f390455cf5"},
@@ -35,7 +35,7 @@
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm", "69b09adddc4f74a40716ae54d140f93beb0fb8978d8636eaded0c31b6f099f16"},
   "mimerl": {:hex, :mimerl, "1.2.0", "67e2d3f571088d5cfd3e550c383094b47159f3eee8ffa08e64106cdf5e981be3", [:rebar3], [], "hexpm", "f278585650aa581986264638ebf698f8bb19df297f66ad91b18910dfc6e19323"},
   "mimic": {:hex, :mimic, "1.12.0", "34c9d1fb8e756df09ca5f96861d273f2bb01063df1a6a51a4c101f9ad7f07a9c", [:mix], [{:ham, "~> 0.2", [hex: :ham, repo: "hexpm", optional: false]}], "hexpm", "eaa43d495d6f3bc8099b28886e05a1b09a2a6be083f6385c3abc17599e5e2c43"},
-  "mississippi": {:git, "https://github.com/secomind/mississippi.git", "a76f9f09cae83ffcd3d5267cad54e2bc3d6a9383", []},
+  "mississippi": {:git, "https://github.com/secomind/mississippi.git", "caf3cd4fc3cf31dddd632bf4eef2b076f7ac11a6", [branch: "release-1.0"]},
   "mox": {:hex, :mox, "1.2.0", "a2cd96b4b80a3883e3100a221e8adc1b98e4c3a332a8fc434c39526babafd5b3", [:mix], [{:nimble_ownership, "~> 1.0", [hex: :nimble_ownership, repo: "hexpm", optional: false]}], "hexpm", "c7b92b3cc69ee24a7eeeaf944cd7be22013c52fcb580c1f33f50845ec821089a"},
   "nimble_options": {:hex, :nimble_options, "1.0.2", "92098a74df0072ff37d0c12ace58574d26880e522c22801437151a159392270e", [:mix], [], "hexpm", "fd12a8db2021036ce12a309f26f564ec367373265b53e25403f0ee697380f1b8"},
   "nimble_ownership": {:hex, :nimble_ownership, "1.0.2", "fa8a6f2d8c592ad4d79b2ca617473c6aefd5869abfa02563a77682038bf916cf", [:mix], [], "hexpm", "098af64e1f6f8609c6672127cfe9e9590a5d3fcdd82bc17a377b8692fd81a879"},
