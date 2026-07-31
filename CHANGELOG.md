@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.4.0-rc.3] - 2026-07-31
+
+### Added
+
+- [secrets] Configurable base namespace for Vault using `ASTARTE_VAULT_BASE_NAMESPACE`: all created namespaces will be children of the base namespace.
+
+### Fixed
+
+- [fdo] Support for Vault and Vault managed
+- [fdo] Properly handle chunked service info messages
+- [astarte_data_updater_plant] Avoid clogging AMQP queues when receiving invalid device messages
+- [astarte_data_updater_plant] Restore correct type validation checks for incoming data
+
 ## [1.4.0-rc.2] - 2026-07-14
 
 ## [1.4.0-rc.1] - 2026-07-13
