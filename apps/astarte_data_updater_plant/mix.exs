@@ -81,7 +81,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:exandra, "~> 0.13"},
       {:current_rabbit_pool, "~> 1.1"},
       {:libcluster, "~> 3.3"},
-      {:horde, "~> 0.9", override: true},
+      # https://github.com/elixir-horde/horde/pull/291
+      {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},
