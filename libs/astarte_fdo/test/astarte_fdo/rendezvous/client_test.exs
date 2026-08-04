@@ -24,7 +24,7 @@ defmodule Astarte.FDO.Rendezvous.ClientTest do
 
   describe "process_request_url/1" do
     test "prepends the configured rendezvous base URL to the given path" do
-      base_url = Config.fdo_rendezvous_url!()
+      base_url = Config.rendezvous_url!()
       path = "/fdo/101/msg/20"
 
       result = Client.process_request_url(path)
@@ -33,7 +33,7 @@ defmodule Astarte.FDO.Rendezvous.ClientTest do
     end
 
     test "handles root path correctly" do
-      base_url = Config.fdo_rendezvous_url!()
+      base_url = Config.rendezvous_url!()
       result = Client.process_request_url("/")
 
       assert result == base_url <> "/"

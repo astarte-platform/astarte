@@ -54,6 +54,7 @@ defmodule Astarte.FDO.MixProject do
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},
       {:decimal, "~> 3.0", override: true},
+      {:astarte_config, path: "../astarte_config"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
       {:astarte_rpc, path: "../astarte_rpc"},

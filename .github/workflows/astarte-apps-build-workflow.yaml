@@ -135,6 +135,7 @@ jobs:
           task: coveralls.json --exclude wip -o coverage_results
         env:
           CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
+          PAIRING_FDO_RENDEZVOUS_URL: http://localhost:8041
       - name: Upload Coverage Results to CodeCov
         # Don't upload more than once per component
         if: ${{

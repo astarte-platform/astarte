@@ -24,23 +24,7 @@ defmodule Astarte.FDO.Rendezvous.Client do
   """
   require Logger
 
-  use HTTPoison.Base
-
-  alias Astarte.FDO.Config
-
-  @impl true
-  def process_request_url(url) do
-    Config.fdo_rendezvous_url!() <> url
-  end
-
-  @impl true
-  def process_request_options(options) do
-    auth_opts = [
-      ssl: Config.fdo_rendezvous_ssl_options!()
-    ]
-
-    Keyword.merge(auth_opts, options)
-  end
+  use Astarte.Config.HTTPClient, config: Astarte.FDO.Config, service: :rendezvous
 
   @impl true
   def process_response_headers(headers) do
