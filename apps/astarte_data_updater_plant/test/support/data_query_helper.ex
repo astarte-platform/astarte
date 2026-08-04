@@ -35,21 +35,36 @@ defmodule Astarte.DataUpdaterPlant.DataQueryHelper do
           Interface.t(),
           String.t(),
           binary(),
+          binary(),
           String.t(),
           :individual_datastream | :property
         ) :: list(map())
-  def query_endpoint_data(interface, endpoint_path, device_id, keyspace, :property) do
+  def query_endpoint_data(
+        interface,
+        path,
+        endpoint,
+        device_id,
+        keyspace,
+        :property
+      ) do
     interface_id = CQLUtils.interface_id(interface.name, interface.major_version)
-    endpoint_id = CQLUtils.endpoint_id(interface.name, interface.major_version, endpoint_path)
+    endpoint_id = CQLUtils.endpoint_id(interface.name, interface.major_version, endpoint)
 
-    do_query_property(device_id, interface_id, endpoint_id, endpoint_path, keyspace)
+    do_query_property(device_id, interface_id, endpoint_id, path, keyspace)
   end
 
-  def query_endpoint_data(interface, endpoint_path, device_id, keyspace, :individual_datastream) do
+  def query_endpoint_data(
+        interface,
+        path,
+        endpoint,
+        device_id,
+        keyspace,
+        :individual_datastream
+      ) do
     interface_id = CQLUtils.interface_id(interface.name, interface.major_version)
-    endpoint_id = CQLUtils.endpoint_id(interface.name, interface.major_version, endpoint_path)
+    endpoint_id = CQLUtils.endpoint_id(interface.name, interface.major_version, endpoint)
 
-    do_query_individual_datastream(device_id, interface_id, endpoint_id, endpoint_path, keyspace)
+    do_query_individual_datastream(device_id, interface_id, endpoint_id, path, keyspace)
   end
 
   @spec query_endpoint_data(

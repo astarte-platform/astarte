@@ -343,7 +343,13 @@ defmodule Astarte.Cases.Device do
     )
     |> map(fn interface ->
       mapping = Enum.at(interface.mappings, 0)
-      mapping = %{mapping | endpoint: "/encryptedValue", value_type: :string, encrypted: true}
+
+      mapping = %{
+        mapping
+        | endpoint: "/%{some_param}/encryptedValue",
+          value_type: :string,
+          encrypted: true
+      }
 
       %{interface | mappings: [mapping]}
     end)
@@ -368,21 +374,21 @@ defmodule Astarte.Cases.Device do
       |> map(fn [mapping_0, mapping_1, mapping_2] ->
         mapping_0 = %{
           mapping_0
-          | endpoint: "/partiallyEncryptedPath/endpoint0",
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint0",
             value_type: :string,
             encrypted: true
         }
 
         mapping_1 = %{
           mapping_1
-          | endpoint: "/partiallyEncryptedPath/endpoint1",
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint1",
             value_type: :string,
             encrypted: true
         }
 
         mapping_2 = %{
           mapping_2
-          | endpoint: "/partiallyEncryptedPath/endpoint2",
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint2",
             value_type: :string,
             encrypted: false
         }
