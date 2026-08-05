@@ -105,7 +105,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:horde, "~> 0.9"},
+      # https://github.com/elixir-horde/horde/pull/291
+      {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
