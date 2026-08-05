@@ -37,6 +37,13 @@ defmodule Astarte.VMQ.Plugin.RPCTest do
     }
   end
 
+  test "the rpc server is a child of the rpc supervisor", %{rpc_server: server} do
+    pid = GenServer.whereis(server)
+    children = Horde.DynamicSupervisor.which_children(Astarte.VMQ.Plugin.RPC.Supervisor)
+
+    assert [{_id, ^pid, _type, _modules}] = children
+  end
+
   describe "Publish call" do
     test "fails on empty topic", %{rpc_server: server} do
       data =

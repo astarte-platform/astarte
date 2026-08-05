@@ -84,13 +84,14 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.1"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:pretty_log, "~> 0.1"},
       {:flatlog, github: "annopaolo/flatlog"},
-      {:horde, "~> 0.9"},
+      # https://github.com/elixir-horde/horde/pull/291
+      {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
       {:xandra, "~> 0.14"},
       {:castore, "~> 1.0"},

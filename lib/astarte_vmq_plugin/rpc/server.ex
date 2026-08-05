@@ -32,9 +32,7 @@ defmodule Astarte.VMQ.Plugin.RPC.Server do
     name = {:via, Horde.Registry, {Registry.VMQPluginRPC, :server}}
     opts = Keyword.put(opts, :name, name)
 
-    with {:error, {:already_started, pid}} <- GenServer.start_link(__MODULE__, args, opts) do
-      {:ok, pid}
-    end
+    GenServer.start_link(__MODULE__, args, opts)
   end
 
   # Callbacks
