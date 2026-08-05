@@ -90,7 +90,8 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:mississippi, github: "secomind/mississippi", branch: "release-1.0"},
       {:pretty_log, "~> 0.1"},
       {:flatlog, github: "annopaolo/flatlog"},
-      {:horde, "~> 0.9"},
+      # https://github.com/elixir-horde/horde/pull/291
+      {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
       {:xandra, "~> 0.14"},
       {:castore, "~> 1.0"},
