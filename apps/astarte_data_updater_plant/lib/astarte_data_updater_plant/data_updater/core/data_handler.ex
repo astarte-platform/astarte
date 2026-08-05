@@ -134,12 +134,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     encrypted_endpoints =
       state.mappings
       |> Map.values()
-      |> Enum.filter(& &1.encrypted)
+      |> Enum.filter(&(&1.interface_id == context.interface_id and &1.encrypted))
       |> Enum.map(& &1.endpoint)
 
     case maybe_encrypt_value(
            interface_descriptor.aggregation,
-           path,
+           mapping.endpoint,
            value,
            encrypted_endpoints,
            realm

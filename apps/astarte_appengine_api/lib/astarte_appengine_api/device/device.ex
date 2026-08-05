@@ -825,8 +825,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp generate_new_dek(realm_name) do
-    # TO DO: Astarte Secrets should be able to
-    # generate a DEK without needing to generate a KEK first
     namespace = Core.realm_kek_namespace_tokens(realm_name) |> Path.join()
 
     case Secrets.generate_dek("realm_kek", namespace) do

@@ -92,7 +92,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
 
       encrypted_mapping = Enum.find(interface.mappings, & &1.encrypted)
 
-      endpoint_path = encrypted_mapping.endpoint
+      endpoint_path = encrypted_mapping.endpoint |> String.replace("%{some_param}", "some_value")
 
       # message is received by DUP and handled correctly
       assert {:ack, :ok, _, _} =
@@ -111,6 +111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
         DataQueryHelper.query_endpoint_data(
           interface,
           endpoint_path,
+          encrypted_mapping.endpoint,
           device_id,
           keyspace,
           :property
@@ -145,7 +146,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
 
       encrypted_mapping = Enum.find(interface.mappings, & &1.encrypted)
 
-      endpoint_path = encrypted_mapping.endpoint
+      endpoint_path = encrypted_mapping.endpoint |> String.replace("%{some_param}", "some_value")
 
       assert {:ack, :ok, _, _} =
                DataHandler.handle_data(
@@ -163,6 +164,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
         DataQueryHelper.query_endpoint_data(
           interface,
           endpoint_path,
+          encrypted_mapping.endpoint,
           device_id,
           keyspace,
           :individual_datastream
@@ -268,6 +270,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
                DataQueryHelper.query_endpoint_data(
                  interface,
                  endpoint_path,
+                 encrypted_mapping.endpoint,
                  device_id,
                  keyspace,
                  :property
