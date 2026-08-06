@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.4.0-rc.4] - 2026-08-06
+
+### Added
+
+- [config] Initialize `config` library. All external services declared using the `config` library helpers can be configured either using the `_URL` environment variable or by using single component variables `_SCHEME`, `_HOST`, `_PORT`, `_PATH`, `_QUERY`, `_FRAGMENT` (`_URL` has priority), together with normal `_SSL_*` variables.
+- [secrets] Use `config` for vault configuration. Vault can now be configured using component variables instead of `ASTARTE_VAULT_URL`:
+  - `ASTARTE_VAULT_SCHEME`: scheme part of the URL (binary, default: `"http"`, or `"https"` if `ASTARTE_VAULT_SSL_ENABLED` is `true`)
+  - `ASTARTE_VAULT_HOST`: host part of the URL (binary, default: `"localhost"`)
+  - `ASTARTE_VAULT_PORT`: port part of the url (integer, default `8200`)
+  - `ASTARTE_VAULT_PATH`: path part of the url (string)
+  - `ASTARTE_VAULT_QUERY`: query part of the url (string)
+  - `ASTARTE_VAULT_FRAGMENT`: fragment part of the url (string)
+- [fdo] Use `config` for rendezvous configuration. The rendezvous can now be configured using component variables instead of `PAIRING_FDO_RENDEZVOUS_URL`:
+  - `PAIRING_FDO_RENDEZVOUS_SCHEME`: scheme part of the URL (binary, default: `"http"`, or `"https"` if `PAIRING_FDO_RENDEZVOUS_SSL_ENABLED` is `true`)
+  - `PAIRING_FDO_RENDEZVOUS_HOST`: host part of the URL (binary, default: `"localhost"`)
+  - `PAIRING_FDO_RENDEZVOUS_PORT`: port part of the url (integer, default `8041`)
+  - `PAIRING_FDO_RENDEZVOUS_PATH`: path part of the url (string)
+  - `PAIRING_FDO_RENDEZVOUS_QUERY`: query part of the url (string)
+  - `PAIRING_FDO_RENDEZVOUS_FRAGMENT`: fragment part of the url (string)
+
+### Fixed
+
+- [astarte_data_updater_plant] Ensure RPC server is always available to clients. Resolved the issue where a temporary disconnection and reconnection of data_updater_plant to the cluster would make the RPC server inaccessible.
+
+### Changed
+
+- [astarte_data_updater_plant] Ensure memory is properly garbage collected
+
 ## [1.4.0-rc.3] - 2026-07-31
 
 ### Added
