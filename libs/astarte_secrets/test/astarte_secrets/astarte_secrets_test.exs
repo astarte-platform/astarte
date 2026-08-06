@@ -57,7 +57,7 @@ defmodule Astarte.SecretsTest do
       allow_key_export_and_backup = true
 
       opts = [
-        {:token, Config.bao_token!()},
+        {:token, Config.vault_token!()},
         {:namespace, namespace},
         {:allow_key_export_and_backup, allow_key_export_and_backup}
       ]
@@ -155,7 +155,7 @@ defmodule Astarte.SecretsTest do
   describe "sign/5" do
     setup do
       # Read credentials and URL from config
-      {:ok, {:token, token}} = Config.bao_authentication()
+      {:ok, {:token, token}} = Config.vault_authentication()
 
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
@@ -242,7 +242,7 @@ defmodule Astarte.SecretsTest do
       allow_key_export_and_backup = true
 
       opts = [
-        {:token, Config.bao_token!()},
+        {:token, Config.vault_token!()},
         {:namespace, namespace},
         {:allow_key_export_and_backup, allow_key_export_and_backup}
       ]
@@ -358,7 +358,7 @@ defmodule Astarte.SecretsTest do
       allow_key_export_and_backup = true
 
       opts = [
-        {:token, Config.bao_token!()},
+        {:token, Config.vault_token!()},
         {:namespace, namespace},
         {:allow_key_export_and_backup, allow_key_export_and_backup}
       ]

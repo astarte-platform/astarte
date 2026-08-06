@@ -144,7 +144,7 @@ defmodule Astarte.Secrets.CoreTest do
 
       Client
       |> stub(:post, fn path, body, headers, options ->
-        if path == "/sys/namespaces/#{base_namespace}" and
+        if path == "/v1/sys/namespaces/#{base_namespace}" and
              Keyword.get(options, :namespace, "") == "" do
           flunk("called create namespace on base namespace")
         else
@@ -233,7 +233,7 @@ defmodule Astarte.Secrets.CoreTest do
 
   describe "import_key/4 integration" do
     setup do
-      token = Config.bao_token!()
+      token = Config.vault_token!()
 
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
@@ -322,9 +322,9 @@ defmodule Astarte.Secrets.CoreTest do
 
   defp http_stubs_setup(_context) do
     Config
-    |> stub(:bao_url!, fn -> "http://localhost:8200" end)
-    |> stub(:bao_token!, fn -> "root" end)
-    |> stub(:bao_ssl_enabled!, fn -> false end)
+    |> stub(:vault_url!, fn -> "http://localhost:8200" end)
+    |> stub(:vault_token!, fn -> "root" end)
+    |> stub(:vault_ssl_enabled!, fn -> false end)
 
     :ok
   end
@@ -567,7 +567,7 @@ defmodule Astarte.Secrets.CoreTest do
     setup :http_stubs_setup
 
     test "returns :ok on HTTP 204" do
-      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+      expect(Client, :post, fn "/v1/sys/mounts/transit", _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{status_code: 204}}
       end)
 
@@ -575,7 +575,7 @@ defmodule Astarte.Secrets.CoreTest do
     end
 
     test "returns :ok on HTTP 400 with 'already in use' message" do
-      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+      expect(Client, :post, fn "/v1/sys/mounts/transit", _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{status_code: 400, body: "path is already in use at transit/"}}
       end)
 
@@ -583,7 +583,7 @@ defmodule Astarte.Secrets.CoreTest do
     end
 
     test "returns error on HTTP 400 with different message" do
-      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+      expect(Client, :post, fn "/v1/sys/mounts/transit", _body, _headers, _opts ->
         {:ok,
          %HTTPoison.Response{
            status_code: 400,
@@ -597,7 +597,7 @@ defmodule Astarte.Secrets.CoreTest do
     end
 
     test "returns :error on HTTP connection error" do
-      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+      expect(Client, :post, fn "/v1/sys/mounts/transit", _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
       end)
 

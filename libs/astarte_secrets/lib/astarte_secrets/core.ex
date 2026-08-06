@@ -110,7 +110,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.post("/transit/keys/#{key_name}", req_body, headers, options) do
+    case Client.post("/v1/transit/keys/#{key_name}", req_body, headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         parse_json_data(resp_body)
 
@@ -124,7 +124,7 @@ defmodule Astarte.Secrets.Core do
   end
 
   def get_wrapping_key(opts) do
-    case Client.get("/transit/wrapping_key", [], opts) do
+    case Client.get("/v1/transit/wrapping_key", [], opts) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         with {:error, reason} <- parse_data_key(resp_body, "public_key") do
           Logger.error("Failed to get wrapping key: #{inspect(reason)}")
@@ -188,7 +188,7 @@ defmodule Astarte.Secrets.Core do
 
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post("/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
+    case Client.post("/v1/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
       {:ok, %HTTPoison.Response{status_code: 204}} ->
         :ok
 
@@ -272,7 +272,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.get("/transit/keys/#{key_name}", headers, options) do
+    case Client.get("/v1/transit/keys/#{key_name}", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         {:ok, resp_body}
 
@@ -294,7 +294,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.list("/transit/keys", headers, options) do
+    case Client.list("/v1/transit/keys", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         case parse_data_key(resp_body, "keys") do
           {:ok, keys} ->
@@ -360,7 +360,7 @@ defmodule Astarte.Secrets.Core do
     headers = [{"Content-Type", "application/json"}]
     options = [{:namespace, namespace}]
 
-    case Client.post("/sys/mounts/transit", req_body, headers, options) do
+    case Client.post("/v1/sys/mounts/transit", req_body, headers, options) do
       {:ok, %Response{status_code: 204}} ->
         :ok
 
@@ -416,7 +416,7 @@ defmodule Astarte.Secrets.Core do
   defp list_relative_namespaces(base_namespace) do
     headers = [{"X-Vault-Namespace", base_namespace}]
 
-    case Client.list("/sys/namespaces", headers) do
+    case Client.list("/v1/sys/namespaces", headers) do
       {:ok, %Response{status_code: 200, body: body}} ->
         case parse_data_key(body, "keys") do
           {:ok, _keys} = ok ->
@@ -455,12 +455,12 @@ defmodule Astarte.Secrets.Core do
     headers = []
     options = [namespace: base_namespace]
 
-    case Client.get("/sys/namespaces/#{new_namespace}", headers, options) do
+    case Client.get("/v1/sys/namespaces/#{new_namespace}", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200}} ->
         :ok
 
       {:ok, %HTTPoison.Response{status_code: 404}} ->
-        case Client.post("/sys/namespaces/#{new_namespace}", "", headers, options) do
+        case Client.post("/v1/sys/namespaces/#{new_namespace}", "", headers, options) do
           {:ok, %HTTPoison.Response{status_code: 200}} ->
             :ok
 
@@ -481,7 +481,7 @@ defmodule Astarte.Secrets.Core do
           {:ok, binary()} | :error
   def sign(key_name, payload, key_alg, digest_type, opts) do
     vault_opts = map_cose_alg_to_vault_opts(key_alg)
-    url_path = "/transit/sign/#{key_name}/#{digest_type}"
+    url_path = "/v1/transit/sign/#{key_name}/#{digest_type}"
 
     req_body = build_sign_payload(payload, vault_opts)
     headers = [{"Content-Type", "application/json"}]
