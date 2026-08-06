@@ -22,7 +22,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
   def project do
     [
       app: :astarte_vmq_plugin,
-      version: "1.4.0-rc.3",
+      version: "1.4.0-rc.4",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -77,7 +77,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.3", override: true}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.4", override: true}
     ]
   end
 

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.4.0-rc.4] - 2026-08-06
+
+### Fixed
+
+- Ensure RPC server is always available to clients. Resolved the issue where a temporary disconnection and reconnection of vmq_plugin to the cluster would make the RPC server inaccessible.
+
 ## [1.4.0-rc.3] - 2026-07-31
 
 ## [1.4.0-rc.2] - 2026-07-14
