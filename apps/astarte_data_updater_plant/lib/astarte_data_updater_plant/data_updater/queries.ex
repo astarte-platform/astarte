@@ -232,6 +232,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     {:ok, shared_secret} = maybe_decrypt_shared_secret(realm, stats.shared_secret)
 
+    # register the shared key status in DUP state, assuming that if the key is found in db
+    # it has been established correctly
+    encrypted_endpoints_key_status =
+      case shared_secret do
+        %Symmetric{} -> :established
+        _ -> :uninitialized
+      end
+
     %{
       capabilities: capabilities,
       introspection: stats.introspection,
@@ -239,7 +247,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
       initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
-      shared_secret: shared_secret
+      shared_secret: shared_secret,
+      encrypted_endpoints_key: encrypted_endpoints_key_status
     }
   end
 

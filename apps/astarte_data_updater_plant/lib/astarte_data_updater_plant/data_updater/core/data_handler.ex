@@ -38,6 +38,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Secrets
+  alias Astarte.Secrets.EncryptedMessages
 
   require Logger
 
@@ -66,9 +67,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
+         {:ok, context} <- maybe_decrypt_payload(context, interface_descriptor),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
-         # TODO device_shared_secret will be fetched from DB later, for now it can be hardcoded
-         # {:ok, value} <- do_decrypt_payload(value, mapping, context, "some_device_shared_secret"),
          :ok <- validate_value(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
@@ -131,7 +131,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       maybe_insert_path(context, interface_descriptor, mapping)
     end
 
-    encrypted_endpoints =
+    encrypted_endpoints_on_current_interface =
       state.mappings
       |> Map.values()
       |> Enum.filter(&(&1.interface_id == context.interface_id and &1.encrypted))
@@ -141,7 +141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
            interface_descriptor.aggregation,
            mapping.endpoint,
            value,
-           encrypted_endpoints,
+           encrypted_endpoints_on_current_interface,
            realm
          ) do
       {:error, err_msg} = error ->
@@ -163,7 +163,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
             value: value,
             value_timestamp: maybe_explicit_value_timestamp,
             reception_timestamp: timestamp,
-            encrypted_endpoints: encrypted_endpoints,
+            encrypted_endpoints: encrypted_endpoints_on_current_interface,
             encrypted_dek: encrypted_dek,
             opts: [ttl: db_max_ttl]
           }
@@ -460,6 +460,68 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
+  # if the interface contains encrypted endpoints assume that the payload is CBOR-encrypted,
+  # and otherwise is a plain BSON. Put back in context map the (maybe) decrypted payload
+  defp maybe_decrypt_payload(context, interface_descriptor) do
+    case payload_encryption_enabled?(context, interface_descriptor) do
+      false ->
+        {:ok, context}
+
+      true ->
+        with :ok <- ensure_shared_key_established(context),
+             {:ok, decrypted_payload} <- decrypt_cbor_payload(context) do
+          {:ok, %{context | payload: decrypted_payload}}
+        end
+    end
+  end
+
+  # check if interface on which data is currently received requires payload decryption
+  defp payload_encryption_enabled?(context, interface_descriptor) do
+    current_data_interface_id = interface_descriptor |> Map.get(:interface_id)
+
+    Enum.any?(context.state.mappings, fn {_, mapping} ->
+      mapping.interface_id == current_data_interface_id and mapping.encrypted
+    end)
+  end
+
+  defp ensure_shared_key_established(context) do
+    case context.state.encrypted_endpoints_key do
+      :established ->
+        :ok
+
+      status ->
+        error = %{
+          message:
+            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: device shared key not established. Current key agreement status: #{status}.",
+          logger_metadata: [tag: "key_agreement_error"],
+          error_name: "key_agreement_error",
+          error: :key_agreement_error
+        }
+
+        # TODO consider whether to make it a soft error, and do not disconnect the device
+        Core.Error.handle_error(context, error, ask_clean_session: true)
+    end
+  end
+
+  defp decrypt_cbor_payload(context) do
+    case EncryptedMessages.decrypt(context.payload, context.state.shared_secret) do
+      {:ok, _val} = decrypted_payload ->
+        decrypted_payload
+
+      _err ->
+        error = %{
+          message:
+            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: decryption error.",
+          logger_metadata: [tag: "decryption_error"],
+          error_name: "decryption_error",
+          error: :decryption_error
+        }
+
+        # TODO consider whether to make it a soft error, and do not disconnect the device
+        Core.Error.handle_error(context, error, ask_clean_session: true)
+    end
+  end
+
   defp decode_bson_payload(context) do
     %{payload: payload, timestamp: timestamp, interface: interface, path: path} = context
     decoding = PayloadsDecoder.decode_bson_payload(payload, timestamp)
@@ -726,39 +788,4 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     do: realm_max_ttl
 
   defp max_ttl(_, _, _), do: nil
-
-  # TODO re-enable these functions when we can use the shared secret key
-  # defp do_decrypt_payload(value, %Mapping{encrypted: true}, context, key)
-  #      when is_binary(value) and is_binary(key) do
-  #   case value do
-  #     <<iv::binary-12, tag::binary-16, ciphertext::binary>> ->
-  #       decrypted_payload =
-  #         :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, ciphertext, <<>>, tag, false)
-
-  #       {:ok, decrypted_payload}
-
-  #     _ ->
-  #       handle_decryption_failure(context)
-  #   end
-  # end
-
-  # defp do_decrypt_payload(_value, %Mapping{encrypted: true}, context, _device_shared_secret) do
-  #   handle_decryption_failure(context)
-  # end
-
-  # defp do_decrypt_payload(value, %Mapping{encrypted: false}, _context, _device_shared_secret),
-  #   do: {:ok, value}
-
-  # defp handle_decryption_failure(context) do
-  #   %{state: %{realm: realm, device_id: device_id}} = context
-
-  #   error = %{
-  #     message: "Failed to decrypt payload for device #{device_id} in realm #{realm}",
-  #     logger_metadata: [tag: "decryption_failed"],
-  #     error_name: "decryption_failed",
-  #     error: :decryption_failed
-  #   }
-
-  #   Core.Error.handle_error(context, error)
-  # end
 end
