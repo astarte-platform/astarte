@@ -33,6 +33,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   alias Astarte.AppEngine.API.Device.Queries, as: AppEngineDeviceQueries
 
   alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.Core.Generators.Mapping.Value
   alias Astarte.Core.InterfaceDescriptor
 
   alias Astarte.DataAccess.Device, as: DeviceQueries
@@ -283,7 +284,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     update_value = mapping_update.value
     path_tokens = String.split(mapping_update.path, "/")
     expected_token = [realm_name, device.encoded_id, interface_to_update.name | path_tokens]
-    encrypted_path? = encrypted_mapping_path?(interface_to_update, mapping_update.path)
+
+    encrypted_path? =
+      encrypted_mapping_path?(interface_to_update, mapping_update.path, realm_name)
 
     expected_published_value =
       expected_published_value!(mapping_update.value_type, update_value)
@@ -346,20 +349,15 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     }
   end
 
-  defp encrypted_mapping_path?(interface_to_update, path) do
-    normalized_path = normalize_path(path)
-
+  defp encrypted_mapping_path?(interface_to_update, path, realm_name) do
     Enum.any?(interface_to_update.mappings, fn mapping ->
-      normalized_endpoint = normalize_path(mapping.endpoint)
-
       mapping.encrypted and
-        (normalized_endpoint == normalized_path or
-           String.starts_with?(normalized_endpoint, normalized_path <> "/"))
+        Value.path_matches_endpoint?(
+          interface_to_update.aggregation,
+          mapping.endpoint,
+          path
+        )
     end)
-  end
-
-  defp normalize_path(path) do
-    "/" <> String.trim(path, "/")
   end
 
   defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do

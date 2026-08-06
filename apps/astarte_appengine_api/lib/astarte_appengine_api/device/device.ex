@@ -345,7 +345,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     case maybe_encrypt_value(
            desc.aggregation,
-           path,
+           mapping.endpoint,
            val,
            encrypted_endpoints,
            realm
