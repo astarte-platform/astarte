@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Ensure RPC server is always available to clients. Resolved the issue where a temporary disconnection and reconnection of vmq_plugin to the cluster would make the RPC server inaccessible.
 
+### Changed
+
+- Pin vernemq to 2.1.2
+
 ## [1.4.0-rc.3] - 2026-07-31
 
 ## [1.4.0-rc.2] - 2026-07-14
