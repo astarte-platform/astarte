@@ -368,7 +368,9 @@ defmodule Astarte.InterfaceUpdateGenerators do
         |> map(&DateTime.from_unix!/1)
       ])
 
-    binaryblob = binary(max_length: 65_535, min_length: min_length)
+    binaryblob =
+      binary(max_length: 65_535, min_length: min_length)
+      |> map(&%Cyanide.Binary{subtype: :generic, data: &1})
 
     scalar_generators = %{
       double: float(),

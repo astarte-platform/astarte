@@ -509,7 +509,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
   def validate_value_type(%Mapping{value_type: expected_type}, %Cyanide.Binary{} = value) do
     %Cyanide.Binary{subtype: _subtype, data: bin} = value
-    validate_value_type(expected_type, bin)
+    ValueType.validate_value(expected_type, bin)
+  end
+
+  # All binaries should be %Cyanide.Binary{}, if we're here something went wrong
+  def validate_value_type(%Mapping{value_type: :binaryblob}, binary) when is_binary(binary) do
+    {:error, :unexpected_value_type}
   end
 
   # Explicitly match on all other structs to avoid pattern matching them as maps below
@@ -534,8 +539,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   # object interface: validate all the types of the contained mappings
   def validate_value_type(%{} = mappings_by_key, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
-           :ok <- ValueType.validate_value(expected_type, value) do
+      with {:ok, mapping} <- Map.fetch(mappings_by_key, key),
+           :ok <- validate_value_type(mapping, value) do
         {:cont, :ok}
       else
         {:error, reason} ->

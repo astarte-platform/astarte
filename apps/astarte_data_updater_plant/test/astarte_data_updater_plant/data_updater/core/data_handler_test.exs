@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   use Astarte.Cases.DataUpdater
   use ExUnitProperties
 
+  alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
 
   import Astarte.InterfaceUpdateGenerators
@@ -92,8 +93,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
     end
   end
 
+  describe "validate_value_type/2" do
+    test "returns ok for valid binaryblob" do
+      binary = %Cyanide.Binary{subtype: :generic, data: <<1, 2, 3, 4>>}
+
+      assert :ok = DataHandler.validate_value_type(%Mapping{value_type: :binaryblob}, binary)
+    end
+
+    test "returns error for raw binaries in binaryblobs" do
+      assert {:error, :unexpected_value_type} =
+               DataHandler.validate_value_type(%Mapping{value_type: :binaryblob}, <<1, 2, 3, 4>>)
+    end
+  end
+
   defp gen_context(state, interface) do
-    gen all update <- valid_mapping_update_for(interface),
+    gen all update <- valid_complete_mapping_update_for(interface),
             timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
       payload =
         %{
