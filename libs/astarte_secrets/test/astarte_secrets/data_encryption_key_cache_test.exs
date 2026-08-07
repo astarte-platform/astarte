@@ -16,14 +16,31 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCacheTest do
-  use Astarte.Cases.Data, async: false
+defmodule Astarte.Secrets.DataEncryptionKeyCacheTest do
+  use ExUnit.Case, async: false
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache
+  import Astarte.Helpers.Namespace
 
-  setup context do
-    DEKCache.reset_realm_dek(context.realm_name)
+  alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
+
+  setup :realm_kek_setup
+  setup :create_realm_kek
+
+  setup do
+    _pid =
+      start_supervised!({
+        ConCache,
+        DEKCache.init_options()
+      })
+
+    :ok
+  end
+
+  setup %{realm_name: realm_name} do
+    DEKCache.reset_realm_dek(realm_name)
+
+    :ok
   end
 
   describe "dek cache" do

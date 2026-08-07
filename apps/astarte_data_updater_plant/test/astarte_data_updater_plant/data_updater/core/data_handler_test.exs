@@ -27,10 +27,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.Secrets
+  alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.Secrets.EncryptedMessages
 
   import Astarte.InterfaceUpdateGenerators

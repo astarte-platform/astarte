@@ -41,7 +41,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings
   alias Astarte.Secrets
-  alias Astarte.Secrets.Core
   alias Astarte.Secrets.EncryptedMessages
   alias Ecto.Changeset
 
@@ -271,11 +270,11 @@ defmodule Astarte.AppEngine.API.Device do
          device_id,
          expected_types
        ) do
-    encrypted_endpoints = extract_encrypted_endpoints([mapping])
+    should_encrypt_transport_payload = mapping.encrypted
 
     maybe_apply_transport_encryption_with_endpoints(
       realm_name,
-      encrypted_endpoints,
+      should_encrypt_transport_payload,
       value,
       device_id,
       expected_types
@@ -284,11 +283,13 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp maybe_apply_transport_encryption(realm_name, mappings, value, device_id, expected_types)
        when is_list(mappings) do
-    encrypted_endpoints = extract_encrypted_endpoints(mappings)
+    should_encrypt_transport_payload =
+      mappings
+      |> Enum.any?(& &1.encrypted)
 
     maybe_apply_transport_encryption_with_endpoints(
       realm_name,
-      encrypted_endpoints,
+      should_encrypt_transport_payload,
       value,
       device_id,
       expected_types
@@ -297,15 +298,12 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp maybe_apply_transport_encryption_with_endpoints(
          realm_name,
-         encrypted_endpoints,
+         should_encrypt_transport_payload,
          value,
          device_id,
          expected_types
-       )
-       when is_list(encrypted_endpoints) do
-    should_encrypt_transport_payload? = encrypted_endpoints != []
-
-    if should_encrypt_transport_payload? do
+       ) do
+    if should_encrypt_transport_payload do
       with {:ok, shared_secret} <- Queries.retrieve_shared_secret(realm_name, device_id) do
         bson_value = Cyanide.encode!(%{v: value})
         EncryptedMessages.encrypt(bson_value, shared_secret)
@@ -341,13 +339,11 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
       |> Kernel.*(10)
 
-    encrypted_endpoints = extract_encrypted_endpoints([mapping])
-
-    case maybe_encrypt_value(
-           desc.aggregation,
-           mapping.endpoint,
+    case Secrets.maybe_encrypt_value(
+           desc,
+           mapping,
            val,
-           encrypted_endpoints,
+           [mapping],
            realm
          ) do
       {:error, err_msg} = error ->
@@ -404,14 +400,19 @@ defmodule Astarte.AppEngine.API.Device do
          %InterfaceDescriptor{aggregation: :object} = interface_descriptor,
          mappings
        ) do
-    mappings =
+    mappings_by_endpoint_id =
       Enum.into(mappings, %{}, fn mapping ->
         {mapping.endpoint_id, mapping}
       end)
 
     with {:guessed, guessed_endpoints} <-
            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings_by_endpoint_id) do
+      all_mappings =
+        Enum.filter(mappings, fn %Mapping{endpoint_id: guessed_endpoint_id} ->
+          guessed_endpoint_id in guessed_endpoints
+        end)
+
       endpoint_id =
         CQLUtils.endpoint_id(
           interface_descriptor.name,
@@ -419,7 +420,7 @@ defmodule Astarte.AppEngine.API.Device do
           ""
         )
 
-      {:ok, %Mapping{endpoint_id: endpoint_id}}
+      {:ok, {endpoint_id, hd(all_mappings), all_mappings}}
     else
       {:ok, _endpoint_id} ->
         # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
@@ -518,9 +519,8 @@ defmodule Astarte.AppEngine.API.Device do
              realm_name,
              interface_descriptor.interface_id
            ),
-         {:ok, endpoint} <-
+         {:ok, {endpoint_id, mapping, current_interface_mappings}} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
-         endpoint_id <- endpoint.endpoint_id,
          mappings_by_key = extract_mappings(mappings),
          expected_types =
            Map.new(mappings_by_key, fn {k, %Mapping{value_type: t}} -> {k, t} end),
@@ -555,6 +555,8 @@ defmodule Astarte.AppEngine.API.Device do
         raw_value: raw_value,
         value: value,
         mappings: mappings,
+        mapping: mapping,
+        current_interface_mappings: current_interface_mappings,
         endpoint_id: endpoint_id,
         now: now
       })
@@ -601,6 +603,8 @@ defmodule Astarte.AppEngine.API.Device do
          raw_value: raw_value,
          value: value,
          mappings: mappings,
+         mapping: mapping,
+         current_interface_mappings: current_interface_mappings,
          endpoint_id: endpoint_id,
          now: now
        }) do
@@ -623,13 +627,11 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
       |> Kernel.*(10)
 
-    encrypted_endpoints = extract_encrypted_endpoints(mappings)
-
-    case maybe_encrypt_value(
-           interface_descriptor.aggregation,
-           path,
+    case Secrets.maybe_encrypt_value(
+           interface_descriptor,
+           mapping,
            value,
-           encrypted_endpoints,
+           current_interface_mappings,
            realm_name
          ) do
       {:error, err_msg} = error ->
@@ -658,18 +660,6 @@ defmodule Astarte.AppEngine.API.Device do
           }
         )
     end
-  end
-
-  defp extract_encrypted_endpoints(mappings) do
-    Enum.reduce(mappings, [], fn mapping, acc ->
-      case Map.get(mapping, :encrypted) do
-        true ->
-          acc ++ [Map.get(mapping, :endpoint)]
-
-        _ ->
-          acc
-      end
-    end)
   end
 
   defp persist_object_value(
@@ -764,72 +754,6 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
-    end
-  end
-
-  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
-  defp maybe_encrypt_value(_, _, nil, _, _) do
-    {nil, nil}
-  end
-
-  # no encrypted endpoints for this interface: return plaintext original value and no DEK
-  defp maybe_encrypt_value(_, _, value, [], _) do
-    {value, nil}
-  end
-
-  # check if encryption is required for the endpoint, and if so: retrieve the current realm DEK,
-  # encrypt the (individual) value with it, and return a tuple {encrypted_value, encrypted_dek}
-  # ready to be stored in db.
-  defp maybe_encrypt_value(:individual, path, value, encrypted_endpoints, realm) do
-    case String.replace(path, "//", "/") in encrypted_endpoints do
-      true ->
-        with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
-               generate_new_dek(realm) do
-          encrypted_value =
-            do_encrypt_individual_value(value, plaintext_dek)
-
-          {encrypted_value, ciphertext_dek}
-        end
-
-      _ ->
-        {value, nil}
-    end
-  end
-
-  # for each of the mappings of the object check if the related encrypted option is set,
-  # and based on this condition treat each of the endpoints values as a separate one when deciding
-  # whether to encrypt it or not (encryption choice is done at endpoint level, not at object level)
-  defp maybe_encrypt_value(:object, _, obj_value, encrypted_endpoints, realm) do
-    with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
-           generate_new_dek(realm) do
-      # leave untouched object values that do not need encryption, encrypt all others
-      obj_value_with_encryption =
-        Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
-          endpoint = Path.basename(endpoint)
-
-          Map.put(
-            acc_obj,
-            endpoint,
-            do_encrypt_individual_value(Map.get(acc_obj, endpoint), plaintext_dek)
-          )
-        end)
-
-      {obj_value_with_encryption, ciphertext_dek}
-    end
-  end
-
-  defp do_encrypt_individual_value(value, dek) do
-    value_binary = :erlang.term_to_binary(value)
-    {:ok, encrypted_value} = Secrets.encrypt_with_dek(value_binary, dek)
-    encrypted_value
-  end
-
-  defp generate_new_dek(realm_name) do
-    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Path.join()
-
-    case Secrets.generate_dek("realm_kek", namespace) do
-      {:ok, _dek} = dek_entry -> dek_entry
-      _ -> {:error, :dek_generation_error}
     end
   end
 

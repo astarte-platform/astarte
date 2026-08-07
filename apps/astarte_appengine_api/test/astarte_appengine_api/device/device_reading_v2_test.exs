@@ -286,7 +286,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     expected_token = [realm_name, device.encoded_id, interface_to_update.name | path_tokens]
 
     encrypted_path? =
-      encrypted_mapping_path?(interface_to_update, mapping_update.path, realm_name)
+      encrypted_mapping_path?(interface_to_update, mapping_update.path)
 
     expected_published_value =
       expected_published_value!(mapping_update.value_type, update_value)
@@ -349,7 +349,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     }
   end
 
-  defp encrypted_mapping_path?(interface_to_update, path, realm_name) do
+  defp encrypted_mapping_path?(interface_to_update, path) do
     Enum.any?(interface_to_update.mappings, fn mapping ->
       mapping.encrypted and
         Value.path_matches_endpoint?(

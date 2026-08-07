@@ -170,8 +170,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
                 mapping_update <- valid_mapping_update_for(interface) do
         descriptor = state.interfaces[interface.name]
 
-        {:ok, endpoint} =
+        {:ok, endpoints} =
           Core.Interface.resolve_path(mapping_update.path, descriptor, state.mappings)
+
+        endpoint = hd(endpoints)
 
         assert matches?(endpoint.endpoint, mapping_update.path, interface.aggregation)
       end

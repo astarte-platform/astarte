@@ -24,7 +24,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
   This module contains functions and utilities to process interfaces.
   """
-  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -209,7 +208,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         with {:ok, endpoint_id} <-
                EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
              {:ok, endpoint} <- Map.fetch(mappings, endpoint_id) do
-          {:ok, endpoint}
+          {:ok, [endpoint]}
         else
           :error ->
             # Map.fetch failed
@@ -231,23 +230,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         end
 
       :object ->
-        with {:guessed, [first_endpoint_id | _tail] = guessed_endpoints} <-
+        with {:guessed, guessed_endpoints} <-
                EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings),
-             {:ok, first_mapping} <- Map.fetch(mappings, first_endpoint_id) do
-          # We return the first guessed mapping changing just its endpoint id, using the canonical
-          # endpoint id used in object aggregated interfaces. This way all mapping properties
-          # (database_retention_ttl, reliability etc) are correctly set since they're the same in
-          # all mappings (this is enforced by Realm Management when the interface is installed)
+             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+          all_mappings = Map.take(mappings, guessed_endpoints) |> Map.values()
 
-          endpoint_id =
-            CQLUtils.endpoint_id(
-              interface_descriptor.name,
-              interface_descriptor.major_version,
-              ""
-            )
-
-          {:ok, %{first_mapping | endpoint_id: endpoint_id}}
+          {:ok, all_mappings}
         else
           :error ->
             # Map.fetch failed
