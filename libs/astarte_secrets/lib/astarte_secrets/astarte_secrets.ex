@@ -109,7 +109,7 @@ defmodule Astarte.Secrets do
 
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post("/transit/keys/#{key_name}/config", req_body, headers, options) do
+    case Client.post("/v1/transit/keys/#{key_name}/config", req_body, headers, options) do
       {:ok, %Response{status_code: 200}} ->
         :ok
 
@@ -126,7 +126,7 @@ defmodule Astarte.Secrets do
   def delete_key(key_name, options \\ []) do
     headers = []
 
-    case Client.delete("/transit/keys/#{key_name}", headers, options) do
+    case Client.delete("/v1/transit/keys/#{key_name}", headers, options) do
       {:ok, %Response{status_code: 204}} ->
         :ok
 
@@ -184,7 +184,7 @@ defmodule Astarte.Secrets do
 
     with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
            Client.post(
-             "/transit/decrypt/#{key_name}",
+             "/v1/transit/decrypt/#{key_name}",
              Jason.encode!(%{ciphertext: ciphertext}),
              headers,
              client_opts
@@ -265,7 +265,7 @@ defmodule Astarte.Secrets do
   Rotate the given key
   """
   def rotate(key_name, namespace) do
-    path = "/transit/keys/#{key_name}/rotate"
+    path = "/v1/transit/keys/#{key_name}/rotate"
     opts = [namespace: namespace]
 
     with {:ok, %Response{status_code: 200, body: resp}} <- Client.post(path, "", [], opts),

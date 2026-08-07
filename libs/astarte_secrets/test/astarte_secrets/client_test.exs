@@ -18,6 +18,7 @@
 
 defmodule Astarte.Secrets.ClientTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
   use Mimic
 
   import Astarte.Common.Generators.HTTP
@@ -26,78 +27,281 @@ defmodule Astarte.Secrets.ClientTest do
   alias Astarte.Secrets.Config
 
   setup do
-    bao_url = http_url(path: "", query: "", fragment: "") |> Enum.at(0)
-    stub(Config, :bao_url!, fn -> bao_url end)
+    vault_url = http_url(path: "", query: "", fragment: "") |> Enum.at(0)
+    stub(Config, :vault_url!, fn -> vault_url end)
 
-    %{bao_url: bao_url}
+    header_name = string(:alphanumeric, length: 5..10)
+    header_content = string(:alphanumeric)
+    headers = list_of(tuple({header_name, header_content}), max_length: 10)
+
+    headers = headers |> Enum.at(0)
+
+    path = "/v1/path"
+    request_path = vault_url <> path
+
+    %{vault_url: vault_url, headers: headers, path: path, request_path: request_path}
   end
 
-  test "always performs requests on the open bao base url", %{bao_url: bao_url} do
-    path = "/example"
-    expected_url = bao_url <> "/v1" <> path
+  describe "request/5" do
+    test "adds the token header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_token = "some-token"
 
-    validate_request(fn _method, url, _headers, _body, _opts ->
-      assert url == expected_url
-    end)
-
-    assert {:ok, _} = Client.get(path)
-  end
-
-  describe "respects ssl options" do
-    setup :enable_ssl
-
-    test "with default sni" do
-      path = "/example"
-
-      validate_request(fn _method, url, _headers, _body, opts ->
-        uri = URI.parse(url)
-        ssl_opts = Keyword.fetch!(opts, :ssl_options)
-
-        assert ssl_opts[:cacertfile]
-        assert ssl_opts[:verify] == :verify_peer
-        assert ssl_opts[:server_name_indication] == to_charlist(uri.host)
+      validate_request(fn :post, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == custom_token
       end)
 
-      Client.get(path)
+      Client.post(path, "", headers, token: custom_token)
     end
 
-    test "with custom sni" do
-      path = "/example"
-      custom_sni = "custom-sni"
+    test "uses default token if not overridden", context do
+      %{headers: headers, path: path, request_path: request_path} = context
 
-      stub(Config, :bao_ssl_custom_sni!, fn -> custom_sni end)
-
-      validate_request(fn _method, _url, _headers, _body, opts ->
-        ssl_opts = Keyword.fetch!(opts, :ssl_options)
-
-        assert ssl_opts[:cacertfile]
-        assert ssl_opts[:verify] == :verify_peer
-        assert ssl_opts[:server_name_indication] == to_charlist(custom_sni)
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == Config.vault_token!()
       end)
 
-      Client.get(path)
+      Client.get(path, headers)
     end
 
-    test "without sni" do
-      path = "/example"
+    test "adds the namespace header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_namespace = "/some/namespace"
 
-      stub(Config, :bao_ssl_disable_sni!, fn -> true end)
-
-      validate_request(fn _method, _url, _headers, _body, opts ->
-        ssl_opts = Keyword.fetch!(opts, :ssl_options)
-
-        assert ssl_opts[:cacertfile]
-        assert ssl_opts[:verify] == :verify_peer
-        assert ssl_opts[:server_name_indication] == :disable
+      validate_request(fn :delete, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        assert header_namespace(headers) == custom_namespace
       end)
 
-      Client.get(path)
+      Client.delete(path, headers, namespace: custom_namespace)
+    end
+
+    test "does nothing if the namespace wasn't given", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :post, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        refute header_namespace(headers)
+      end)
+
+      Client.post(path, "", headers)
     end
   end
 
-  defp enable_ssl(_context) do
-    stub(Config, :bao_ssl_enabled!, fn -> true end)
-    :ok
+  describe "request!/5" do
+    test "adds the token header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_token = "some-token"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == custom_token
+      end)
+
+      Client.get!(path, headers, token: custom_token)
+    end
+
+    test "uses default token if not overridden", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :delete, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == Config.vault_token!()
+      end)
+
+      Client.delete!(path, headers)
+    end
+
+    test "adds the namespace header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_namespace = "/some/namespace"
+
+      validate_request(fn :post, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        assert header_namespace(headers) == custom_namespace
+      end)
+
+      Client.post!(path, "", headers, namespace: custom_namespace)
+    end
+
+    test "does nothing if the namespace wasn't given", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        refute header_namespace(headers)
+      end)
+
+      Client.get!(path, headers)
+    end
+  end
+
+  describe "get/3" do
+    test "adds the token header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_token = "some-token"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == custom_token
+      end)
+
+      Client.get(path, headers, token: custom_token)
+    end
+
+    test "uses default token if not overridden", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == Config.vault_token!()
+      end)
+
+      Client.get(path, headers)
+    end
+
+    test "adds the namespace header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_namespace = "/some/namespace"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        assert header_namespace(headers) == custom_namespace
+      end)
+
+      Client.get(path, headers, namespace: custom_namespace)
+    end
+
+    test "does nothing if the namespace wasn't given", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        refute header_namespace(headers)
+      end)
+
+      Client.get(path, headers)
+    end
+  end
+
+  describe "list/3" do
+    setup context do
+      %{request_path: request_path} = context
+      request_path = request_path <> "?list=true"
+
+      %{request_path: request_path}
+    end
+
+    test "adds the token header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_token = "some-token"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == custom_token
+      end)
+
+      Client.list(path, headers, token: custom_token)
+    end
+
+    test "uses default token if not overridden", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == Config.vault_token!()
+      end)
+
+      Client.list(path, headers)
+    end
+
+    test "adds the namespace header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_namespace = "/some/namespace"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        assert header_namespace(headers) == custom_namespace
+      end)
+
+      Client.list(path, headers, namespace: custom_namespace)
+    end
+
+    test "does nothing if the namespace wasn't given", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        refute header_namespace(headers)
+      end)
+
+      Client.list(path, headers)
+    end
+  end
+
+  describe "list!/3" do
+    setup context do
+      %{request_path: request_path} = context
+      request_path = request_path <> "?list=true"
+
+      %{request_path: request_path}
+    end
+
+    test "adds the token header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_token = "some-token"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == custom_token
+      end)
+
+      Client.list!(path, headers, token: custom_token)
+    end
+
+    test "uses default token if not overridden", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:token]
+        assert header_token(headers) == Config.vault_token!()
+      end)
+
+      Client.list!(path, headers)
+    end
+
+    test "adds the namespace header from the opts", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+      custom_namespace = "/some/namespace"
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        assert header_namespace(headers) == custom_namespace
+      end)
+
+      Client.list!(path, headers, namespace: custom_namespace)
+    end
+
+    test "does nothing if the namespace wasn't given", context do
+      %{headers: headers, path: path, request_path: request_path} = context
+
+      validate_request(fn :get, ^request_path, headers, "", opts ->
+        refute opts[:namespace]
+        refute header_namespace(headers)
+      end)
+
+      Client.list!(path, headers)
+    end
+  end
+
+  defp header_token(headers) do
+    Enum.find_value(headers, fn {key, value} -> key == "X-Vault-Token" && value end)
+  end
+
+  defp header_namespace(headers) do
+    Enum.find_value(headers, fn {key, value} -> key == "X-Vault-Namespace" && value end)
   end
 
   defp validate_request(validation_fun) do

@@ -8,7 +8,7 @@ jobs:
       pull-requests: write
       contents: read
       issues: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Label the PR size
     steps:
       - uses: codelytv/pr-size-labeler@4ec67706cd878fbc1c8db0a5dcd28b6bb412e85a # v1

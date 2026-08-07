@@ -27,10 +27,10 @@ jobs:
       fail-fast: true
       matrix:
         platform:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             platform: linux/amd64
             platform-pair: linux-amd64
-          - os: ubuntu-22.04-arm
+          - os: ubuntu-24.04-arm
             platform: linux/arm64
             platform-pair: linux-arm64
     steps:
@@ -79,7 +79,7 @@ jobs:
 
   merge_snapshots:
     name: Publish snapshot
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - build_snapshot
     steps:

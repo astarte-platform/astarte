@@ -225,6 +225,20 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end)
   end
 
+  def decode_device_service_info(service_info) when is_map(service_info) do
+    Map.new(service_info, fn
+      {key, value} ->
+        {key, decode_cbor_value(value)}
+    end)
+  end
+
+  defp decode_cbor_value(value) when is_binary(value) do
+    case CBOR.decode(value) do
+      {:ok, decoded, ""} -> decoded
+      _ -> value
+    end
+  end
+
   def add_replacement_hmac(session, realm_name, hmac) do
     with :ok <-
            Queries.session_add_replacement_hmac(

@@ -106,8 +106,8 @@ config :astarte_fdo, :base_url_port, 4003
 config :astarte_fdo, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
 
-config :astarte_secrets, bao_authentication_mechanism: :token
-config :astarte_secrets, bao_token: "astarte_token"
+config :astarte_secrets, vault_authentication_mechanism: :token
+config :astarte_secrets, vault_token: "astarte_token"
 
 config :astarte_fdo, fdo_rendezvous_url: "http://localhost:8041"
 

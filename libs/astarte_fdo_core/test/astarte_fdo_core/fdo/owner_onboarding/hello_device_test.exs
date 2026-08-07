@@ -89,6 +89,30 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.HelloDeviceTest do
     end
   end
 
+  describe "encode/1" do
+    test "encodes hello device in expected FDO list format" do
+      cipher = COSE.algorithm(:aes_256_gcm)
+
+      hello_device = %HelloDevice{
+        max_size: 65_535,
+        guid: <<1, 2, 3, 4>>,
+        nonce: <<5, 6, 7, 8>>,
+        kex_name: "ECDH256",
+        cipher_name: :aes_256_gcm,
+        easig_info: :es256
+      }
+
+      assert [
+               65_535,
+               %CBOR.Tag{tag: :bytes, value: <<1, 2, 3, 4>>},
+               %CBOR.Tag{tag: :bytes, value: <<5, 6, 7, 8>>},
+               "ECDH256",
+               ^cipher,
+               [-7, %CBOR.Tag{tag: :bytes, value: <<>>}]
+             ] = HelloDevice.encode(hello_device)
+    end
+  end
+
   defp hello_device_list(data) do
     cipher = COSE.algorithm(data.cipher_name)
     [data.max_size, data.guid, data.nonce, data.kex_name, cipher, data.easig_info]

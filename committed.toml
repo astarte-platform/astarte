@@ -40,6 +40,7 @@ allowed_scopes = [
   "appengine",
   "te",
   # libraries
+  "config",
   "data_access",
   "events",
   "rpc",

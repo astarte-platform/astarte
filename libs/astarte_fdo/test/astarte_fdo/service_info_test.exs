@@ -153,7 +153,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     end
   end
 
-  describe "build_owner_service_info/3 when device has sent all data" do
+  describe "build_owner_service_info/4 when device has sent all data" do
     test "registers device and returns owner service info", %{
       realm: realm_name,
       session: session,
@@ -161,10 +161,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } do
       service_info = %{{"devmod", "sn"} => "serial_number_1234"}
 
-      device_info = %DeviceServiceInfo{
-        is_more_service_info: false,
-        service_info: service_info
-      }
+      {:ok, session} = Session.add_device_service_info(session, realm_name, service_info)
 
       credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
 
@@ -172,7 +169,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
                ServiceInfo.build_owner_service_info(
                  realm_name,
                  session,
-                 device_info,
                  Device.encode_device_id(device_id),
                  credentials_secret
                )
@@ -187,10 +183,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } do
       service_info = %{{"devmode", "active"} => true}
 
-      device_info = %DeviceServiceInfo{
-        is_more_service_info: false,
-        service_info: service_info
-      }
+      {:ok, session} = Session.add_device_service_info(session, realm_name, service_info)
 
       encoded_device_id = Device.encode_device_id(device_id)
       credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
@@ -198,7 +191,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
       ServiceInfo.build_owner_service_info(
         realm_name,
         session,
-        device_info,
         encoded_device_id,
         credentials_secret
       )
@@ -216,9 +208,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
                ServiceInfo.build_owner_service_info(
                  realm_name,
                  session_after,
-                 empty_device_info,
-                 encoded_device_id,
-                 credentials_secret
+                 empty_device_info
                )
     end
   end

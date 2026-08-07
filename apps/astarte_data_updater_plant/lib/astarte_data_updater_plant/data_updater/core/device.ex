@@ -430,9 +430,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
         {:cont, {:ok, new_state}}
       else
-        {:error, :interface_loading_failed} ->
-          Logger.warning("Failed #{interface} interface loading.")
-          {:halt, {:error, :sending_properties_to_interface_failed}}
+        {:error, reason} = error ->
+          Logger.warning(
+            "Error while sending properties to device: #{inspect(reason)} on interface #{interface}"
+          )
+
+          {:halt, error}
       end
     end)
   end
@@ -443,14 +446,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
        ) do
     encoded_device_id = Device.encode_device_id(device_id)
 
-    Core.Interface.each_interface_mapping(mappings, interface_descriptor, fn mapping ->
-      resend_interface_mapping_properties(
-        realm,
-        device_id,
-        encoded_device_id,
-        interface_descriptor,
-        mapping
-      )
+    mappings
+    |> Enum.filter(fn {_endpoint_id, mapping} ->
+      mapping.interface_id == interface_descriptor.interface_id
+    end)
+    |> Enum.reduce_while(:ok, fn {_endpoint_id, mapping}, :ok ->
+      case resend_interface_mapping_properties(
+             realm,
+             device_id,
+             encoded_device_id,
+             interface_descriptor,
+             mapping
+           ) do
+        :ok ->
+          {:cont, :ok}
+
+        {:error, reason} ->
+          Logger.warning(
+            "Failed sending properties for interface #{interface_descriptor.name}: #{inspect(reason)}."
+          )
+
+          {:halt, {:error, :sending_properties_to_interface_failed}}
+      end
     end)
   end
 

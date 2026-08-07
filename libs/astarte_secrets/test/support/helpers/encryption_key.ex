@@ -33,7 +33,7 @@ defmodule Astarte.Helpers.EncryptionKey do
     headers = [{"Content-Type", "application/json"}]
 
     case Client.post(
-           "/transit/keys/#{key_name}",
+           "/v1/transit/keys/#{key_name}",
            Jason.encode!(%{type: "aes256-gcm96"}),
            headers,
            namespace: namespace

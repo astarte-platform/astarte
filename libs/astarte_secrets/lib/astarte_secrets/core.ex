@@ -160,7 +160,7 @@ defmodule Astarte.Secrets.Core do
 
     with {:ok, %{status_code: 200, body: body}} <-
            Client.post(
-             "/transit/datakey/plaintext/#{kek_key_name}",
+             "/v1/transit/datakey/plaintext/#{kek_key_name}",
              Jason.encode!(%{bits: bits}),
              headers,
              client_opts
@@ -203,7 +203,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.post("/transit/keys/#{key_name}", req_body, headers, options) do
+    case Client.post("/v1/transit/keys/#{key_name}", req_body, headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         parse_json_data(resp_body)
 
@@ -217,7 +217,7 @@ defmodule Astarte.Secrets.Core do
   end
 
   def get_wrapping_key(opts) do
-    case Client.get("/transit/wrapping_key", [], opts) do
+    case Client.get("/v1/transit/wrapping_key", [], opts) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         with {:error, reason} <- parse_data_key(resp_body, "public_key") do
           Logger.error("Failed to get wrapping key: #{inspect(reason)}")
@@ -281,7 +281,7 @@ defmodule Astarte.Secrets.Core do
 
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post("/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
+    case Client.post("/v1/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
       {:ok, %HTTPoison.Response{status_code: 204}} ->
         :ok
 
@@ -365,7 +365,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.get("/transit/keys/#{key_name}", headers, options) do
+    case Client.get("/v1/transit/keys/#{key_name}", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         {:ok, resp_body}
 
@@ -387,7 +387,7 @@ defmodule Astarte.Secrets.Core do
 
     options = [{:namespace, namespace}]
 
-    case Client.list("/transit/keys", headers, options) do
+    case Client.list("/v1/transit/keys", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         case parse_data_key(resp_body, "keys") do
           {:ok, keys} ->
@@ -442,15 +442,12 @@ defmodule Astarte.Secrets.Core do
 
     Enum.reduce_while(namespace_tokens, {:ok, init_namespace}, fn new_namespace,
                                                                   {:ok, base_namespace} ->
-      headers = []
-      options = [namespace: base_namespace]
-
-      case Client.post("/sys/namespaces/#{new_namespace}", "", headers, options) do
-        {:ok, %HTTPoison.Response{status_code: 200}} ->
+      case ensure_namespace_created(base_namespace, new_namespace) do
+        :ok ->
           new_base_namespace = Path.join(base_namespace, new_namespace)
           {:cont, {:ok, new_base_namespace}}
 
-        error ->
+        {:error, error} ->
           "Error creating new namespace #{new_namespace} on #{base_namespace}: #{inspect(error)}"
           |> Logger.error()
 
@@ -464,7 +461,7 @@ defmodule Astarte.Secrets.Core do
     headers = [{"Content-Type", "application/json"}]
     options = [{:namespace, namespace}]
 
-    case Client.post("/sys/mounts/transit", req_body, headers, options) do
+    case Client.post("/v1/sys/mounts/transit", req_body, headers, options) do
       {:ok, %Response{status_code: 204}} ->
         :ok
 
@@ -520,7 +517,7 @@ defmodule Astarte.Secrets.Core do
   defp list_relative_namespaces(base_namespace) do
     headers = [{"X-Vault-Namespace", base_namespace}]
 
-    case Client.list("/sys/namespaces", headers) do
+    case Client.list("/v1/sys/namespaces", headers) do
       {:ok, %Response{status_code: 200, body: body}} ->
         case parse_data_key(body, "keys") do
           {:ok, _keys} = ok ->
@@ -554,6 +551,29 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
+  defp ensure_namespace_created(base_namespace, new_namespace) do
+    # check if namespace already exists; if not, attempt to create it
+    headers = []
+    options = [namespace: base_namespace]
+
+    case Client.get("/v1/sys/namespaces/#{new_namespace}", headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200}} ->
+        :ok
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        case Client.post("/v1/sys/namespaces/#{new_namespace}", "", headers, options) do
+          {:ok, %HTTPoison.Response{status_code: 200}} ->
+            :ok
+
+          error ->
+            {:error, error}
+        end
+
+      error ->
+        {:error, error}
+    end
+  end
+
   @doc """
   Signs data using a key stored in OpenBao's transit engine.
   Translates FDO/COSE algorithms to the specific OpenBao parameters.
@@ -562,7 +582,7 @@ defmodule Astarte.Secrets.Core do
           {:ok, binary()} | :error
   def sign(key_name, payload, key_alg, digest_type, opts) do
     vault_opts = map_cose_alg_to_vault_opts(key_alg)
-    url_path = "/transit/sign/#{key_name}/#{digest_type}"
+    url_path = "/v1/transit/sign/#{key_name}/#{digest_type}"
 
     req_body = build_sign_payload(payload, vault_opts)
     headers = [{"Content-Type", "application/json"}]
@@ -705,7 +725,7 @@ defmodule Astarte.Secrets.Core do
 
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post("/transit/encrypt/#{key_name}", req_body, headers, options) do
+    case Client.post("/v1/transit/encrypt/#{key_name}", req_body, headers, options) do
       {:ok, %Response{status_code: 200, body: body}} ->
         with {:ok, data} <- parse_json_data(body),
              ciphertext when is_binary(ciphertext) <- Map.get(data, "ciphertext") do
@@ -734,7 +754,7 @@ defmodule Astarte.Secrets.Core do
 
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post("/transit/decrypt/#{key_name}", req_body, headers, options) do
+    case Client.post("/v1/transit/decrypt/#{key_name}", req_body, headers, options) do
       {:ok, %Response{status_code: 200, body: body}} ->
         with {:ok, data} <- parse_json_data(body),
              plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),

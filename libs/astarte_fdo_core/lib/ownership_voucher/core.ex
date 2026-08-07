@@ -20,7 +20,6 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.Core do
   @moduledoc """
   Core decoding and parsing utilities for FDO Ownership Vouchers.
   """
-  alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
   alias Astarte.FDO.Core.PublicKey
   alias COSE.Messages.Sign1
@@ -58,16 +57,6 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.Core do
   def device_guid(decoded_voucher) do
     with {:ok, header_tag} <- header_tag(decoded_voucher) do
       device_id_from_header(header_tag)
-    end
-  end
-
-  def device_public_key(ownership_voucher) do
-    # The FIDO Device Onboard public key is in the leaf certificate (the "end-entity" key),
-    # which is the first element of the x5chain sequence
-    case ownership_voucher.cert_chain do
-      nil -> {:ok, nil}
-      [device_cert | _] -> parse_device_certificate(device_cert)
-      [] -> :error
     end
   end
 
@@ -110,36 +99,5 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.Core do
       {:ok, decoded_voucher} -> {:ok, decoded_voucher}
       :error -> {:error, :invalid_certificate}
     end
-  end
-
-  def get_ov_entry(_ov, entry_num) when entry_num < 0 do
-    {:error, :invalid_message}
-  end
-
-  def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
-    case Enum.fetch(entries, entry_num) do
-      {:ok, entry} ->
-        {:ok, CBOR.encode([entry_num, entry])}
-
-      :error ->
-        {:error, :invalid_message}
-    end
-  end
-
-  def parse_device_certificate(device_cert_bin) do
-    with {:ok, cert} <- decode_cert(device_cert_bin),
-         {:OTPCertificate, otptbs_certificate, _, _} <- cert,
-         {:OTPTBSCertificate, _, _, _, _, _, _, pubkey_info, _, _, _} <- otptbs_certificate,
-         {:OTPSubjectPublicKeyInfo, _, pubkey} <- pubkey_info do
-      {:ok, pubkey}
-    else
-      _ -> :error
-    end
-  end
-
-  defp decode_cert(cert_bin) do
-    {:ok, :public_key.pkix_decode_cert(cert_bin, :otp)}
-  rescue
-    _ -> :error
   end
 end

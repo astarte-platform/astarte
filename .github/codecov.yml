@@ -17,6 +17,7 @@ coverage:
           - astarte_pairing
           - astarte_realm_management
           - astarte_trigger_engine
+          - astarte_config
           - astarte_data_access
           - astarte_events
           - astarte_generators
@@ -72,6 +73,10 @@ flags:
     carryforward: true
     paths:
       - apps/astarte_trigger_engine
+  astarte_config:
+    carryforward: true
+    paths:
+      - libs/astarte_config
   astarte_data_access:
     carryforward: true
     paths:

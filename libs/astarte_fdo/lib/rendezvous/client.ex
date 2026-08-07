@@ -24,30 +24,7 @@ defmodule Astarte.FDO.Rendezvous.Client do
   """
   require Logger
 
-  use HTTPoison.Base
-
-  # Ignore the dialyzer warning for the macro-injected stream_next/1 function
-  @dialyzer {:nowarn_function, stream_next: 1}
-
-  alias Astarte.FDO.Config
-
-  @impl true
-  def process_request_url(url) do
-    Config.fdo_rendezvous_url!() <> url
-  end
-
-  @impl true
-  def process_request_options(options) do
-    auth_opts = [
-      ssl: Config.fdo_rendezvous_ssl_options!()
-    ]
-
-    auth_opts
-    |> Keyword.merge(options)
-    |> Keyword.update(:hackney, [pool: false], fn hackney_opts ->
-      Keyword.put(hackney_opts, :pool, false)
-    end)
-  end
+  use Astarte.Config.HTTPClient, config: Astarte.FDO.Config, service: :rendezvous
 
   @impl true
   def process_response_headers(headers) do

@@ -76,6 +76,5 @@ config :astarte_fdo, :base_url_port, 4003
 config :astarte_fdo, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
 
-config :astarte_pairing, bao_authentication_mechanism: :token
-config :astarte_pairing, bao_token: "astarte_token"
-config :astarte_pairing, bao_url: "http://localhost:8200"
+config :astarte_pairing, vault_authentication_mechanism: :token
+config :astarte_pairing, vault_token: "astarte_token"

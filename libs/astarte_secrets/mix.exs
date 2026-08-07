@@ -43,6 +43,7 @@ defmodule AstarteSecrets.MixProject do
 
   defp deps do
     [
+      {:astarte_config, path: "../astarte_config"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_generators, path: "../astarte_generators", only: :test},
       {:castore, "~> 1.0"},

@@ -22,11 +22,13 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
+  alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.OwnerOnboarding
   alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
+  alias Astarte.Pairing.Engine
 
   setup :verify_on_exit!
 
@@ -207,22 +209,116 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       context
     end
 
-    test "calls ServiceInfo.build_owner_service_info/3", %{
+    test "calls ServiceInfo.build_owner_service_info/3 when device has more chunks", %{
       conn: conn,
       create_path: path,
       message_id: id,
       session: session
     } do
-      decoded = %{"hello" => "service"}
+      decoded = %DeviceServiceInfo{
+        is_more_service_info: true,
+        service_info: %{{"devmod", "active"} => true}
+      }
+
       expected_response = %{"result" => "ok"}
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, _, _, _ ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
-      request_body = Session.encrypt_and_sign(session, CBOR.encode(decoded))
+      request_body =
+        Session.encrypt_and_sign(
+          session,
+          decoded |> DeviceServiceInfo.to_cbor_list() |> CBOR.encode()
+        )
+
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
+      assert conn.assigns.message_id == id
+    end
+
+    test "calls ServiceInfo.build_owner_service_info/3 when device yields with empty service info",
+         %{
+           conn: conn,
+           create_path: path,
+           message_id: id,
+           session: session
+         } do
+      decoded = %DeviceServiceInfo{is_more_service_info: false, service_info: %{}}
+      expected_response = %{"result" => "next_owner_chunk"}
+
+      expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
+
+      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
+        {:ok, CBOR.encode(expected_response)}
+      end)
+
+      request_body =
+        Session.encrypt_and_sign(
+          session,
+          decoded |> DeviceServiceInfo.to_cbor_list() |> CBOR.encode()
+        )
+
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
+      assert conn.assigns.message_id == id
+    end
+
+    test "registers device and calls ServiceInfo.build_owner_service_info/4 on final chunk", %{
+      conn: conn,
+      create_path: path,
+      message_id: id,
+      session: session
+    } do
+      decoded =
+        %DeviceServiceInfo{
+          is_more_service_info: false,
+          service_info: %{{"devmod", "sn"} => %{"value" => "serial_number_1234"}}
+        }
+
+      expected_response = %{"result" => "ok"}
+      credentials_secret = "test-credentials-secret"
+
+      expected_encoded_device_id =
+        Device.encode_device_id(UUID.uuid5(:oid, "serial_number_1234", :raw))
+
+      test_pid = self()
+
+      expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
+
+      expect(Session, :add_device_id, fn session_in, _, device_id ->
+        send(test_pid, {:device_id_used, device_id})
+        {:ok, %{session_in | device_id: device_id}}
+      end)
+
+      expect(Engine, :register_device, fn _, encoded_device_id, [unconfirmed: true] ->
+        assert is_binary(encoded_device_id)
+        assert encoded_device_id == expected_encoded_device_id
+        {:ok, credentials_secret}
+      end)
+
+      expect(ServiceInfo, :build_owner_service_info, fn _,
+                                                        session_after_add,
+                                                        encoded_device_id,
+                                                        ^credentials_secret ->
+        assert session_after_add.device_id != nil
+        assert encoded_device_id == expected_encoded_device_id
+        {:ok, CBOR.encode(expected_response)}
+      end)
+
+      request_body =
+        Session.encrypt_and_sign(
+          session,
+          decoded |> DeviceServiceInfo.to_cbor_list() |> CBOR.encode()
+        )
 
       conn = post(conn, path, request_body)
 

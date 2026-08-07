@@ -22,15 +22,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use Astarte.Cases.DataUpdater
+  use ExUnitProperties
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.Secrets
   alias Astarte.Secrets.EncryptedMessages
-  alias COSE.Keys.Symmetric
+
+  import Astarte.InterfaceUpdateGenerators
+
+  @generated_data_points 100
 
   setup_all context do
     keyspace = Realm.keyspace_name(context.realm)
@@ -282,6 +287,100 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
                  keyspace,
                  :property
                )
+    end
+  end
+
+  describe "data_handler/6" do
+    test "correctly receives and validates payloads for all defined value types on individual datastream mappings",
+         context do
+      interface = context.individual_datastream_with_all_endpoint_types
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+
+      data_points =
+        gen_context(context.state, interface) |> Enum.take(@generated_data_points)
+
+      for data_point <- data_points do
+        %{
+          state: state,
+          interface: interface_name,
+          path: path,
+          payload: payload
+        } = data_point
+
+        assert {:ack, :ok, _, _} =
+                 DataHandler.handle_data(
+                   state,
+                   interface_name,
+                   path,
+                   payload,
+                   timestamp,
+                   start
+                 )
+      end
+    end
+
+    test "correctly receives and validates payloads for all defined value types on object datastream mappings",
+         context do
+      interface = context.object_datastream_with_all_endpoint_types
+
+      timestamp = System.system_time(:microsecond) * 10
+      start = System.monotonic_time()
+
+      data_points =
+        gen_context(context.state, interface) |> Enum.take(@generated_data_points)
+
+      for data_point <- data_points do
+        %{
+          state: state,
+          interface: interface_name,
+          path: path,
+          payload: payload
+        } = data_point
+
+        assert {:ack, :ok, _, _} =
+                 DataHandler.handle_data(
+                   state,
+                   interface_name,
+                   path,
+                   payload,
+                   timestamp,
+                   start
+                 )
+      end
+    end
+  end
+
+  describe "validate_value_type/2" do
+    test "returns ok for valid binaryblob" do
+      binary = %Cyanide.Binary{subtype: :generic, data: <<1, 2, 3, 4>>}
+
+      assert :ok = DataHandler.validate_value_type(%Mapping{value_type: :binaryblob}, binary)
+    end
+
+    test "returns error for raw binaries in binaryblobs" do
+      assert {:error, :unexpected_value_type} =
+               DataHandler.validate_value_type(%Mapping{value_type: :binaryblob}, <<1, 2, 3, 4>>)
+    end
+  end
+
+  defp gen_context(state, interface) do
+    gen all update <- valid_complete_mapping_update_for(interface),
+            timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
+      payload =
+        %{
+          "v" => update.value,
+          "t" => timestamp
+        }
+        |> Cyanide.encode!()
+
+      %{
+        state: state,
+        interface: interface.name,
+        path: update.path,
+        payload: payload
+      }
     end
   end
 

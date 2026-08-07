@@ -32,8 +32,6 @@ defmodule Astarte.FDO.ServiceInfo do
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.FDO.OwnerOnboarding.Session
 
-  import Astarte.FDO.Core.ServiceInfo
-
   # If device has more data to send, save received part to the session
   # and respond with empty OwnerService Info
   def build_owner_service_info(
@@ -59,31 +57,23 @@ defmodule Astarte.FDO.ServiceInfo do
           service_info: service_info
         }
       )
-      when is_empty(service_info) do
+      when map_size(service_info) == 0 do
     send_next_owner_chunk(session, realm_name)
   end
 
-  # Device has no more data to send, this function appends received part to the previous received
-  # parts of service info and proceed sending OwnerService info
+  # Device has no more data to send, proceed sending OwnerService info
   def build_owner_service_info(
         realm_name,
         session,
-        %DeviceServiceInfo{
-          is_more_service_info: false,
-          service_info: service_info
-        },
         encoded_device_id,
         credentials_secret
       ) do
-    with {:ok, session} <-
-           Session.add_device_service_info(session, realm_name, service_info) do
-      build_and_send_owner_service_info(
-        session,
-        realm_name,
-        encoded_device_id,
-        credentials_secret
-      )
-    end
+    build_and_send_owner_service_info(
+      session,
+      realm_name,
+      encoded_device_id,
+      credentials_secret
+    )
   end
 
   defp send_next_owner_chunk(session, realm_name) do
