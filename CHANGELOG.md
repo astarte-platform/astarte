@@ -89,6 +89,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
 
+## [1.3.3] - Unreleased
+
+### Fixed
+
+- [astarte_data_updater_plant] Resending properties to a device now reports distinct device error triggers depending on the failure: `interface_loading_failed` when an interface fails to load and `resend_interface_properties_failed` when sending the properties to the device itself fails. Previously, both cases were incorrectly reported as `resend_interface_properties_failed`.
+
 ## [1.3.2] - 2026-07-14
 
 ## Fixed
