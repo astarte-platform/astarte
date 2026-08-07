@@ -15,8 +15,7 @@ RUN apt-get -qq update && apt-get -qq install libsnappy-dev libssl-dev
 RUN git clone https://github.com/vernemq/vernemq.git
 
 RUN cd vernemq && \
-  # Check out latest master
-  git checkout -b v2.0.1 && \
+  git checkout 2.1.2 && \
   make rel && \
   cd ..
 
@@ -88,7 +87,7 @@ RUN ln -s /opt/vernemq/etc /etc/vernemq && \
 COPY --from=builder /build/astarte_vmq_plugin/_build/$BUILD_ENV/rel/astarte_vmq_plugin /opt/astarte_vmq_plugin/
 
 # Ports
-# 80  Webroot ACME verification (in case) 
+# 80  Webroot ACME verification (in case)
 # 1883  MQTT
 # 1885  MQTT for Reverse Proxy
 # 8883  MQTT/SSL
