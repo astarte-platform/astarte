@@ -123,6 +123,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       end)
 
       expect(Core.Device, :resend_all_properties, fn _state ->
+        {:error, :interface_loading_failed}
+      end)
+
+      expect(MessageTracker, :discard, fn ^message_tracker, ^message_id -> :ok end)
+      expect(Core.Device, :ask_clean_session, fn _state, _timestamp -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "interface_loading_failed",
+                                                              _ts ->
+        :ok
+      end)
+
+      ControlHandler.handle_control(
+        state,
+        "/emptyCache",
+        "",
+        message_id,
+        0
+      )
+    end
+
+    test "discards the message if sending properties to the device fails", context do
+      %{state: state, message_tracker: message_tracker, message_id: message_id} = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      expect(Core.Device, :resend_all_properties, fn _state ->
         {:error, :sending_properties_to_interface_failed}
       end)
 

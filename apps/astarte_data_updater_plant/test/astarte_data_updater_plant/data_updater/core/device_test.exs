@@ -232,7 +232,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
         {:error, :interface_loading_failed}
       end)
 
-      assert {:error, :sending_properties_to_interface_failed} ==
+      assert {:error, :interface_loading_failed} ==
                Core.Device.resend_all_properties(state)
     end
 
@@ -267,6 +267,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
       end)
 
       Core.Device.resend_all_properties(state)
+    end
+
+    test "returns error when sending properties to the device fails", context do
+      %{state: state, server_property_with_all_endpoint_types: interface} = context
+
+      state = put_in(state.introspection, %{interface.name => interface.major_version})
+
+      Mimic.expect(VMQPlugin, :publish, 1, fn _topic, _bson, _qos ->
+        {:ok, %{local_matches: 0, remote_matches: 0}}
+      end)
+
+      assert {:error, :sending_properties_to_interface_failed} ==
+               Core.Device.resend_all_properties(state)
     end
   end
 

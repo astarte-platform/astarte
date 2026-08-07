@@ -343,12 +343,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         {:ok, new_state}
 
+      {:error, :interface_loading_failed} ->
+        # Track interface loading failure
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
+          %{duration: System.monotonic_time() - resend_start},
+          %{realm: state.realm, result: "interface_loading_failed"}
+        )
+
+        interface_loading_error(state, message_id, timestamp)
+
       {:error, :sending_properties_to_interface_failed} ->
         # Track interface send failure
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :properties_resend],
           %{duration: System.monotonic_time() - resend_start},
-          %{realm: state.realm, result: "interface_failed"}
+          %{realm: state.realm, result: "sending_properties_to_interface_failed"}
         )
 
         sending_properties_error(state, message_id, timestamp)
@@ -386,8 +396,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     new_state
   end
 
+  defp interface_loading_error(state, message_id, timestamp) do
+    Logger.warning("Cannot load interface while resending properties",
+      tag: "interface_loading_failed"
+    )
+
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
+    MessageTracker.discard(new_state.message_tracker, message_id)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+      %{},
+      %{realm: new_state.realm}
+    )
+
+    Core.Trigger.execute_device_error_triggers(
+      new_state,
+      "interface_loading_failed",
+      timestamp
+    )
+
+    new_state
+  end
+
   defp sending_properties_error(state, message_id, timestamp) do
-    Logger.warning("Cannot resend properties to interface",
+    Logger.warning("Cannot send properties to device.",
       tag: "resend_interface_properties_failed"
     )
 
