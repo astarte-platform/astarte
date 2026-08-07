@@ -2,6 +2,12 @@ defmodule Astarte.Config.HTTPClientTest do
   use ExUnit.Case
   use ExUnitProperties
 
+  defmodule SampleClient do
+    @moduledoc false
+
+    use Astarte.Config.HTTPClient, config: SampleConfig, service: :my_service
+  end
+
   describe "generated process_request_url/1" do
     test "prepends the base URL to the given path" do
       base_url = SampleConfig.my_service_url!()
