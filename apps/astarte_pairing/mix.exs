@@ -117,7 +117,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:absinthe, "~> 1.7.0"},
+      {:absinthe_plug, "~> 1.5.0"}
     ]
   end
 
