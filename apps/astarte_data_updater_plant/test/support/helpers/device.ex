@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.DataUpdaterPlant.Helpers.Device do
   @moduledoc """
   This module provides helper functions for testing device-related functionality.
   """

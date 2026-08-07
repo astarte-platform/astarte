@@ -24,13 +24,13 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   """
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.RealmManagement.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Device
   use Astarte.Cases.Triggers
 
   import Astarte.Core.Generators.Group
 
-  import Astarte.Helpers.Triggers
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Device
 

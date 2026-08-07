@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.DataUpdaterPlant.Cases.Device do
   @moduledoc """
   This module provides helper functions and setup for tests related to devices in the DataUpdaterPlant.
   """
@@ -29,8 +29,8 @@ defmodule Astarte.Cases.Device do
   import Astarte.Core.Generators.Interface
   import Astarte.Core.Generators.Mapping
 
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.Database
+  import Astarte.DataUpdaterPlant.Helpers.Device
+  import Astarte.DataUpdaterPlant.Helpers.Database
   import Astarte.InterfaceUpdateGenerators
 
   alias Astarte.DataAccess.Consistency

@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.VersionControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
   @expected_version Mix.Project.config()[:version]

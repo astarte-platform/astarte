@@ -19,16 +19,22 @@
 defmodule Astarte.Pairing.Mixfile do
   use Mix.Project
 
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
   def project do
     [
       app: :astarte_pairing,
       elixir: "~> 1.20",
-      version: "1.5.0-dev",
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       description: "Astarte Pairing API"
     ]
   end
@@ -58,25 +64,13 @@ defmodule Astarte.Pairing.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false}
-    ]
-  end
-
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
       {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.24"},
@@ -89,10 +83,10 @@ defmodule Astarte.Pairing.Mixfile do
       {:guardian, "~> 2.4"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:skogsra, "~> 2.2"},
       {:cors_plug, "~> 2.0"},
       {:telemetry, "~> 1.3", override: true},
@@ -101,31 +95,28 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "secomind/cfxxl", branch: "main"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_secrets, in_umbrella: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:ecto, "~> 3.13", override: true},
-      {:exandra, "~> 0.13"},
+      {:exandra, github: "vinniefranco/exandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
-      {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_fdo, path: astarte_lib("astarte_fdo")},
-      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      {:astarte_events, in_umbrella: true},
+      {:astarte_fdo, in_umbrella: true},
+      {:astarte_fdo_core, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0"},
-      {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:hackney, github: "benoitc/hackney", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

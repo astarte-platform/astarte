@@ -18,16 +18,22 @@
 defmodule Astarte.AppEngine.API.Mixfile do
   use Mix.Project
 
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
   def project do
     [
       app: :astarte_appengine_api,
       elixir: "~> 1.20",
-      version: "1.5.0-dev",
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       description: "Astarte App Engine API"
     ]
   end
@@ -57,25 +63,12 @@ defmodule Astarte.AppEngine.API.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false}
-    ]
-  end
-
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:xandra, github: "whatyouhide/xandra", override: true},
       {:amqp, "~> 4.1"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
@@ -91,7 +84,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.9"},
       {:phoenix_swagger, "~> 0.8"},
-      {:exandra, "~> 0.13"},
+      {:exandra, github: "vinniefranco/exandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:pretty_log, "~> 0.1"},
@@ -106,10 +99,13 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true},
+      {:astarte_secrets, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -117,18 +113,12 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ymlr, "~> 5.1"},
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 2.3", only: :test},
       {:ecto, "~> 3.13", override: true},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:hackney, github: "benoitc/hackney", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

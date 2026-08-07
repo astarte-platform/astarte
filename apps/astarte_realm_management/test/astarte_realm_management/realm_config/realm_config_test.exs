@@ -21,12 +21,12 @@
 defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
+  use Astarte.RealmManagement.Cases.Data, async: true, jwt_public_key: "fake_pem"
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
 
-  alias Astarte.Helpers
+  alias Astarte.RealmManagement.Helpers
 
   alias Astarte.RealmManagement.RealmConfig
   alias Astarte.RealmManagement.RealmConfig.AuthConfig

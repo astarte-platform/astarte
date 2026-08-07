@@ -16,22 +16,22 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.Pairing.Cases.Device do
   @moduledoc false
   use ExUnitProperties
   use ExUnit.CaseTemplate
 
   import Astarte.Core.Generators.Interface
 
-  import Astarte.Helpers.Device
+  import Astarte.Pairing.Helpers.Device
 
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  alias Astarte.Helpers.Device, as: DeviceHelper
   alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.Pairing.Helpers.Device, as: DeviceHelper
 
   using do
     quote do

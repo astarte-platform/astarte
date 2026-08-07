@@ -15,10 +15,8 @@ on:
       - "release-*"
 
 jobs:
-  astarte_vmq_plugin:
-    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
-    with:
-      app: "astarte_vmq_plugin"
+  astarte_tests:
+    uses: ./.github/workflows/astarte-apps-workflow.yml
     secrets: inherit
 
   build_snapshot:
@@ -30,7 +28,7 @@ jobs:
       attestations: write
       id-token: write
     needs:
-      - astarte_vmq_plugin
+      - astarte_tests
     strategy:
       fail-fast: true
       matrix:

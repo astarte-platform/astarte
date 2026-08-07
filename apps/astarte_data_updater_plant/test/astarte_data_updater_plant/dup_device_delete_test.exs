@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
-  use Astarte.Cases.Trigger
+  use Astarte.DataUpdaterPlant.Cases.Trigger
   import Ecto.Query
   import Mox
   import StreamData

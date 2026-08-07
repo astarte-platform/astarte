@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCacheTest do
-  use Astarte.Cases.Data, async: false
+  use Astarte.DataUpdaterPlant.Cases.Data, async: false
   use Mimic
 
   alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache

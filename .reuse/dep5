@@ -7,14 +7,6 @@ Files: apps/**
 Copyright: 2017-2026 SECO Mind Srl
 License: Apache-2.0
 
-Files: libs/**
-Copyright: 2017-2026 SECO Mind Srl
-License: Apache-2.0
-
-Files: tools/**
-Copyright: 2017-2026 SECO Mind Srl
-License: Apache-2.0
-
 Files: doc/**
 Copyright: 2017-2026 SECO Mind Srl
 License: CC-BY-4.0

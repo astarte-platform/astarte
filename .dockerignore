@@ -3,17 +3,19 @@
 !Dockerfile
 !.dockerignore
 
+!mix.exs
+!mix.lock
+!VERSION
+!config/
+!/rel/
 !/apps/
-!/libs/
-!/tools/
 !/astarte-dashboard/
 
 # Standard Elixir gitignore to be applied to all apps
 **/_build/
 **/cover/
 **/deps/
-**/doc
-**/doc/doc
+apps/*/doc
 **/.fetch
 **/db
 **/erl_crash.dump
@@ -22,6 +24,7 @@
 **/config/*.secret.exs
 **/.elixir_ls/
 **/.lexical/
+**/.expert/
 
 # Standard Erlang gitignore to be applied to all apps
 **/.eunit

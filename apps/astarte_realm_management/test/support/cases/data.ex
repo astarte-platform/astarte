@@ -18,18 +18,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.Data do
+defmodule Astarte.RealmManagement.Cases.Data do
   @moduledoc """
   This module defines the setup for tests requiring access to the application
   database.
 
   You may define functions here to be used as helpers in your tests.
   """
-  alias Astarte.Helpers.Triggers
+  alias Astarte.RealmManagement.Helpers.Triggers
 
   use ExUnit.CaseTemplate
   use Mimic
-  import Astarte.Helpers.Database
+  import Astarte.RealmManagement.Helpers.Database
 
   using opts do
     astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)
@@ -37,8 +37,8 @@ defmodule Astarte.Cases.Data do
     jwt_public_key = Keyword.get_lazy(opts, :jwt_public_key, &jwt_public_key_pem/0)
 
     quote do
-      import Astarte.Cases.Data
-      import Astarte.Helpers.Database
+      import Astarte.RealmManagement.Cases.Data
+      import Astarte.RealmManagement.Helpers.Database
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)
       @moduletag realm_name: unquote(realm_name)

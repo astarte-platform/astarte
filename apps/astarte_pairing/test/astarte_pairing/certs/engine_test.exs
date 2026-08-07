@@ -16,14 +16,14 @@
 # limitations under the License.
 
 defmodule Astarte.Pairing.EngineTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.Pairing.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Device
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.Helpers.Database, as: DatabaseTestHelper
   alias CFXXL.CertUtils
 
   @test_csr """

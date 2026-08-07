@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.RealmManagement.Cases.Device do
   @moduledoc false
 
   use ExUnitProperties
@@ -25,7 +25,7 @@ defmodule Astarte.Cases.Device do
   import Astarte.Core.Generators.Device
   import Astarte.Core.Generators.Interface
 
-  import Astarte.Helpers.Device
+  import Astarte.RealmManagement.Helpers.Device
 
   alias Astarte.Core.Device
 

@@ -21,8 +21,8 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
   use Astarte.Cases.DataUpdater
 
   alias Astarte.Common.Generators.Timestamp

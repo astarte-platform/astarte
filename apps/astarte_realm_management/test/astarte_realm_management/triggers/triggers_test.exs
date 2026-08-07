@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.TriggersTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   import Mimic
 
@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
   import Astarte.Core.Generators.Triggers.Policy
   import Astarte.Core.Adapters.Triggers.Policy
 
-  import Astarte.Helpers.Triggers
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -38,7 +38,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
   alias Astarte.RPC.Triggers.TriggerDeletion
   alias Astarte.RPC.Triggers.TriggerInstallation
 
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
 
   alias Astarte.RealmManagement.Triggers
   alias Astarte.RealmManagement.Triggers.Action

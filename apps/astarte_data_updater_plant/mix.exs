@@ -19,17 +19,23 @@
 defmodule Astarte.DataUpdaterPlant.Mixfile do
   use Mix.Project
 
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
   def project do
     [
       app: :astarte_data_updater_plant,
       elixir: "~> 1.20",
-      version: "1.5.0-dev",
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -55,26 +61,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_generators, in_umbrella: true, only: [:dev, :test]}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false},
-      {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets")}
-    ]
-  end
-
   defp deps do
     [
+      {:xandra, github: "whatyouhide/xandra", override: true},
       {:jason, "~> 1.2"},
       {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
@@ -85,8 +74,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
-      {:mimic, "~> 2.3", only: [:dev, :test]},
-      {:exandra, "~> 0.13"},
+      {:mimic, "~> 2.3", only: :test},
+      {:exandra, github: "vinniefranco/exandra", override: true},
       {:decimal, "~> 3.0", override: true},
       {:libcluster, "~> 3.3"},
       # https://github.com/elixir-horde/horde/pull/291
@@ -94,8 +83,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:bandit, "~> 1.11"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
+      {:astarte_events, in_umbrella: true},
+      {:astarte_secrets, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.1"},
@@ -105,18 +99,12 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:uuid, "~> 2.0", hex: :uuid_erl},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:hkdf, "~> 0.3.0"},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:hackney, github: "benoitc/hackney", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

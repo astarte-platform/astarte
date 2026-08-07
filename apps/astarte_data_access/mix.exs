@@ -1,0 +1,111 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2017-2025 SECO Mind srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.DataAccess.Mixfile do
+  use Mix.Project
+
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
+  def project do
+    [
+      app: :astarte_data_access,
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.20",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      start_permanent: Mix.env() == :prod,
+      test_coverage: [tool: ExCoveralls],
+      description: description(),
+      package: package(),
+      deps: deps(),
+      source_url: "https://github.com/astarte-platform/astarte_data_access",
+      homepage_url: "https://astarte-platform.org/"
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  # Run "mix help compile.app" to learn about applications.
+  def application do
+    [
+      mod: {Astarte.DataAccess, []},
+      extra_applications: [:logger]
+    ]
+  end
+
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
+      {:pretty_log, "~> 0.1"},
+      {:exandra, github: "vinniefranco/exandra", override: true},
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_fdo_core, in_umbrella: true},
+      {:cose, github: "secomind/cose-elixir"},
+      {:skogsra, "~> 2.2"},
+      {:excoveralls, "~> 0.15", only: :test},
+      {:castore, "~> 1.0.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:mimic, "~> 2.3", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, github: "benoitc/hackney", override: true}
+    ]
+  end
+
+  defp description do
+    """
+    Astarte Data Access library.
+    """
+  end
+
+  defp package do
+    [
+      maintainers: ["Davide Bettio", "Riccardo Binetti"],
+      licenses: ["Apache-2.0"],
+      links: %{
+        "Astarte" => "https://astarte-platform.org",
+        "Ispirata" => "https://ispirata.com",
+        "GitHub" => "https://github.com/astarte-platform/astarte_data_access"
+      }
+    ]
+  end
+end

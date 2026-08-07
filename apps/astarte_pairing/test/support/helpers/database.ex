@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.Pairing.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 

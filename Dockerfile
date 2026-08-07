@@ -19,41 +19,37 @@ ARG BUILD_ENV=prod
 ARG SERVICE
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
 
-# Cache elixir deps
-COPY apps/$SERVICE/mix.exs ./
-COPY apps/$SERVICE/mix.lock ./
-COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
-COPY libs/astarte_config/mix.exs libraries/astarte_config/mix.exs
-COPY libs/astarte_config/mix.lock libraries/astarte_config/mix.lock
-COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
-COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
-COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-COPY libs/astarte_fdo/mix.exs libraries/astarte_fdo/mix.exs
-COPY libs/astarte_fdo/mix.lock libraries/astarte_fdo/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
-COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
-COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
-COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
-COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
-COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
-COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
-RUN mix do deps.get + deps.compile --skip-local-deps
-
-COPY libs ./libraries
-RUN mix deps.compile
+# Cache deps: umbrella root + one mix.exs stub per app (single lockfile). Only
+# the mix.exs files are staged so unrelated source edits do not re-fetch deps.
+COPY mix.exs mix.lock VERSION ./
+COPY config ./config
+COPY apps/astarte_adapters/mix.exs apps/astarte_adapters/mix.exs
+COPY apps/astarte_appengine_api/mix.exs apps/astarte_appengine_api/mix.exs
+COPY apps/astarte_config/mix.exs apps/astarte_config/mix.exs
+COPY apps/astarte_data_access/mix.exs apps/astarte_data_access/mix.exs
+COPY apps/astarte_data_updater_plant/mix.exs apps/astarte_data_updater_plant/mix.exs
+COPY apps/astarte_events/mix.exs apps/astarte_events/mix.exs
+COPY apps/astarte_fdo_core/mix.exs apps/astarte_fdo_core/mix.exs
+COPY apps/astarte_fdo/mix.exs apps/astarte_fdo/mix.exs
+COPY apps/astarte_generators/mix.exs apps/astarte_generators/mix.exs
+COPY apps/astarte_housekeeping/mix.exs apps/astarte_housekeeping/mix.exs
+COPY apps/astarte_pairing/mix.exs apps/astarte_pairing/mix.exs
+COPY apps/astarte_realm_management/mix.exs apps/astarte_realm_management/mix.exs
+COPY apps/astarte_rpc/mix.exs apps/astarte_rpc/mix.exs
+COPY apps/astarte_secrets/mix.exs apps/astarte_secrets/mix.exs
+COPY apps/astarte_test_suite/mix.exs apps/astarte_test_suite/mix.exs
+COPY apps/astarte_trigger_engine/mix.exs apps/astarte_trigger_engine/mix.exs
+COPY apps/astarte_vmq_plugin/mix.exs apps/astarte_vmq_plugin/mix.exs
+RUN mix do deps.get + deps.compile
 
 # Add all the rest
-COPY apps/$SERVICE .
+COPY apps ./apps
+COPY rel ./rel
 
-# Build and release
-RUN mix do compile + release
+# Build and release from the umbrella root (releases: defined in mix.exs)
+RUN mix compile
+RUN mix release $SERVICE
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
 FROM debian:trixie-20260623-slim

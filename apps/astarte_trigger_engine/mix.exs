@@ -19,17 +19,23 @@
 defmodule Astarte.TriggerEngine.Mixfile do
   use Mix.Project
 
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
   def project do
     [
       app: :astarte_trigger_engine,
       elixir: "~> 1.20",
-      version: "1.5.0-dev",
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -47,19 +53,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_generators, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   def application do
     [
       extra_applications: [:logger],
@@ -69,6 +62,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
+      {:xandra, github: "whatyouhide/xandra", override: true},
       {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
@@ -83,27 +77,23 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:typedstruct, "~> 0.5"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
-      {:exandra, "~> 0.13"},
+      {:exandra, github: "vinniefranco/exandra", override: true},
       {:decimal, "~> 3.0", override: true},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:hackney, github: "benoitc/hackney", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

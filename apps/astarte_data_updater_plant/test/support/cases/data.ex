@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.Data do
+defmodule Astarte.DataUpdaterPlant.Cases.Data do
   @moduledoc """
   This module defines the setup for tests requiring access to the application
   database.
@@ -28,7 +28,7 @@ defmodule Astarte.Cases.Data do
 
   use ExUnit.CaseTemplate
   use Mimic
-  import Astarte.Helpers.Database
+  import Astarte.DataUpdaterPlant.Helpers.Database
 
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Secrets
@@ -38,8 +38,8 @@ defmodule Astarte.Cases.Data do
     realm_name = Keyword.get_lazy(opts, :realm_name, &realm_name/0)
 
     quote do
-      import Astarte.Cases.Data
-      import Astarte.Helpers.Database
+      import Astarte.DataUpdaterPlant.Cases.Data
+      import Astarte.DataUpdaterPlant.Helpers.Database
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)
       @moduletag realm_name: unquote(realm_name)

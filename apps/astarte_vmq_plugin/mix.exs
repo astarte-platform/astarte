@@ -19,16 +19,22 @@
 defmodule Astarte.VMQ.Plugin.Mixfile do
   use Mix.Project
 
+  @external_resource Path.join(__DIR__, "../../VERSION")
+  @version File.read!(Path.join(__DIR__, "../../VERSION")) |> String.trim()
+
   def project do
     [
       app: :astarte_vmq_plugin,
-      version: "1.5.0-dev",
+      version: @version,
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env()), plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -66,29 +72,12 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
-
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:hackney, github: "benoitc/hackney", override: true},
+      {:exandra, github: "vinniefranco/exandra", override: true},
+      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
       {:amqp, "~> 4.1"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
@@ -97,20 +86,17 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:flatlog, github: "annopaolo/flatlog"},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:xandra, "~> 0.14"},
+      {:xandra, github: "whatyouhide/xandra", override: true},
       {:castore, "~> 1.0"},
       {:decimal, "~> 3.0", override: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:mimic, "~> 1.10", only: :test},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:mimic, "~> 2.3", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

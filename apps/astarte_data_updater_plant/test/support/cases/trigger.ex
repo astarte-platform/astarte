@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Trigger do
+defmodule Astarte.DataUpdaterPlant.Cases.Trigger do
   @moduledoc """
   This module defines test cases for trigger handling in the Astarte Data Updater Plant.
   """
@@ -35,7 +35,7 @@ defmodule Astarte.Cases.Trigger do
 
   using do
     quote do
-      import Astarte.Cases.Trigger
+      import Astarte.DataUpdaterPlant.Cases.Trigger
     end
   end
 

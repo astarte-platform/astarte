@@ -17,11 +17,11 @@
 #
 
 defmodule Astarte.RealmManagementWeb.RealmControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
-  alias Astarte.Helpers
   alias Astarte.RealmManagement.Config
+  alias Astarte.RealmManagement.Helpers
   alias Astarte.RealmManagement.Helpers.JWTTestHelper
 
   @new_pubkey """

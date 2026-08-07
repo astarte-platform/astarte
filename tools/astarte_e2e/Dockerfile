@@ -17,32 +17,32 @@ RUN mix local.hex --force && \
 # Pass --build-arg BUILD_ENV=dev to build a dev image
 ARG BUILD_ENV=prod
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
+ENV ASTARTE_LIBRARIES_PATH=libraries/apps
 
 # Cache elixir deps
 COPY tools/astarte_e2e/mix.exs ./
 COPY tools/astarte_e2e/mix.lock ./
-COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
-COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
-COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
-COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-COPY libs/astarte_fdo/mix.exs libraries/astarte_fdo/mix.exs
-COPY libs/astarte_fdo/mix.lock libraries/astarte_fdo/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
-COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
-COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
-COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
-COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
-COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
-COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
+COPY mix.lock libraries/mix.lock
+COPY apps/astarte_adapters/mix.exs libraries/apps/astarte_adapters/mix.exs
+COPY apps/astarte_data_access/mix.exs libraries/apps/astarte_data_access/mix.exs
+COPY apps/astarte_events/mix.exs libraries/apps/astarte_events/mix.exs
+COPY apps/astarte_fdo/mix.exs libraries/apps/astarte_fdo/mix.exs
+COPY apps/astarte_fdo_core/mix.exs libraries/apps/astarte_fdo_core/mix.exs
+COPY apps/astarte_generators/mix.exs libraries/apps/astarte_generators/mix.exs
+COPY apps/astarte_rpc/mix.exs libraries/apps/astarte_rpc/mix.exs
+COPY apps/astarte_secrets/mix.exs libraries/apps/astarte_secrets/mix.exs
+COPY apps/astarte_test_suite/mix.exs libraries/apps/astarte_test_suite/mix.exs
 RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs ./libraries
+COPY apps/astarte_adapters libraries/apps/astarte_adapters
+COPY apps/astarte_data_access libraries/apps/astarte_data_access
+COPY apps/astarte_events libraries/apps/astarte_events
+COPY apps/astarte_fdo libraries/apps/astarte_fdo
+COPY apps/astarte_fdo_core libraries/apps/astarte_fdo_core
+COPY apps/astarte_generators libraries/apps/astarte_generators
+COPY apps/astarte_rpc libraries/apps/astarte_rpc
+COPY apps/astarte_secrets libraries/apps/astarte_secrets
+COPY apps/astarte_test_suite libraries/apps/astarte_test_suite
 RUN mix deps.compile
 
 # Add all the rest
