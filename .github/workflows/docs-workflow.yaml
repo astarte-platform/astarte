@@ -40,7 +40,7 @@ jobs:
             filename: astarte_realm_management.yaml
 
     steps:
-      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
       - name: Generate ${{ matrix.app.name }} OpenAPI spec
         uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
         with:
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the source
-      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
         with:
           path: astarte
       - name: Make .tool-versions available for staple-actions
@@ -78,7 +78,7 @@ jobs:
           pattern: "*-openapi-spec"
           merge-multiple: true
       # Checkout the docs repository
-      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
         with:
           repository: astarte-platform/docs
           path: docs
@@ -95,7 +95,7 @@ jobs:
           cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
           cp docs/astarte/common_vars.js docs/$DOCS_DIRNAME/docs_config.js
       - name: Checkout Swagger UI
-        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
         with:
           repository: swagger-api/swagger-ui
           path: swagger-ui
