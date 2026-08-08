@@ -23,7 +23,7 @@ defmodule Astarte.Import.MixProject do
     [
       {:xandra, github: "whatyouhide/xandra", override: true},
       {:exandra, "~>0.16.0"},
-      {:ecto, "~>3.13"},
+      {:ecto, "~> 3.13"},
       {:logfmt, "~> 3.3"},
       {:decimal, "~> 3.0", override: true},
       {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.4", override: true},
