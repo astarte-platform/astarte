@@ -16,7 +16,4 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.VMQ.Plugin.Config)
-Mimic.copy(:vernemq_dev_api)
-
-ExUnit.start(capture_log: true)
+Mox.defmock(MockVerneMQ.API, for: Astarte.VMQ.Plugin.VerneMQ.API.Behaviour)
