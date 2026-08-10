@@ -1,7 +1,7 @@
 {
-    "skip_files": [
-        "test",
-        "deps",
-        "_build"
-    ]
+  "skip_files": [
+    "test",
+    "deps",
+    "_build"
+  ]
 }

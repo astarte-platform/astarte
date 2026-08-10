@@ -18,7 +18,7 @@
 
 import Config
 
-config :astarte_vmq_plugin, :amqp_options, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+config :astarte_vmq_plugin, :amqp_options, host: System.get_env("RABBITMQ_HOST") || "localhost"
 
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},

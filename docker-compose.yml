@@ -312,6 +312,8 @@ services:
   # VerneMQ
   vernemq:
     image: astarte/vernemq:snapshot
+    build:
+      context: apps/astarte_vmq_plugin
     hostname: vernemq
     env_file:
       - ./.env

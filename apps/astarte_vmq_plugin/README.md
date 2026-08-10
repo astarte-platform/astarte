@@ -1,5 +1,4 @@
-Astarte VerneMQ Plugin
-======================
+# Astarte VerneMQ Plugin
 
 <img src="vmq_plugin_astarte_overview.svg" align="center" />
 

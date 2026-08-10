@@ -1,0 +1,39 @@
+name: Build and Test Astarte VMQ Plugin
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+      - "apps/astarte_vmq_plugin/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-vmq-plugin-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_vmq_plugin
+  pull_request:
+    paths:
+      - "apps/astarte_vmq_plugin/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-vmq-plugin-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_vmq_plugin:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_vmq_plugin"
+    secrets: inherit

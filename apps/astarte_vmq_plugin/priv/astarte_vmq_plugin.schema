@@ -161,8 +161,8 @@
 {translation, "astarte_vmq_plugin.cassandra_nodes",
   fun(Conf) ->
     Nodes = cuttlefish:conf_get("astarte_vmq_plugin.cassandra.nodes", Conf),
-    Splitted = string:split(Nodes, ",", all),
-    lists:map(fun(E) -> string:trim(E, both) end, Splitted)
+    Split = string:split(Nodes, ",", all),
+    lists:map(fun(E) -> string:trim(E, both) end, Split)
   end}.
   
 {mapping, "astarte_vmq_plugin.astarte_instance_id", "astarte_vmq_plugin.astarte_instance_id", [
