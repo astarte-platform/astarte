@@ -1,0 +1,172 @@
+{mapping, "astarte_vmq_plugin.amqp.username", "astarte_vmq_plugin.amqp_options.username", [
+    {default, "guest"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.password", "astarte_vmq_plugin.amqp_options.password", [
+    {default, "guest"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.host", "astarte_vmq_plugin.amqp_options.host", [
+    {default, "localhost"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.port", "astarte_vmq_plugin.amqp_options.port", [
+    {default, 5672},
+    {datatype, integer}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.virtual_host", "astarte_vmq_plugin.amqp_options.virtual_host", [
+    {default, "/"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.ssl_cacertfile", "astarte_vmq_plugin.amqp_options.ssl_options.cacertfile", [
+    {datatype, file}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.ssl_certfile", "astarte_vmq_plugin.amqp_options.ssl_options.certfile", [
+    {datatype, file}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.ssl_keyfile", "astarte_vmq_plugin.amqp_options.ssl_options.keyfile", [
+    {datatype, file}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.ssl_verify", "astarte_vmq_plugin.amqp_options.ssl_options.verify", [
+    {datatype, {enum, [verify_peer]}}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.ssl_fail_if_no_peer_cert", "astarte_vmq_plugin.amqp_options.ssl_options.fail_if_no_peer_cert", [
+    {datatype, {enum, [true, false]}}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp_ssl.ssl_enabled", "astarte_vmq_plugin.amqp_ssl.ssl_enabled", [
+    {datatype, {enum, [true, false]}},
+    {default, false}
+]}.
+
+{mapping, "astarte_vmq_plugin.amqp_ssl.disable_sni", "astarte_vmq_plugin.amqp_ssl.disable_sni", [
+    {datatype, {enum, [true, false]}},
+    {default, false}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp_ssl.custom_sni", "astarte_vmq_plugin.amqp_ssl.custom_sni", [
+    {datatype, string}
+]}.
+
+{mapping, "astarte_vmq_plugin.amqp.data_queue_prefix", "astarte_vmq_plugin.data_queue_prefix",
+  [
+    {default, "astarte_data_"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.data_queue_count", "astarte_vmq_plugin.data_queue_count",
+  [
+    {default, 128},
+    {datatype, integer}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.amqp.mirror_queue_name", "astarte_vmq_plugin.mirror_queue_name",
+  [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.device_heartbeat_interval_ms", "astarte_vmq_plugin.device_heartbeat_interval_ms",
+  [
+    {datatype, integer}
+  ]}.
+
+{mapping, "astarte_rpc.amqp_connection.username", "astarte_rpc.amqp_connection_options.username", [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_rpc.amqp_connection.password", "astarte_rpc.amqp_connection_options.password", [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_rpc.amqp_connection.host", "astarte_rpc.amqp_connection_options.host", [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_rpc.amqp_connection.port", "astarte_rpc.amqp_connection_options.port", [
+    {datatype, integer}
+  ]}.
+
+{mapping, "astarte_rpc.amqp_connection.virtual_host", "astarte_rpc.amqp_connection_options.virtual_host", [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.registry_mfa", "astarte_vmq_plugin.registry_mfa",
+  [
+    {default, "{vmq_reg,direct_plugin_exports,[astarte_vmq_plugin]}"},
+    {datatype, string},
+    hidden
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.nodes", "astarte_vmq_plugin.cassandra_nodes", [
+    {default, "localhost:9042"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.username", "astarte_vmq_plugin.cassandra_username", [
+    {default, "cassandra"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.password", "astarte_vmq_plugin.cassandra_password", [
+    {default, "cassandra"},
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.pool_size", "astarte_vmq_plugin.cassandra_pool_size", [
+    {default, 10},
+    {datatype, integer}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.ssl_enabled", "astarte_vmq_plugin.cassandra_ssl_enabled", [
+    {default, false},
+    {datatype,  {enum, [true, false]}}
+  ]}.
+
+%TODO handle enabled SNI
+{mapping, "astarte_vmq_plugin.cassandra.ssl_disable_sni", "astarte_vmq_plugin.cassandra_ssl_disable_sni", [
+    {default, true},
+    {datatype,  {enum, [true, false]}}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.ssl_custom_sni", "astarte_vmq_plugin.cassandra_ssl_custom_sni", [
+    {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.ssl_ca_file", "astarte_vmq_plugin.cassandra_ssl_ca_file", [
+        {datatype, string}
+  ]}.
+
+{mapping, "astarte_vmq_plugin.cassandra.enable_keepalive", "astarte_vmq_plugin.cassandra_enable_keepalive", [
+    {datatype, {enum, [true, false]}},
+    {default, true}
+  ]}.
+
+{translation, "astarte_vmq_plugin.registry_mfa",
+  fun(Conf) ->
+    S = cuttlefish:conf_get("astarte_vmq_plugin.registry_mfa", Conf),
+    {ok, T, _} = erl_scan:string(S ++ "."),
+    {ok, Term} = erl_parse:parse_term(T),
+    Term
+  end}.
+
+{translation, "astarte_vmq_plugin.cassandra_nodes",
+  fun(Conf) ->
+    Nodes = cuttlefish:conf_get("astarte_vmq_plugin.cassandra.nodes", Conf),
+    Splitted = string:split(Nodes, ",", all),
+    lists:map(fun(E) -> string:trim(E, both) end, Splitted)
+  end}.
+  
+{mapping, "astarte_vmq_plugin.astarte_instance_id", "astarte_vmq_plugin.astarte_instance_id", [
+    {default, ""},
+    {datatype, string}
+  ]}.
+  

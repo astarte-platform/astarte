@@ -1,0 +1,12 @@
+diff --git a/apps/vmq_server/src/vmq_ranch_config.erl b/apps/vmq_server/src/vmq_ranch_config.erl
+index 7acc18e..2b6ca44 100644
+--- a/apps/vmq_server/src/vmq_ranch_config.erl
++++ b/apps/vmq_server/src/vmq_ranch_config.erl
+@@ -132,6 +132,7 @@ start_listener(Type, Addr, Port, {TransportOpts, Opts}) ->
+     TransportOptions = maps:from_list(
+         [{socket_opts, [{ip, AAddr}, {port, Port}|TransportOpts]},
+          {num_acceptors, NrOfAcceptors},
++         {handshake_timeout, 30000},
+          {max_connections, MaxConns}]),
+     case ranch:start_listener(Ref, TransportMod, TransportOptions,
+                               protocol_for_type(Type),
