@@ -17,9 +17,10 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Helpers.Device do
+  @moduledoc "Generates a random encoded device id for tests."
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
-  def random_device() do
+  def random_device do
     [device_id] = DeviceGenerator.encoded_id() |> Enum.take(1)
     device_id
   end

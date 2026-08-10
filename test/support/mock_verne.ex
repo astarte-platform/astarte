@@ -1,4 +1,5 @@
 defmodule Astarte.VMQ.Plugin.MockVerne do
+  @moduledoc "Agent-backed mock of VerneMQ's registry, queueing published messages for inspection."
   def start_link do
     Agent.start_link(fn -> :queue.new() end, name: __MODULE__)
   end

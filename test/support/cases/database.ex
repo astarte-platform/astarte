@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Cases.Database do
+  @moduledoc "ExUnit case template that provisions a fresh realm/keyspace per test."
   use ExUnit.CaseTemplate
   use Mimic
 
@@ -27,7 +28,7 @@ defmodule Astarte.VMQ.Plugin.Test.Cases.Database do
       end)
 
     realm_name =
-      Keyword.get_lazy(dbg(opts), :realm_name, fn ->
+      Keyword.get_lazy(opts, :realm_name, fn ->
         "realm#{System.unique_integer([:positive])}"
       end)
 

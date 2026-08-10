@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.DatabaseTestHelper do
-  require Logger
+  @moduledoc "Sets up and tears down the Cassandra/Scylla `test` keyspace used across the suite."
   alias Astarte.Core.Device
   import ExUnit.Assertions
   alias Astarte.Core.CQLUtils
@@ -69,7 +69,7 @@ defmodule Astarte.VMQ.Plugin.DatabaseTestHelper do
   DROP KEYSPACE #{@test_keyspace};
   """
 
-  def setup_db!() do
+  def setup_db! do
     Xandra.Cluster.run(:xandra, fn conn ->
       Xandra.execute!(conn, @create_test_keyspace, %{}, consistency: :local_quorum)
       Xandra.execute!(conn, @create_devices_table, %{}, consistency: :local_quorum)
@@ -104,14 +104,14 @@ defmodule Astarte.VMQ.Plugin.DatabaseTestHelper do
     end)
   end
 
-  def cleanup_db!() do
+  def cleanup_db! do
     Xandra.Cluster.run(:xandra, fn conn ->
       Xandra.execute!(conn, @truncate_devices_table, %{}, consistency: :local_quorum)
       Xandra.execute!(conn, @truncate_deletion_in_progress_table, %{}, consistency: :local_quorum)
     end)
   end
 
-  def teardown_db!() do
+  def teardown_db! do
     Xandra.Cluster.run(:xandra, fn conn ->
       {:ok, %Xandra.SchemaChange{}} = Xandra.execute(conn, @drop_test_keyspace)
     end)

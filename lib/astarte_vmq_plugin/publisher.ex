@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Publisher do
+  @moduledoc "GenServer wrapping VerneMQ's registered publish function to send messages over AMQP."
   use GenServer
 
   # API

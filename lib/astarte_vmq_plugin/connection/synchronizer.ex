@@ -31,6 +31,8 @@ defmodule Astarte.VMQ.Plugin.Connection.Synchronizer do
   @timeout_ms 50
 
   defmodule Data do
+    @moduledoc "Internal state for the connection/disconnection synchronization state machine."
+
     defstruct [
       :client_id,
       :connection_headers,
@@ -45,7 +47,7 @@ defmodule Astarte.VMQ.Plugin.Connection.Synchronizer do
   # API
 
   @impl true
-  def callback_mode() do
+  def callback_mode do
     [:state_functions]
   end
 
@@ -62,9 +64,7 @@ defmodule Astarte.VMQ.Plugin.Connection.Synchronizer do
     client_id = Keyword.fetch!(opts, :client_id)
     name = via_tuple(client_id)
 
-    with {:ok, pid} <- :gen_statem.start_link(name, __MODULE__, opts, []) do
-      {:ok, pid}
-    end
+    :gen_statem.start_link(name, __MODULE__, opts, [])
   end
 
   def handle_connection(pid, timestamp, additional_headers \\ []) do
@@ -185,7 +185,7 @@ defmodule Astarte.VMQ.Plugin.Connection.Synchronizer do
     {:via, Registry, {AstarteVMQPluginConnectionSynchronizer.Registry, client_id}}
   end
 
-  defp timeout_action() do
+  defp timeout_action do
     {
       :timeout,
       @timeout_ms,

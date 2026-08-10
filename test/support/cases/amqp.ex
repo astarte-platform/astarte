@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Cases.AMQP do
+  @moduledoc "ExUnit case template that opens a shared AMQP channel for each test."
   use ExUnit.CaseTemplate
 
   alias Astarte.VMQ.Plugin.Test.Helpers.AMQP

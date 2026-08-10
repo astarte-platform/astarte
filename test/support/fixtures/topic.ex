@@ -17,5 +17,6 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Fixtures.Topic do
+  @moduledoc "A fixed valid MQTT topic fixture."
   def valid_topic, do: ["I", "am", "a", "topic"]
 end

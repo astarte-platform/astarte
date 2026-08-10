@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.VerneMQ.API.Behaviour do
+  @moduledoc "Behaviour for calling into VerneMQ's native disconnect API."
   @callback disconnect_by_subscriber_id(
               subscriber_id :: {charlist(), String.t()},
               opts :: list(atom())

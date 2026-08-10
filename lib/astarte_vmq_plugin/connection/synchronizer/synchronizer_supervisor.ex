@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Connection.Synchronizer.Supervisor do
+  @moduledoc "Dynamic supervisor for per-device connection Synchronizer processes."
   # TODO a single dynamic supervisor may become a bottleneck,
   # use a PartitionSupervisor when on Elixir >= 1.14
   use DynamicSupervisor

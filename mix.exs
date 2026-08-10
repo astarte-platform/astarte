@@ -33,7 +33,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env()), plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -92,9 +92,12 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:flatlog, github: "annopaolo/flatlog"},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :ci, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:xandra, "~> 0.14"},
       {:castore, "~> 1.0"},
+      {:decimal, "~> 3.0", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:mimic, "~> 1.10", only: :test},
       {:mox, "~> 1.0", only: :test}

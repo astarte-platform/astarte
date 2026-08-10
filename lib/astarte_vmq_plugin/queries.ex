@@ -17,11 +17,10 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Queries do
-  require Logger
-
+  @moduledoc "Cassandra/Scylla queries for device existence and deletion status."
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Realm
-  alias Astarte.Core.CQLUtils
   alias Astarte.VMQ.Plugin.Config
 
   @doc """
@@ -94,7 +93,7 @@ defmodule Astarte.VMQ.Plugin.Queries do
   Returns either {:ok, %Xandra.Void{}} or {:error, reason}.
   """
   @spec ack_device_deletion(String.t(), Device.device_id()) ::
-          {:ok, %Xandra.Void{}}
+          {:ok, Xandra.Void.t()}
           | {:error, Xandra.Error.t()}
           | {:error, Xandra.ConnectionError.t()}
           | {:error, :invalid_realm_name}

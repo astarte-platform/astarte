@@ -17,13 +17,13 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Helpers.AMQP do
-  require Logger
-  alias Astarte.VMQ.Plugin.Config
+  @moduledoc "Test helpers for opening AMQP channels, consumers and device queues."
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.VMQ.Plugin.Config
 
-  def setup_channel!() do
+  def setup_channel! do
     amqp_opts = Config.amqp_options()
     {:ok, conn} = Connection.open(amqp_opts)
     {:ok, chan} = Channel.open(conn)

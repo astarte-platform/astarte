@@ -20,8 +20,8 @@
 
 defmodule Astarte.VMQ.Plugin.RPC.Server do
   @moduledoc false
-  alias Astarte.VMQ.Plugin.Publisher
   alias Astarte.VMQ.Plugin
+  alias Astarte.VMQ.Plugin.Publisher
 
   use GenServer
   require Logger

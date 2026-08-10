@@ -17,5 +17,6 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Fixtures.Device do
+  @moduledoc "A fixed invalid device id fixture."
   def not_a_device_id, do: "I am not a device"
 end

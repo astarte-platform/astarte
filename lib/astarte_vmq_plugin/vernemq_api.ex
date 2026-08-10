@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.VerneMQ.API do
+  @moduledoc "Real implementation of the VerneMQ API behaviour, delegating to :vernemq_dev_api."
   @behaviour Astarte.VMQ.Plugin.VerneMQ.API.Behaviour
 
   @impl true

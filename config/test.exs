@@ -22,7 +22,7 @@ config :astarte_vmq_plugin, :amqp_options, host: System.get_env("RABBITMQ_HOST")
 
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
-  metadata: [:function]
+  metadata: [:function, :tag]
 
 config :astarte_vmq_plugin, :queue_prefix, "test_data_queue_"
 

@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Helpers.TopicGenerator do
+  @moduledoc "StreamData generators for valid MQTT topics."
   use ExUnitProperties
 
   @doc """

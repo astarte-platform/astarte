@@ -22,4 +22,4 @@ config :astarte_vmq_plugin, :registry_mfa, {Astarte.VMQ.Plugin.Utils, :empty_plu
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:function]
+  metadata: [:function, :tag]

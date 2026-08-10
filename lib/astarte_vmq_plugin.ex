@@ -21,11 +21,12 @@ defmodule Astarte.VMQ.Plugin do
   Documentation for Astarte.VMQ.Plugin.
   """
 
+  alias Astarte.Core.Device
   alias Astarte.VMQ.Plugin.Config
   alias Astarte.VMQ.Plugin.Connection.Synchronizer
   alias Astarte.VMQ.Plugin.Connection.Synchronizer.Supervisor, as: SynchronizerSupervisor
   alias Astarte.VMQ.Plugin.Queries
-  alias Astarte.Core.Device
+  alias Mississippi.Producer.EventsProducer
 
   @max_rand trunc(:math.pow(2, 32) - 1)
   @vernemq_api Application.compile_env(
@@ -40,11 +41,11 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   def auth_on_register(_peer, {mountpoint, _client_id}, username, _password, _cleansession) do
-    if !String.contains?(username, "/") do
+    if String.contains?(username, "/") do
+      authorize_registration(mountpoint, username)
+    else
       # Not a device, let someone else decide
       :next
-    else
-      authorize_registration(mountpoint, username)
     end
   end
 
@@ -71,10 +72,7 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   def auth_on_subscribe(_username, {_mountpoint, client_id}, topics) do
-    if !String.contains?(client_id, "/") do
-      # Not a device, let someone else decide
-      :next
-    else
+    if String.contains?(client_id, "/") do
       client_id_tokens = String.split(client_id, "/")
 
       authorized_topics =
@@ -86,6 +84,9 @@ defmodule Astarte.VMQ.Plugin do
         [] -> {:error, :unauthorized}
         authorized_topics -> {:ok, authorized_topics}
       end
+    else
+      # Not a device, let someone else decide
+      :next
     end
   end
 
@@ -124,20 +125,21 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   def on_register({ip_addr, _port}, {_mountpoint, client_id}, _username) do
-    with [realm, device_id] <- String.split(client_id, "/") do
-      # Start the heartbeat
-      setup_heartbeat_timer(realm, device_id, self())
+    case String.split(client_id, "/") do
+      [realm, device_id] ->
+        # Start the heartbeat
+        setup_heartbeat_timer(realm, device_id, self())
 
-      timestamp = now_us_x10_timestamp()
+        timestamp = now_us_x10_timestamp()
 
-      ip_string =
-        ip_addr
-        |> :inet.ntoa()
-        |> to_string()
+        ip_string =
+          ip_addr
+          |> :inet.ntoa()
+          |> to_string()
 
-      get_connection_synchronizer_process!(client_id)
-      |> Synchronizer.handle_connection(timestamp, x_astarte_remote_ip: ip_string)
-    else
+        get_connection_synchronizer_process!(client_id)
+        |> Synchronizer.handle_connection(timestamp, x_astarte_remote_ip: ip_string)
+
       # Not a device, ignoring it
       _ ->
         :ok
@@ -145,25 +147,26 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   def on_publish(_username, {_mountpoint, client_id}, _qos, topic_tokens, payload, _isretain) do
-    with [realm, device_id] <- String.split(client_id, "/") do
-      timestamp = now_us_x10_timestamp()
+    case String.split(client_id, "/") do
+      [realm, device_id] ->
+        timestamp = now_us_x10_timestamp()
 
-      case topic_tokens do
-        [^realm, ^device_id] ->
-          publish_introspection(realm, device_id, payload, timestamp)
+        case topic_tokens do
+          [^realm, ^device_id] ->
+            publish_introspection(realm, device_id, payload, timestamp)
 
-        [^realm, ^device_id, "control" | control_path_tokens] ->
-          control_path = "/" <> Enum.join(control_path_tokens, "/")
-          publish_control_message(realm, device_id, control_path, payload, timestamp)
+          [^realm, ^device_id, "control" | control_path_tokens] ->
+            control_path = "/" <> Enum.join(control_path_tokens, "/")
+            publish_control_message(realm, device_id, control_path, payload, timestamp)
 
-        [^realm, ^device_id, "capabilities"] ->
-          publish_capabilities(realm, device_id, payload, timestamp)
+          [^realm, ^device_id, "capabilities"] ->
+            publish_capabilities(realm, device_id, payload, timestamp)
 
-        [^realm, ^device_id, interface | path_tokens] ->
-          path = "/" <> Enum.join(path_tokens, "/")
-          publish_data(realm, device_id, interface, path, payload, timestamp)
-      end
-    else
+          [^realm, ^device_id, interface | path_tokens] ->
+            path = "/" <> Enum.join(path_tokens, "/")
+            publish_data(realm, device_id, interface, path, payload, timestamp)
+        end
+
       # Not a device, ignoring it
       _ ->
         :ok
@@ -198,7 +201,7 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   defp randomize_interval(interval, tolerance) do
-    multiplier = 1 + (tolerance * 2 * :random.uniform() - tolerance)
+    multiplier = 1 + (tolerance * 2 * :rand.uniform() - tolerance)
 
     (interval * multiplier)
     |> Float.round()
@@ -232,9 +235,10 @@ defmodule Astarte.VMQ.Plugin do
   end
 
   def publish_event(client_id, event_string, timestamp, additional_headers \\ []) do
-    with [realm, device_id] <- String.split(client_id, "/") do
-      publish(realm, device_id, "", event_string, timestamp, additional_headers)
-    else
+    case String.split(client_id, "/") do
+      [realm, device_id] ->
+        publish(realm, device_id, "", event_string, timestamp, additional_headers)
+
       # Not a device, ignoring it
       _ ->
         :ok
@@ -258,8 +262,7 @@ defmodule Astarte.VMQ.Plugin do
 
     message_id = generate_message_id(realm, device_id, timestamp)
 
-    {:ok, decoded_device_id} =
-      Astarte.Core.Device.decode_device_id(device_id, allow_extended_id: true)
+    {:ok, decoded_device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
 
     sharding_key = {realm, decoded_device_id}
 
@@ -270,7 +273,7 @@ defmodule Astarte.VMQ.Plugin do
       sharding_key: sharding_key
     ]
 
-    :ok = Mississippi.Producer.EventsProducer.publish(payload, publish_opts)
+    :ok = EventsProducer.publish(payload, publish_opts)
   end
 
   defp now_us_x10_timestamp do
@@ -316,8 +319,8 @@ defmodule Astarte.VMQ.Plugin do
     [
       subscriber_id: {mountpoint, username},
       max_inflight_messages: 100,
-      max_message_size: 65535,
-      retry_interval: 20000,
+      max_message_size: 65_535,
+      retry_interval: 20_000,
       upgrade_qos: false
     ]
   end
@@ -349,11 +352,13 @@ defmodule Astarte.VMQ.Plugin do
         false
 
       {:error, %Xandra.ConnectionError{}} ->
-        # Be conservative: if the device is not being deleted but we can't reach the DB, it will try to connect again when DB is available
+        # Be conservative: if the device is not being deleted but we can't reach the
+        # DB, it will try to connect again when DB is available
         true
 
       {:error, %Xandra.Error{}} ->
-        # Be conservative: if the device is not being deleted but we can't reach the DB, it will try to connect again when DB is available
+        # Be conservative: if the device is not being deleted but we can't reach the
+        # DB, it will try to connect again when DB is available
         true
     end
   end

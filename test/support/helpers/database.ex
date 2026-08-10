@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.VMQ.Plugin.Test.Helpers.Database do
-  require Logger
+  @moduledoc "Test helpers for creating a realm keyspace and inserting/inspecting devices in it."
   alias Astarte.Core.Device
   import ExUnit.Assertions
   alias Astarte.Core.CQLUtils

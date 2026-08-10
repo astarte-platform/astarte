@@ -24,19 +24,19 @@ defmodule Astarte.VMQ.Plugin.Test2 do
   doctest Astarte.VMQ.Plugin
 
   alias AMQP.Queue
-  alias Astarte.VMQ.Plugin
-  alias Astarte.VMQ.Plugin.Test.Helpers.Database
-  alias Astarte.VMQ.Plugin.Test.Helpers.AMQP, as: AMQPHelper
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Common.Generators.Ip, as: IpGenerator
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.VMQ.Plugin.Test.Helpers.TopicGenerator
-  alias Astarte.VMQ.Plugin.Test.Helpers.PayloadGenerator
-  alias Astarte.VMQ.Plugin.Test.Helpers.Device, as: DeviceHelper
+  alias Astarte.VMQ.Plugin
   alias Astarte.VMQ.Plugin.Test.Fixtures.Device, as: DeviceFixture
+  alias Astarte.VMQ.Plugin.Test.Helpers.AMQP, as: AMQPHelper
+  alias Astarte.VMQ.Plugin.Test.Helpers.Database
+  alias Astarte.VMQ.Plugin.Test.Helpers.Device, as: DeviceHelper
+  alias Astarte.VMQ.Plugin.Test.Helpers.PayloadGenerator
+  alias Astarte.VMQ.Plugin.Test.Helpers.TopicGenerator
 
   # 5 seconds in tenths of microsecond
-  @max_timestamp_difference :timer.seconds(5) * 10_0000
+  @max_timestamp_difference :timer.seconds(5) * 100_000
 
   describe "auth_on_register" do
     @describetag :auth_on_register
@@ -913,7 +913,7 @@ defmodule Astarte.VMQ.Plugin.Test2 do
     "#{realm_trunc}-#{device_id_trunc}-#{timestamp_hex_str}-"
   end
 
-  defp introspection_payload() do
+  defp introspection_payload do
     InterfaceGenerator.interface()
     |> map(fn interface ->
       "#{interface.name}:#{interface.major_version}:#{interface.minor_version}"
@@ -923,7 +923,7 @@ defmodule Astarte.VMQ.Plugin.Test2 do
   end
 
   # TODO make this a standalone generator in astarte_generators
-  defp interface_name() do
+  defp interface_name do
     InterfaceGenerator.interface()
     |> map(fn %{name: name} -> name end)
   end

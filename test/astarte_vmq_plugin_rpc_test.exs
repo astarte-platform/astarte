@@ -21,8 +21,8 @@ defmodule Astarte.VMQ.Plugin.RPCTest do
 
   alias Astarte.VMQ.Plugin.Test.Fixtures.Topic, as: TopicFixture
   alias Astarte.VMQ.Plugin.Test.Helpers.Device, as: DeviceHelper
-  alias Astarte.VMQ.Plugin.Test.Helpers.TopicGenerator
   alias Astarte.VMQ.Plugin.Test.Helpers.PayloadGenerator
+  alias Astarte.VMQ.Plugin.Test.Helpers.TopicGenerator
 
   alias Astarte.VMQ.Plugin.MockVerne
 
