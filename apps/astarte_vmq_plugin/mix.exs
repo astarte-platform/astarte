@@ -98,9 +98,14 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:xandra, "~> 0.14"},
       {:castore, "~> 1.0"},
       {:decimal, "~> 3.0", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:mimic, "~> 1.10", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

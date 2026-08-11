@@ -21,7 +21,7 @@ defmodule Astarte.VMQ.Plugin.Test.Helpers.Device do
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   def random_device do
-    [device_id] = DeviceGenerator.encoded_id() |> Enum.take(1)
+    [device_id] = DeviceGenerator.device_encoded_id() |> Enum.take(1)
     device_id
   end
 end

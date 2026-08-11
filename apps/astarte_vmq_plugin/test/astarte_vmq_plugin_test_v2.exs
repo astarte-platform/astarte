@@ -82,7 +82,7 @@ defmodule Astarte.VMQ.Plugin.Test2 do
 
     @tag :unit
     property "fails for non-existing devices", %{realm_name: realm_name} do
-      check all(non_existing_device_id <- DeviceGenerator.encoded_id()) do
+      check all(non_existing_device_id <- DeviceGenerator.device_encoded_id()) do
         assert {:error, :device_does_not_exist} =
                  Plugin.auth_on_register(
                    :dontcare,
