@@ -27,15 +27,9 @@ defmodule Astarte.Core.Mixfile do
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       description: description(),
       package: package(),
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps(),
       source_url: "https://github.com/astarte-platform/astarte_core",
       homepage_url: "https://astarte-platform.org/"
@@ -47,12 +41,15 @@ defmodule Astarte.Core.Mixfile do
     [extra_applications: [:logger]]
   end
 
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
   end
 
   defp deps do
@@ -62,12 +59,12 @@ defmodule Astarte.Core.Mixfile do
       {:ecto_morph, "~> 0.1.23"},
       {:typed_ecto_schema, "~> 0.4"},
       {:typedstruct, "~> 0.5"},
-      {:protobuf, "~> 0.15"},
+      {:protobuf, "~> 0.17"},
       {:jason, "~> 1.2"},
       {:elixir_uuid, "~> 1.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test, :ci], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
