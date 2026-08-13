@@ -21,8 +21,6 @@ defmodule AstarteDeviceFleetSimulator.Application do
 
   use Application
 
-  require Logger
-
   alias AstarteDeviceFleetSimulator.{Config, Scheduler, DeviceNameUtils}
 
   @impl true

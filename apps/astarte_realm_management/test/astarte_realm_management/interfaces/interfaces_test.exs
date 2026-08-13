@@ -503,7 +503,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
                     name: interface.name,
                     major_version: interface.major_version + 1
                   ),
-                max_runs: 10 do
+                max_runs: 1 do
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 

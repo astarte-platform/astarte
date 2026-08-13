@@ -111,9 +111,6 @@ defmodule Astarte.Pairing.Engine do
       {:authorized?, false} ->
         {:error, :forbidden}
 
-      {:credentials_inhibited?, true} ->
-        {:error, :credentials_request_inhibited}
-
       {:error, :shutdown} ->
         {:error, :realm_not_found}
 
@@ -205,12 +202,6 @@ defmodule Astarte.Pairing.Engine do
     else
       {:authorized?, false} ->
         {:error, :forbidden}
-
-      {:credentials_inhibited?, true} ->
-        {:error, :credentials_request_inhibited}
-
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
 
       {:error, reason} ->
         {:error, reason}

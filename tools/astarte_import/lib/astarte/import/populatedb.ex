@@ -44,7 +44,7 @@ defmodule Astarte.Import.PopulateDB do
   def populate(xandra_conn, realm, xml, continuation_fun \\ :undefined) do
     Logger.info("Import started.", realm: realm)
 
-    got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, minor ->
+    got_interface_fun = fn %Import.State{data: %State{} = data} = state, interface_name, major, minor ->
       Logger.info("Importing data for #{interface_name} v#{major}.#{minor}.",
         realm: realm,
         device_id: state.device_id

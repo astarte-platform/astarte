@@ -20,8 +20,6 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   use Astarte.Cases.Policy, async: true
   use ExUnitProperties
 
-  require Logger
-
   import Mox
 
   import Astarte.Core.Generators.Triggers.Policy

@@ -35,7 +35,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducerTest do
     |> expect(:open, fn _conn -> {:error, :disconnected} end)
     |> expect(:open, fn _conn -> {:error, :out_of_channels} end)
     |> expect(:open, fn conn ->
-      res = Channel.open(conn)
+      res = Mimic.call_original(Channel, :open, [conn])
       send(test_pid, :reconnection_done)
 
       res

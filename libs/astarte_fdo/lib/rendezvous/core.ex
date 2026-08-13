@@ -22,7 +22,6 @@ defmodule Astarte.FDO.Rendezvous.Core do
   including building the OwnerSign message and extracting the nonce
   from a CBOR-encoded body.
   """
-  require Logger
 
   alias Astarte.FDO.Core.Rendezvous.OwnerSign
   alias Astarte.FDO.Core.Rendezvous.OwnerSign.TO0D

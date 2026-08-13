@@ -20,18 +20,15 @@ defmodule Astarte.DataAccess.Interface do
   @moduledoc """
   This module provides functions to fetch and manipulate interface information in Astarte Data Access.
   """
-  require Logger
+
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Consistency
-
-  import Ecto.Query
-
-  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  require Logger
+  import Ecto.Query
 
   @default_selection [
     :name,

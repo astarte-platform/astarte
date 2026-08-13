@@ -17,8 +17,6 @@
 #
 
 defmodule AstarteE2E.Interface do
-  require Logger
-
   import Astarte.Core.Adapters.Interface, only: [from_core_interface_to_change: 1]
   import Astarte.Core.Generators.Interface
 

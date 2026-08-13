@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
   import Plug.Test
 
   alias Astarte.DataAccess.Health, as: DatabaseHealth
+  alias Astarte.DataUpdaterPlant.Health
   alias Astarte.DataUpdaterPlantWeb.Router
 
   @opts Router.init([])
@@ -54,10 +55,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
   describe "/health" do
     test "returns 200 OK when both database and VerneMQ are :ready" do
       Mimic.expect(DatabaseHealth, :get_health, fn -> :ready end)
-
-      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server ->
-        [{self(), nil}]
-      end)
+      Mimic.expect(Health, :vernemq_health, fn -> :ready end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
 
@@ -68,10 +66,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
 
     test "returns 200 OK when database is :degraded but VerneMQ is :ready" do
       Mimic.expect(DatabaseHealth, :get_health, fn -> :degraded end)
-
-      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server ->
-        [{self(), nil}]
-      end)
+      Mimic.expect(Health, :vernemq_health, fn -> :ready end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
 
@@ -82,7 +77,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
 
     test "returns 503 Service Unavailable when database is :ready but VerneMQ is :bad" do
       Mimic.expect(DatabaseHealth, :get_health, fn -> :ready end)
-      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server -> [] end)
+      Mimic.expect(Health, :vernemq_health, fn -> :bad end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
       assert conn.status == 503
@@ -92,7 +87,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
 
     test "returns 503 Service Unavailable when database is :degraded and VerneMQ is :bad" do
       Mimic.expect(DatabaseHealth, :get_health, fn -> :degraded end)
-      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server -> [] end)
+      Mimic.expect(Health, :vernemq_health, fn -> :bad end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
       assert conn.status == 503

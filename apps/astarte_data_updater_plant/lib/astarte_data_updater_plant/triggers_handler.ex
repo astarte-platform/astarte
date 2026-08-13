@@ -45,8 +45,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Events.Triggers.DataTriggerContext
   alias Astarte.Events.TriggersHandler
 
-  require Logger
-
   defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
   def device_connected(realm, device_id, groups, ip_address, timestamp) do

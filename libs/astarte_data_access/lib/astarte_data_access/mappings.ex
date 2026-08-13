@@ -29,8 +29,6 @@ defmodule Astarte.DataAccess.Mappings do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  require Logger
-
   @default_selection [
     :endpoint,
     :value_type,

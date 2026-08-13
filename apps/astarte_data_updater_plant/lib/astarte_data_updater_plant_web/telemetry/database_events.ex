@@ -35,7 +35,6 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry.DatabaseEvents do
     [:failed_to_connect]
   ]
 
-  require Logger
   alias Astarte.DataUpdaterPlantWeb.TelemetryTaskSupervisor
 
   @doc """

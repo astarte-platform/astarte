@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
           args: "--warnings-as-errors"
@@ -36,6 +37,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
 
@@ -48,6 +50,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
 
@@ -60,6 +63,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
           task: deps.audit
@@ -73,6 +77,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
 
@@ -139,6 +144,7 @@ jobs:
       - name: Run Mix Coveralls
         uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: libs/${{ inputs.lib }}
           mix-env: test
           task: coveralls.json --exclude wip -o coverage_results

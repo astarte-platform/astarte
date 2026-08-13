@@ -22,12 +22,12 @@ defmodule Astarte.Core.Generators.MixProject do
     [
       app: :astarte_generators,
       version: "1.5.0-dev",
-      elixir: "~> 1.15.7",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package(),
-      dialyzer: [plt_add_apps: [:ex_unit]],
+      dialyzer: [plt_add_apps: [:ex_unit], flags: dialyzer_flags()],
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -36,6 +36,13 @@ defmodule Astarte.Core.Generators.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp dialyzer_flags do
+    [
+      # https://github.com/elixir-lang/elixir/issues/14576
+      :no_opaque
     ]
   end
 
