@@ -36,6 +36,7 @@ defmodule Astarte.VMQ.Plugin.ConfigTest do
 
     on_exit(fn ->
       Application.put_env(:astarte_vmq_plugin, :amqp_options, old_opts)
+      Config.init()
     end)
   end
 
@@ -51,6 +52,7 @@ defmodule Astarte.VMQ.Plugin.ConfigTest do
 
     on_exit(fn ->
       Application.put_env(:astarte_vmq_plugin, :data_queue_prefix, old_data_queue_prefix)
+      Config.init()
     end)
   end
 
@@ -65,7 +67,8 @@ defmodule Astarte.VMQ.Plugin.ConfigTest do
     assert elixir_cassandra_nodes == Config.xandra_options!()[:nodes]
 
     on_exit(fn ->
-      Application.put_env(:astarte_vmq_plugin, :data_queue_prefix, elixir_cassandra_nodes)
+      Application.put_env(:astarte_vmq_plugin, :cassandra_nodes, elixir_cassandra_nodes)
+      Config.init()
     end)
   end
 end

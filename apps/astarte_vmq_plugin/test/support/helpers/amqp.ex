@@ -44,7 +44,7 @@ defmodule Astarte.VMQ.Plugin.Test.Helpers.AMQP do
     queue_prefix = Config.data_queue_prefix()
     queue_index = :erlang.phash2(sharding_key, Config.data_queue_count())
     queue_name = "#{queue_prefix}#{queue_index}"
-    Queue.declare(chan, queue_name)
+    Queue.declare(chan, queue_name, durable: true)
     queue_name
   end
 end
