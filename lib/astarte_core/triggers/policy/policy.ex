@@ -117,33 +117,27 @@ defmodule Astarte.Core.Triggers.Policy do
 
   @doc """
   Creates a `Policy` from a `PolicyProto`.
-  Returns `{:ok, %Policy{}}` on success, `{:error, :invalid_policy_data}` on failure
+  Returns `{:ok, %Policy{}}` on success.
   """
-  def from_policy_proto(%PolicyProto{} = policy_proto) do
-    case policy_proto do
-      %PolicyProto{
+  def from_policy_proto(%PolicyProto{
         name: name,
         maximum_capacity: maximum_capacity,
         retry_times: retry_times,
         event_ttl: event_ttl,
         prefetch_count: prefetch_count,
         error_handlers: error_handlers
-      } ->
-        event_ttl = if event_ttl != 0, do: event_ttl, else: nil
+      }) do
+    event_ttl = if event_ttl != 0, do: event_ttl, else: nil
 
-        {:ok,
-         %Policy{
-           name: name,
-           error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
-           maximum_capacity: maximum_capacity,
-           retry_times: retry_times,
-           event_ttl: event_ttl,
-           prefetch_count: prefetch_count
-         }}
-
-      _ ->
-        {:error, :invalid_policy_data}
-    end
+    {:ok,
+     %Policy{
+       name: name,
+       error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
+       maximum_capacity: maximum_capacity,
+       retry_times: retry_times,
+       event_ttl: event_ttl,
+       prefetch_count: prefetch_count
+     }}
   end
 
   @doc """
@@ -153,10 +147,8 @@ defmodule Astarte.Core.Triggers.Policy do
   raises on failure
   """
   def from_policy_proto!(policy_proto) do
-    case from_policy_proto(policy_proto) do
-      {:ok, policy} -> policy
-      _ -> raise ArgumentError
-    end
+    {:ok, policy} = from_policy_proto(policy_proto)
+    policy
   end
 
   @doc """
