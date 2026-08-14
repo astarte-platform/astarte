@@ -32,7 +32,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       description: "Astarte Realm Management API"
     ]
   end
@@ -62,20 +62,9 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   defp deps do
     [
+      {:astarte_core, path: astarte_lib("astarte_core")},
       {:phoenix, "~> 1.7"},
       {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},

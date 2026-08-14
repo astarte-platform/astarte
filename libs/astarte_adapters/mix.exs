@@ -40,7 +40,7 @@ defmodule Astarte.Adapters.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core, path: "../astarte_core"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
     ]

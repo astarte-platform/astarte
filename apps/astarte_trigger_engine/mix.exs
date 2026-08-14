@@ -29,7 +29,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -47,19 +47,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_generators, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   def application do
     [
       extra_applications: [:logger],
@@ -69,6 +56,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
+      {:astarte_core, path: astarte_lib("astarte_core")},
       {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},

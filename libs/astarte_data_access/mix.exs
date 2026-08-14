@@ -30,7 +30,7 @@ defmodule Astarte.DataAccess.Mixfile do
       description: description(),
       package: package(),
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       source_url: "https://github.com/astarte-platform/astarte_data_access",
       homepage_url: "https://astarte-platform.org/"
     ]
@@ -58,22 +58,11 @@ defmodule Astarte.DataAccess.Mixfile do
     ]
   end
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
-    ]
-  end
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:astarte_core, path: "../astarte_core"},
+      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
       {:xandra, "~> 0.19"},
       {:decimal, "~> 3.0", override: true},

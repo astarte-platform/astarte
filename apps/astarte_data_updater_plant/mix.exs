@@ -57,14 +57,12 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},
@@ -75,6 +73,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
+      {:astarte_core, path: astarte_lib("astarte_core")},
       {:jason, "~> 1.2"},
       {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},

@@ -29,15 +29,23 @@ ENV MIX_ENV=prod
 ARG BUILD_ENV=prod
 
 ENV MIX_ENV=$BUILD_ENV
+ENV ASTARTE_LIBRARIES_PATH=../libraries
 
 # Cache elixir deps
-ADD mix.exs mix.lock astarte_vmq_plugin/
+ADD apps/astarte_vmq_plugin/mix.exs apps/astarte_vmq_plugin/mix.lock astarte_vmq_plugin/
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
 RUN cd astarte_vmq_plugin && \
-  mix do deps.get + deps.compile && \
+  mix do deps.get + deps.compile --skip-local-deps && \
+  cd ..
+
+COPY libs/astarte_core libraries/astarte_core
+RUN cd astarte_vmq_plugin && \
+  mix deps.compile && \
   cd ..
 
 # Add all the rest
-ADD . astarte_vmq_plugin/
+ADD apps/astarte_vmq_plugin astarte_vmq_plugin/
 
 # Build and release
 RUN cd astarte_vmq_plugin && \
@@ -49,9 +57,9 @@ RUN cp astarte_vmq_plugin/priv/astarte_vmq_plugin.schema vernemq/_build/default/
 
 # Copy configuration files here - mainly because we want to keep the target image as small as possible
 # and avoid useless layers.
-COPY docker/files/vm.args vernemq/_build/default/rel/vernemq/etc/
-COPY docker/files/vernemq.conf vernemq/_build/default/rel/vernemq/etc/
-COPY docker/bin/rand_cluster_node.escript vernemq/_build/default/rel/vernemq/bin/
+COPY apps/astarte_vmq_plugin/docker/files/vm.args vernemq/_build/default/rel/vernemq/etc/
+COPY apps/astarte_vmq_plugin/docker/files/vernemq.conf vernemq/_build/default/rel/vernemq/etc/
+COPY apps/astarte_vmq_plugin/docker/bin/rand_cluster_node.escript vernemq/_build/default/rel/vernemq/bin/
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
 FROM debian:trixie-20260623-slim

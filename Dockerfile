@@ -28,6 +28,8 @@ COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
 COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
 COPY libs/astarte_config/mix.exs libraries/astarte_config/mix.exs
 COPY libs/astarte_config/mix.lock libraries/astarte_config/mix.lock
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
 COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
 COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
 COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs

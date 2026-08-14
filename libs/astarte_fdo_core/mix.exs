@@ -27,7 +27,7 @@ defmodule Astarte.FDO.Core.MixProject do
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -49,24 +49,13 @@ defmodule Astarte.FDO.Core.MixProject do
     ]
   end
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:astarte_core, path: "../astarte_core"},
       {:ecto, "~> 3.10"},
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},

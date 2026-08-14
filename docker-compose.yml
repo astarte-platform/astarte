@@ -313,7 +313,8 @@ services:
   vernemq:
     image: astarte/vernemq:snapshot
     build:
-      context: apps/astarte_vmq_plugin
+      context: .
+      dockerfile: apps/astarte_vmq_plugin/Dockerfile
     hostname: vernemq
     env_file:
       - ./.env

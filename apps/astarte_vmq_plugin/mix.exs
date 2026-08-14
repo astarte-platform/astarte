@@ -28,7 +28,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env()), plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -74,21 +74,10 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
     nil
   end
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true}
-    ]
-  end
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:astarte_core, path: astarte_lib("astarte_core")},
       {:amqp, "~> 4.1"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
