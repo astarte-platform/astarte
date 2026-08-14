@@ -117,7 +117,6 @@ defmodule Astarte.Core.Triggers.Policy do
 
   @doc """
   Creates a `Policy` from a `PolicyProto`.
-  Returns `{:ok, %Policy{}}` on success.
   """
   def from_policy_proto(%PolicyProto{
         name: name,
@@ -129,26 +128,14 @@ defmodule Astarte.Core.Triggers.Policy do
       }) do
     event_ttl = if event_ttl != 0, do: event_ttl, else: nil
 
-    {:ok,
-     %Policy{
-       name: name,
-       error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
-       maximum_capacity: maximum_capacity,
-       retry_times: retry_times,
-       event_ttl: event_ttl,
-       prefetch_count: prefetch_count
-     }}
-  end
-
-  @doc """
-  Creates a `Policy` from a `PolicyProto`.
-
-  Returns the `%Policy{}` on success,
-  raises on failure
-  """
-  def from_policy_proto!(policy_proto) do
-    {:ok, policy} = from_policy_proto(policy_proto)
-    policy
+    %Policy{
+      name: name,
+      error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
+      maximum_capacity: maximum_capacity,
+      retry_times: retry_times,
+      event_ttl: event_ttl,
+      prefetch_count: prefetch_count
+    }
   end
 
   @doc """

@@ -242,7 +242,7 @@ defmodule Astarte.Core.Triggers.PolicyTest do
 
       assert {:error_range, %ErrorRangeProto{error_codes: [500, 501, 503]}} = tagged_error_range
 
-      assert policy == Policy.from_policy_proto!(policy_proto)
+      assert policy == Policy.from_policy_proto(policy_proto)
     end
 
     test "when prefetch_count is not set" do
@@ -281,7 +281,7 @@ defmodule Astarte.Core.Triggers.PolicyTest do
 
       assert {:error_range, %ErrorRangeProto{error_codes: [500, 501, 503]}} = tagged_error_range
 
-      assert policy == Policy.from_policy_proto!(policy_proto)
+      assert policy == Policy.from_policy_proto(policy_proto)
     end
   end
 
@@ -334,10 +334,10 @@ defmodule Astarte.Core.Triggers.PolicyTest do
     }
 
     proto = Policy.to_policy_proto(policy)
-    assert {:ok, %Policy{event_ttl: 3600}} = Policy.from_policy_proto(proto)
+    assert %Policy{event_ttl: 3600} = Policy.from_policy_proto(proto)
   end
 
-  test "from_policy_proto!/1 raises on invalid input" do
-    assert_raise FunctionClauseError, fn -> Policy.from_policy_proto!(nil) end
+  test "from_policy_proto/1 raises on invalid input" do
+    assert_raise FunctionClauseError, fn -> Policy.from_policy_proto(nil) end
   end
 end
