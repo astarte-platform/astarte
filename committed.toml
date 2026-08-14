@@ -41,6 +41,7 @@ allowed_scopes = [
   "te",
   "vmq_plugin",
   # libraries
+  "core",
   "config",
   "data_access",
   "events",
