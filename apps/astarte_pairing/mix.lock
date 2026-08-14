@@ -10,7 +10,7 @@
   "castore": {:hex, :castore, "1.0.21", "0a0e8330dc267a40a3b7ad86d39302764bb71758172904e6a59d5ad6443ce307", [:mix], [], "hexpm", "e42e22723e25dbd46876d056a03f685513d6e98f6b5e555dc551321decd76c5c"},
   "cbor": {:hex, :cbor, "1.0.2", "9b0af85af291a556e10a0ffd48ba9a21a75e711828fafd3af193d56d95f0907f", [:mix], [], "hexpm", "edbc9b4a16eb93a582437b9b249c340a75af03958e338fb43d8c1be9fc65b864"},
   "certifi": {:hex, :certifi, "2.17.0", "835748414307e15e05b17d0e518190228ce648b08d569a5cc93a85a40f3e5c9b", [:rebar3], [], "hexpm", "8122798a17f0293c80daada25d0f81c7f4d708c73fef782c7c9b1950e26e4d21"},
-  "cfxxl": {:git, "https://github.com/secomind/cfxxl.git", "6e57c3e7fadf7cc8257b8180bb492bd2eaabebfc", [branch: "main"]},
+  "cfxxl": {:git, "https://github.com/secomind/cfxxl.git", "f5a8ce8b6f2f0f431b91c70e400e2298006d2a70", [branch: "main"]},
   "combine": {:hex, :combine, "0.10.0", "eff8224eeb56498a2af13011d142c5e7997a80c8f5b97c499f84c841032e429f", [:mix], [], "hexpm", "1b1dbc1790073076580d0d1d64e42eae2366583e7aecd455d1215b0d16f2451b"},
   "comeonin": {:hex, :comeonin, "5.5.1", "5113e5f3800799787de08a6e0db307133850e635d34e9fab23c70b6501669510", [:mix], [], "hexpm", "65aac8f19938145377cee73973f192c5645873dcf550a8a6b18187d17c13ccdb"},
   "con_cache": {:hex, :con_cache, "1.1.1", "9f47a68dfef5ac3bbff8ce2c499869dbc5ba889dadde6ac4aff8eb78ddaf6d82", [:mix], [{:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "1def4d1bec296564c75b5bbc60a19f2b5649d81bfa345a2febcc6ae380e8ae15"},
