@@ -61,7 +61,8 @@ defmodule AstarteSecrets.MixProject do
       {:decimal, "~> 3.0", override: true},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:con_cache, "~> 1.0"}
     ]
   end
 end

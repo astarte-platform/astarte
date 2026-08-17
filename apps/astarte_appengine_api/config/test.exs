@@ -68,3 +68,7 @@ ObcAESuGolSNfs17mS8NMs93O9Vpo2oVC5xYvdikfhouGcRBmjiU2b5GD+1Hcga9
 vQIDAQAB
 -----END PUBLIC KEY-----
 """
+
+config :astarte_secrets, vault_authentication_mechanism: :token
+config :astarte_secrets, vault_token: "astarte_token"
+config :astarte_secrets, vault_url: "http://localhost:8200"

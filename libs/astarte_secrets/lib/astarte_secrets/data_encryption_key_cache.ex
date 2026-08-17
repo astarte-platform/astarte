@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCache do
+defmodule Astarte.Secrets.DataEncryptionKeyCache do
   @moduledoc """
   Module implementing caching logic for Data Encryption Keys (DEKs).
   It takes care of the retrieval of the DEKs when missing or expired,
@@ -26,7 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataEncryptionKeyCache do
   alias Astarte.Secrets.Core
 
   @dek_cache_name :data_encryption_keys
-  @dek_cache_ttl Application.compile_env(:astarte_data_updater_plant, :dek_cache_ttl_seconds)
+  @dek_cache_ttl Application.compile_env(:astarte_secrets, :dek_cache_ttl_seconds, 5 * 60)
   @kek_key_name "realm_kek"
 
   @spec init_options() :: list()

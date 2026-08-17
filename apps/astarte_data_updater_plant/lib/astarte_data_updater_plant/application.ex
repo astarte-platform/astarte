@@ -26,10 +26,10 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataUpdaterPlant.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.Events.Config, as: EventsConfig
   alias Astarte.Secrets.Config, as: SecretsConfig
+  alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
 
   @app_version Mix.Project.config()[:version]
 

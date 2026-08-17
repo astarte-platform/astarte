@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.API.Application do
   """
 
   alias Astarte.AppEngine.APIWeb.Endpoint
+  alias Astarte.Secrets.Config, as: SecretsConfig
+  alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   use Application
   require Logger
 
@@ -46,6 +48,7 @@ defmodule Astarte.AppEngine.API.Application do
 
     DataAccessConfig.validate!()
     Config.validate!()
+    SecretsConfig.init()
 
     # Define workers and child supervisors to be supervised
     children = [
@@ -55,6 +58,7 @@ defmodule Astarte.AppEngine.API.Application do
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
+      {ConCache, DEKCache.init_options()},
       Astarte.AppEngine.APIWeb.Endpoint
     ]
 

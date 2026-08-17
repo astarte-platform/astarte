@@ -2,9 +2,12 @@ defmodule Astarte.Secrets do
   @moduledoc """
   Functionality to interface with OpenBao APIs.
   """
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.Secrets.Client
   alias Astarte.Secrets.Core
+  alias Astarte.Secrets.DataEncryptionKeyCache
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
@@ -215,6 +218,62 @@ defmodule Astarte.Secrets do
   end
 
   @doc """
+  Conditionally encrypts a value according to interface aggregation and encrypted endpoints.
+
+  The DEK entry is expected to already be fetched by the caller (for example via an app-level cache).
+  This keeps the secrets library independent from app-specific DEK retrieval strategies.
+  """
+  @spec maybe_encrypt_value(
+          InterfaceDescriptor.t(),
+          Mapping.t(),
+          term(),
+          [Mapping.t()],
+          String.t()
+        ) :: {term(), String.t() | nil}
+
+  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
+  def maybe_encrypt_value(_, _, nil, _, _) do
+    {nil, nil}
+  end
+
+  def maybe_encrypt_value(interface_descriptor, mapping, value, mappings, realm_name) do
+    should_encrypt =
+      case interface_descriptor.aggregation do
+        :object -> any_mapping_encrypted?(mappings)
+        _other -> mapping.encrypted
+      end
+
+    case should_encrypt do
+      true ->
+        with {:ok, dek_entry} <- DataEncryptionKeyCache.fetch_data_encryption_key(realm_name) do
+          %{plaintext: plaintext_dek, ciphertext: ciphertext_dek} = dek_entry
+
+          encrypted_value =
+            do_encrypt_value(
+              interface_descriptor.aggregation,
+              mapping.endpoint,
+              value,
+              mappings,
+              plaintext_dek
+            )
+
+          {encrypted_value, ciphertext_dek}
+        end
+
+      false ->
+        {value, nil}
+    end
+  end
+
+  defp do_encrypt_value(:individual, _path, value, _mappings, dek) do
+    do_encrypt_individual_value(value, dek)
+  end
+
+  defp do_encrypt_value(:object, _path, obj_value, mappings, dek) do
+    do_encrypt_object_mappings(mappings, obj_value, dek)
+  end
+
+  @doc """
   Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
   Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
   """
@@ -279,5 +338,37 @@ defmodule Astarte.Secrets do
 
         :error
     end
+  end
+
+  defp do_encrypt_individual_value(value, dek) do
+    value_binary = :erlang.term_to_binary(value)
+    {:ok, encrypted_value} = encrypt_with_dek(value_binary, dek)
+    encrypted_value
+  end
+
+  defp encrypted_endpoints_from_mappings(mappings) do
+    mappings
+    |> Enum.filter(& &1.encrypted)
+    |> Enum.map(& &1.endpoint)
+  end
+
+  defp any_mapping_encrypted?(mappings) do
+    mappings
+    |> Enum.any?(& &1.encrypted)
+  end
+
+  # Leave untouched object values that do not need encryption, encrypt all others in-place.
+  defp do_encrypt_object_mappings(mappings, obj_value, dek) do
+    encrypted_endpoints = encrypted_endpoints_from_mappings(mappings)
+
+    Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
+      endpoint = Path.basename(endpoint)
+
+      Map.put(
+        acc_obj,
+        endpoint,
+        do_encrypt_individual_value(Map.get(acc_obj, endpoint), dek)
+      )
+    end)
   end
 end

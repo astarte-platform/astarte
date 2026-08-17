@@ -58,8 +58,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
 
@@ -99,8 +101,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
 
@@ -140,8 +144,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       now = DateTime.utc_now()
       decimicro_timestamp = now |> DateTime.to_unix(:microsecond) |> Kernel.*(10)

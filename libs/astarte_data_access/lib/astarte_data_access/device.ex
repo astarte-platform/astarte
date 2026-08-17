@@ -396,7 +396,6 @@ defmodule Astarte.DataAccess.Device do
       value: value,
       value_timestamp: value_timestamp,
       reception_timestamp: reception_timestamp,
-      encrypted_endpoints: encrypted_endpoints,
       encrypted_dek: encrypted_dek,
       opts: opts
     } = context
@@ -442,7 +441,7 @@ defmodule Astarte.DataAccess.Device do
 
     object_value =
       compute_db_object_entries(column_info, value)
-      |> maybe_add_dek_to_object(encrypted_endpoints, encrypted_dek)
+      |> maybe_add_dek_to_object(encrypted_dek)
 
     insert_value = Map.merge(insert_params, object_value)
 
@@ -487,12 +486,12 @@ defmodule Astarte.DataAccess.Device do
     _ = Repo.delete_all(query, opts)
   end
 
-  # add a column to contain the DEK if at least one endpoint of the object is encrypted
-  defp maybe_add_dek_to_object(object, [], _) do
+  # add a column to contain the DEK if DEK is present, otherwise return the object as is
+  defp maybe_add_dek_to_object(object, dek) when is_nil(dek) do
     object
   end
 
-  defp maybe_add_dek_to_object(object, _endpoints, dek) do
+  defp maybe_add_dek_to_object(object, dek) do
     Map.put(object, "encrypted_dek", dek)
   end
 

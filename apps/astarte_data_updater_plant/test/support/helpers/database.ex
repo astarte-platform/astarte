@@ -349,8 +349,10 @@ defmodule Astarte.Helpers.Database do
     |> Enum.scan(initial_timestamp(), fn mapping_update, old_timestamp ->
       timestamp = old_timestamp + random_interval()
 
-      {:ok, mapping} =
+      {:ok, mappings} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
+
+      mapping = hd(mappings)
 
       insert_context = %InsertContext{
         realm: realm_name,
@@ -377,8 +379,10 @@ defmodule Astarte.Helpers.Database do
       Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
 
     Enum.each(mapping_updates, fn mapping_update ->
-      {:ok, mapping} =
+      {:ok, mappings} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
+
+      mapping = hd(mappings)
 
       :ok =
         Queries.delete_property_from_db(

@@ -20,10 +20,12 @@ defmodule Astarte.SecretsTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  alias Astarte.Core.Mapping
   alias Astarte.Secrets
   alias Astarte.Secrets.Client
   alias Astarte.Secrets.Config
   alias Astarte.Secrets.Core
+  alias Astarte.Secrets.DataEncryptionKeyCache
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
 
@@ -46,6 +48,98 @@ defmodule Astarte.SecretsTest do
       |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
 
       assert {:ok, _} = Secrets.create_fdo_namespace(realm_name, user_id, key_algorithm)
+    end
+  end
+
+  describe "maybe_encrypt_value/5" do
+    setup do
+      _pid =
+        start_supervised!({
+          ConCache,
+          DataEncryptionKeyCache.init_options()
+        })
+
+      dek_entry = %{plaintext: :crypto.strong_rand_bytes(32), ciphertext: "vault:v1:test"}
+      realm_name = "realm_#{System.unique_integer([:positive])}"
+
+      Secrets
+      |> stub(:generate_dek, fn "realm_kek", _namespace -> {:ok, dek_entry} end)
+      |> stub(:generate_dek, fn "realm_kek", _namespace, _opts -> {:ok, dek_entry} end)
+
+      %{realm_name: realm_name, dek_entry: dek_entry}
+    end
+
+    test "encrypts only matching individual endpoint", %{
+      realm_name: realm_name,
+      dek_entry: dek_entry
+    } do
+      interface_descriptor = %{aggregation: :individual}
+
+      selected_mapping = %Mapping{endpoint: "/a", encrypted: true}
+      mappings = [selected_mapping, %Mapping{endpoint: "/b", encrypted: true}]
+
+      assert {encrypted_value, "vault:v1:test"} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 selected_mapping,
+                 "hello",
+                 mappings,
+                 realm_name
+               )
+
+      assert {:ok, encoded_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_value, dek_entry.plaintext)
+
+      assert "hello" = :erlang.binary_to_term(encoded_plaintext)
+
+      assert {"hello", nil} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 %Mapping{endpoint: "/c", encrypted: false},
+                 "hello",
+                 mappings,
+                 realm_name
+               )
+    end
+
+    test "encrypts only selected object mappings", %{realm_name: realm_name, dek_entry: dek_entry} do
+      interface_descriptor = %{aggregation: :object}
+
+      object = %{
+        "endpoint0" => "encrypt-me",
+        "endpoint1" => "encrypt-too",
+        "endpoint2" => "keep-plaintext"
+      }
+
+      selected_mapping = %Mapping{endpoint: "/endpoint0", encrypted: true}
+
+      mappings = [
+        selected_mapping,
+        %Mapping{endpoint: "/endpoint1", encrypted: true},
+        %Mapping{endpoint: "/endpoint2", encrypted: false}
+      ]
+
+      assert {encrypted_object, "vault:v1:test"} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 selected_mapping,
+                 object,
+                 mappings,
+                 realm_name
+               )
+
+      assert is_binary(encrypted_object["endpoint0"])
+      assert is_binary(encrypted_object["endpoint1"])
+      assert "keep-plaintext" == encrypted_object["endpoint2"]
+
+      assert {:ok, endpoint0_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_object["endpoint0"], dek_entry.plaintext)
+
+      assert {:ok, endpoint1_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_object["endpoint1"], dek_entry.plaintext)
+
+      assert "encrypt-me" = :erlang.binary_to_term(endpoint0_plaintext)
+      assert "encrypt-too" = :erlang.binary_to_term(endpoint1_plaintext)
     end
   end
 
