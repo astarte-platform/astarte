@@ -1,5 +1,5 @@
 defmodule Astarte.AppEngine.API.Auth.AuthTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.AppEngine.API.Cases.Data, async: true
   use Mimic
 
   alias Astarte.AppEngine.API.Auth

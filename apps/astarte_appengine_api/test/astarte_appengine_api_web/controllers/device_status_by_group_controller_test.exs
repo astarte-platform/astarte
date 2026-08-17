@@ -17,10 +17,10 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
-  use Astarte.Cases.Conn
+  use Astarte.AppEngine.API.Cases.Conn
 
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"

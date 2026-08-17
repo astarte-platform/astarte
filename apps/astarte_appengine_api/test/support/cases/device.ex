@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.AppEngine.API.Cases.Device do
   @moduledoc false
   use ExUnitProperties
   use ExUnit.CaseTemplate
@@ -28,7 +28,7 @@ defmodule Astarte.Cases.Device do
   import Astarte.Core.Generators.Mapping
 
   import Astarte.Generators.InterfaceUpdate
-  import Astarte.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.Device
   import Astarte.Helpers.Interface
 
   alias Astarte.DataAccess.Interface

@@ -15,6 +15,7 @@ compose_generated.env
 
 # Standard Elixir gitignore to be applied to all apps
 _build
+/cover
 apps/*/cover
 apps/*/deps
 apps/*/doc

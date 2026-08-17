@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.InterfacesTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   import ExUnit.CaptureLog
 
@@ -31,7 +31,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
 
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
 
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core

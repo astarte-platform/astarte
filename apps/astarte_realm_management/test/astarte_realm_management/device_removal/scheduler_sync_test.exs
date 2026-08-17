@@ -24,12 +24,12 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   """
   use ExUnitProperties
 
-  use Astarte.Cases.Data
+  use Astarte.RealmManagement.Cases.Data
   use Mimic
 
   import Astarte.Core.Generators.Device
 
-  import Astarte.Helpers.Device
+  import Astarte.RealmManagement.Helpers.Device
   import Astarte.RealmManagement.Generators.DeletionInProgress
 
   alias Astarte.DataAccess.Device.DeletionInProgress

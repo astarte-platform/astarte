@@ -18,8 +18,8 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   use ExUnitProperties
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
   use Mimic
 
   import Astarte.Core.Generators.Device

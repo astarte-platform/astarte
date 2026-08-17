@@ -31,7 +31,6 @@ coverage:
 
 ignore:
   - "apps/*/test"
-  - "libs/*/test"
 
 comment:
   layout: "header, diff, files, flags"
@@ -81,40 +80,40 @@ flags:
   astarte_config:
     carryforward: true
     paths:
-      - libs/astarte_config
+      - apps/astarte_config
   astarte_data_access:
     carryforward: true
     paths:
-      - libs/astarte_data_access
+      - apps/astarte_data_access
   astarte_events:
     carryforward: true
     paths:
-      - libs/astarte_events
+      - apps/astarte_events
   astarte_generators:
     carryforward: true
     paths:
-      - libs/astarte_generators
+      - apps/astarte_generators
   astarte_test_suite:
     carryforward: true
     paths:
-      - libs/astarte_test_suite
+      - apps/astarte_test_suite
   astarte_rpc:
     carryforward: true
     paths:
-      - libs/astarte_rpc
+      - apps/astarte_rpc
   astarte_fdo:
     carryforward: true
     paths:
-      - libs/astarte_fdo
+      - apps/astarte_fdo
   astarte_fdo_core:
     carryforward: true
     paths:
-      - libs/astarte_fdo_core
+      - apps/astarte_fdo_core
   astarte_secrets:
     carryforward: true
     paths:
-      - libs/astarte_secrets
+      - apps/astarte_secrets
   astarte_adapters:
     carryforward: true
     paths:
-      - libs/astarte_adapters
+      - apps/astarte_adapters

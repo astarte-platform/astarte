@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.AuthTest do
-  use Astarte.Cases.Data
+  use Astarte.RealmManagement.Cases.Data
   use Astarte.RealmManagementWeb.ConnCase
 
   alias Astarte.RealmManagement.Helpers.JWTTestHelper

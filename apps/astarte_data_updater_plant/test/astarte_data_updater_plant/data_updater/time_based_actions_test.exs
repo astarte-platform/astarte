@@ -17,13 +17,13 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
   import Mox
   import Astarte.Helpers.DataUpdater
 
   alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.Helpers.Database
   alias Astarte.DataUpdaterPlant.TimeBasedActions
-  alias Astarte.Helpers.Database
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
   @timestamp2_us_x_10 Database.make_timestamp("2025-05-14T14:10:32+00:00")

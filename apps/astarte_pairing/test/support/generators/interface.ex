@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Generators.Interface do
+defmodule Astarte.Pairing.Generators.Interface do
   @moduledoc false
   use ExUnitProperties
 

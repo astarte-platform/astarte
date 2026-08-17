@@ -1,0 +1,191 @@
+name: Build and Test Astarte Apps
+
+on:
+  workflow_call:
+  push:
+    paths:
+      - "apps/**"
+      - "mix.exs"
+      - "mix.lock"
+      - "VERSION"
+      - ".github/workflows/astarte-apps-workflow.yml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+  create:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "mix.exs"
+      - "mix.lock"
+      - "VERSION"
+      - ".github/workflows/astarte-apps-workflow.yml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  warmup:
+    name: Cache warmup
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: test
+          args: "--warnings-as-errors"
+
+  formatter:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: test
+
+  credo:
+    name: Credo
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: test
+
+  deps_audit:
+    name: Deps Audit
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: test
+          task: deps.audit
+
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: test
+      - run: mix dialyzer --format github
+        env:
+          MIX_ENV: "test"
+          HEX_HOME: ${{ runner.temp }}/.hex
+          MIX_HOME: ${{ runner.temp }}/.mix
+
+  test:
+    name: Test ${{ matrix.app }}
+    needs:
+      - warmup
+    runs-on: ubuntu-24.04
+    env:
+      ASTARTE_VAULT_TOKEN: "astarte_token"
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          # Services
+          - "astarte_appengine_api"
+          - "astarte_data_updater_plant"
+          - "astarte_housekeeping"
+          - "astarte_pairing"
+          - "astarte_realm_management"
+          - "astarte_trigger_engine"
+          - "astarte_vmq_plugin"
+          # Libraries
+          - "astarte_adapters"
+          - "astarte_config"
+          - "astarte_data_access"
+          - "astarte_events"
+          - "astarte_fdo"
+          - "astarte_fdo_core"
+          - "astarte_generators"
+          - "astarte_rpc"
+          - "astarte_secrets"
+          - "astarte_test_suite"
+        database:
+          - "cassandra:3.11.15"
+          - "scylladb/scylla:2025.2.2"
+        rabbitmq:
+          - "rabbitmq:3.12.0-management"
+        openbao:
+          - "openbao/openbao:2"
+    services:
+      rabbitmq:
+        image: ${{ matrix.rabbitmq }}
+        ports:
+          - 5672:5672
+          - 15672:15672
+      database:
+        image: ${{ matrix.database }}
+        ports:
+          - 9042:9042
+        options: >-
+          --health-cmd "cqlsh -e 'SELECT release_version FROM system.local;'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      cfssl:
+        image: ispirata/docker-alpine-cfssl-autotest:astarte
+        ports:
+          - 8080/tcp
+      openbao:
+        image: ${{ matrix.openbao }}
+        ports:
+          - 8200:8200
+        env:
+          BAO_DEV_ROOT_TOKEN_ID: ${{ env.ASTARTE_VAULT_TOKEN }}
+          BAO_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+        options: >-
+          --health-cmd "bao status -address=http://127.0.0.1:8200 || exit 1"
+          --health-interval=2s
+          --health-timeout=2s
+          --health-retries=5
+      rendezvous:
+        image: astarte/go-fdo-server:ade68cda47-20251128
+        ports:
+          - 8041:8041
+        options: >-
+          --tmpfs /var/lib/fdo
+          --restart on-failure
+        command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ matrix.app }}
+          mix-env: test
+          task: coveralls.json --exclude wip -o coverage_results
+        env:
+          CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
+          PAIRING_FDO_RENDEZVOUS_URL: http://localhost:8041
+      - name: Upload Coverage Results to CodeCov
+        # Don't upload more than once per component
+        if: ${{ matrix.database == 'scylladb/scylla:2025.2.2' && github.repository == 'astarte-platform/astarte' }}
+        uses: codecov/codecov-action@v7
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          directory: ./apps/${{ matrix.app }}/coverage_results
+          flags: ${{ matrix.app }}

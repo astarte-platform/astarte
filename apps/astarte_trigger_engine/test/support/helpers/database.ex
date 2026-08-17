@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.TriggerEngine.Helpers.Database do
   @moduledoc """
   Helper module for database operations.
   """

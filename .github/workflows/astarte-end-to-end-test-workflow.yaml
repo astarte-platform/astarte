@@ -7,8 +7,6 @@ on:
   pull_request:
     paths:
       - "apps/**"
-      - "libs/**"
-      - "tools/astarte_e2e/**"
       - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
       - ".github/workflows/astarte-build-workflow.yaml"
       - "docker-compose.yml"

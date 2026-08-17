@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
-  use Astarte.Cases.Conn, async: true
-  use Astarte.Cases.Data
+  use Astarte.Pairing.Cases.Conn, async: true
+  use Astarte.Pairing.Cases.Data
   use Mimic
 
   alias Astarte.Secrets

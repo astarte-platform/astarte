@@ -28,10 +28,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.Helpers
+  alias Astarte.DataUpdaterPlant.Helpers
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
   use Astarte.Cases.DataUpdater
   use ExUnitProperties
 

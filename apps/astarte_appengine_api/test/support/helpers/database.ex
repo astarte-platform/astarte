@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.AppEngine.API.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 

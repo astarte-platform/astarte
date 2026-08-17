@@ -21,8 +21,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  use Astarte.Cases.Data
-  use Astarte.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.Data
+  use Astarte.DataUpdaterPlant.Cases.Device
   use Astarte.Cases.DataUpdater
 
   import Ecto.Query
@@ -44,7 +44,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
 
-  alias Astarte.Helpers.Database
+  alias Astarte.DataUpdaterPlant.Helpers.Database
 
   @moduletag timeout: 180_000
 

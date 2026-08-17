@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.DataUpdaterPlant.Helpers.Database do
   @moduledoc """
   This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
   """

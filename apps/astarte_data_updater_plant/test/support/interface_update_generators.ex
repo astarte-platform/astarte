@@ -25,7 +25,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
   # TODO: move all these generators to astarte_generators
   use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Helpers.Device
+  import Astarte.DataUpdaterPlant.Helpers.Device
 
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping

@@ -24,7 +24,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   """
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   use Mimic
 
