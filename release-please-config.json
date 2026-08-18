@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "d02b45e18dd38e5d9f0a1446945e298bafca9d31",
+  "include-v-in-tag": true,
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {"type": "generic", "path": "apps/astarte_appengine_api/mix.exs"},
+        {"type": "generic", "path": "apps/astarte_data_updater_plant/mix.exs"},
+        {"type": "generic", "path": "apps/astarte_housekeeping/mix.exs"},
+        {"type": "generic", "path": "apps/astarte_pairing/mix.exs"},
+        {"type": "generic", "path": "apps/astarte_realm_management/mix.exs"},
+        {"type": "generic", "path": "apps/astarte_trigger_engine/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_data_access/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_events/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_fdo/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_fdo_core/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_generators/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_rpc/mix.exs"},
+        {"type": "generic", "path": "libs/astarte_secrets/mix.exs"},
+        {"type": "generic", "path": "tools/astarte_device_fleet_simulator/mix.exs"},
+        {"type": "generic", "path": "tools/astarte_dev_tool/mix.exs"},
+        {"type": "generic", "path": "tools/astarte_e2e/mix.exs"},
+        {"type": "generic", "path": "tools/astarte_export/mix.exs"},
+        {"type": "generic", "path": "tools/astarte_import/mix.exs"}
+      ]
+    }
+  }
+}
