@@ -65,9 +65,7 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:astarte_core, path: "../astarte_core"},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
-      {:exandra, "~> 0.13"},
-      {:xandra, "~> 0.19"},
-      {:decimal, "~> 3.0", override: true},
+      {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
       {:cose, github: "secomind/cose-elixir"},

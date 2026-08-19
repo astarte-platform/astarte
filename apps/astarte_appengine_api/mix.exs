@@ -82,8 +82,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.9"},
       {:phoenix_swagger, "~> 0.8"},
-      {:exandra, "~> 0.13"},
-      {:decimal, "~> 3.0", override: true},
+      {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
