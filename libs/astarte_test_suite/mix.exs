@@ -22,7 +22,9 @@ defmodule Astarte.TestSuite.MixProject do
   def project do
     [
       app: :astarte_test_suite,
+      # x-release-please-start-version
       version: "1.5.0-dev",
+      # x-release-please-end
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps() ++ astarte_required_modules(),

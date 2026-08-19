@@ -21,7 +21,9 @@ defmodule Astarte.FDO.Core.MixProject do
   def project do
     [
       app: :astarte_fdo_core,
+      # x-release-please-start-version
       version: "1.5.0-dev",
+      # x-release-please-end
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
