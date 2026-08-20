@@ -56,6 +56,8 @@ defmodule Astarte.Pairing.Agent do
   end
 
   def unregister_device(realm, device_id) do
+    :telemetry.execute([:astarte, :pairing, :unregister_device], %{}, %{realm: realm})
+
     with {:ok, _} <- Device.decode_device_id(device_id) do
       Engine.unregister_device(realm, device_id)
     end
