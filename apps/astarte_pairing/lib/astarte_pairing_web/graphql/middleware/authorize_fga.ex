@@ -36,22 +36,28 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
         unauthorized(resolution, "Unauthorized: Missing realm context")
 
       true ->
-        Logger.debug(
-          "Authorizing user_id: #{inspect(user_id)} for relation: #{relation} on target_type: #{target_type}"
-        )
-
-        case check(user_id, relation, target_type, realm_name, resolution.arguments) do
-          :ok ->
-            resolution
-
-          {:error, :forbidden} ->
-            unauthorized(resolution, "Forbidden: OpenFGA denied access for this action")
-
-          {:error, reason} ->
-            Logger.error("OpenFGA check failed: #{inspect(reason)}")
-            unauthorized(resolution, "Internal Server Error during authorization")
-        end
+        run_check(resolution, user_id, relation, target_type, realm_name)
     end
+  end
+
+  defp run_check(resolution, user_id, relation, target_type, realm_name) do
+    Logger.debug(
+      "Authorizing user_id: #{inspect(user_id)} for relation: #{relation} on target_type: #{target_type}"
+    )
+
+    user_id
+    |> check(relation, target_type, realm_name, resolution.arguments)
+    |> handle_check_result(resolution)
+  end
+
+  defp handle_check_result(:ok, resolution), do: resolution
+
+  defp handle_check_result({:error, :forbidden}, resolution),
+    do: unauthorized(resolution, "Forbidden: OpenFGA denied access for this action")
+
+  defp handle_check_result({:error, reason}, resolution) do
+    Logger.error("OpenFGA check failed: #{inspect(reason)}")
+    unauthorized(resolution, "Internal Server Error during authorization")
   end
 
   defp unauthorized(resolution, message),
@@ -74,7 +80,13 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
   end
 
   defp check(user_id, relation, :device, _realm_name, args) do
-    hw_id = Map.get(args, :hw_id)
-    OpenFGA.check("user:#{user_id}", relation, "device:#{hw_id}")
+    case Map.get(args, :hw_id) do
+      nil ->
+        Logger.warning("AuthorizeFGA: a :device-target field was called without an hw_id arg")
+        {:error, :forbidden}
+
+      hw_id ->
+        OpenFGA.check("user:#{user_id}", relation, "device:#{hw_id}")
+    end
   end
 end
