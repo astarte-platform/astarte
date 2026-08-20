@@ -4,7 +4,7 @@ defmodule Astarte.Config.MixProject do
   def project do
     [
       app: :astarte_config,
-      version: "1.4.0-rc.2",
+      version: "1.4.0-rc.5",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -27,6 +27,8 @@ defmodule Astarte.Config.MixProject do
     [
       {:skogsra, "~> 2.2"},
       {:castore, "~> 1.0"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.5", override: true},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
