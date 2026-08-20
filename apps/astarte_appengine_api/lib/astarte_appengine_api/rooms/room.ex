@@ -59,9 +59,9 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         # No realm name in args
         {:error, :no_realm_name}
 
-      {:error, {:already_started, pid}} ->
+      {:error, {:already_started, _pid}} ->
         # Already started, we don't care
-        {:ok, pid}
+        :ignore
 
       other ->
         # Relay everything else
@@ -101,7 +101,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     realm = Keyword.get(args, :realm)
     room_uuid = Utils.get_uuid()
 
-    {:ok, _} = Registry.register(Registry.AstarteRooms, {:parent_trigger_id, room_uuid}, [])
+    {:ok, _} = Horde.Registry.register(Registry.AstarteRooms, {:parent_trigger_id, room_uuid}, [])
 
     :telemetry.execute(
       [:astarte, :appengine, :channels, :room_opened],
@@ -451,6 +451,6 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   # Helpers
 
   defp via_tuple(room_name) do
-    {:via, Registry, {Registry.AstarteRooms, room_name}}
+    {:via, Horde.Registry, {Registry.AstarteRooms, room_name}}
   end
 end

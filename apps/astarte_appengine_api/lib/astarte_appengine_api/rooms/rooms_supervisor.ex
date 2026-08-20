@@ -32,11 +32,20 @@ defmodule Astarte.AppEngine.API.Rooms.RoomsSupervisor do
   end
 
   def start_room(realm, room_name) do
-    DynamicSupervisor.start_child(__MODULE__, {Room, realm: realm, room_name: room_name})
+    case DynamicSupervisor.start_child(__MODULE__, {Room, realm: realm, room_name: room_name}) do
+      :ignore ->
+        case Horde.Registry.lookup(Registry.AstarteRooms, room_name) do
+          [{pid, _value}] -> {:ok, pid}
+          [] -> {:error, :room_not_registered}
+        end
+
+      result ->
+        result
+    end
   end
 
   def room_started?(room_name) do
-    case Registry.lookup(Registry.AstarteRooms, room_name) do
+    case Horde.Registry.lookup(Registry.AstarteRooms, room_name) do
       [] ->
         false
 

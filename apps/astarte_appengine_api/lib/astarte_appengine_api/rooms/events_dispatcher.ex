@@ -25,6 +25,9 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
+  @room_lookup_attempts 3
+  @room_lookup_retry_interval_ms 100
+
   require Logger
 
   def dispatch(serialized_simple_event) do
@@ -49,8 +52,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
       end
 
     with {:room_pid, [{pid, _}]} <-
-           {:room_pid,
-            Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id})},
+           {:room_pid, lookup_room({:parent_trigger_id, parent_trigger_id})},
          :ok <- Room.broadcast_event(pid, simple_trigger_id, device_id, timestamp, event) do
       :ok
     else
@@ -101,6 +103,23 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
         )
 
         {:error, :dispatch_error}
+    end
+  end
+
+  defp lookup_room(parent_trigger_key, attempts \\ @room_lookup_attempts)
+
+  defp lookup_room(parent_trigger_key, 1) do
+    Horde.Registry.lookup(Registry.AstarteRooms, parent_trigger_key)
+  end
+
+  defp lookup_room(parent_trigger_key, attempts) do
+    case Horde.Registry.lookup(Registry.AstarteRooms, parent_trigger_key) do
+      [] ->
+        Process.sleep(@room_lookup_retry_interval_ms)
+        lookup_room(parent_trigger_key, attempts - 1)
+
+      room ->
+        room
     end
   end
 end
