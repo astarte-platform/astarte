@@ -3,7 +3,6 @@ defmodule Astarte.PairingWeb.GraphQL.Types.DeviceTypes do
 
   @desc "Represents a base Device in Astarte Pairing"
   object :device do
-    field :id, non_null(:id)
     field :hw_id, non_null(:string)
     field :credentials_secret, :string
 

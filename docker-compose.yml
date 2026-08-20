@@ -272,9 +272,6 @@ services:
     environment:
       - OPENFGA_DATASTORE_ENGINE=memory
       - OPENFGA_PLAYGROUND_ENABLED=true
-    ports:
-      - "8081:8080" # API HTTP (usata dal nostro middleware)
-      - "3000:3000" # Interfaccia Web di OpenFGA (Playground)
     restart: on-failure
 
   # RabbitMQ

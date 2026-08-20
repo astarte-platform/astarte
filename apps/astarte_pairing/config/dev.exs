@@ -79,8 +79,5 @@ config :astarte_pairing, :enable_credential_reuse, true
 config :astarte_pairing, vault_authentication_mechanism: :token
 config :astarte_pairing, vault_token: "astarte_token"
 
-config :astarte_pairing,
-  openfga_url: System.get_env("ASTARTE_PAIRING_OPENFGA_URL") || "http://localhost:8081"
-
-config :astarte_pairing,
-  openfga_store_id: System.get_env("ASTARTE_PAIRING_OPENFGA_STORE_ID") || "STORE_TEST_12345"
+config :astarte_pairing, :openfga_url, "http://localhost:8081"
+config :astarte_pairing, :openfga_store_id, "STORE_TEST_12345"
