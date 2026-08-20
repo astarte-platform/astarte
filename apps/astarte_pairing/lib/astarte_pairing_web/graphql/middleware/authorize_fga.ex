@@ -1,4 +1,9 @@
 defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA do
+  @moduledoc """
+  Absinthe middleware that authorizes GraphQL field resolution against
+  OpenFGA, unless authentication is disabled.
+  """
+
   @behaviour Absinthe.Middleware
 
   alias Astarte.Pairing.Config
