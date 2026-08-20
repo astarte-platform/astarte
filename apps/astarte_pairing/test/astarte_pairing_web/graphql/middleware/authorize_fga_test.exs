@@ -2,6 +2,8 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGATest do
   use ExUnit.Case
   use Mimic
 
+  import ExUnit.CaptureLog
+
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.OpenFGA
   alias Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA
@@ -108,6 +110,28 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGATest do
     opts = [relation: "editor", target: :device]
 
     assert AuthorizeFGA.call(resolution, opts) == resolution
+  end
+
+  test "returns forbidden and logs a warning if a :device target has no hw_id arg" do
+    reject(&OpenFGA.check/3)
+
+    resolution = %Absinthe.Resolution{
+      context: %{realm_name: "testrealm", current_user: %{id: "user1"}},
+      arguments: %{}
+    }
+
+    opts = [relation: "editor", target: :device]
+
+    log =
+      capture_log(fn ->
+        result = AuthorizeFGA.call(resolution, opts)
+
+        assert %Absinthe.Resolution{
+                 errors: ["Forbidden: OpenFGA denied access for this action"]
+               } = result
+      end)
+
+    assert log =~ "a :device-target field was called without an hw_id arg"
   end
 
   test "returns forbidden if OpenFGA check returns forbidden" do

@@ -26,6 +26,8 @@ defmodule Astarte.Pairing.FDOOperations do
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.Pairing.Engine
 
+  require Logger
+
   @doc """
   Validates a voucher registration request, claims ownership on the rendezvous
   server, persists the voucher and registers the device.
@@ -33,24 +35,61 @@ defmodule Astarte.Pairing.FDOOperations do
   @spec register_ownership_voucher(map(), String.t()) ::
           {:ok, %{public_key: String.t(), guid: binary()}} | {:error, term()}
   def register_ownership_voucher(params, realm_name) do
-    with {:ok, req} <-
-           %LoadRequest{}
-           |> LoadRequest.changeset(Map.put(params, "realm_name", realm_name))
-           |> Ecto.Changeset.apply_action(:insert),
-         {:ok, expiry} <-
-           OwnershipVoucher.claim_on_rendezvous(
-             req.device_guid,
-             req.decoded_ownership_voucher,
-             req.extracted_owner_key
-           ),
-         :ok <- LoadRequest.store_voucher(req, expiry),
-         opts = [
-           initial_introspection: req.initial_introspection,
-           with_credentials?: false,
-           fdo_guid: req.device_guid
-         ],
-         {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
+    with {:ok, req} <- validate_request(params, realm_name),
+         {:ok, expiry} <- claim_on_rendezvous(req),
+         :ok <- store_voucher(realm_name, req, expiry),
+         :ok <- register_device(realm_name, req) do
       {:ok, %{public_key: req.extracted_owner_key.public_pem, guid: req.device_guid}}
     end
+  end
+
+  defp validate_request(params, realm_name) do
+    %LoadRequest{}
+    |> LoadRequest.changeset(Map.put(params, "realm_name", realm_name))
+    |> Ecto.Changeset.apply_action(:insert)
+  end
+
+  defp claim_on_rendezvous(req) do
+    OwnershipVoucher.claim_on_rendezvous(
+      req.device_guid,
+      req.decoded_ownership_voucher,
+      req.extracted_owner_key
+    )
+  end
+
+  defp store_voucher(realm_name, req, expiry) do
+    case LoadRequest.store_voucher(req, expiry) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        log_unfinished_registration(realm_name, req, "the voucher could not be persisted", reason)
+        {:error, reason}
+    end
+  end
+
+  defp register_device(realm_name, req) do
+    opts = [
+      initial_introspection: req.initial_introspection,
+      with_credentials?: false,
+      fdo_guid: req.device_guid
+    ]
+
+    case Engine.register_device(realm_name, req.hw_id, opts) do
+      {:ok, nil} ->
+        :ok
+
+      {:error, reason} ->
+        log_unfinished_registration(realm_name, req, "the device could not be registered", reason)
+        {:error, reason}
+    end
+  end
+
+  defp log_unfinished_registration(realm_name, req, what, reason) do
+    Logger.error(
+      "Ownership was already claimed on the rendezvous server but #{what}: " <>
+        "realm=#{inspect(realm_name)} guid=#{inspect(req.device_guid)} reason=#{inspect(reason)}. " <>
+        "The voucher is claimed but the registration did not complete."
+    )
   end
 end

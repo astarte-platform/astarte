@@ -31,8 +31,10 @@ defmodule Astarte.Pairing.OpenFGA do
   Checks whether `user` has `relation` on `object` in the configured
   OpenFGA store.
 
-  Returns `:ok` if the check is allowed, `{:error, :forbidden}` if it isn't,
-  or `{:error, reason}` if the request to OpenFGA itself failed.
+  Returns `:ok` if the check is allowed, `{:error, :forbidden}` if OpenFGA
+  explicitly denied it, or `{:error, reason}` if the check itself couldn't
+  be completed: the request failed, OpenFGA returned an unexpected HTTP
+  status, or its response body wasn't the shape we expect.
   """
   @spec check(String.t(), String.t(), String.t()) ::
           :ok | {:error, :forbidden} | {:error, term()}
@@ -49,18 +51,33 @@ defmodule Astarte.Pairing.OpenFGA do
 
     case Client.post(url, body, headers) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
-        case Jason.decode(resp_body) do
-          {:ok, %{"allowed" => true}} -> :ok
-          _ -> {:error, :forbidden}
-        end
+        handle_response(resp_body)
 
       {:ok, %HTTPoison.Response{status_code: status, body: resp_body}} ->
-        Logger.warning("OpenFGA check returned status #{status}: #{resp_body}")
-        {:error, :forbidden}
+        Logger.warning("OpenFGA check returned status #{status}: #{inspect(resp_body)}")
+        {:error, {:unexpected_status, status}}
 
       {:error, %HTTPoison.Error{reason: reason}} ->
         Logger.error("OpenFGA request failed: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  defp handle_response(resp_body) do
+    case Jason.decode(resp_body) do
+      {:ok, %{"allowed" => true}} ->
+        :ok
+
+      {:ok, %{"allowed" => false}} ->
+        {:error, :forbidden}
+
+      {:ok, unexpected} ->
+        Logger.warning("OpenFGA check response missing \"allowed\": #{inspect(unexpected)}")
+        {:error, :unexpected_response}
+
+      {:error, decode_error} ->
+        Logger.warning("OpenFGA check returned an unparsable body: #{inspect(decode_error)}")
+        {:error, :unexpected_response}
     end
   end
 end
