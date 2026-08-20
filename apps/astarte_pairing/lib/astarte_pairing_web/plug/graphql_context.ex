@@ -18,6 +18,11 @@ defmodule Astarte.PairingWeb.Plug.GraphQLContext do
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
   defmodule ErrorHandler do
+    @moduledoc """
+    No-op Guardian error handler: authentication failures never halt the
+    connection, since error formatting is left to the Absinthe resolvers.
+    """
+
     @behaviour Guardian.Plug.ErrorHandler
     def auth_error(conn, _error, _opts), do: conn
   end

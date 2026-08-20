@@ -1,4 +1,9 @@
 defmodule Astarte.PairingWeb.GraphQL.Schema do
+  @moduledoc """
+  Astarte Pairing's Absinthe GraphQL schema: device pairing, agent-driven
+  registration, and FDO owner key/voucher management.
+  """
+
   use Absinthe.Schema
 
   import_types Astarte.PairingWeb.GraphQL.Types.{DeviceTypes, AgentTypes, FdoTypes}

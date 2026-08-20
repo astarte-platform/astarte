@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.PairingWeb.GraphQL.Types.FdoTypes do
+  @moduledoc """
+  GraphQL types for FDO owner keys and ownership vouchers.
+  """
+
   use Absinthe.Schema.Notation
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher

@@ -1,4 +1,8 @@
 defmodule Astarte.PairingWeb.GraphQL.Types.AgentTypes do
+  @moduledoc """
+  GraphQL types for agent-driven device registration.
+  """
+
   use Absinthe.Schema.Notation
 
   @desc "Response for a successful device registration"
