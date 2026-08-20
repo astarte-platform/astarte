@@ -1,4 +1,9 @@
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
+  @moduledoc """
+  Absinthe resolvers for device-facing GraphQL fields: retrieving device
+  status and obtaining MQTT credentials.
+  """
+
   alias Astarte.Pairing.Credentials
   alias Astarte.Pairing.Info
 

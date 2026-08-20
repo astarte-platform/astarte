@@ -112,8 +112,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:httpoison, "~> 3.0"},
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
-      {:absinthe, "~> 1.7.0"},
-      {:absinthe_plug, "~> 1.5.0"}
+      {:absinthe, "~> 1.7"},
+      {:absinthe_plug, "~> 1.5"}
     ]
   end
 end

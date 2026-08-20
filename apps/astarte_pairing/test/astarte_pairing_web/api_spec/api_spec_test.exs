@@ -44,6 +44,9 @@ defmodule Astarte.PairingWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
+      # GraphQL is served over a single forwarded endpoint (verb :*), not a set
+      # of individually documented REST operations, so it's out of scope here.
+      |> Enum.reject(&(&1.verb == :*))
       |> MapSet.new(&normalize_route/1)
 
     actual_operations =

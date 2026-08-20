@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
+  @moduledoc """
+  Absinthe resolvers for FDO-related GraphQL fields: owner key management
+  and ownership voucher operations.
+  """
+
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDOOperations
   alias Astarte.PairingWeb.ChangesetView

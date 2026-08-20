@@ -1,4 +1,8 @@
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver do
+  @moduledoc """
+  Absinthe resolvers for agent-driven device registration.
+  """
+
   alias Astarte.Pairing.Agent
   alias Astarte.Pairing.Agent.DeviceRegistrationResponse
 
