@@ -59,7 +59,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface_descriptor: nil,
       interface_id: nil,
       mapping: nil,
-      current_interface_mappings: nil,
+      all_mappings: nil,
       endpoint_id: nil
     }
 
@@ -67,8 +67,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- validate_path(context),
          {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
-         {:ok, {mapping, current_interface_mappings}} <-
-           resolve_path(context, interface_descriptor),
+         {:ok, {mapping, all_mappings}} <- resolve_path(context, interface_descriptor),
          {:ok, context} <- maybe_decrypt_payload(context, interface_descriptor),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
          :ok <-
@@ -99,7 +98,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         | interface_descriptor: interface_descriptor,
           interface_id: interface_descriptor.interface_id,
           mapping: mapping,
-          current_interface_mappings: current_interface_mappings,
+          all_mappings: all_mappings,
           endpoint_id: mapping.endpoint_id,
           db_max_ttl: db_max_ttl,
           value: value,
@@ -141,9 +140,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       maybe_insert_path(context, interface_descriptor, mapping)
     end
 
-    case Secrets.maybe_encrypt_value(
-           interface_descriptor,
-           mapping,
+    encrypted_endpoints_on_current_interface =
+      context.all_mappings
+      |> Enum.filter(& &1.encrypted)
+      |> Enum.map(& &1.endpoint)
+
+    case maybe_encrypt_value(
+           interface_descriptor.aggregation,
            value,
            current_interface_mappings,
            realm
@@ -187,6 +190,60 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp get_previous_value(_, _, _), do: nil
+
+  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
+  defp maybe_encrypt_value(_, nil, _, _) do
+    {nil, nil}
+  end
+
+  # no encrypted endpoints for this interface: return plaintext original value and no DEK
+  defp maybe_encrypt_value(_, value, [], _) do
+    {value, nil}
+  end
+
+  # Only executes if encrypted_endpoints has entries. For :individual this means the
+  # current endpoint is definitively encrypted, skipping the redundant lookup entirely.
+  defp maybe_encrypt_value(:individual, value, _encrypted_endpoints, realm) do
+    with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+           DEKCache.fetch_data_encryption_key(realm) do
+      encrypted_value =
+        do_encrypt_individual_value(value, plaintext_dek)
+
+      {encrypted_value, ciphertext_dek}
+    end
+  end
+
+  # for each of the mappings of the object check if the related encrypted option is set,
+  # and based on this condition treat each of the endpoints values as a separate one when
+  # applying encryption logic (encryption choice is done at endpoint level, not at object level)
+  defp maybe_encrypt_value(:object, obj_value, encrypted_endpoints, realm) do
+    with {:ok, %{plaintext: plaintext_dek, ciphertext: ciphertext_dek}} <-
+           DEKCache.fetch_data_encryption_key(realm) do
+      obj_value_with_encryption =
+        do_encrypt_object_mappings(encrypted_endpoints, obj_value, plaintext_dek)
+
+      {obj_value_with_encryption, ciphertext_dek}
+    end
+  end
+
+  defp do_encrypt_individual_value(value, dek) do
+    value_binary = :erlang.term_to_binary(value)
+    {:ok, encrypted_value} = Secrets.encrypt_with_dek(value_binary, dek)
+    encrypted_value
+  end
+
+  # leave untouched object values that do not need encryption, encrypt all others in-place
+  defp do_encrypt_object_mappings(encrypted_endpoints, obj_value, dek) do
+    Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
+      endpoint = Path.basename(endpoint)
+
+      Map.put(
+        acc_obj,
+        endpoint,
+        do_encrypt_individual_value(Map.get(acc_obj, endpoint), dek)
+      )
+    end)
+  end
 
   defp handle_result({:error, :unset_not_allowed}, context, _start) do
     error = %{
@@ -391,9 +448,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
         Core.Error.handle_error(context, error)
 
-      {:ok, current_interface_mappings} ->
-        mapping = hd(current_interface_mappings)
-        {:ok, {mapping, current_interface_mappings}}
+      {:ok, [first_mapping | _] = all_mappings} ->
+        endpoint_id =
+          Astarte.Core.CQLUtils.endpoint_id(
+            interface_descriptor.name,
+            interface_descriptor.major_version,
+            ""
+          )
+
+        canonical_mapping = %{first_mapping | endpoint_id: endpoint_id}
+        {:ok, {canonical_mapping, all_mappings}}
+
+      {:ok, %Astarte.Core.Mapping{} = individual_mapping} ->
+        {:ok, {individual_mapping, [individual_mapping]}}
     end
   end
 
