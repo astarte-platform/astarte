@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
   alias Astarte.AppEngine.API.Rooms.Room
+  alias Astarte.AppEngine.API.Rooms.RoomsSupervisor
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
@@ -175,6 +176,20 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert {:ok, _reply, socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
       assert socket.assigns[:room_name] == "#{@realm}:#{@authorized_room_name}"
       assert Room.clients_count("#{@realm}:#{@authorized_room_name}") == 1
+    end
+
+    test "joining the same room resolves one cluster-wide room process", %{socket: first_socket} do
+      room_name = "#{@realm}:#{@authorized_room_name}"
+      token = JWTTestHelper.gen_channels_jwt_all_access_token()
+      {:ok, second_socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
+
+      assert {:ok, _reply, _first_socket} = join(first_socket, "rooms:#{room_name}")
+      assert {:ok, _reply, _second_socket} = join(second_socket, "rooms:#{room_name}")
+
+      assert [{room_process, _}] = Horde.Registry.lookup(Registry.AstarteRooms, room_name)
+      assert {:ok, ^room_process} = RoomsSupervisor.start_room(@realm, room_name)
+      assert Room.clients_count(room_name) == 2
+      assert Process.alive?(room_process)
     end
   end
 
@@ -573,6 +588,60 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
     end
 
+    test "a transient registry miss does not uninstall a live room trigger",
+         %{
+           socket: socket,
+           room_process: room_process
+         } = context do
+      :ok = Mimic.set_mimic_private(context)
+      Mimic.verify_on_exit!(context)
+
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
+      |> allow(self(), room_process)
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
+      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
+
+      %{room_uuid: room_uuid, watch_id_to_request: watch_map} = :sys.get_state(room_process)
+      [simple_trigger_id | _] = Map.keys(watch_map)
+      parent_trigger_key = {:parent_trigger_id, room_uuid}
+
+      Mimic.expect(Horde.Registry, :lookup, 2, fn Registry.AstarteRooms, ^parent_trigger_key ->
+        case Process.get(:room_lookup_attempt, 0) do
+          0 ->
+            Process.put(:room_lookup_attempt, 1)
+            []
+
+          1 ->
+            Mimic.call_original(Horde.Registry, :lookup, [
+              Registry.AstarteRooms,
+              parent_trigger_key
+            ])
+        end
+      end)
+
+      serialized_event =
+        %{@simple_event | parent_trigger_id: room_uuid, simple_trigger_id: simple_trigger_id}
+        |> SimpleEvent.encode()
+
+      assert :ok = EventsDispatcher.dispatch(serialized_event)
+      assert_broadcast "new_event", _
+
+      watch_cleanup(socket, @name)
+    end
+
     test "an event for a watched trigger belonging to a room triggers a broadcast", %{
       socket: socket,
       room_process: room_process
@@ -599,11 +668,20 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       [simple_trigger_id | _] = Map.keys(watch_map)
 
+      assert [{^room_process, _}] =
+               Horde.Registry.lookup(
+                 Registry.AstarteRooms,
+                 {:parent_trigger_id, room_uuid}
+               )
+
       existing_room_serialized_event =
         %{@simple_event | parent_trigger_id: room_uuid, simple_trigger_id: simple_trigger_id}
         |> SimpleEvent.encode()
 
-      assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
+      dispatcher_task =
+        Task.async(fn -> EventsDispatcher.dispatch(existing_room_serialized_event) end)
+
+      assert :ok = Task.await(dispatcher_task)
 
       timestamp = DateTime.from_unix!(@timestamp, :millisecond)
 
@@ -612,6 +690,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         "timestamp" => ^timestamp,
         "event" => event
       })
+
+      refute_broadcast "new_event", _
 
       assert %{
                "type" => "incoming_data",
@@ -720,7 +800,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp room_process(room_name) do
-    case Registry.lookup(Registry.AstarteRooms, room_name) do
+    case Horde.Registry.lookup(Registry.AstarteRooms, room_name) do
       [{pid, _opts}] -> pid
     end
   end

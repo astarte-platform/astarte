@@ -31,7 +31,7 @@ defmodule Astarte.AppEngine.API.Rooms.MasterSupervisor do
 
   def init(_arg) do
     children = [
-      {Registry, keys: :unique, name: Registry.AstarteRooms},
+      {Horde.Registry, keys: :unique, name: Registry.AstarteRooms, members: :auto},
       Astarte.AppEngine.API.Rooms.RoomsSupervisor
     ]
 
