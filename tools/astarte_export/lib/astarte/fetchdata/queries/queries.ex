@@ -71,7 +71,7 @@ defmodule Astarte.Export.FetchData.Queries do
   def fetch_interface_mappings(conn, realm, interface_id, options) do
     mappings_statement = """
     SELECT endpoint, value_type, reliability, retention, database_retention_policy,
-      database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id, interface_id
+      database_retention_ttl, expiry, allow_unset, encrypted, explicit_timestamp, endpoint_id, interface_id
     FROM #{realm}.endpoints
     WHERE interface_id=?
     """

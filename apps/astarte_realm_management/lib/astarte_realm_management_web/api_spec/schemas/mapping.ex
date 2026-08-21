@@ -110,6 +110,13 @@ defmodule Astarte.RealmManagementWeb.ApiSpec.Schemas.Mapping do
         to call an unset method when an empty payload is received.
         """
       },
+      encrypted: %Schema{
+        type: :boolean,
+        default: false,
+        description: """
+        Defines if the endpoint is encrypted or not.
+        """
+      },
       explicit_timestamp: %Schema{
         type: :boolean,
         default: false,

@@ -137,6 +137,11 @@
             "default": false,
             "description": "Used only with properties. Used with producers, it generates a method to unset the property. Used with consumers, it generates code to call an unset method when an empty payload is received."
           },
+          "encrypted": {
+            "type": "boolean",
+            "default": false,
+            "description": "Defines whether the payload for the endopoint is encrypted or not"
+          },
           "explicit_timestamp": {
             "type": "boolean",
             "default": false,

@@ -40,6 +40,7 @@ export interface AstarteMappingDTO {
   database_retention_policy?: 'no_ttl' | 'use_ttl';
   database_retention_ttl?: number;
   allow_unset?: boolean;
+  encrypted?: boolean;
   explicit_timestamp?: boolean;
   required?: boolean;
   description?: string;

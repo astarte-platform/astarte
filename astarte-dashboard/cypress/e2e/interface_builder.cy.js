@@ -9,6 +9,7 @@ const parseMappingOptions = (mapping) => {
     databaseRetention: _.get(mapping, 'database_retention_policy', 'no_ttl'),
     databaseTTL: _.get(mapping, 'database_retention_ttl'),
     allowUnset: _.get(mapping, 'allow_unset', false),
+    encrypted: _.get(mapping, 'encrypted', false),
     required: _.get(mapping, 'required', false),
   };
 };
