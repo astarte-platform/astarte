@@ -588,10 +588,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
     end
 
-    test "a transient registry miss does not uninstall a live room trigger", %{
-      socket: socket,
-      room_process: room_process
-    } = context do
+    test "a transient registry miss does not uninstall a live room trigger",
+         %{
+           socket: socket,
+           room_process: room_process
+         } = context do
       :ok = Mimic.set_mimic_private(context)
       Mimic.verify_on_exit!(context)
 
