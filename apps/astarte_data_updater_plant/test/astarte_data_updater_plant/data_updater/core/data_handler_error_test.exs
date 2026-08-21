@@ -512,6 +512,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         interfaces_encrypted_endpoints: interfaces
       } = context
 
+      # gathering telemetry events for the message handling errors
+      telemetry_handler_ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure]
+        ])
+
+      on_exit(fn -> :telemetry.detach(telemetry_handler_ref) end)
+
       %{
         state: state,
         interface: interface,
@@ -523,6 +531,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
 
       timestamp = System.system_time(:microsecond) * 10
       start = System.monotonic_time()
+      realm = state.realm
 
       # key appears as not established yet
       state_without_established_key = %{state | encrypted_endpoints_key: :uninitialized}
@@ -541,6 +550,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                  timestamp,
                  start
                )
+
+      assert_receive {[:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+                      ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :key_agreement_error}}
     end
 
     test "issues during decryption phase when receiving encrypted payloads", context do
@@ -548,6 +560,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         state: state,
         interfaces_encrypted_endpoints: interfaces
       } = context
+
+      # gathering telemetry events for the message handling errors
+      telemetry_handler_ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure]
+        ])
+
+      on_exit(fn -> :telemetry.detach(telemetry_handler_ref) end)
 
       %{
         state: state,
@@ -560,6 +580,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
 
       timestamp = System.system_time(:microsecond) * 10
       start = System.monotonic_time()
+      realm = state.realm
 
       # key used for decryption does not match with key used for encryption
       state_with_wrong_shared_key = %{
@@ -581,6 +602,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                  timestamp,
                  start
                )
+
+      assert_receive {[:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+                      ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :decryption_error}}
     end
   end
 

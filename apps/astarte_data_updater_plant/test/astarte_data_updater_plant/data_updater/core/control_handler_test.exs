@@ -62,6 +62,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     }
   end
 
+  setup do
+    # gathering telemetry events for the key agreement FSM
+    telemetry_handler_ref =
+      :telemetry_test.attach_event_handlers(self(), [
+        [:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+        [:astarte, :data_updater_plant, :device_key_agreement, :failed]
+      ])
+
+    on_exit(fn -> :telemetry.detach(telemetry_handler_ref) end)
+
+    %{telemetry_handler_ref: telemetry_handler_ref}
+  end
+
   setup_all %{state: state} do
     uninitialized_key_state = %{
       state
@@ -364,7 +377,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   describe "/keyAgreement/0" do
     test "acks a valid CBOR InitExchange payload and increments message counters",
          context do
-      %{state: state, init_exchange_payload: payload} = context
+      %{
+        state: state,
+        init_exchange_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
+      } = context
 
       expect(VMQPlugin, :publish, 1, fn topic, _payload_bytes, qos ->
         encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
@@ -390,6 +407,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert %{shared_secret: %Symmetric{alg: :aes_256_gcm, k: ^secret}} =
                Queries.get_device_status(state.realm, state.device_id)
+
+      realm = state.realm
+      # telemetry event is emitted notifying successful establishment of shared key
+      assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+                       ^telemetry_handler_ref, %{}, %{realm: ^realm}}
     end
 
     test "acks a valid CBOR InitExchange payload with a P-256 key", context do
@@ -499,21 +521,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     end
 
     test "discards a payload whose key_type integer is not a supported suite", context do
-      %{state: state, invalid_key_type_payload: payload} = context
+      %{
+        state: state,
+        invalid_key_type_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
+      } =
+        context
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
                ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+
+      realm = state.realm
+
+      assert_receive {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
+                      ^telemetry_handler_ref, %{},
+                      %{realm: ^realm, reason: :unprocessable_entity}}
     end
 
     test "discards a payload with a wrong-size OKP public key", context do
-      %{state: state, wrong_okp_key_payload: payload} = context
+      %{
+        state: state,
+        wrong_okp_key_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
+      } =
+        context
 
       assert {:discard, _result, new_state, {:continue, continue_arg}} =
                ControlHandler.handle_control(state, "/keyAgreement/0", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+
+      realm = state.realm
+
+      assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
+                       ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :invalid_argument}}
     end
 
     test "discards a payload with a wrong-size HKDF salt", context do
@@ -1067,13 +1110,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
          context do
       %{
         established_state: state,
-        invalid_secret_hash_payload: payload
+        invalid_secret_hash_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
       } = context
+
+      realm = state.realm
 
       expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
         encoded_device_id = Astarte.Core.Device.encode_device_id(state.device_id)
 
-        assert topic == "#{state.realm}/#{encoded_device_id}/control/keyAgreement/4"
+        assert topic == "#{realm}/#{encoded_device_id}/control/keyAgreement/4"
         assert qos == 2
 
         assert {:ok,
@@ -1091,6 +1137,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                end)
 
       assert log =~ "[keyAgreement/2] SecretHash mismatch."
+
+      assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
+                       ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :hash_mismatch}}
     end
 
     test "logs when the device is offline and cannot receive the ExchangeFailed notification",
@@ -1289,7 +1338,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
     test "acks a valid ExchangeFailed payload, updates state to failed, and increments counters",
          context do
-      %{state: state, valid_exchange_failed_payload: payload} = context
+      %{
+        state: state,
+        valid_exchange_failed_payload: payload,
+        telemetry_handler_ref: telemetry_handler_ref
+      } = context
 
       # Inject a handshake_started state so we can transition from it
       state = %{
@@ -1306,6 +1359,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
+
+      realm = state.realm
+
+      assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
+                       ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :hash_mismatch}}
     end
 
     test "discards the message if discard_messages is set", context do

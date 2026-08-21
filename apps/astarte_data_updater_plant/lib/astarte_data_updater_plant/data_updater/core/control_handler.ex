@@ -431,6 +431,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
              {:handshake_completed, symmetric_key.k}
            ),
          :ok <- persist_shared_secret(new_state.realm, new_state.device_id, symmetric_key) do
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+        %{},
+        %{realm: new_state.realm}
+      )
+
       final_state = %{
         new_state
         | total_received_msgs: new_state.total_received_msgs + 1,
@@ -619,6 +625,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       %{realm: state.realm, reason: reason}
     )
 
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :device_key_agreement, :failed],
+      %{},
+      %{realm: state.realm, reason: reason}
+    )
+
     final_state = %{
       state
       | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
@@ -700,6 +712,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   defp send_exchange_failed(realm, device_id, seq_num, reason, error_msg) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :device_key_agreement, :failed],
+      %{},
+      %{realm: realm, reason: reason}
+    )
+
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/4"
 
     {:ok, exchange_failed} = ExchangeFailed.new(seq_num, reason, error_msg)
