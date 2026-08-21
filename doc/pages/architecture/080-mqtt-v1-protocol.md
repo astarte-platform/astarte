@@ -19,7 +19,7 @@ Astarte MQTT v1 Protocol relies on few well known reserved topics.
 | `<realm name>/<device id>/control/emptyCache`          | Empty Cache      | Device       | 2       | ASCII plain text (always "1")           |
 | `<realm name>/<device id>/control/consumer/properties` | Purge Properties | Astarte      | 2       | deflated plain text                     |
 | `<realm name>/<device id>/control/producer/properties` | Purge Properties | Device       | 2       | deflated plain text                     |
-| `<realm name>/<device id>/control/keyAgreement`        | Key Agreement    | Both         | 1       | CBOR                                    |
+| `<realm name>/<device id>/control/keyAgreement/*`      | Key Agreement    | Both         | 2       | CBOR                                    |
 | `<realm name>/<device id>/<interface name>/<path>`     | Publish Data     | Both         | 0, 1, 2 | BSON (or empty)                         |
 
 For clarity reasons all `<realm name>/<device id>` prefixes will be omitted on the following paragraphs, those topics will be called device topics.
@@ -171,9 +171,14 @@ This protocol feature is fundamental when a device has any interface with an _al
 
 ## Key Agreement
 
-> **Note:** The `control/keyAgreement` topic is reserved and routed correctly, but the handshake protocol is not yet implemented. This section will be expanded once the cryptographic logic is in place.
+Key Agreement allows a device and Astarte to establish a shared symmetric key, so that data
+published on "encrypted" endpoints never travels or gets stored in plaintext. The handshake uses the
+`control/keyAgreement` topic and a set of numbered sub-topics (`control/keyAgreement/0` through
+`control/keyAgreement/4`), summarized above as the `control/keyAgreement/*` wildcard.
 
-Key Agreement will allow a device to obtain a Data Encryption Key (DEK) from Astarte for encrypting data message payloads. Messages published to `<realm>/<device>/control/keyAgreement` are accepted and acknowledged by Astarte, but no response is sent until the feature is fully implemented.
+Each sub-topic, the message it carries and who publishes it, together with the full handshake
+protocol, its CBOR/COSE message formats and the cryptographic primitives involved, are described in
+[Key Agreement and Encrypted Endpoints](082-key_agreement_protocol.html).
 
 ## Publishing Data
 
