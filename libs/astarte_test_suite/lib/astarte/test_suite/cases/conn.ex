@@ -19,17 +19,17 @@
 defmodule Astarte.TestSuite.Cases.Conn do
   @moduledoc false
 
+  alias Plug.Conn
+
   use Astarte.TestSuite.Case,
     name: :conn,
     params: [
-      transport: [default: :mqtt, one_of: [:mqtt, :http]],
-      port: [default: 1883, type: :positive_integer]
+      conn: [type: Conn]
     ]
 
   alias Astarte.TestSuite.Fixtures.Conn, as: ConnFixtures
 
   setup_all [
-    {ConnFixtures, :setup},
-    {ConnFixtures, :data}
+    {ConnFixtures, :setup}
   ]
 end

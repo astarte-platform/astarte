@@ -41,6 +41,7 @@ defmodule Astarte.TestSuiteTest do
 
   defmodule RandomOrderMacroTest do
     use Astarte.TestSuite,
+      conn: [conn: %Plug.Conn{}],
       secure: [token_ttl: 60],
       group: [group_number: 4],
       instance: true,
@@ -49,7 +50,7 @@ defmodule Astarte.TestSuiteTest do
 
   defmodule MixedCasesMacroTest do
     use Astarte.TestSuite,
-      conn: [transport: :http, port: 4000],
+      conn: [conn: %Plug.Conn{}],
       external_cases: [
         Astarte.TestSuiteTest.Cases.NoParamsCase,
         {Astarte.TestSuiteTest.Cases.ParamsCase, [value: 7]}

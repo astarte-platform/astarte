@@ -58,8 +58,14 @@ defmodule Astarte.TestSuite.Case do
     merged with the values normalized so far.
   - `:default` can be `{Module, :function}`. The function is called with the
     same context used by function defaults.
+  - Parameters without `:default` are required and must be provided by the
+    caller.
+  - An explicit `default: nil` is materialized as `nil` and is distinct from an
+    absent `:default`.
   - `type: :atom`, `:binary`, `:integer`, `:boolean`, or `:positive_integer`
     validates a scalar value.
+  - `type: Module` validates a struct of that module. `nil` is always accepted
+    as an explicit value.
   - `one_of: values` validates membership.
   - `list_of: :binary` validates a list of binaries.
   - `list_of: Module` validates a list of structs of that module.
@@ -159,26 +165,33 @@ defmodule Astarte.TestSuite.Case do
   defp normalize_params(_case_name, _config, [], _context, values), do: values
 
   defp normalize_params(case_name, config, [{key, rules} | rest], context, values) do
-    value =
-      config
-      |> value_for_param(key, rules, Map.merge(context, values))
-      |> validate_param!(case_name, key, rules)
-      |> materialize_param!(case_name, key, rules, Map.merge(context, values))
+    merged_context = Map.merge(context, values)
 
-    normalize_params(case_name, config, rest, context, Map.merge(values, value))
+    case value_for_param(config, key, rules, merged_context) do
+      {:ok, value} ->
+        normalized_value =
+          value
+          |> validate_param!(case_name, key, rules)
+          |> materialize_param!(case_name, key, rules, merged_context)
+
+        normalize_params(case_name, config, rest, context, Map.merge(values, normalized_value))
+
+      :required ->
+        raise_required_param!(case_name, key)
+    end
   end
 
   defp value_for_param(config, key, rules, context) do
     case Keyword.fetch(config, key) do
-      {:ok, value} -> expand_default(value, context)
+      {:ok, value} -> {:ok, expand_default(value, context)}
       :error -> default_value(rules, context)
     end
   end
 
   defp default_value(rules, context) do
     case Keyword.fetch(rules, :default) do
-      {:ok, default} -> expand_default(default, context)
-      :error -> nil
+      {:ok, default} -> {:ok, expand_default(default, context)}
+      :error -> :required
     end
   end
 
@@ -188,6 +201,8 @@ defmodule Astarte.TestSuite.Case do
   defp expand_default(default, context) when is_function(default, 1), do: default.(context)
   defp expand_default(default, _context), do: default
 
+  defp validate_param!(nil, _case_name, _key, _rules), do: nil
+
   defp validate_param!(value, case_name, key, rules) do
     value
     |> validate_type!(case_name, key, Keyword.fetch(rules, :type))
@@ -195,6 +210,8 @@ defmodule Astarte.TestSuite.Case do
     |> validate_list_of!(case_name, key, Keyword.fetch(rules, :list_of))
     |> validate_graph_of!(case_name, key, rules)
   end
+
+  defp materialize_param!(nil, _case_name, key, _rules, _context), do: %{key => nil}
 
   defp materialize_param!(value, _case_name, key, rules, context) do
     case Keyword.fetch(rules, :type) do
@@ -220,6 +237,9 @@ defmodule Astarte.TestSuite.Case do
 
   defp validate_type!(value, case_name, key, {:ok, :positive_integer}),
     do: validate_nimble_type!(value, case_name, key, :pos_integer, {:type, :positive_integer})
+
+  defp validate_type!(value, case_name, key, {:ok, module}) when is_atom(module),
+    do: CaseContext.ensure_struct!(case_name, key, value, module)
 
   defp validate_one_of!(value, _case_name, _key, :error), do: value
 
@@ -335,6 +355,11 @@ defmodule Astarte.TestSuite.Case do
   defp raise_expected_graph_items!(case_name, key, module) do
     raise ArgumentError,
           "#{inspect(case_name)} expects #{inspect(key)} to be a canonical graph map of #{inspect(module)}"
+  end
+
+  defp raise_required_param!(case_name, key) do
+    raise ArgumentError,
+          "#{inspect(case_name)} requires #{inspect(key)} to be configured"
   end
 
   defp param_names(params), do: Enum.map(params, &elem(&1, 0))

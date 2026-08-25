@@ -21,9 +21,6 @@ defmodule Astarte.TestSuite.Fixtures.Conn do
 
   alias Astarte.TestSuite.Helpers.Conn, as: ConnHelper
 
-  @spec setup(map()) :: no_return()
+  @spec setup(map()) :: map()
   def setup(context), do: ConnHelper.setup(context)
-
-  @spec data(map()) :: no_return()
-  def data(context), do: ConnHelper.data(context)
 end

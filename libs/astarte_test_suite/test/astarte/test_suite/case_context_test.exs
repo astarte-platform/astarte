@@ -127,6 +127,10 @@ defmodule Astarte.TestSuite.CaseContextTest do
     assert ensure_atom!(:case_name, :cluster, :xandra) == :xandra
   end
 
+  test "keeps nil struct values" do
+    assert ensure_struct!(:case_name, :conn, nil, Plug.Conn) == nil
+  end
+
   test "ensures positive integer values" do
     assert ensure_positive_integer!(:case_name, :port, 1) == 1
   end

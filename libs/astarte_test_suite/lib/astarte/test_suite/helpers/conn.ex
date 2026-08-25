@@ -19,18 +19,12 @@
 defmodule Astarte.TestSuite.Helpers.Conn do
   @moduledoc false
 
-  @spec setup(map()) :: no_return()
+  import Astarte.TestSuite.CaseContext, only: [put_fixture: 3]
+
+  @spec setup(map()) :: map()
   def setup(context) do
-    raise_not_implemented(context)
-  end
-
-  @spec data(map()) :: no_return()
-  def data(context) do
-    raise_not_implemented(context)
-  end
-
-  @spec raise_not_implemented(map()) :: no_return()
-  defp raise_not_implemented(_context) do
-    raise "not implemented yet"
+    put_fixture(context, :conn, %{
+      conn_setup?: true
+    })
   end
 end

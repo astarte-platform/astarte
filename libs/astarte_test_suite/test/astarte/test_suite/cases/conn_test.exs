@@ -19,16 +19,35 @@
 defmodule Astarte.TestSuite.Cases.ConnTest do
   use ExUnit.Case, async: true
 
+  alias Plug.Conn
+
   alias Astarte.TestSuite.Cases.Conn, as: ConnCase
 
-  test "normalizes conn defaults" do
-    assert ConnCase.normalize_config!([]) == %{transport: :mqtt, port: 1883}
+  test "requires conn configuration" do
+    assert_raise ArgumentError, ~r/:conn requires :conn to be configured/, fn ->
+      ConnCase.normalize_config!([])
+    end
   end
 
   test "normalizes conn configuration" do
-    assert ConnCase.normalize_config!(transport: :http, port: 4000) == %{
-             transport: :http,
-             port: 4000
+    assert ConnCase.normalize_config!(conn: %Conn{}) == %{
+             conn: %Conn{}
            }
+  end
+
+  test "keeps an explicit nil conn configuration" do
+    assert ConnCase.normalize_config!(conn: nil) == %{conn: nil}
+  end
+
+  test "rejects invalid conn configuration" do
+    assert_raise ArgumentError, ~r/expects :conn to be a Plug.Conn struct/, fn ->
+      ConnCase.normalize_config!(conn: %{})
+    end
+  end
+
+  test "rejects a struct of the wrong type" do
+    assert_raise ArgumentError, ~r/expects :conn to be a Plug.Conn struct/, fn ->
+      ConnCase.normalize_config!(conn: %URI{})
+    end
   end
 end

@@ -131,6 +131,15 @@ defmodule Astarte.TestSuite.CaseContext do
   def ensure_atom!(case_name, key, _value),
     do: raise_expected_type!(case_name, key, "an atom")
 
+  def ensure_struct!(_case_name, _key, nil, _module), do: nil
+
+  def ensure_struct!(case_name, key, %{__struct__: actual_module} = value, expected_module) do
+    ensure_struct_result(actual_module == expected_module, case_name, key, value, expected_module)
+  end
+
+  def ensure_struct!(case_name, key, _value, module),
+    do: raise_expected_struct!(case_name, key, module)
+
   def ensure_positive_integer!(case_name, key, value) do
     case positive_integer?(value) do
       true -> value
@@ -298,6 +307,16 @@ defmodule Astarte.TestSuite.CaseContext do
   defp raise_expected_struct_list!(case_name, key, module) do
     raise ArgumentError,
           "#{inspect(case_name)} expects #{inspect(key)} to be a list of #{inspect(module)} structs"
+  end
+
+  defp ensure_struct_result(true, _case_name, _key, value, _module), do: value
+
+  defp ensure_struct_result(false, case_name, key, _value, module),
+    do: raise_expected_struct!(case_name, key, module)
+
+  defp raise_expected_struct!(case_name, key, module) do
+    raise ArgumentError,
+          "#{inspect(case_name)} expects #{inspect(key)} to be a #{inspect(module)} struct"
   end
 
   defp raise_missing_graph_object!(key, id) do

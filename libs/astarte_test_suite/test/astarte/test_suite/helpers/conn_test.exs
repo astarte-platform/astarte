@@ -19,17 +19,21 @@
 defmodule Astarte.TestSuite.Helpers.ConnTest do
   use ExUnit.Case, async: true
 
+  alias Plug.Conn
+
   alias Astarte.TestSuite.Helpers.Conn, as: ConnHelper
 
-  test "conn setup helper raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      ConnHelper.setup(%{instance_database_ready?: true})
-    end
+  test "conn setup helper records setup state" do
+    context = ConnHelper.setup(%{conn: %Conn{}})
+
+    assert context.conn_setup?
+    assert context.astarte_test_suite_fixture_steps == [:conn]
   end
 
-  test "conn data helper raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      ConnHelper.data(%{instance_database_ready?: true})
-    end
+  test "conn setup helper accepts nil values" do
+    context = ConnHelper.setup(%{conn: nil})
+
+    assert context.conn_setup?
+    assert context.astarte_test_suite_fixture_steps == [:conn]
   end
 end

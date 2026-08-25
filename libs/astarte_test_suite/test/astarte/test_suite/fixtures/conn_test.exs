@@ -19,17 +19,14 @@
 defmodule Astarte.TestSuite.Fixtures.ConnTest do
   use ExUnit.Case, async: true
 
+  alias Plug.Conn
+
   alias Astarte.TestSuite.Fixtures.Conn, as: ConnFixtures
 
-  test "conn setup fixture raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      ConnFixtures.setup(%{instance_database_ready?: true})
-    end
-  end
+  test "conn setup fixture records setup state" do
+    context = ConnFixtures.setup(%{conn: %Conn{}})
 
-  test "conn data fixture raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      ConnFixtures.data(%{instance_database_ready?: true})
-    end
+    assert context.conn_setup?
+    assert context.astarte_test_suite_fixture_steps == [:conn]
   end
 end

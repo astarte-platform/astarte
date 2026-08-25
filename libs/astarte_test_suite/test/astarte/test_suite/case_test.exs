@@ -78,10 +78,24 @@ defmodule Astarte.TestSuite.CaseTest do
            ) == %{label: "item-6"}
   end
 
-  test "normalizes params without defaults" do
+  test "requires params without defaults" do
     params = [value: []]
 
+    assert_raise ArgumentError, ~r/:sample requires :value to be configured/, fn ->
+      TestSuiteCase.normalize_config!(:sample, [], params)
+    end
+  end
+
+  test "materializes an explicit nil default" do
+    params = [value: [default: nil, type: :integer]]
+
     assert TestSuiteCase.normalize_config!(:sample, [], params) == %{value: nil}
+  end
+
+  test "materializes an explicit nil override" do
+    params = [value: [default: 1, type: :integer]]
+
+    assert TestSuiteCase.normalize_config!(:sample, [value: nil], params) == %{value: nil}
   end
 
   test "validates scalar rules" do

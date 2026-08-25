@@ -80,7 +80,9 @@ defmodule Astarte.TestSuite.MixProject do
       {:ecto, "~> 3.12.0", override: true},
       {:ecto_sql, "~> 3.12.0", override: true},
       {:decimal, "~> 3.0", override: true},
+      {:plug, "~> 1.20"},
       # Test section
+
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: [:test]},
