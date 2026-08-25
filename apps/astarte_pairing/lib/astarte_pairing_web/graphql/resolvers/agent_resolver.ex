@@ -40,8 +40,6 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver do
   def unregister_device(_parent, %{hw_id: hw_id}, %{context: context}) do
     realm = Map.fetch!(context, :realm_name)
 
-    :telemetry.execute([:astarte, :pairing, :unregister_device], %{}, %{realm: realm})
-
     case Agent.unregister_device(realm, hw_id) do
       :ok -> {:ok, "Device unregistered successfully"}
       {:error, reason} -> {:error, "Failed to unregister the device: #{inspect(reason)}"}

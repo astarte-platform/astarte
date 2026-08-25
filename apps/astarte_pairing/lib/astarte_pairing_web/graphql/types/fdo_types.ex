@@ -19,17 +19,17 @@
 defmodule Astarte.PairingWeb.GraphQL.Types.FdoTypes do
   use Absinthe.Schema.Notation
 
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+
   enum :key_algorithm do
-    value(:es256, as: "ecdsa-p256")
-    value(:es384, as: "ecdsa-p384")
-    value(:rs256, as: "rsa-2048")
-    value(:rs384, as: "rsa-3072")
+    value :es256, as: "ecdsa-p256"
+    value :es384, as: "ecdsa-p384"
+    value :rs256, as: "rsa-2048"
+    value :rs384, as: "rsa-3072"
   end
 
-  enum :ownership_voucher_status do
-    value(:created, as: "created")
-    value(:claimed, as: "claimed")
-  end
+  # Reuses the status values already defined on the Ecto schema.
+  enum :ownership_voucher_status, values: Ecto.Enum.values(OwnershipVoucher, :status)
 
   object :owner_keys_map do
     field :es256, list_of(:string)

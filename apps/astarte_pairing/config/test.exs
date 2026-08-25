@@ -106,6 +106,9 @@ config :astarte_fdo, :base_url_port, 4003
 config :astarte_fdo, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
 
+config :astarte_pairing, :openfga_url, "http://localhost:8081"
+config :astarte_pairing, :openfga_store_id, "test_store_id"
+
 config :astarte_secrets, vault_authentication_mechanism: :token
 config :astarte_secrets, vault_token: "astarte_token"
 
