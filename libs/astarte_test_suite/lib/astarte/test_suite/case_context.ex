@@ -126,6 +126,11 @@ defmodule Astarte.TestSuite.CaseContext do
   def ensure_boolean!(case_name, key, _value),
     do: raise_expected_type!(case_name, key, "a boolean")
 
+  def ensure_map!(_case_name, _key, value) when is_map(value), do: value
+
+  def ensure_map!(case_name, key, _value),
+    do: raise_expected_type!(case_name, key, "a map")
+
   def ensure_atom!(_case_name, _key, value) when is_atom(value), do: value
 
   def ensure_atom!(case_name, key, _value),

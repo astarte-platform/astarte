@@ -16,20 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TestSuite.Helpers.SecureTest do
+defmodule Astarte.TestSuite.Helpers.AuthConnTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.TestSuite.Helpers.Secure, as: SecureHelper
+  alias Plug.Conn
 
-  test "secure setup helper raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      SecureHelper.setup(%{conn_data_ready?: true})
-    end
-  end
+  alias Astarte.TestSuite.Helpers.AuthConn, as: AuthConnHelper
 
-  test "secure data helper raises not implemented" do
-    assert_raise RuntimeError, "not implemented yet", fn ->
-      SecureHelper.data(%{conn_data_ready?: true})
-    end
+  test "auth_conn setup helper adds authorization header" do
+    context = AuthConnHelper.setup(%{conn: %Conn{}, jwt: "token", claim: %{scope: "realm"}})
+
+    assert Conn.get_req_header(context.conn, "authorization") == ["bearer token"]
+    assert context.auth_conn_setup?
   end
 end

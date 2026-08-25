@@ -54,7 +54,7 @@ defmodule Astarte.TestSuite do
           -> device
             -> group
       -> conn
-        -> secure
+        -> auth_conn
     -> other
       -> dummy
 
@@ -123,6 +123,7 @@ defmodule Astarte.TestSuite do
   alias Astarte.TestSuite.ConfigurationError
   alias Astarte.TestSuite.Plan
 
+  alias Astarte.TestSuite.Cases.AuthConn, as: AuthConnCase
   alias Astarte.TestSuite.Cases.Common, as: CommonCase
   alias Astarte.TestSuite.Cases.Conn, as: ConnCase
   alias Astarte.TestSuite.Cases.Device, as: DeviceCase
@@ -132,7 +133,6 @@ defmodule Astarte.TestSuite do
   alias Astarte.TestSuite.Cases.Interface, as: InterfaceCase
   alias Astarte.TestSuite.Cases.Other, as: OtherCase
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
-  alias Astarte.TestSuite.Cases.Secure, as: SecureCase
 
   @graph [
     common: [
@@ -163,8 +163,8 @@ defmodule Astarte.TestSuite do
       module: ConnCase,
       parents: [:instance]
     ],
-    secure: [
-      module: SecureCase,
+    auth_conn: [
+      module: AuthConnCase,
       parents: [:conn]
     ],
     other: [

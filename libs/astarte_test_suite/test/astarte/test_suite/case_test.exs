@@ -103,14 +103,15 @@ defmodule Astarte.TestSuite.CaseTest do
       name: [type: :binary],
       count: [type: :integer],
       enabled: [type: :boolean],
+      claim: [type: :map],
       port: [type: :positive_integer]
     ]
 
     assert TestSuiteCase.normalize_config!(
              :sample,
-             [name: "suite", count: 1, enabled: false, port: 1883],
+             [name: "suite", count: 1, enabled: false, claim: %{}, port: 1883],
              params
-           ) == %{name: "suite", count: 1, enabled: false, port: 1883}
+           ) == %{name: "suite", count: 1, enabled: false, claim: %{}, port: 1883}
   end
 
   test "validates one_of rules" do
@@ -170,6 +171,12 @@ defmodule Astarte.TestSuite.CaseTest do
   test "rejects invalid boolean parameter values" do
     assert_raise ArgumentError, ~r/expects :enabled to be a boolean/, fn ->
       TestSuiteCase.normalize_config!(:sample, [enabled: "true"], enabled: [type: :boolean])
+    end
+  end
+
+  test "rejects invalid map parameter values" do
+    assert_raise ArgumentError, ~r/expects :claim to be a map/, fn ->
+      TestSuiteCase.normalize_config!(:sample, [claim: "claim"], claim: [type: :map])
     end
   end
 

@@ -16,22 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TestSuite.Cases.SecureTest do
-  use ExUnit.Case, async: true
+defmodule Astarte.TestSuite.Helpers.AuthConn do
+  @moduledoc false
 
-  alias Astarte.TestSuite.Cases.Secure, as: SecureCase
+  import Astarte.TestSuite.CaseContext, only: [put_fixture: 3]
 
-  test "normalizes secure defaults" do
-    assert SecureCase.normalize_config!([]) == %{
-             token_ttl: 300,
-             scopes: ["appengine:realm-management"]
-           }
-  end
+  alias Plug.Conn
 
-  test "normalizes secure configuration" do
-    assert SecureCase.normalize_config!(token_ttl: 60, scopes: ["realm"]) == %{
-             token_ttl: 60,
-             scopes: ["realm"]
-           }
+  @spec setup(map()) :: map()
+  def setup(%{conn: conn, jwt: jwt} = context) do
+    conn = Conn.put_req_header(conn, "authorization", "bearer #{jwt}")
+
+    context
+    |> Map.put(:conn, conn)
+    |> put_fixture(:auth_conn, %{auth_conn_setup?: true})
   end
 end

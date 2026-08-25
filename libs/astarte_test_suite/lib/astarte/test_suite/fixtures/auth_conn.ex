@@ -16,14 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TestSuite.Fixtures.Secure do
+defmodule Astarte.TestSuite.Fixtures.AuthConn do
   @moduledoc false
 
-  alias Astarte.TestSuite.Helpers.Secure, as: SecureHelper
+  alias Astarte.TestSuite.Helpers.AuthConn, as: AuthConnHelper
 
-  @spec setup(map()) :: no_return()
-  def setup(context), do: SecureHelper.setup(context)
-
-  @spec data(map()) :: no_return()
-  def data(context), do: SecureHelper.data(context)
+  @spec setup(map()) :: map()
+  def setup(context), do: AuthConnHelper.setup(context)
 end

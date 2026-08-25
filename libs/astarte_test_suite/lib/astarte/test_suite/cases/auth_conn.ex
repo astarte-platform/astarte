@@ -16,21 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TestSuite.Helpers.Secure do
+defmodule Astarte.TestSuite.Cases.AuthConn do
   @moduledoc false
 
-  @spec setup(map()) :: no_return()
-  def setup(context) do
-    raise_not_implemented(context)
-  end
+  use Astarte.TestSuite.Case,
+    name: :auth_conn,
+    params: [
+      jwt: [type: :binary],
+      claim: [type: :map]
+    ]
 
-  @spec data(map()) :: no_return()
-  def data(context) do
-    raise_not_implemented(context)
-  end
+  alias Astarte.TestSuite.Fixtures.AuthConn, as: AuthConnFixtures
 
-  @spec raise_not_implemented(map()) :: no_return()
-  defp raise_not_implemented(_context) do
-    raise "not implemented yet"
-  end
+  setup_all [
+    {AuthConnFixtures, :setup}
+  ]
 end

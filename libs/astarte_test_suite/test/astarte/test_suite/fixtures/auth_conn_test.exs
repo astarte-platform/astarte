@@ -16,20 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TestSuite.Cases.Secure do
-  @moduledoc false
+defmodule Astarte.TestSuite.Fixtures.AuthConnTest do
+  use ExUnit.Case, async: true
 
-  use Astarte.TestSuite.Case,
-    name: :secure,
-    params: [
-      token_ttl: [default: 300, type: :positive_integer],
-      scopes: [default: ["appengine:realm-management"], list_of: :binary]
-    ]
+  alias Plug.Conn
 
-  alias Astarte.TestSuite.Fixtures.Secure, as: SecureFixtures
+  alias Astarte.TestSuite.Fixtures.AuthConn, as: AuthConnFixtures
 
-  setup_all [
-    {SecureFixtures, :setup},
-    {SecureFixtures, :data}
-  ]
+  test "auth_conn setup fixture adds authorization header" do
+    context = AuthConnFixtures.setup(%{conn: %Conn{}, jwt: "token", claim: %{scope: "realm"}})
+
+    assert Plug.Conn.get_req_header(context.conn, "authorization") == ["bearer token"]
+    assert context.auth_conn_setup?
+  end
 end

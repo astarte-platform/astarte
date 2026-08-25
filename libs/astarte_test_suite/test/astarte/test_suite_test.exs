@@ -42,7 +42,7 @@ defmodule Astarte.TestSuiteTest do
   defmodule RandomOrderMacroTest do
     use Astarte.TestSuite,
       conn: [conn: %Plug.Conn{}],
-      secure: [token_ttl: 60],
+      auth_conn: [jwt: "token", claim: %{scope: "realm"}],
       group: [group_number: 4],
       instance: true,
       common: true
@@ -115,14 +115,14 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "planner produces equal load order for random user input order" do
-    first = Astarte.TestSuite.plan!(secure: true, group: true, common: true)
-    second = Astarte.TestSuite.plan!(common: true, group: true, secure: true)
+    first = Astarte.TestSuite.plan!(auth_conn: true, group: true, common: true)
+    second = Astarte.TestSuite.plan!(common: true, group: true, auth_conn: true)
 
     assert first.load_order == second.load_order
   end
 
   test "planner keeps topological order for random user input order" do
-    first = Astarte.TestSuite.plan!(secure: true, group: true, common: true)
+    first = Astarte.TestSuite.plan!(auth_conn: true, group: true, common: true)
 
     assert first.load_order == [
              :common,
@@ -132,7 +132,7 @@ defmodule Astarte.TestSuiteTest do
              :device,
              :group,
              :conn,
-             :secure
+             :auth_conn
            ]
   end
 
@@ -140,12 +140,12 @@ defmodule Astarte.TestSuiteTest do
     assert Astarte.TestSuite.plan!(dummy: true).load_order == [:common, :other, :dummy]
   end
 
-  test "planner keeps secure branch independent" do
-    assert Astarte.TestSuite.plan!(secure: true).load_order == [
+  test "planner keeps auth_conn branch independent" do
+    assert Astarte.TestSuite.plan!(auth_conn: true).load_order == [
              :common,
              :instance,
              :conn,
-             :secure
+             :auth_conn
            ]
   end
 
@@ -190,7 +190,7 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "planner exposes deterministic load order for mixed descendants" do
-    assert Astarte.TestSuite.plan!(secure: true, dummy: true, group: true).load_order == [
+    assert Astarte.TestSuite.plan!(auth_conn: true, dummy: true, group: true).load_order == [
              :common,
              :instance,
              :realm,
@@ -198,7 +198,7 @@ defmodule Astarte.TestSuiteTest do
              :device,
              :group,
              :conn,
-             :secure,
+             :auth_conn,
              :other,
              :dummy
            ]
@@ -373,7 +373,7 @@ defmodule Astarte.TestSuiteTest do
              :device,
              :group,
              :conn,
-             :secure
+             :auth_conn
            ]
   end
 

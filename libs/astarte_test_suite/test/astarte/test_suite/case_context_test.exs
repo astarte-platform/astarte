@@ -123,6 +123,10 @@ defmodule Astarte.TestSuite.CaseContextTest do
     assert ensure_boolean!(:case_name, :enabled, true)
   end
 
+  test "ensures map values" do
+    assert ensure_map!(:case_name, :claim, %{scope: "realm"}) == %{scope: "realm"}
+  end
+
   test "ensures atom values" do
     assert ensure_atom!(:case_name, :cluster, :xandra) == :xandra
   end
@@ -150,6 +154,12 @@ defmodule Astarte.TestSuite.CaseContextTest do
   test "rejects invalid boolean values" do
     assert_raise ArgumentError, ~r/expects :enabled to be a boolean/, fn ->
       ensure_boolean!(:case_name, :enabled, "true")
+    end
+  end
+
+  test "rejects invalid map values" do
+    assert_raise ArgumentError, ~r/expects :claim to be a map/, fn ->
+      ensure_map!(:case_name, :claim, "claim")
     end
   end
 

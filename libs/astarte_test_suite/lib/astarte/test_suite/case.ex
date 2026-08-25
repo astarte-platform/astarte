@@ -62,7 +62,7 @@ defmodule Astarte.TestSuite.Case do
     caller.
   - An explicit `default: nil` is materialized as `nil` and is distinct from an
     absent `:default`.
-  - `type: :atom`, `:binary`, `:integer`, `:boolean`, or `:positive_integer`
+  - `type: :atom`, `:binary`, `:integer`, `:boolean`, `:map`, or `:positive_integer`
     validates a scalar value.
   - `type: Module` validates a struct of that module. `nil` is always accepted
     as an explicit value.
@@ -232,6 +232,9 @@ defmodule Astarte.TestSuite.Case do
   defp validate_type!(value, case_name, key, {:ok, :boolean}),
     do: validate_nimble_type!(value, case_name, key, :boolean, {:type, :boolean})
 
+  defp validate_type!(value, case_name, key, {:ok, :map}),
+    do: validate_nimble_type!(value, case_name, key, :map, {:type, :map})
+
   defp validate_type!(value, case_name, key, {:ok, :atom}),
     do: validate_nimble_type!(value, case_name, key, :atom, {:type, :atom})
 
@@ -293,6 +296,9 @@ defmodule Astarte.TestSuite.Case do
 
   defp raise_validation_error!(value, case_name, key, {:type, :boolean}),
     do: CaseContext.ensure_boolean!(case_name, key, value)
+
+  defp raise_validation_error!(value, case_name, key, {:type, :map}),
+    do: CaseContext.ensure_map!(case_name, key, value)
 
   defp raise_validation_error!(value, case_name, key, {:type, :atom}),
     do: CaseContext.ensure_atom!(case_name, key, value)
