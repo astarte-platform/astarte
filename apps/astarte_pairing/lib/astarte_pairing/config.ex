@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.Config do
   This module contains functions to access the configuration
   """
 
-  use Skogsra
+  use Astarte.Config, env_app: "ASTARTE_PAIRING"
 
   alias Astarte.FDO.Config, as: FDOConfig
   alias Astarte.Pairing.CFSSLCredentials
@@ -161,6 +161,14 @@ defmodule Astarte.Pairing.Config do
   app_env :trigger_cache_name, :astarte_pairing, :trigger_cache_name,
     type: :atom,
     default: :trigger_cache
+
+  url_env(:openfga, :astarte_pairing, :openfga, default_port: 8080)
+
+  @envdoc "The OpenFGA store id to use for authorization checks."
+  app_env :openfga_store_id, :astarte_pairing, :openfga_store_id,
+    os_env: "ASTARTE_PAIRING_OPENFGA_STORE_ID",
+    type: :binary,
+    required: true
 
   @doc """
   Returns the cassandra node configuration
