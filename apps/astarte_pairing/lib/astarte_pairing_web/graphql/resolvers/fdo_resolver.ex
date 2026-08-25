@@ -17,28 +17,29 @@
 #
 
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDOOperations
+  alias Astarte.PairingWeb.ChangesetView
+  alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
-  alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.FDO.OwnershipVoucher.LoadRequest
-  alias Astarte.FDO.TO0
 
   def list_owner_keys(_parent, %{key_algorithm: alg}, %{context: %{realm_name: realm}}) do
-    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(alg),
-         {:ok, keys} <- Secrets.Core.get_keys(realm, [algorithm_atom]) do
-      {:ok, keys}
+    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(alg) do
+      Secrets.Core.get_keys(realm, [algorithm_atom])
     end
   end
 
   def list_owner_keys(_parent, _args, %{context: %{realm_name: realm}}) do
     supported_key_algorithms = [:es256, :es384, :rs256, :rs384]
-    with {:ok, keys} <- Secrets.Core.get_keys(realm, supported_key_algorithms) do
-      {:ok, keys}
-    end
+
+    Secrets.Core.get_keys(realm, supported_key_algorithms)
   end
 
-  def get_owner_key(_parent, %{key_algorithm: alg, key_name: key_name}, %{context: %{realm_name: realm}}) do
+  def get_owner_key(_parent, %{key_algorithm: alg, key_name: key_name}, %{
+        context: %{realm_name: realm}
+      }) do
     with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(alg),
          {:ok, key} <- Secrets.Core.find_key(realm, key_name, algorithm_atom) do
       {:ok, %{key_name: key.name, public_key: key.public_pem}}
@@ -49,42 +50,34 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
   end
 
   def create_or_upload_owner_key(_parent, args, %{context: %{realm_name: realm}}) do
-    # Map atom keys to string keys for changeset casting
-    params = for {k, v} <- args, into: %{}, do: {Atom.to_string(k), v}
-    changeset = OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, params)
+    changeset = OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, args)
 
     with {:ok, validated_options} <- Ecto.Changeset.apply_action(changeset, :insert),
          {:ok, resp} <- OwnerKeyInitialization.create_or_upload(validated_options, realm) do
       {:ok, resp}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, "Validation failed: #{inspect(changeset.errors)}"}
+        {:error, "Validation failed: #{format_changeset_errors(changeset)}"}
+
       {:error, reason} ->
         {:error, reason}
     end
   end
 
   def owner_keys_for_voucher(_parent, %{ownership_voucher: pem}, %{context: %{realm_name: realm}}) do
-    with {:ok, voucher} <- OwnershipVoucher.decode_binary_voucher(pem),
-         key_algorithm = OwnershipVoucher.key_algorithm(voucher),
-         {:ok, keys_map} <- Secrets.Core.get_keys(realm, key_algorithm) do
-      {:ok, keys_map}
-    else
-      {:error, reason} -> {:error, reason}
+    with {:ok, voucher} <- OwnershipVoucher.decode_binary_voucher(pem) do
+      key_algorithm = OwnershipVoucher.key_algorithm(voucher)
+      Secrets.Core.get_keys(realm, key_algorithm)
     end
   end
 
   def list_ownership_vouchers(_parent, _args, %{context: %{realm_name: realm}}) do
     with {:ok, vouchers} <- OwnershipVoucher.list(realm) do
-      formatted_vouchers = Enum.map(vouchers, fn v ->
-        %{
-          guid: UUID.binary_to_string!(v.guid),
-          status: v.status,
-          output_guid: if(v.replacement_guid, do: UUID.binary_to_string!(v.replacement_guid)),
-          input_voucher: format_binary_voucher(v.voucher_data),
-          output_voucher: if(v.output_voucher, do: format_binary_voucher(v.output_voucher))
-        }
-      end)
+      formatted_vouchers =
+        Enum.map(vouchers, fn voucher ->
+          OwnershipVoucherView.render("ownership_voucher.json", %{ownership_voucher: voucher})
+        end)
+
       {:ok, formatted_vouchers}
     end
   end
@@ -96,45 +89,28 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
       "key_algorithm" => args.key_algorithm,
       "replacement_public_key" => Map.get(args, :replacement_public_key),
       "replacement_guid" => Map.get(args, :replacement_guid),
-      "replacement_rendezvous_info" => Map.get(args, :replacement_rendezvous_info),
-      "realm_name" => realm
+      "replacement_rendezvous_info" => Map.get(args, :replacement_rendezvous_info)
     }
 
-    with {:ok, req} <- LoadRequest.changeset(%LoadRequest{}, params) |> Ecto.Changeset.apply_action(:insert),
-         :ok <- OwnershipVoucher.save_voucher(realm, %{
-           voucher_data: req.cbor_ownership_voucher,
-           guid: req.device_guid,
-           key_name: req.key_name,
-           key_algorithm: req.key_algorithm,
-           replacement_guid: req.replacement_guid,
-           replacement_rendezvous_info: req.decoded_replacement_rendezvous_info,
-           replacement_public_key: req.decoded_replacement_public_key
-         }),
-         :ok <- TO0.claim_ownership_voucher(realm, req.decoded_ownership_voucher, req.extracted_owner_key) do
-      {:ok, %{
-        public_key: req.extracted_owner_key.public_pem,
-        guid: UUID.binary_to_string!(req.device_guid)
-      }}
-    else
+    case FDOOperations.register_ownership_voucher(params, realm) do
+      {:ok, resp} ->
+        {:ok,
+         %{
+           public_key: resp.public_key,
+           guid: UUID.binary_to_string!(resp.guid)
+         }}
+
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, "Validation failed: #{inspect(changeset.errors)}"}
+        {:error, "Validation failed: #{format_changeset_errors(changeset)}"}
+
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp format_binary_voucher(binary_voucher) do
-    encoded =
-      Base.encode64(binary_voucher)
-      |> String.to_charlist()
-      |> Enum.chunk_every(64)
-      |> Enum.intersperse("\n")
-      |> List.flatten()
-
-    """
-    -----BEGIN OWNERSHIP VOUCHER-----
-    #{encoded}
-    -----END OWNERSHIP VOUCHER-----
-    """
+  defp format_changeset_errors(changeset) do
+    changeset
+    |> ChangesetView.translate_errors()
+    |> Jason.encode!()
   end
 end

@@ -21,8 +21,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use OpenApiSpex.ControllerSpecs
 
   alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.FDO.OwnershipVoucher.LoadRequest
-  alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.FDOOperations
   alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher, as: OVApiSpec
   alias Astarte.PairingWeb.OwnershipVoucherView
@@ -214,26 +213,11 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   Returns `200 OK` with the owner public key PEM on success.
   """
   def register(conn, %{"data" => data, "realm_name" => realm_name}) do
-    with {:ok, req} <-
-           LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
-           |> Ecto.Changeset.apply_action(:insert),
-         {:ok, expiry} <-
-           OwnershipVoucher.claim_on_rendezvous(
-             req.device_guid,
-             req.decoded_ownership_voucher,
-             req.extracted_owner_key
-           ),
-         :ok <- LoadRequest.store_voucher(req, expiry),
-         opts = [
-           initial_introspection: req.initial_introspection,
-           with_credentials?: false,
-           fdo_guid: req.device_guid
-         ],
-         {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
+    with {:ok, resp} <- FDOOperations.register_ownership_voucher(data, realm_name) do
       json(conn, %{
         data: %{
-          public_key: req.extracted_owner_key.public_pem,
-          guid: UUID.binary_to_string!(req.device_guid)
+          public_key: resp.public_key,
+          guid: UUID.binary_to_string!(resp.guid)
         }
       })
     end

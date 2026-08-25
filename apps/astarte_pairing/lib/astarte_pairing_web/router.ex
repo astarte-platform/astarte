@@ -111,11 +111,8 @@ defmodule Astarte.PairingWeb.Router do
 
   scope "/v1" do
     pipe_through [:graphql]
-    forward "/graphql", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
-  end
 
-  scope "/v1" do
-    pipe_through [:graphql]
+    forward "/graphql", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
 
     forward "/graphiql", Absinthe.Plug.GraphiQL,
       schema: Astarte.PairingWeb.GraphQL.Schema,

@@ -1,18 +1,12 @@
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
-  alias Astarte.Pairing.Info
   alias Astarte.Pairing.Credentials
-
+  alias Astarte.Pairing.Info
 
   @doc """
   Retrieves device status information using the device credentials secret.
   """
   def get_device(_parent, %{hw_id: hw_id}, %{context: context}) do
-    realm = Map.get(context, :realm_name)
-    secret = Map.get(context, :device_secret)
-
-    if is_nil(realm) or is_nil(secret) do
-      {:error, "Unauthorized: Missing realm or device secret in context"}
-    else
+    with_device_context(context, fn realm, secret ->
       case Info.get_device_info(realm, hw_id, secret) do
         {:ok, device_info} ->
           {:ok, format_device_response(hw_id, device_info)}
@@ -20,21 +14,16 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
         {:error, reason} ->
           {:error, "Failed to retrieve the device: #{inspect(reason)}"}
       end
-    end
+    end)
   end
 
-
   @doc """
-  Sends a CSR to the Astarte core to issue an MQTT client_crt.
+  Requests an MQTT client certificate for the device by submitting its CSR
+  to Astarte's CA.
   """
   def obtain_credentials(_parent, %{hw_id: hw_id, csr: csr}, %{context: context}) do
-    realm = Map.get(context, :realm_name)
-    secret = Map.get(context, :device_secret)
-    device_ip = Map.get(context, :device_ip) || "127.0.0.1"
-
-    if is_nil(realm) or is_nil(secret) do
-      {:error, "Unauthorized: Missing realm or device secret in context"}
-    else
+    with_device_context(context, fn realm, secret ->
+      device_ip = Map.get(context, :device_ip, "127.0.0.1")
       params = %{csr: csr}
 
       case Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
@@ -44,19 +33,14 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
         {:error, reason} ->
           {:error, "Failed to generate the certificate: #{inspect(reason)}"}
       end
-    end
+    end)
   end
 
   @doc """
-  Verifies the validity of a client_crt with the Astarte core.
+  Checks whether a device's MQTT client certificate is still valid.
   """
   def verify_credentials(_parent, %{hw_id: hw_id, client_crt: client_crt}, %{context: context}) do
-    realm = Map.get(context, :realm_name)
-    secret = Map.get(context, :device_secret)
-
-    if is_nil(realm) or is_nil(secret) do
-      {:error, "Unauthorized: Missing realm or device secret in context"}
-    else
+    with_device_context(context, fn realm, secret ->
       params = %{client_crt: client_crt}
 
       case Credentials.verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
@@ -73,12 +57,24 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
         {:error, reason} ->
           {:error, "Failed to verify the certificate: #{inspect(reason)}"}
       end
+    end)
+  end
+
+  # These endpoints authenticate the caller via the device's own credentials
+  # secret (not an Agent JWT), so this check isn't handled by AuthorizeFGA.
+  defp with_device_context(context, fun) do
+    realm = Map.get(context, :realm_name)
+    secret = Map.get(context, :device_secret)
+
+    if is_nil(realm) or is_nil(secret) do
+      {:error, "Unauthorized: Missing realm or device secret in context"}
+    else
+      fun.(realm, secret)
     end
   end
 
   defp format_device_response(hw_id, %Info.DeviceInfo{} = info) do
     %{
-      id: hw_id,
       hw_id: hw_id,
       info: %{
         version: info.version,
