@@ -6,7 +6,7 @@
     ".": {
       "release-type": "elixir",
       "prerelease": true,
-      "prerelease-type": "dev",
+      "prerelease-type": "rc",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         { "type": "generic", "path": "apps/astarte_appengine_api/mix.exs" },
