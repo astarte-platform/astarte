@@ -11,7 +11,7 @@ on:
       - ".github/codecov.yml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[0-9]+.[0-9]+"
   # Run on branch/tag creation
   create:
   # Run on pull requests for astarte_realm_management
