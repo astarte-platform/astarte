@@ -12,7 +12,7 @@ on:
       - ".github/workflows/publish-vmq-plugin-snapshot-to-dockerhub-workflow.yaml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
 
 jobs:
   astarte_vmq_plugin:

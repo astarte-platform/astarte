@@ -12,7 +12,7 @@ on:
       - ".github/workflows/publish-dashboard-snapshot-to-dockerhub.yaml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
 
 jobs:
   build_snapshot:

@@ -11,7 +11,7 @@ on:
       - ".github/workflows/publish-tool-snapshot-to-dockerhub-workflow.yaml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
   workflow_dispatch:
 
 jobs:

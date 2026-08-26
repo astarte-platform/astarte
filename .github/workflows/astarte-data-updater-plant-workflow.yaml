@@ -11,7 +11,7 @@ on:
       - ".github/codecov.yml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
   # Run on branch/tag creation
   create:
   # Run on pull requests for astarte_data_updater_plant

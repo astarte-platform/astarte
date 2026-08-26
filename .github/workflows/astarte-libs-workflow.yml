@@ -9,7 +9,7 @@ on:
       - ".github/codecov.yml"
     branches:
       - "master"
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
   create:
   pull_request:
     paths:

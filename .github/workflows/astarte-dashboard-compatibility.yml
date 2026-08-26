@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - "release-*"
+      - "release-[\d]+\.[\d]+"
     paths:
       - "astarte-dashboard/**"
       - ".github/workflows/astarte-dashboard-compatibility.yml"
