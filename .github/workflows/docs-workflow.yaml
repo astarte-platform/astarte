@@ -15,7 +15,7 @@ on:
     branches:
       # Create the snapshot only when it matters
       - "master"
-      - "release-*"
+      - "release-[0-9]+.[0-9]+"
   # Run on branch/tag creation
   create:
 
