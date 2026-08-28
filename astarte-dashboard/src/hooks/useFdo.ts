@@ -9,6 +9,7 @@ interface UploadState {
 export const useFdo = () => {
   const { client } = useAstarte();
   const [state, setState] = useState<UploadState>({ status: 'idle', error: null });
+  const [deleteState, setDeleteState] = useState<UploadState>({ status: 'idle', error: null });
 
   const uploadVoucher = useCallback(
     async (
@@ -35,9 +36,27 @@ export const useFdo = () => {
     [client],
   );
 
+  const deleteVoucher = useCallback(
+    async (guid: string) => {
+      setDeleteState({ status: 'loading', error: null });
+
+      try {
+        await client.deleteFdoVoucher(guid);
+        setDeleteState({ status: 'success', error: null });
+      } catch (err: any) {
+        setDeleteState({ status: 'error', error: err });
+        throw err;
+      }
+    },
+    [client],
+  );
+
   return {
     uploadVoucher,
     status: state.status,
     error: state.error,
+    deleteVoucher,
+    deleteStatus: deleteState.status,
+    deleteError: deleteState.error,
   };
 };

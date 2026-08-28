@@ -207,6 +207,7 @@ class AstarteClient {
     this.listFdoOwnerKeys = this.listFdoOwnerKeys.bind(this);
     this.getFdoOwnerKey = this.getFdoOwnerKey.bind(this);
     this.listFdoVouchers = this.listFdoVouchers.bind(this);
+    this.deleteFdoVoucher = this.deleteFdoVoucher.bind(this);
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
@@ -253,6 +254,7 @@ class AstarteClient {
       // Ownership Vouchers (OpenBao-backed, agent API)
       fdoOwnerKeysForVoucher: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys_for_voucher`,
       fdoOwnershipVouchers: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers`,
+      fdoOwnershipVoucherDetail: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers/${'guid'}`,
     };
   }
 
@@ -950,6 +952,14 @@ class AstarteClient {
       url: this.apiConfig.fdoOwnershipVouchers(this.config),
       headers: { Authorization: `Bearer ${this.token}` },
     }).then((response) => response.data.data ?? []);
+  }
+
+  async deleteFdoVoucher(guid: string): Promise<void> {
+    await axios({
+      method: 'delete',
+      url: this.apiConfig.fdoOwnershipVoucherDetail({ ...this.config, guid }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
   }
 
   private async $get(url: string) {
