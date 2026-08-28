@@ -1,26 +1,42 @@
 #[cfg(feature = "clap")]
 use clap::{Args, ValueEnum};
+use serde::Deserialize;
 
 use std::collections::HashMap;
 
 use astarte_device_sdk::{AstarteData, Client};
 use chrono::Utc;
-use eyre::ensure;
+use eyre::{ensure, eyre};
 use tracing::info;
 
 use crate::check_astarte_value;
 use crate::interfaces::{AstarteClient, InterfaceData};
 use crate::room::Room;
+use crate::scenarios::interfaces::device::individual_datastream::Repetitions::{Finite, Infinity};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct Config {
     /// Time interval between consecutive checks (in seconds).
-    #[cfg_attr(feature = "clap", arg(long, env = "E2E_CHECK_INTERVAL_SECONDS"))]
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, env = "E2E_CHECK_INTERVAL_SECONDS", default_value_t = 60)
+    )]
     pub check_interval: u64,
     /// Variant of the check to run.
     #[cfg_attr(feature = "clap", arg(long, env = "E2E_INDIVIDUAL_DATASTREAM_VARIANT"))]
     pub individual_datastream_variant: Variant,
+    #[cfg_attr(feature = "clap", arg(long, env = "E2E_CHECK_REPETITIONS", default_value = "0", value_parser = check_repetitions_from_env))]
+    pub repetitions: Repetitions,
+    #[cfg_attr(
+        feature = "clap",
+        arg(
+            long,
+            env = "E2E_ROUNDTRIP_STRATEGY",
+            default_value = "volatile-trigger"
+        )
+    )]
+    pub roudtrip_strategy: RonundTripStrategy,
 }
 
 #[derive(Clone, Debug)]
@@ -32,6 +48,21 @@ pub enum Variant {
     CustomDeviceDatastream,
     #[cfg_attr(feature = "clap", clap(name = "overflow"))]
     DeviceDatastreamOverflow,
+}
+
+#[derive(Debug, Clone)]
+pub enum Repetitions {
+    Infinity,
+    Finite(u32),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "clap", derive(ValueEnum))]
+#[serde(rename_all = "kebab-case")]
+pub enum RonundTripStrategy {
+    VolatileTrigger,
+    HTTPTrigger,
+    AMQPTrigger,
 }
 
 impl Variant {
@@ -164,4 +195,12 @@ pub async fn check(channel: &mut Room, client: &mut AstarteClient) -> eyre::Resu
     validate_individual::<CustomDeviceDatastream>(channel, client).await?;
 
     Ok(())
+}
+
+fn check_repetitions_from_env(input: &str) -> eyre::Result<Repetitions> {
+    match input.parse::<u32>() {
+        Ok(0) => Ok(Infinity),
+        Ok(n) => Ok(Finite(n)),
+        Err(_) => Err(eyre!("Invalid u32: {input}")),
+    }
 }

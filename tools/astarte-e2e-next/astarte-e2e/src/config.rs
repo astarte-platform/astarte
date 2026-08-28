@@ -6,7 +6,7 @@ use reqwest::Url;
 
 use crate::astarte::ApiClient;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct AstarteConfig {
     /// Astarte API URL
@@ -45,7 +45,7 @@ pub struct AstarteConfig {
     pub jwt: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct DeviceConfig {
     /// Device id.
@@ -106,7 +106,7 @@ impl AstarteConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct AmqpConfig {
     /// RabbitMQ host for trigger events
@@ -147,7 +147,7 @@ impl AmqpConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct Config {
     #[cfg_attr(feature = "clap", command(flatten))]
