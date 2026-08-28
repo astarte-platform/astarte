@@ -25,6 +25,10 @@ defmodule Astarte.FDO.OwnershipVoucher do
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
+  alias Astarte.FDO.TO0
+  alias Astarte.Secrets
+
+  require Logger
 
   def save_voucher(realm_name, attrs) do
     with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
@@ -34,6 +38,35 @@ defmodule Astarte.FDO.OwnershipVoucher do
 
   def list(realm_name) do
     Queries.list_ownership_vouchers(realm_name)
+  end
+
+  @doc """
+  Deletes an ownership voucher.
+
+  The corresponding registration on the FDO rendezvous server is revoked first;
+  if that fails, the voucher is not deleted.
+  """
+  def delete(realm_name, guid) do
+    with {:ok, voucher_cbor} <- Queries.get_ownership_voucher(realm_name, guid),
+         :ok <- revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
+      Queries.delete_ownership_voucher(realm_name, guid)
+    end
+  end
+
+  defp revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
+    with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
+         :ok <- TO0.revoke_ownership_voucher(realm_name, decoded_voucher, owner_key) do
+      :ok
+    else
+      error ->
+        Logger.warning(
+          "Failed to revoke rendezvous registration for ownership voucher " <>
+            "guid=#{inspect(guid)}: #{inspect(error)}. The voucher was not deleted."
+        )
+
+        {:error, :rendezvous_revocation_failed}
+    end
   end
 
   def fetch(realm_name, guid) do
