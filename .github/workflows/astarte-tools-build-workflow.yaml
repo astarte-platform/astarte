@@ -1,0 +1,79 @@
+name: Astarte tools build
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/astarte-tools-build-workflow.yaml'
+    branches:
+      - 'master'
+      - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests matching tools
+  pull_request:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/astarte-tools-build-workflow.yaml'
+  # Allow this workflow to be called by others
+  workflow_call:
+
+env:
+  elixir_version: "1.15"
+  otp_version: "26.1"
+
+jobs:
+  build:
+    name: Build tools
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - astarte_dev_tool
+          - astarte_device_fleet_simulator
+          - astarte_import
+          - astarte_export
+        database:
+          - "scylladb/scylla:6.2"
+    services:
+      database:
+        image: ${{ matrix.database }}
+        ports:
+          - 9042:9042
+    env:
+      CASSANDRA_DB_HOST: 127.0.0.1
+      CASSANDRA_DB_PORT: 9042
+    steps:
+    - name : Checkout
+      uses: actions/checkout@v3
+    - uses: actions/cache@v3
+      with:
+        path: tools/${{ matrix.app }}/deps
+        key: ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/tools/', matrix.app, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+    - uses: actions/cache@v3
+      with:
+        path: tools/${{ matrix.app }}/_build
+        key: ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+    - name: Set up Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      working-directory: tools/${{ matrix.app }}
+      run: mix deps.get
+    - name: Check formatting
+      working-directory: tools/${{ matrix.app }}
+      run: mix format --check-formatted
+    - name: Build
+      working-directory: tools/${{ matrix.app }}
+      run: mix compile  
+    - name: Run tests
+      working-directory: tools/${{ matrix.app }}
+      run: mix test
