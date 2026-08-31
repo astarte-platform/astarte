@@ -15,22 +15,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-License-Identifier: Apache-2.0
-#
 
-defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.DeleteVolatileTrigger.RequestData do
-  @moduledoc false
+defmodule Astarte.RPC.VolatileTriggers.VolatileTriggerInstallation do
+  @moduledoc """
+  Volatile Trigger Installation request data.
+  """
 
-  defstruct [
-    :realm_name,
-    :device_id,
-    :trigger_id
-  ]
+  use TypedStruct
 
-  # TODO: actually type things
-  @type t() :: %__MODULE__{
-          realm_name: String.t(),
-          device_id: binary(),
-          trigger_id: binary()
-        }
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Events.Triggers.Core
+
+  typedstruct do
+    field :realm_name, String.t()
+    field :simple_trigger, TaggedSimpleTrigger.t()
+    field :target, AMQPTriggerTarget.t()
+    field :data, Core.fetch_triggers_data()
+  end
 end

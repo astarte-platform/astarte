@@ -28,33 +28,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Mississippi.Consumer.DataUpdater
 
-  def install_volatile_trigger(volatile_trigger) do
-    %{
-      realm_name: realm,
-      device_id: encoded_device_id,
-      parent_id: parent_id,
-      simple_trigger_id: trigger_id,
-      simple_trigger: simple_trigger,
-      trigger_target: trigger_target
-    } = volatile_trigger
-
-    signal =
-      {:install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target}
-
-    signal_existing_device(realm, encoded_device_id, signal)
-  end
-
-  def delete_volatile_trigger(delete_request) do
-    %{
-      realm_name: realm,
-      device_id: encoded_device_id,
-      trigger_id: trigger_id
-    } = delete_request
-
-    signal = {:delete_volatile_trigger, trigger_id}
-    signal_existing_device(realm, encoded_device_id, signal)
-  end
-
   def start_device_deletion(realm, encoded_device_id, timestamp) do
     signal = {:start_device_deletion, timestamp}
     signal_existing_device(realm, encoded_device_id, signal)

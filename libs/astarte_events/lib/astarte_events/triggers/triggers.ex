@@ -20,6 +20,7 @@ defmodule Astarte.Events.Triggers do
   @moduledoc """
   Module providing functionalities to manage and query triggers in Astarte Events.
   """
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.Triggers.Core
@@ -79,25 +80,27 @@ defmodule Astarte.Events.Triggers do
 
   @spec install_volatile_trigger(
           String.t(),
-          Core.deserialized_simple_trigger(),
+          TaggedSimpleTrigger.t(),
+          AMQPTriggerTarget.t(),
           Core.fetch_triggers_data()
         ) :: :ok | {:error, :interface_not_found | :invalid_match_path | :invalid_device_id}
-  def install_volatile_trigger(realm_name, deserialized_volatile_trigger, data \\ %{}) do
-    {{trigger_type, trigger}, target} = deserialized_volatile_trigger
+  def install_volatile_trigger(realm_name, tagged_simple_trigger, target, data \\ %{}) do
+    %TaggedSimpleTrigger{
+      simple_trigger_container: simple_trigger_container
+    } = tagged_simple_trigger
+
+    {trigger_type, trigger} = simple_trigger_container.simple_trigger
 
     with {:ok, event_key, new_trigger} <-
            Core.get_trigger_with_event_key(data, trigger_type, trigger),
          {:ok, subject} <- Core.trigger_subject(trigger_type, trigger) do
-      policy = Core.get_trigger_policy(realm_name, target)
-
       Cache.install_volatile_trigger(
         realm_name,
         event_key,
         subject,
         trigger_type,
         new_trigger,
-        target,
-        policy
+        target
       )
     end
   end

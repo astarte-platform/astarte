@@ -25,10 +25,6 @@ config :logger, :console,
   ]
 
 config :astarte_appengine_api,
-       :data_updater_plant_rpc_client,
-       Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-
-config :astarte_appengine_api,
        :vernemq_plugin_rpc_client,
        Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
 

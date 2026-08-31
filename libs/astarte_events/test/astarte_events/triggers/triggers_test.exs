@@ -18,10 +18,12 @@
 
 defmodule Astarte.Events.TriggersTest do
   use Astarte.Events.Cases.Data, async: true
-  import Mimic
+  use Mimic
 
   import Astarte.Core.Generators.Device
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.DataAccess.UUID, as: AstarteUUID
@@ -32,8 +34,6 @@ defmodule Astarte.Events.TriggersTest do
   alias Astarte.Events.Triggers.DataTriggerContext
 
   @routing_key "test.routing.key"
-
-  setup :verify_on_exit!
 
   setup_all context do
     %{realm_name: realm_name} = context
@@ -116,14 +116,35 @@ defmodule Astarte.Events.TriggersTest do
 
     test "installs and deletes volatile triggers", %{realm_name: realm} do
       device_id = device_id() |> Enum.at(0)
+      encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+      trigger_id = Ecto.UUID.bingenerate()
+
+      trigger_container = %{
+        simple_trigger:
+          {:device_trigger,
+           %ProtobufDeviceTrigger{device_id: encoded_id, device_event_type: :DEVICE_CONNECTED}}
+      }
+
       event_key = :on_device_connection
-      default_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
-      simple_trigger = Triggers.deserialize_simple_trigger(default_trigger)
+
+      tagged_simple_trigger = %TaggedSimpleTrigger{
+        object_type: Utils.object_type_to_int!(:device_and_any_interface),
+        object_id: device_id,
+        simple_trigger_container: trigger_container
+      }
+
+      target = %AMQPTriggerTarget{
+        simple_trigger_id: trigger_id,
+        parent_trigger_id: Ecto.UUID.bingenerate(),
+        routing_key: "test_events_#{realm}",
+        exchange: "astarte_events_#{realm}"
+      }
 
       :ok =
         Triggers.install_volatile_trigger(
           realm,
-          simple_trigger,
+          tagged_simple_trigger,
+          target,
           %{}
         )
 
@@ -134,9 +155,9 @@ defmodule Astarte.Events.TriggersTest do
           event_key
         )
 
-      assert length(targets) == 2
+      assert length(targets) == 1
 
-      :ok = Triggers.delete_volatile_trigger(realm, default_trigger.simple_trigger_id)
+      :ok = Triggers.delete_volatile_trigger(realm, trigger_id)
 
       targets_after_delete =
         Triggers.find_device_trigger_targets(
@@ -145,7 +166,7 @@ defmodule Astarte.Events.TriggersTest do
           event_key
         )
 
-      assert length(targets_after_delete) == 1
+      assert targets_after_delete == []
     end
   end
 

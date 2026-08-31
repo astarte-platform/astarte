@@ -346,8 +346,7 @@ defmodule Astarte.Events.Triggers.Cache do
         subject,
         trigger_type,
         trigger,
-        target,
-        policy
+        target
       ) do
     trigger_cache_key = trigger_cache_id(realm_name, target.simple_trigger_id)
     volatile_trigger_key = volatile_events_id(realm_name, subject, event_key)
@@ -356,7 +355,7 @@ defmodule Astarte.Events.Triggers.Cache do
       ConCache.update(
         @event_volatile_targets,
         volatile_trigger_key,
-        &load_trigger(realm_name, trigger_type, target, policy, trigger, &1)
+        &load_trigger(realm_name, trigger_type, target, nil, trigger, &1)
       )
 
       trigger_cache = {trigger_type, realm_name, subject, event_key, trigger}

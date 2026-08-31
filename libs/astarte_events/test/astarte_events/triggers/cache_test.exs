@@ -94,8 +94,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
         {:device_id, device_id},
         trigger_type,
         trigger,
-        target,
-        "policy1"
+        target
       )
 
     targets =
@@ -150,8 +149,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
         subject,
         trigger_type,
         trigger_with_key,
-        target,
-        "policy1"
+        target
       )
 
     targets =

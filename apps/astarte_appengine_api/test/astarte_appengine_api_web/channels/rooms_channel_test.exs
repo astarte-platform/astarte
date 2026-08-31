@@ -18,6 +18,7 @@
 
 defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   use Astarte.AppEngine.API.Cases.Channel
+  use Mimic
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.Groups
@@ -31,17 +32,17 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-
-  import Mox
+  alias Astarte.RPC.VolatileTriggers
 
   @all_access_regex ".*"
   @realm "autotestrealm"
   @authorized_room_name "letmein"
 
   @device_id "9ZJmHWdwSjuXjPVaEMqkuA"
-  @interface_exact "com.Some.Interface"
+  @missing_device_id "mZ8WHEQEQ-iC4kd4LSj4RQ"
+  @interface_exact "com.test.LCDMonitor"
   @interface_regex "com.Some.Other.Interface"
-  @path "/my/watched/path"
+  @path "/time/from"
   @authorized_watch_path_exact "#{@device_id}/#{@interface_exact}#{@path}"
   @authorized_watch_path_regex "#{@device_id}/#{@interface_regex}.*"
   @grouped_device_id_1 "4UQbIokuRufdtbVZt9AsLg"
@@ -55,7 +56,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @data_simple_trigger %{
     "type" => "data_trigger",
     "interface_name" => @interface_exact,
-    "interface_major" => 2,
+    "interface_major" => 1,
     "on" => "incoming_data",
     "value_match_operator" => ">",
     "match_path" => @path,
@@ -109,11 +110,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
     end)
-
-    Mox.stub_with(
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client
-    )
 
     :ok
   end
@@ -179,7 +175,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   describe "watch" do
-    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
+    setup [:join_socket_and_authorize_watch]
 
     test "fails with invalid simple trigger", %{socket: socket} do
       invalid_simple_trigger_payload = %{
@@ -214,17 +210,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_reply ref, :error, %{errors: _errors}
     end
 
-    test "fails with group data_trigger if device_id is not *", %{socket: socket} do
-      invalid_payload = %{
-        "group_name" => @group_name,
-        "name" => @name,
-        "simple_trigger" => @device_simple_trigger
-      }
-
-      ref = push(socket, "watch", invalid_payload)
-      assert_reply ref, :error, %{reason: "device_id must be * for group triggers"}
-    end
-
     test "fails on unauthorized paths", %{socket: socket} do
       unauthorized_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
 
@@ -250,29 +235,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_reply(ref, :error, @unauthorized_reason)
     end
 
-    test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn _ -> {:error, :device_does_not_exist} end)
+    test "succeeds on authorized exact path", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
 
-      watch_payload = %{
-        "device_id" => @device_id,
-        "name" => @name,
-        "simple_trigger" => @data_simple_trigger
-      }
-
-      ref = push(socket, "watch", watch_payload)
-      assert_reply(ref, :error, %{reason: :device_does_not_exist})
-    end
-
-    test "succeeds on authorized exact path", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -287,14 +258,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "fails on duplicate", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+    test "fails on duplicate", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -312,14 +284,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "succeeds on authorized regex path", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+    test "succeeds on authorized regex path", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       regex_trigger =
         @data_simple_trigger
@@ -339,14 +312,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "the device_id in the request dictates the target", %{socket: socket, room_process: pid} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), pid)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+    test "the device_id in the request dictates the target", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       other_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
 
@@ -367,14 +341,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "succeeds on authorized device_id", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+    test "succeeds on authorized device_id", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -389,18 +364,15 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "installs volatile trigger to all devices with group WatchRequest", %{
-      socket: socket,
-      room_process: room_process
-    } do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, 2, fn volatile_trigger ->
-        %{realm_name: @realm, device_id: device_id} = volatile_trigger
-        assert device_id in [@grouped_device_id_1, @grouped_device_id_2]
+    test "installs group volatile trigger with group WatchRequest", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{group_name: @group_name}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, 2, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "group_name" => @group_name,
@@ -415,26 +387,40 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "fails if device_id does not exist", %{socket: socket} do
-      missing_device_id = "mZ8WHEQEQ-iC4kd4LSj4RQ"
+    test "installs the trigger even if device_id does not exist", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{
+                 simple_trigger_container: %{
+                   simple_trigger: {_, %{device_id: @missing_device_id}}
+                 }
+               } =
+                 simple_trigger
+
+        :ok
+      end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       missing_device_id_trigger =
         @device_simple_trigger
-        |> Map.put("device_id", missing_device_id)
+        |> Map.put("device_id", @missing_device_id)
 
       watch_payload = %{
-        "device_id" => missing_device_id,
+        "device_id" => @missing_device_id,
         "name" => @name,
         "simple_trigger" => missing_device_id_trigger
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply(ref, :error, @unauthorized_reason)
+      assert_broadcast "watch_added", _
+      assert_reply ref, :ok, %{}
+
+      watch_cleanup(socket, @name)
     end
   end
 
   describe "unwatch" do
-    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
+    setup [:join_socket_and_authorize_watch]
 
     test "fails with invalid params", %{socket: socket} do
       invalid_payload = %{}
@@ -450,10 +436,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_reply(ref, :error, %{reason: "not found"})
     end
 
-    test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn _ -> {:error, :device_does_not_exist} end)
+    test "fails in case of interface not found", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn _, _, _ -> {:error, :interface_not_found} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -462,14 +447,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply(ref, :error, %{reason: :device_does_not_exist})
+      assert_reply(ref, :error, %{reason: :interface_not_found})
     end
 
-    test "succeeds with valid name", %{socket: socket, room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn _ -> :ok end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+    test "succeeds with valid name", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn _realm, _simple_trigger, _target -> :ok end)
+      |> expect(:delete, fn _realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -488,18 +472,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_reply ref, :ok, %{}
     end
 
-    test "correctly handles group volatile triggers", %{
-      socket: socket,
-      room_process: room_process
-    } do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, 2, fn _ -> :ok end)
-      |> expect(:delete_volatile_trigger, 2, fn delete_trigger ->
-        %{realm_name: @realm, device_id: device_id} = delete_trigger
-        assert device_id in [@grouped_device_id_1, @grouped_device_id_2]
-        :ok
-      end)
+    test "correctly handles group volatile triggers", %{socket: socket} do
+      VolatileTriggers
+      |> expect(:install, fn _realm, _simple_trigger, _target -> :ok end)
+      |> expect(:delete, fn _realm, _id -> :ok end)
 
       watch_payload = %{
         "group_name" => @group_name,
@@ -520,22 +496,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   describe "incoming events" do
-    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
+    setup [:join_socket_and_authorize_watch]
 
-    test "an event directed towards an unexisting room uninstalls the trigger", %{
-      room_process: room_process
-    } do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:delete_volatile_trigger, fn delete_trigger ->
-        assert %{
-                 realm_name: @realm,
-                 device_id: @device_id,
-                 trigger_id: @event_simple_trigger_id
-               } = delete_trigger
-
-        :ok
-      end)
+    test "an event directed towards an unexisting room uninstalls the trigger" do
+      VolatileTriggers
+      |> expect(:delete, fn @realm, @event_simple_trigger_id -> :ok end)
 
       unexisting_room_serialized_event =
         %{@simple_event | parent_trigger_id: Utils.get_uuid()}
@@ -549,17 +514,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
     test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
          %{room_process: room_process} do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:delete_volatile_trigger, fn delete_trigger ->
-        assert %{
-                 realm_name: @realm,
-                 device_id: @device_id,
-                 trigger_id: @event_simple_trigger_id
-               } = delete_trigger
-
-        :ok
-      end)
+      VolatileTriggers
+      |> expect(:delete, fn @realm, @event_simple_trigger_id -> :ok end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -577,13 +533,14 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -628,13 +585,14 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
-      |> allow(self(), room_process)
-      |> expect(:install_volatile_trigger, fn volatile_trigger ->
-        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+      VolatileTriggers
+      |> expect(:install, fn @realm, simple_trigger, _target ->
+        assert %{simple_trigger_container: %{simple_trigger: {_, %{device_id: @device_id}}}} =
+                 simple_trigger
+
         :ok
       end)
-      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete, fn @realm, _id -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -707,7 +665,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         "WATCH::#{@authorized_watch_path_regex}",
         "WATCH::#{@authorized_group_watch_path}",
         "WATCH::#{@authorized_group}",
-        "WATCH::#{@device_id}"
+        "WATCH::#{@device_id}",
+        "WATCH::#{@missing_device_id}"
       ])
 
     room_name = "#{@realm}:#{@authorized_room_name}"
@@ -715,6 +674,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     {:ok, _reply, socket} = subscribe_and_join(socket, RoomsChannel, "rooms:#{room_name}")
 
     room_process = room_process(room_name)
+
+    allow(VolatileTriggers, self(), room_process)
 
     {:ok, socket: socket, room_process: room_process}
   end

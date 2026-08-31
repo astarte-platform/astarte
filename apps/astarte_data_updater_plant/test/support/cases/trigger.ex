@@ -28,6 +28,7 @@ defmodule Astarte.DataUpdaterPlant.Cases.Trigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Events.Triggers
@@ -76,17 +77,24 @@ defmodule Astarte.DataUpdaterPlant.Cases.Trigger do
     }
   end
 
+  @spec install_volatile_trigger(State.t(), DataTrigger.t() | DeviceTrigger.t()) :: term()
+  @spec install_volatile_trigger(State.t(), DataTrigger.t() | DeviceTrigger.t(), nil | fun()) ::
+          term()
   def install_volatile_trigger(state, protobuf_trigger, validation_function \\ nil) do
     id = System.unique_integer()
     test_process = self()
     ref = {:event_dispatched, id}
     trigger_target = mock_trigger_target("target#{id}")
 
-    deserialized_simple_trigger =
+    simple_trigger =
       case protobuf_trigger do
-        %DeviceTrigger{} -> {{:device_trigger, protobuf_trigger}, trigger_target}
-        %DataTrigger{} -> {{:data_trigger, protobuf_trigger}, trigger_target}
+        %DeviceTrigger{} -> {:device_trigger, protobuf_trigger}
+        %DataTrigger{} -> {:data_trigger, protobuf_trigger}
       end
+
+    tagged_simple_trigger = %TaggedSimpleTrigger{
+      simple_trigger_container: %SimpleTriggerContainer{simple_trigger: simple_trigger}
+    }
 
     Astarte.Events.TriggersHandler
     |> Mimic.stub(:dispatch_event, fn
@@ -99,7 +107,8 @@ defmodule Astarte.DataUpdaterPlant.Cases.Trigger do
 
     Triggers.install_volatile_trigger(
       state.realm,
-      deserialized_simple_trigger,
+      tagged_simple_trigger,
+      trigger_target,
       Map.from_struct(state)
     )
 

@@ -118,18 +118,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @impl true
   def handle_signal(signal, state) do
     case signal do
-      {:install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target} ->
-        install_volatile_trigger(
-          state,
-          parent_id,
-          trigger_id,
-          simple_trigger,
-          trigger_target
-        )
-
-      {:delete_volatile_trigger, trigger_id} ->
-        delete_volatile_trigger(state, trigger_id)
-
       :dump_state ->
         {state, state}
 
@@ -201,37 +189,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state = %{new_state | connected: true, last_seen_message: timestamp}
 
     {:ack, :ok, new_state}
-  end
-
-  defp install_volatile_trigger(%State{discard_messages: true} = state, _, _, _, _) do
-    # Don't care
-    {:ok, state}
-  end
-
-  defp install_volatile_trigger(
-         state,
-         parent_id,
-         trigger_id,
-         simple_trigger,
-         trigger_target
-       ) do
-    Core.Trigger.handle_install_volatile_trigger(
-      state,
-      parent_id,
-      trigger_id,
-      simple_trigger,
-      trigger_target
-    )
-  end
-
-  def delete_volatile_trigger(%State{discard_messages: true} = state, _) do
-    # Don't care
-    {:ok, state}
-  end
-
-  def delete_volatile_trigger(state, trigger_id) do
-    :ok = Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
-    {:ok, state}
   end
 
   def handle_disconnection(state, timestamp) do

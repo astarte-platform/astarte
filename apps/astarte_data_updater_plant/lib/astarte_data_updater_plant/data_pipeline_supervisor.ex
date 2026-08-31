@@ -20,6 +20,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   @moduledoc """
   This module is responsible for supervising the data pipeline processes.
   """
+
   use Supervisor
 
   alias Astarte.DataUpdater.DeletionScheduler
@@ -56,6 +57,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
       {Astarte.RPC.Triggers.Client, types: trigger_types},
+      Astarte.RPC.VolatileTriggers.Client,
       DeletionScheduler,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]

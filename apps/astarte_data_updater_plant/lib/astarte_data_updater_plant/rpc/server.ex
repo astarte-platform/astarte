@@ -50,28 +50,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
-  def handle_call({:install_volatile_trigger, volatile_trigger}, _from, state) do
-    reply = Core.install_volatile_trigger(volatile_trigger)
-
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while installing a new volatile trigger: #{inspect(error)}")
-    end
-
-    {:reply, reply, state}
-  end
-
-  @impl GenServer
-  def handle_call({:delete_volatile_trigger, delete_request}, _from, state) do
-    reply = Core.delete_volatile_trigger(delete_request)
-
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while deleting a volatile trigger: #{inspect(error)}")
-    end
-
-    {:reply, reply, state}
-  end
-
-  @impl GenServer
   def handle_info(
         {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
         state

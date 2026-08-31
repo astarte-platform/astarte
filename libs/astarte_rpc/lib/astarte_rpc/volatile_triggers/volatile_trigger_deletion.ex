@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,17 +16,16 @@
 # limitations under the License.
 #
 
-defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger do
+defmodule Astarte.RPC.VolatileTriggers.VolatileTriggerDeletion do
   @moduledoc """
-  Data structure representing a volatile trigger in the Data Updater Plant RPC API.
+  This module defines the struct for trigger deletion requests in the Astarte RPC system.
   """
-  @enforce_keys [
-    :object_id,
-    :object_type,
-    :serialized_simple_trigger,
-    :parent_id,
-    :simple_trigger_id,
-    :serialized_trigger_target
-  ]
-  defstruct @enforce_keys
+  use TypedStruct
+
+  alias Astarte.DataAccess.UUID
+
+  typedstruct do
+    field :realm_name, String.t()
+    field :trigger_id, UUID.t()
+  end
 end

@@ -41,28 +41,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
     :ok
   end
 
-  property ":install_volatile_trigger request gets handled by the Core module", %{
-    rpc_server: rpc_server
-  } do
-    check all answer <- answer(), payload <- payload() do
-      Core
-      |> expect(:install_volatile_trigger, fn ^payload -> answer end)
-
-      assert ^answer = GenServer.call(rpc_server, {:install_volatile_trigger, payload})
-    end
-  end
-
-  property ":delete_volatile_trigger request gets handled by the Core module", %{
-    rpc_server: rpc_server
-  } do
-    check all answer <- answer(), payload <- payload() do
-      Core
-      |> expect(:delete_volatile_trigger, fn ^payload -> answer end)
-
-      assert ^answer = GenServer.call(rpc_server, {:delete_volatile_trigger, payload})
-    end
-  end
-
   test ":start_device_deletion request gets handled by the Core module", %{
     rpc_server: rpc_server
   } do

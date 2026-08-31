@@ -31,41 +31,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
 
   use Mimic
 
-  property "install_volatile_trigger/1 calls the `data_updater`", context do
-    %{realm_name: realm_name, device: device} = context
-
-    check all volatile_trigger <- volatile_trigger(realm_name, device.encoded_id) do
-      expected_signal =
-        {:install_volatile_trigger, volatile_trigger.parent_id,
-         volatile_trigger.simple_trigger_id, volatile_trigger.simple_trigger,
-         volatile_trigger.trigger_target}
-
-      Impl
-      |> expect(:handle_signal, fn ^expected_signal, state -> {:ok, state} end)
-
-      assert :ok = Core.install_volatile_trigger(volatile_trigger)
-    end
-  end
-
-  property "delete_volatile_trigger/1 calls the `data_updater` server", context do
-    %{realm_name: realm_name, device: device} = context
-
-    check all trigger_id <- binary() do
-      expected_signal =
-        {:delete_volatile_trigger, trigger_id}
-
-      Impl
-      |> expect(:handle_signal, fn ^expected_signal, state -> {:ok, state} end)
-
-      assert :ok =
-               Core.delete_volatile_trigger(%{
-                 realm_name: realm_name,
-                 device_id: device.encoded_id,
-                 trigger_id: trigger_id
-               })
-    end
-  end
-
   test "start_device_deletion/3 calls the `data_updater` server", context do
     %{realm_name: realm_name, device: device} = context
     encoded_device_id = device.encoded_id
@@ -77,26 +42,4 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
 
     assert :ok = Core.start_device_deletion(realm_name, encoded_device_id, timestamp)
   end
-
-  defp volatile_trigger(realm_name, device_id) do
-    gen all object_id <- uuid(),
-            object_type <- integer(),
-            parent_id <- uuid(),
-            trigger_id <- uuid(),
-            simple_trigger <- binary(),
-            trigger_target <- binary() do
-      %{
-        realm_name: realm_name,
-        device_id: device_id,
-        object_id: object_id,
-        object_type: object_type,
-        parent_id: parent_id,
-        simple_trigger_id: trigger_id,
-        simple_trigger: simple_trigger,
-        trigger_target: trigger_target
-      }
-    end
-  end
-
-  defp uuid, do: repeatedly(&Ecto.UUID.bingenerate/0)
 end

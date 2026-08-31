@@ -22,8 +22,8 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
   """
 
   alias Astarte.AppEngine.API.Rooms.Room
-  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.RPC.VolatileTriggers
 
   require Logger
 
@@ -67,7 +67,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           %{realm: realm}
         )
 
-        DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
+        VolatileTriggers.delete(realm, simple_trigger_id)
         {:error, :no_room_for_event}
 
       {:error, :trigger_not_found} ->
@@ -83,7 +83,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           %{realm: realm}
         )
 
-        DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
+        VolatileTriggers.delete(realm, simple_trigger_id)
         {:error, :trigger_not_found}
 
       {:error, reason} ->

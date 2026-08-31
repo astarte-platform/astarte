@@ -44,7 +44,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.IndividualProperty
@@ -54,7 +54,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.Events.Triggers
   alias Astarte.Events.Triggers.Cache
+  alias Astarte.RPC.VolatileTriggers
   alias Astarte.Secrets
   alias COSE.Keys.Symmetric
 
@@ -87,6 +89,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, %{realm: realm_string, realm_name: realm_string, helper_name: helper_name}}
   end
 
+  setup do
+    Triggers
+    |> Mimic.allow(self(), GenServer.whereis(VolatileTriggers.Client))
+
+    :ok
+  end
+
   test "simple flow", %{realm: realm, helper_name: helper_name} do
     # AMQPTestHelper.clean_queue(helper_name)
 
@@ -112,48 +121,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     ]
 
     DatabaseTestHelper.insert_device(realm, device_id, insert_opts)
-
-    # Install a volatile device test trigger
-    simple_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :device_trigger,
-          %DeviceTrigger{
-            device_event_type: :DEVICE_CONNECTED
-          }
-        }
-      }
-      |> SimpleTriggerContainer.encode()
-
-    trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
-
-    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
-    volatile_trigger_id = :crypto.strong_rand_bytes(16)
-
-    assert install_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_trigger_parent_id,
-             volatile_trigger_id,
-             simple_trigger_data,
-             trigger_target_data
-           ) == :ok
-
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_trigger_id
-           ) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -277,37 +244,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Install a volatile incoming introspection test trigger
     incoming_introspection_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :device_trigger,
-          %DeviceTrigger{
-            device_id: encoded_device_id,
-            device_event_type: :INCOMING_INTROSPECTION
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_id: encoded_device_id,
+              device_event_type: :INCOMING_INTROSPECTION
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    incoming_introspection_trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     incoming_introspection_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     incoming_introspection_volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
+    incoming_introspection_trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: incoming_introspection_volatile_trigger_id,
+        parent_trigger_id: incoming_introspection_volatile_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             incoming_introspection_volatile_trigger_parent_id,
-             incoming_introspection_volatile_trigger_id,
              incoming_introspection_trigger_data,
              incoming_introspection_trigger_target_data
            ) == :ok
@@ -345,46 +306,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the incoming introspection trigger, don't curse next tests
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             incoming_introspection_volatile_trigger_id
-           ) == :ok
+    assert VolatileTriggers.delete(realm, incoming_introspection_volatile_trigger_id) == :ok
 
     # Install a volatile interface added introspection test trigger
     interface_added_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :device_trigger,
-          %DeviceTrigger{
-            device_id: encoded_device_id,
-            device_event_type: :INTERFACE_ADDED,
-            interface_name: "*"
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_id: encoded_device_id,
+              device_event_type: :INTERFACE_ADDED,
+              interface_name: "*"
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    interface_added_trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     interface_added_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     interface_added_volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
+    interface_added_trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: interface_added_volatile_trigger_id,
+        parent_trigger_id: interface_added_volatile_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             interface_added_volatile_trigger_parent_id,
-             interface_added_volatile_trigger_id,
              interface_added_trigger_data,
              interface_added_trigger_target_data
            ) == :ok
@@ -426,47 +377,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the interface added trigger, don't curse next tests
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             interface_added_volatile_trigger_id
-           ) == :ok
+
+    assert VolatileTriggers.delete(realm, interface_added_volatile_trigger_id) == :ok
 
     # Install a volatile interface minor updated introspection test trigger
     interface_minor_updated_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :device_trigger,
-          %DeviceTrigger{
-            device_id: encoded_device_id,
-            device_event_type: :INTERFACE_MINOR_UPDATED,
-            interface_name: "com.test.YetAnother",
-            interface_major: 1
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_id: encoded_device_id,
+              device_event_type: :INTERFACE_MINOR_UPDATED,
+              interface_name: "com.test.YetAnother",
+              interface_major: 1
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    interface_minor_updated_trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     interface_minor_updated_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     interface_minor_updated_volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
+    interface_minor_updated_trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: interface_minor_updated_volatile_trigger_id,
+        parent_trigger_id: interface_minor_updated_volatile_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             interface_minor_updated_volatile_trigger_parent_id,
-             interface_minor_updated_volatile_trigger_id,
              interface_minor_updated_trigger_data,
              interface_minor_updated_trigger_target_data
            ) == :ok
@@ -509,46 +451,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the interface minor updated trigger, don't curse next tests
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             interface_minor_updated_volatile_trigger_id
-           ) == :ok
+    assert VolatileTriggers.delete(realm, interface_minor_updated_volatile_trigger_id) == :ok
 
     # Install a volatile interface removed introspection test trigger
     interface_removed_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :device_trigger,
-          %DeviceTrigger{
-            device_id: encoded_device_id,
-            device_event_type: :INTERFACE_REMOVED,
-            interface_name: "*"
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_id: encoded_device_id,
+              device_event_type: :INTERFACE_REMOVED,
+              interface_name: "*"
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    interface_removed_trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     interface_removed_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     interface_removed_volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
+    interface_removed_trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: interface_removed_volatile_trigger_id,
+        parent_trigger_id: interface_removed_volatile_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             interface_removed_volatile_trigger_parent_id,
-             interface_removed_volatile_trigger_id,
              interface_removed_trigger_data,
              interface_removed_trigger_target_data
            ) == :ok
@@ -587,11 +519,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the interface removed trigger, don't curse next tests
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             interface_removed_volatile_trigger_id
-           ) == :ok
+    assert VolatileTriggers.delete(realm, interface_removed_volatile_trigger_id) == :ok
 
     dump_state(realm, encoded_device_id)
 
@@ -601,84 +529,83 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Install a volatile test trigger
     simple_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :data_trigger,
-          %DataTrigger{
-            interface_name: "com.test.SimpleStreamTest",
-            interface_major: 1,
-            data_trigger_type: :INCOMING_DATA,
-            match_path: "/0/value",
-            value_match_operator: :LESS_THAN,
-            known_value: Cyanide.encode!(%{v: 100})
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.test.SimpleStreamTest",
+              interface_major: 1,
+              data_trigger_type: :INCOMING_DATA,
+              match_path: "/0/value",
+              value_match_operator: :LESS_THAN,
+              known_value: Cyanide.encode!(%{v: 100})
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
-    assert install_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_trigger_parent_id,
-             volatile_trigger_id,
-             simple_trigger_data,
-             trigger_target_data
-           ) == :ok
+    trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: volatile_trigger_id,
+        parent_trigger_id: volatile_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
+    assert install_volatile_trigger(realm, simple_trigger_data, trigger_target_data) == :ok
 
     # Install a volatile test trigger that won't match, to check that multiple triggers
     # for a single interface/endpoint are correctly loaded
     non_matching_simple_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :data_trigger,
-          %DataTrigger{
-            interface_name: "com.test.SimpleStreamTest",
-            interface_major: 1,
-            data_trigger_type: :INCOMING_DATA,
-            match_path: "/0/value",
-            value_match_operator: :GREATER_THAN,
-            known_value: Cyanide.encode!(%{v: 1000})
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.test.SimpleStreamTest",
+              interface_major: 1,
+              data_trigger_type: :INCOMING_DATA,
+              match_path: "/0/value",
+              value_match_operator: :GREATER_THAN,
+              known_value: Cyanide.encode!(%{v: 1000})
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
 
     non_matching_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     non_matching_volatile_trigger_id_1 = :crypto.strong_rand_bytes(16)
     non_matching_volatile_trigger_id_2 = :crypto.strong_rand_bytes(16)
 
+    non_matching_trigger_target_1 = %AMQPTriggerTarget{
+      simple_trigger_id: non_matching_volatile_trigger_id_1,
+      parent_trigger_id: non_matching_volatile_trigger_parent_id,
+      routing_key: AMQPTestHelper.events_routing_key(realm),
+      exchange: AMQPTestHelper.events_exchange_name(realm)
+    }
+
+    non_matching_trigger_target_2 = %AMQPTriggerTarget{
+      simple_trigger_id: non_matching_volatile_trigger_id_2,
+      parent_trigger_id: non_matching_volatile_trigger_parent_id,
+      routing_key: AMQPTestHelper.events_routing_key(realm),
+      exchange: AMQPTestHelper.events_exchange_name(realm)
+    }
+
     # Install the non-matching trigger twice to check that this installs 2 trigger_targets
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id_1,
              non_matching_simple_trigger_data,
-             trigger_target_data
+             non_matching_trigger_target_1
            ) == :ok
 
     assert install_volatile_trigger(
              realm,
-             encoded_device_id,
-             non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id_2,
              non_matching_simple_trigger_data,
-             trigger_target_data
+             non_matching_trigger_target_2
            ) == :ok
 
     # Incoming data sub-test
@@ -777,97 +704,93 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Install a volatile value change applied test trigger
     simple_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :data_trigger,
-          %DataTrigger{
-            interface_name: "com.test.LCDMonitor",
-            interface_major: 1,
-            data_trigger_type: :VALUE_CHANGE_APPLIED,
-            match_path: "/weekSchedule/10/start",
-            value_match_operator: :ANY
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.test.LCDMonitor",
+              interface_major: 1,
+              data_trigger_type: :VALUE_CHANGE_APPLIED,
+              match_path: "/weekSchedule/10/start",
+              value_match_operator: :ANY
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
-
-    trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key(realm),
-            exchange: AMQPTestHelper.events_exchange_name(realm)
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
 
     volatile_changed_trigger_parent_id = :crypto.strong_rand_bytes(16)
     volatile_changed_trigger_id = :crypto.strong_rand_bytes(16)
 
-    assert install_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_changed_trigger_parent_id,
-             volatile_changed_trigger_id,
-             simple_trigger_data,
-             trigger_target_data
-           ) == :ok
+    trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: volatile_changed_trigger_id,
+        parent_trigger_id: volatile_changed_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
+    assert install_volatile_trigger(realm, simple_trigger_data, trigger_target_data) == :ok
 
     bad_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :data_trigger,
-          %DataTrigger{
-            interface_name: "com.missing.Interface",
-            interface_major: 1,
-            data_trigger_type: :VALUE_CHANGE_APPLIED,
-            match_path: "/test",
-            value_match_operator: :ANY
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.missing.Interface",
+              interface_major: 1,
+              data_trigger_type: :VALUE_CHANGE_APPLIED,
+              match_path: "/test",
+              value_match_operator: :ANY
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
 
     bad_trigger_parent_id = :crypto.strong_rand_bytes(16)
     bad_trigger_id = :crypto.strong_rand_bytes(16)
 
-    assert install_volatile_trigger(
-             realm,
-             encoded_device_id,
-             bad_trigger_parent_id,
-             bad_trigger_id,
-             bad_trigger_data,
-             trigger_target_data
-           ) == {:error, :interface_not_found}
+    bad_trigger_target_data =
+      %AMQPTriggerTarget{
+        simple_trigger_id: bad_trigger_id,
+        parent_trigger_id: bad_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
+    assert install_volatile_trigger(realm, bad_trigger_data, bad_trigger_target_data) ==
+             {:error, :interface_not_found}
 
     bad_path_trigger_data =
-      %SimpleTriggerContainer{
-        simple_trigger: {
-          :data_trigger,
-          %DataTrigger{
-            interface_name: "com.test.LCDMonitor",
-            interface_major: 1,
-            data_trigger_type: :VALUE_CHANGE_APPLIED,
-            match_path: "/weekSchedule/10",
-            value_match_operator: :ANY
+      %TaggedSimpleTrigger{
+        simple_trigger_container: %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.test.LCDMonitor",
+              interface_major: 1,
+              data_trigger_type: :VALUE_CHANGE_APPLIED,
+              match_path: "/weekSchedule/10",
+              value_match_operator: :ANY
+            }
           }
         }
       }
-      |> SimpleTriggerContainer.encode()
 
     bad_path_trigger_parent_id = :crypto.strong_rand_bytes(16)
     bad_path_trigger_id = :crypto.strong_rand_bytes(16)
 
-    assert install_volatile_trigger(
-             realm,
-             encoded_device_id,
-             bad_path_trigger_parent_id,
-             bad_path_trigger_id,
-             bad_path_trigger_data,
-             trigger_target_data
-           ) == {:error, :invalid_match_path}
+    bad_path_trigger_target =
+      %AMQPTriggerTarget{
+        simple_trigger_id: bad_path_trigger_id,
+        parent_trigger_id: bad_path_trigger_parent_id,
+        routing_key: AMQPTestHelper.events_routing_key(realm),
+        exchange: AMQPTestHelper.events_exchange_name(realm)
+      }
+
+    assert install_volatile_trigger(realm, bad_path_trigger_data, bad_path_trigger_target) ==
+             {:error, :invalid_match_path}
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:10:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1039,11 +962,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert value == 5
 
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_trigger_id
-           ) == :ok
+    assert VolatileTriggers.delete(realm, volatile_trigger_id) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
 
@@ -1300,11 +1219,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     # Unset subtest
 
     # Delete it otherwise it gets raised
-    assert delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_changed_trigger_id
-           ) == :ok
+    assert VolatileTriggers.delete(realm, volatile_changed_trigger_id) == :ok
 
     handle_data(
       realm,
@@ -1620,16 +1535,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
 
-    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
-    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+    trigger_target = generate_trigger_target(realm)
 
-    assert install_volatile_trigger(
+    %AMQPTriggerTarget{
+      simple_trigger_id: volatile_trigger_id,
+      parent_trigger_id: volatile_trigger_parent_id
+    } = trigger_target
+
+    assert VolatileTriggers.install(
              realm,
-             encoded_device_id,
-             volatile_trigger_parent_id,
-             volatile_trigger_id,
              generate_disconnection_trigger_data(),
-             generate_trigger_target(realm)
+             trigger_target
            ) == :ok
 
     handle_disconnection(
@@ -1709,28 +1625,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   defp generate_disconnection_trigger_data do
-    %SimpleTriggerContainer{
-      simple_trigger: {
-        :device_trigger,
-        %DeviceTrigger{
-          device_event_type: :DEVICE_DISCONNECTED
+    %TaggedSimpleTrigger{
+      simple_trigger_container: %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_DISCONNECTED
+          }
         }
       }
     }
-    |> SimpleTriggerContainer.encode()
   end
 
   defp generate_trigger_target(realm) do
-    %TriggerTargetContainer{
-      trigger_target: {
-        :amqp_trigger_target,
-        %AMQPTriggerTarget{
-          routing_key: AMQPTestHelper.events_routing_key(realm),
-          exchange: AMQPTestHelper.events_exchange_name(realm)
-        }
-      }
+    %AMQPTriggerTarget{
+      simple_trigger_id: :crypto.strong_rand_bytes(16),
+      parent_trigger_id: :crypto.strong_rand_bytes(16),
+      routing_key: AMQPTestHelper.events_routing_key(realm),
+      exchange: AMQPTestHelper.events_exchange_name(realm)
     }
-    |> TriggerTargetContainer.encode()
   end
 
   defp retrieve_endpoint_id(realm_name, interface_name, interface_major, path) do
@@ -1760,5 +1673,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
     DateTime.to_unix(date_time, :millisecond) * 10_000
+  end
+
+  defp install_volatile_trigger(realm_name, trigger, target) do
+    test_process = self()
+
+    Triggers
+    |> Mimic.stub(:install_volatile_trigger, fn realm_name, simple_trigger, target, data ->
+      result =
+        Mimic.call_original(Triggers, :install_volatile_trigger, [
+          realm_name,
+          simple_trigger,
+          target,
+          data
+        ])
+
+      send(test_process, {:install_volatile_trigger_result, result})
+      result
+    end)
+
+    with :ok <- VolatileTriggers.install(realm_name, trigger, target) do
+      assert_receive {:install_volatile_trigger_result, result}
+
+      result
+    end
   end
 end
