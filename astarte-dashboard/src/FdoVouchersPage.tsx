@@ -23,6 +23,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAstarte } from './AstarteManager';
 import useFetch from './hooks/useFetch';
 import useInterval from './hooks/useInterval';
+import { useFdo } from './hooks/useFdo';
+import ConfirmModal from './components/modals/Confirm';
 import Empty from './components/Empty';
 import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
@@ -130,9 +132,10 @@ const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement 
 interface VoucherRowProps {
   voucher: FdoVoucher;
   onView: () => void;
+  onDelete: () => void;
 }
 
-const VoucherRow = ({ voucher, onView }: VoucherRowProps): React.ReactElement => (
+const VoucherRow = ({ voucher, onView, onDelete }: VoucherRowProps): React.ReactElement => (
   <tr>
     <td>
       <Icon icon="devices" className="me-2" />
@@ -142,9 +145,13 @@ const VoucherRow = ({ voucher, onView }: VoucherRowProps): React.ReactElement =>
       <Badge bg={statusVariant(voucher.status)}>{formatStatus(voucher.status)}</Badge>
     </td>
     <td className="text-end">
-      <Button variant="outline-secondary" size="sm" onClick={onView}>
+      <Button variant="outline-secondary" size="sm" onClick={onView} className="me-2">
         <Icon icon="documentation" className="me-1" />
         View details
+      </Button>
+      <Button variant="outline-danger" size="sm" onClick={onDelete}>
+        <Icon icon="delete" className="me-1" />
+        Delete
       </Button>
     </td>
   </tr>
@@ -279,18 +286,68 @@ const VoucherDetailModal = ({ voucher, onClose }: VoucherDetailModalProps): Reac
   </Modal>
 );
 
+interface DeleteVoucherModalProps {
+  voucher: FdoVoucher;
+  isDeleting: boolean;
+  error: Error | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+const DeleteVoucherModal = ({
+  voucher,
+  isDeleting,
+  error,
+  onCancel,
+  onConfirm,
+}: DeleteVoucherModalProps): React.ReactElement => (
+  <ConfirmModal
+    title="Delete ownership voucher"
+    confirmLabel="Delete"
+    confirmVariant="danger"
+    isConfirming={isDeleting}
+    onCancel={onCancel}
+    onConfirm={onConfirm}
+  >
+    <p>
+      Delete ownership voucher <code>{voucher.guid}</code>?
+    </p>
+    <p className="text-muted small">
+      This also expires its registration on the FDO rendezvous server, so the device can no longer
+      be onboarded through it. This action cannot be undone.
+    </p>
+    {error && <p className="text-danger small mb-0">{error.message}</p>}
+  </ConfirmModal>
+);
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default (): React.ReactElement => {
   const navigate = useNavigate();
   const [selectedVoucher, setSelectedVoucher] = useState<FdoVoucher | null>(null);
+  const [voucherPendingDeletion, setVoucherPendingDeletion] = useState<FdoVoucher | null>(null);
   const [activeFilter, setActiveFilter] = useState<VoucherStatus | null>(null);
   const astarte = useAstarte();
   const vouchersFetcher = useFetch(astarte.client.listFdoVouchers);
+  const { deleteVoucher, deleteStatus, deleteError } = useFdo();
   useInterval(vouchersFetcher.refresh, 30000);
 
   const applyFilters = (vouchers: FdoVoucher[]) =>
     activeFilter === null ? vouchers : vouchers.filter((v) => v.status === activeFilter);
+
+  const handleDeleteConfirm = async () => {
+    if (!voucherPendingDeletion) {
+      return;
+    }
+    try {
+      await deleteVoucher(voucherPendingDeletion.guid);
+      setVoucherPendingDeletion(null);
+      vouchersFetcher.refresh();
+    } catch (err) {
+      // deleteError is already surfaced by useFdo and rendered in the modal
+      console.error('Failed to delete ownership voucher', err);
+    }
+  };
 
   return (
     <Container fluid className="p-3" data-testid="fdo-vouchers-page">
@@ -365,6 +422,7 @@ export default (): React.ReactElement => {
                             key={v.guid}
                             voucher={v}
                             onView={() => setSelectedVoucher(v)}
+                            onDelete={() => setVoucherPendingDeletion(v)}
                           />
                         ))
                       )}
@@ -378,6 +436,15 @@ export default (): React.ReactElement => {
       </Row>
       {selectedVoucher && (
         <VoucherDetailModal voucher={selectedVoucher} onClose={() => setSelectedVoucher(null)} />
+      )}
+      {voucherPendingDeletion && (
+        <DeleteVoucherModal
+          voucher={voucherPendingDeletion}
+          isDeleting={deleteStatus === 'loading'}
+          error={deleteError}
+          onCancel={() => setVoucherPendingDeletion(null)}
+          onConfirm={handleDeleteConfirm}
+        />
       )}
     </Container>
   );

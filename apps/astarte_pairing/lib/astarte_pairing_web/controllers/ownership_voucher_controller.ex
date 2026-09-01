@@ -75,6 +75,34 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
       internal_server_error: {"Internal server error", nil, nil}
     ]
 
+  operation :delete_ownership_voucher,
+    summary: "Delete an ownership voucher",
+    description:
+      "Deletes an ownership voucher. Revokes the corresponding registration on the FDO " <>
+        "rendezvous server first; if the revocation fails, the voucher is not deleted.",
+    operation_id: "deleteOwnershipVoucher",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ],
+      guid: [
+        in: :path,
+        description: "GUID of the ownership voucher to delete.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      no_content: {"Ownership voucher deleted successfully", nil, nil},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Ownership voucher not found", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
+
   operation :owner_keys_for_voucher,
     summary: "List owner keys compatible with an ownership voucher",
     description:
@@ -176,6 +204,18 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   end
 
   @doc """
+  Deletes an ownership voucher.
+
+  Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown.
+  """
+  def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
+    with {:ok, guid} <- decode_guid(guid_str),
+         {:ok, _} <- OwnershipVoucher.delete(realm_name, guid) do
+      send_resp(conn, :no_content, "")
+    end
+  end
+
+  @doc """
   Returns the list of registered owner keys that are compatible with the
   given ownership voucher.
 
@@ -196,4 +236,11 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   defp ensure_ownership_voucher_parameter(_params),
     do: {:error, :missing_ownership_voucher}
+
+  defp decode_guid(guid_str) do
+    case Ecto.UUID.dump(guid_str) do
+      {:ok, _} = ok -> ok
+      :error -> {:error, :not_found}
+    end
+  end
 end
