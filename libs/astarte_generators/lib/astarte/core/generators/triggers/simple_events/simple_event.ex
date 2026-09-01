@@ -27,6 +27,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
   import Astarte.Common.Generators.Timestamp
+  import Astarte.Common.Generators.UUID
   import Astarte.Core.Generators.Device
   import Astarte.Core.Generators.Realm
   import Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent
@@ -97,6 +98,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
     |> bind(fn {atom, gen} -> gen |> map(&{atom, &1}) end)
   end
 
-  defp simple_trigger_id, do: repeatedly(fn -> UUID.uuid4(:raw) end)
-  defp parent_trigger_id, do: repeatedly(fn -> UUID.uuid4(:raw) end)
+  defp simple_trigger_id, do: uuid()
+  defp parent_trigger_id, do: uuid()
 end
