@@ -31,8 +31,8 @@ defmodule Astarte.DataAccess.Adapters.Interface do
     @returns %{interface: map(), endpoints: list(map())}
     keep :interface_id, :name, :major_version, :minor_version, :aggregation, :ownership, :type
 
-    field :storage, &interface_storage/1
-    field :storage_type, &interface_storage_type/1
+    field :storage, &storage/1
+    field :storage_type, &storage_type/1
     field :doc <- :doc, required: false
     field :description <- :description, required: false
     field :endpoints <- :mappings, &mappings/2
@@ -57,13 +57,6 @@ defmodule Astarte.DataAccess.Adapters.Interface do
     field :description <- :description, required: false
     field :encrypted <- :encrypted, required: false
   end
-
-  # TODO workaround to fix macro vs. dialyzer
-  @dialyzer {:nowarn_function, {:interface_storage, 1}}
-  defp interface_storage(source), do: storage(source)
-  # TODO workaround to fix macro vs. dialyzer
-  @dialyzer {:nowarn_function, {:interface_storage_type, 1}}
-  defp interface_storage_type(source), do: storage_type(source)
 
   defp mappings(mappings, %InterfaceCore{interface_id: interface_id}),
     do:
