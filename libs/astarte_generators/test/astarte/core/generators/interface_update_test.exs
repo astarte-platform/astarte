@@ -30,22 +30,61 @@ defmodule Astarte.Core.Generators.InterfaceUpdateTest do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  @fallible_value_types [
+    :integer,
+    :longinteger,
+    :string,
+    :binaryblob,
+    :doublearray,
+    :integerarray,
+    :booleanarray,
+    :longintegerarray,
+    :stringarray,
+    :binaryblobarray,
+    :datetimearray
+  ]
+
   describe "interface update generator" do
     property "generates represented updates for individual interfaces" do
       check all interface <- interface(aggregation: :individual),
                 api_update <- valid_mapping_update_for(interface, :api),
-                database_update <- valid_mapping_update_for(interface, :database) do
+                database_update <- valid_mapping_update_for(interface, :database),
+                complete_update <- valid_complete_mapping_update_for(interface, :api),
+                nonempty_update <- valid_nonempty_mapping_update_for(interface, :database),
+                fallible_update <- valid_fallible_mapping_update_for(interface, :api) do
         assert valid_individual_update?(interface, api_update, :api) and
-                 valid_individual_update?(interface, database_update, :database)
+                 valid_individual_update?(interface, database_update, :database) and
+                 valid_individual_update?(interface, complete_update, :api) and
+                 valid_individual_update?(interface, nonempty_update, :database) and
+                 valid_individual_update?(interface, fallible_update, :api)
       end
     end
 
-    property "generates represented updates for object interfaces" do
+    property "generates optional, complete, and nonempty updates for object interfaces" do
       check all interface <- interface(aggregation: :object),
                 api_update <- valid_mapping_update_for(interface, :api),
-                database_update <- valid_mapping_update_for(interface, :database) do
+                database_update <- valid_mapping_update_for(interface, :database),
+                complete_update <- valid_complete_mapping_update_for(interface, :api),
+                nonempty_update <- valid_nonempty_mapping_update_for(interface, :database) do
+        %{value_type: nonempty_value_type} = nonempty_update
+
         assert valid_object_update?(interface, api_update, :api) and
-                 valid_object_update?(interface, database_update, :database)
+                 valid_object_update?(interface, database_update, :database) and
+                 valid_object_update?(interface, complete_update, :api) and
+                 valid_object_update?(interface, nonempty_update, :database) and
+                 complete_object_update?(interface, complete_update) and
+                 map_size(nonempty_value_type) > 0
+      end
+    end
+
+    property "generates object updates containing fallible value types" do
+      check all interface <- interface(aggregation: :object) |> filter(&fallible_interface?/1),
+                api_update <- valid_fallible_mapping_update_for(interface, :api),
+                database_update <- valid_fallible_mapping_update_for(interface, :database) do
+        assert valid_object_update?(interface, api_update, :api) and
+                 valid_object_update?(interface, database_update, :database) and
+                 fallible_update?(api_update) and
+                 fallible_update?(database_update)
       end
     end
 
@@ -77,6 +116,22 @@ defmodule Astarte.Core.Generators.InterfaceUpdateTest do
                |> valid_mapping_update_for(:database, force_allow_unset: true)
                |> StreamData.resize(0)
                |> Enum.at(0)
+    end
+
+    test "generates fallible updates when an object has no infallible mappings" do
+      interface = %Interface{
+        aggregation: :object,
+        type: :datastream,
+        mappings: [
+          %Mapping{endpoint: "/object/value", reliability: :guaranteed, value_type: :string}
+        ]
+      }
+
+      assert %{
+               aggregation: :object,
+               reliability: :guaranteed,
+               value_type: %{"value" => :string}
+             } = valid_fallible_mapping_update_for(interface, :api) |> Enum.at(0)
     end
   end
 
@@ -129,6 +184,24 @@ defmodule Astarte.Core.Generators.InterfaceUpdateTest do
         represented?(type, Map.fetch!(value, key), representation)
       end)
   end
+
+  defp complete_object_update?(%Interface{mappings: mappings}, %{value_type: value_type}) do
+    mapping_keys =
+      MapSet.new(mappings, fn %Mapping{endpoint: endpoint} ->
+        endpoint |> String.split("/") |> List.last()
+      end)
+
+    MapSet.new(Map.keys(value_type)) == mapping_keys
+  end
+
+  defp fallible_interface?(%Interface{mappings: mappings}),
+    do:
+      Enum.any?(mappings, fn %Mapping{value_type: value_type} ->
+        value_type in @fallible_value_types
+      end)
+
+  defp fallible_update?(%{value_type: value_type}),
+    do: Enum.any?(value_type, fn {_key, type} -> type in @fallible_value_types end)
 
   defp expected_reliability(:properties, _mapping_reliability), do: :unique
   defp expected_reliability(:datastream, mapping_reliability), do: mapping_reliability

@@ -28,6 +28,20 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  @fallible_value_types [
+    :integer,
+    :longinteger,
+    :string,
+    :binaryblob,
+    :doublearray,
+    :integerarray,
+    :booleanarray,
+    :longintegerarray,
+    :stringarray,
+    :binaryblobarray,
+    :datetimearray
+  ]
+
   @type representation_t :: :api | :database
   @type value_type_t :: atom() | %{String.t() => atom()}
   @type t :: %{
@@ -75,7 +89,76 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
         representation,
         params
       ),
-      do: object_mapping_update(interface, representation, params)
+      do: object_mapping_update(interface, representation, params, :optional)
+
+  @doc """
+  Generates an object update containing every interface mapping.
+  """
+  @spec valid_complete_mapping_update_for(Interface.t(), representation_t()) ::
+          StreamData.t(t())
+  @spec valid_complete_mapping_update_for(Interface.t(), representation_t(), keyword()) ::
+          StreamData.t(t())
+  def valid_complete_mapping_update_for(interface, representation, params \\ [])
+
+  def valid_complete_mapping_update_for(
+        %Interface{aggregation: :individual} = interface,
+        representation,
+        params
+      ),
+      do: valid_mapping_update_for(interface, representation, params)
+
+  def valid_complete_mapping_update_for(
+        %Interface{aggregation: :object} = interface,
+        representation,
+        params
+      ),
+      do: object_mapping_update(interface, representation, params, :complete)
+
+  @doc """
+  Generates an object update containing at least one interface mapping.
+  """
+  @spec valid_nonempty_mapping_update_for(Interface.t(), representation_t()) ::
+          StreamData.t(t())
+  @spec valid_nonempty_mapping_update_for(Interface.t(), representation_t(), keyword()) ::
+          StreamData.t(t())
+  def valid_nonempty_mapping_update_for(interface, representation, params \\ [])
+
+  def valid_nonempty_mapping_update_for(
+        %Interface{aggregation: :individual} = interface,
+        representation,
+        params
+      ),
+      do: valid_mapping_update_for(interface, representation, params)
+
+  def valid_nonempty_mapping_update_for(
+        %Interface{aggregation: :object} = interface,
+        representation,
+        params
+      ),
+      do: object_mapping_update(interface, representation, params, :nonempty)
+
+  @doc """
+  Generates an object update containing at least one fallible value type.
+  """
+  @spec valid_fallible_mapping_update_for(Interface.t(), representation_t()) ::
+          StreamData.t(t())
+  @spec valid_fallible_mapping_update_for(Interface.t(), representation_t(), keyword()) ::
+          StreamData.t(t())
+  def valid_fallible_mapping_update_for(interface, representation, params \\ [])
+
+  def valid_fallible_mapping_update_for(
+        %Interface{aggregation: :individual} = interface,
+        representation,
+        params
+      ),
+      do: valid_mapping_update_for(interface, representation, params)
+
+  def valid_fallible_mapping_update_for(
+        %Interface{aggregation: :object} = interface,
+        representation,
+        params
+      ),
+      do: object_mapping_update(interface, representation, params, :fallible)
 
   @doc """
   Generates a valid represented value for one value type or an object value type map.
@@ -106,10 +189,10 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
   defp reliability(:properties, _mapping_reliability), do: :unique
   defp reliability(:datastream, mapping_reliability), do: mapping_reliability
 
-  defp object_mapping_update(interface, representation, params) do
+  defp object_mapping_update(interface, representation, params, selection) do
     {endpoint, value_types, reliability} = object_interface_info(interface)
 
-    params gen all value_type <- optional_map(value_types),
+    params gen all value_type <- select_value_types(value_types, selection),
                    path <- ValueGenerator.path_from_endpoint(endpoint),
                    value <- valid_update_value_for(value_type, representation, params),
                    params: params do
@@ -145,4 +228,40 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
     do: endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
 
   defp endpoint_postfix(endpoint), do: endpoint |> String.split("/") |> List.last()
+
+  defp select_value_types(value_types, :optional), do: optional_map(value_types)
+  defp select_value_types(value_types, :complete), do: fixed_map(value_types)
+
+  defp select_value_types(value_types, :nonempty) do
+    keys = Map.keys(value_types)
+
+    gen all selected_keys <- list_of(member_of(keys), min_length: 1) do
+      Map.take(value_types, Enum.uniq(selected_keys))
+    end
+  end
+
+  defp select_value_types(value_types, :fallible) do
+    {fallible_keys, other_keys} = split_fallible_keys(value_types)
+
+    gen all selected_fallible_keys <- list_of(member_of(fallible_keys), min_length: 1),
+            selected_other_keys <- optional_keys(other_keys) do
+      Map.take(value_types, Enum.uniq(selected_fallible_keys ++ selected_other_keys))
+    end
+  end
+
+  defp split_fallible_keys(value_types),
+    do: value_types |> Map.to_list() |> split_fallible_keys([], [])
+
+  defp split_fallible_keys([], fallible_keys, other_keys),
+    do: {fallible_keys, other_keys}
+
+  defp split_fallible_keys([{key, value_type} | entries], fallible_keys, other_keys)
+       when value_type in @fallible_value_types,
+       do: split_fallible_keys(entries, [key | fallible_keys], other_keys)
+
+  defp split_fallible_keys([{key, _value_type} | entries], fallible_keys, other_keys),
+    do: split_fallible_keys(entries, fallible_keys, [key | other_keys])
+
+  defp optional_keys([]), do: constant([])
+  defp optional_keys(keys), do: list_of(member_of(keys))
 end
