@@ -5,7 +5,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumerTest do
   alias AMQP.Channel
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl
 
-  import Astarte.Helpers.AMQPMessageConsumer
+  import Astarte.TriggerEngine.Helpers.AMQPMessageConsumer
 
   describe "connect/2" do
     @tag :unit

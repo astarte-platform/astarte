@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Cases.Data do
 
   use ExUnit.CaseTemplate
   use Mimic
-  import Astarte.Helpers.DatabaseV2
+  import Astarte.AppEngine.API.Helpers.DatabaseV2
 
   using opts do
     astarte_instance_id =
@@ -43,7 +43,7 @@ defmodule Astarte.AppEngine.API.Cases.Data do
 
     quote do
       import Astarte.AppEngine.API.Cases.Data
-      import Astarte.Helpers.DatabaseV2
+      import Astarte.AppEngine.API.Helpers.DatabaseV2
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)
       @moduletag realm_name: unquote(realm_name)

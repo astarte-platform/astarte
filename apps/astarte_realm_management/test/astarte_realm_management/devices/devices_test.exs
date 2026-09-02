@@ -26,7 +26,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
   import Astarte.Core.Generators.Device
 
-  import Astarte.Helpers.Triggers
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Device
 

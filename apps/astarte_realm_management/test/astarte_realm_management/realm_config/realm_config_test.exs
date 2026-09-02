@@ -26,7 +26,7 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
 
-  alias Astarte.Helpers
+  alias Astarte.RealmManagement.Helpers
 
   alias Astarte.RealmManagement.RealmConfig
   alias Astarte.RealmManagement.RealmConfig.AuthConfig

@@ -29,8 +29,8 @@ defmodule Astarte.SecretsTest do
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
 
-  import Astarte.Helpers.Namespace
-  import Astarte.Helpers.Key
+  import Astarte.Secrets.Helpers.Namespace
+  import Astarte.Secrets.Helpers.Key
 
   describe "create_fdo_namespace/3" do
     setup :namespace_tokens_setup

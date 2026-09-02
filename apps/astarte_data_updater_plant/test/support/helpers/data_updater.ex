@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.DataUpdater do
+defmodule Astarte.DataUpdaterPlant.Helpers.DataUpdater do
   @moduledoc """
   Helper functions for testing the DataUpdater module.
   """

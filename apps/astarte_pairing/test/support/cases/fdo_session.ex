@@ -43,12 +43,12 @@ defmodule Astarte.Pairing.Cases.FDOSession do
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
-  import Astarte.Helpers.Database
-  import Astarte.Helpers.FDO
+  import Astarte.Pairing.Helpers.Database
+  import Astarte.Pairing.Helpers.FDO
 
   using do
     quote do
-      import Astarte.Helpers.FDO
+      import Astarte.Pairing.Helpers.FDO
     end
   end
 

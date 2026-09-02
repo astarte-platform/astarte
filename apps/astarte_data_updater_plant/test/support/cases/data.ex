@@ -28,7 +28,7 @@ defmodule Astarte.DataUpdaterPlant.Cases.Data do
 
   use ExUnit.CaseTemplate
   use Mimic
-  import Astarte.Helpers.Database
+  import Astarte.DataUpdaterPlant.Helpers.Database
 
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Secrets
@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.Cases.Data do
 
     quote do
       import Astarte.DataUpdaterPlant.Cases.Data
-      import Astarte.Helpers.Database
+      import Astarte.DataUpdaterPlant.Helpers.Database
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)
       @moduletag realm_name: unquote(realm_name)

@@ -29,7 +29,7 @@ defmodule Astarte.Pairing.Cases.Data do
   use ExUnit.CaseTemplate
   use Mimic
 
-  import Astarte.Helpers.Database
+  import Astarte.Pairing.Helpers.Database
 
   using opts do
     astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)
@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.Cases.Data do
 
     quote do
       import Astarte.Pairing.Cases.Data
-      import Astarte.Helpers.Database
+      import Astarte.Pairing.Helpers.Database
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)
       @moduletag realm_name: unquote(realm_name)

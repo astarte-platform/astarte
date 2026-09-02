@@ -41,7 +41,7 @@ defmodule Astarte.TriggerEngine.Cases.Database do
     end
   end
 
-  alias Astarte.Helpers.Database
+  alias Astarte.TriggerEngine.Helpers.Database
 
   setup_all %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
     on_exit(fn ->

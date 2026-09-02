@@ -20,8 +20,8 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
-  alias Astarte.Helpers
   alias Astarte.RealmManagement.Config
+  alias Astarte.RealmManagement.Helpers.Database
   alias Astarte.RealmManagement.Helpers.JWTTestHelper
 
   @new_pubkey """
@@ -58,7 +58,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   end
 
   setup %{conn: conn, realm: realm, jwt_public_key: key} do
-    Helpers.Database.insert_public_key!(realm, key)
+    Database.insert_public_key!(realm, key)
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
@@ -111,7 +111,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
 
   test "returns the device registration limit on show", %{conn: conn, realm: realm} do
     limit = 10
-    Helpers.Database.insert_device_registration_limit!(realm, limit)
+    Database.insert_device_registration_limit!(realm, limit)
     conn = get(conn, realm_config_path(conn, :show_device_registration_limit, realm))
 
     assert json_response(conn, 200)["data"] == limit
@@ -119,7 +119,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
 
   test "returns the datastream_maximum_storage_retention on show", %{conn: conn, realm: realm} do
     retention = 10
-    Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
+    Database.set_datastream_maximum_storage_retention(realm, retention)
 
     conn =
       get(conn, realm_config_path(conn, :show_datastream_maximum_storage_retention, realm))

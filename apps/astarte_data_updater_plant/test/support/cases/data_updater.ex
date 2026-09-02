@@ -26,13 +26,13 @@ defmodule Astarte.DataUpdaterPlant.Cases.DataUpdater do
   use ExUnit.CaseTemplate
   use Mimic
 
-  import Astarte.Helpers.DataUpdater
+  import Astarte.DataUpdaterPlant.Helpers.DataUpdater
 
   alias Astarte.Core.Device
 
   using do
     quote do
-      import Astarte.Helpers.DataUpdater
+      import Astarte.DataUpdaterPlant.Helpers.DataUpdater
     end
   end
 

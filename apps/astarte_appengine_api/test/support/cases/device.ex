@@ -28,8 +28,8 @@ defmodule Astarte.AppEngine.API.Cases.Device do
   import Astarte.Core.Generators.Mapping
 
   import Astarte.Generators.InterfaceUpdate
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.Interface
+  import Astarte.AppEngine.API.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.Interface
 
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Endpoint

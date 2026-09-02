@@ -29,8 +29,8 @@ defmodule Astarte.DataUpdaterPlant.Cases.Device do
   import Astarte.Core.Generators.Interface
   import Astarte.Core.Generators.Mapping
 
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.Database
+  import Astarte.DataUpdaterPlant.Helpers.Device
+  import Astarte.DataUpdaterPlant.Helpers.Database
   import Astarte.InterfaceUpdateGenerators
 
   alias Astarte.DataAccess.Consistency

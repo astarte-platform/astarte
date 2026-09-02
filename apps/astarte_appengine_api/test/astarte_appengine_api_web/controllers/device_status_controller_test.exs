@@ -20,8 +20,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
+  alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
 
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %{

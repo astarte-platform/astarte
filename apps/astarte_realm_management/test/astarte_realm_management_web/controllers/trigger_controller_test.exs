@@ -22,8 +22,8 @@ defmodule Astarte.RealmManagementWeb.TriggerControllerTest do
 
   @moduletag :triggers
 
-  alias Astarte.Helpers.Database
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
   alias Astarte.RealmManagement.Triggers
 
   import Astarte.RealmManagement.Fixtures.Trigger

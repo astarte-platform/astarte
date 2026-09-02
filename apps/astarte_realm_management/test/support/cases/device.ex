@@ -25,7 +25,7 @@ defmodule Astarte.RealmManagement.Cases.Device do
   import Astarte.Core.Generators.Device
   import Astarte.Core.Generators.Interface
 
-  import Astarte.Helpers.Device
+  import Astarte.RealmManagement.Helpers.Device
 
   alias Astarte.Core.Device
 

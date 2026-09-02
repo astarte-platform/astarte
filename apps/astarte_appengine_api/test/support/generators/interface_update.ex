@@ -22,7 +22,7 @@ defmodule Astarte.Generators.InterfaceUpdate do
 
   import Astarte.Common.Generators.Timestamp
 
-  import Astarte.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.Device
 
   alias Astarte.Core.Mapping
 

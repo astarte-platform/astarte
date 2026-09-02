@@ -15,10 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.AppEngine.API.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 
+  alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
@@ -30,7 +31,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.UUID
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @devices_list [
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,

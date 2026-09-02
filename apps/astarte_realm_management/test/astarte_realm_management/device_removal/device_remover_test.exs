@@ -30,7 +30,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
 
   import Astarte.Core.Generators.Group
 
-  import Astarte.Helpers.Triggers
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Device
 

@@ -27,8 +27,8 @@ defmodule Astarte.Secrets.CoreTest do
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
 
-  import Astarte.Helpers.EncryptionKey
-  import Astarte.Helpers.Namespace
+  import Astarte.Secrets.Helpers.EncryptionKey
+  import Astarte.Secrets.Helpers.Namespace
 
   describe "namespace_tokens/3" do
     setup :namespace_tokens_setup

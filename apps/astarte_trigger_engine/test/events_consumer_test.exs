@@ -27,7 +27,7 @@ defmodule Astarte.TriggerEngine.EventsConsumerTest do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Fixtures.SimpleEvent, as: SimpleEventsFixture
 
-  import Astarte.Helpers.EventsConsumer
+  import Astarte.TriggerEngine.Helpers.EventsConsumer
   import Astarte.Fixtures.Trigger
 
   setup do

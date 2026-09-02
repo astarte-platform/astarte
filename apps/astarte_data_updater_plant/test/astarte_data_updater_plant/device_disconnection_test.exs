@@ -26,7 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
-  alias Astarte.Helpers.DataUpdater
+  alias Astarte.DataUpdaterPlant.Helpers.DataUpdater
 
   import Ecto.Query
 

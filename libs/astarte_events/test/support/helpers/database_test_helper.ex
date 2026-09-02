@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.Events.Helpers.Database do
   @moduledoc false
 
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema

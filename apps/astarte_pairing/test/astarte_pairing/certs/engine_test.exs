@@ -21,9 +21,9 @@ defmodule Astarte.Pairing.EngineTest do
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.Helpers.Database, as: DatabaseTestHelper
   alias CFXXL.CertUtils
 
   @test_csr """

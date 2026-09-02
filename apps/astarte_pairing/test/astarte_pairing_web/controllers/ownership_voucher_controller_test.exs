@@ -24,7 +24,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
-  import Astarte.Helpers.FDO
+  import Astarte.Pairing.Helpers.FDO
 
   @sample_key_name "owner_key"
 

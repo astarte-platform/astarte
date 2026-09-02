@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   import Mox
 
   import Ecto.Query
-  import Astarte.Helpers.DataUpdater
+  import Astarte.DataUpdaterPlant.Helpers.DataUpdater
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device

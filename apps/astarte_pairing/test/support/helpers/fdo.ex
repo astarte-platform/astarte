@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.FDO do
+defmodule Astarte.Pairing.Helpers.FDO do
   @moduledoc """
-  Test helpers and data generators for FDO (FIDO Device Onboard) related structures.
+  Test Pairing.helpers and data generators for FDO (FIDO Device Onboard) related structures.
   """
 
   import StreamData

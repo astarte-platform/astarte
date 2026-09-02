@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   use Astarte.AppEngine.API.Cases.Device
 
   import Astarte.Generators.InterfaceUpdate
-  import Astarte.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.Device
 
   alias COSE.Keys.Symmetric
 

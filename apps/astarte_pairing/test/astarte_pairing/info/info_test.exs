@@ -20,7 +20,7 @@ defmodule Astarte.Pairing.InfoTest do
   use Astarte.Pairing.Cases.Data, async: true
   use Astarte.Pairing.Cases.Device
 
-  import Astarte.Helpers.Device
+  import Astarte.Pairing.Helpers.Device
 
   alias Astarte.Pairing.Info
   alias Astarte.Pairing.Info.DeviceInfo

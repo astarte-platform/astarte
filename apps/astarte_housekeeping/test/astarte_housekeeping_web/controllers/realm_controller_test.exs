@@ -25,9 +25,9 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   import Ecto.Query
 
   alias Astarte.DataAccess.Repo
-  alias Astarte.Helpers.JWTTestHelper
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Helpers.JWTTestHelper
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm

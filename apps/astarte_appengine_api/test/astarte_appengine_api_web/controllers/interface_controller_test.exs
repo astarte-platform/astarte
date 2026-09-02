@@ -27,8 +27,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   use Astarte.AppEngine.API.Cases.Conn
 
   import Astarte.Generators.InterfaceUpdate
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.JWT
+  import Astarte.AppEngine.API.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.JWT
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm

@@ -26,7 +26,7 @@ defmodule Astarte.Secrets.KeyTest do
   alias COSE.Keys
   alias COSE.Messages.Sign1
 
-  import Astarte.Helpers.Key
+  import Astarte.Secrets.Helpers.Key
 
   setup :key_setup
 

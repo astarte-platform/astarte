@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Key do
+defmodule Astarte.Secrets.Helpers.Key do
   @moduledoc false
 
   alias Astarte.Secrets

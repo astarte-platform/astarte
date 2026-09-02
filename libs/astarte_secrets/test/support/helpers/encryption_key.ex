@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.EncryptionKey do
+defmodule Astarte.Secrets.Helpers.EncryptionKey do
   @moduledoc false
 
   require Logger

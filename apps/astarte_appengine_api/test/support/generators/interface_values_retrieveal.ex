@@ -26,7 +26,7 @@ defmodule Astarte.Generators.InterfaceValuesRetrieveal do
   """
   use Astarte.Generators.Utilities.ParamsGen
 
-  import Astarte.Helpers.Device
+  import Astarte.AppEngine.API.Helpers.Device
 
   @doc """
   Generate valid Astarte.AppEngine.API.Device.InterfaceValuesOptions.

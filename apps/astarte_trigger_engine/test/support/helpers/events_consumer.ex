@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.EventsConsumer do
+defmodule Astarte.TriggerEngine.Helpers.EventsConsumer do
   @moduledoc """
   Helper module for events consumer test utilities.
   """

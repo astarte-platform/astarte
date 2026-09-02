@@ -24,7 +24,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
 
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
 
-  import Astarte.Helpers.Policy
+  import Astarte.TriggerEngine.Helpers.Policy
 
   test "@default policy consumer is always there", %{realm_name: realm_name} do
     AMQPConsumerTracker.update_consumers()

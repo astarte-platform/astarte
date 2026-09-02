@@ -31,7 +31,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
 
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
 
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core

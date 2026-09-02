@@ -124,7 +124,7 @@ defmodule Astarte.PairingWeb.AgentControllerTest do
       interfaces = []
       device = device(interfaces: interfaces) |> Enum.at(10)
       secret = CredentialsSecret.generate()
-      Astarte.Helpers.Device.insert_device_cleanly(realm_name, device, interfaces, secret)
+      Astarte.Pairing.Helpers.Device.insert_device_cleanly(realm_name, device, interfaces, secret)
 
       existing_attrs = %{"hw_id" => device.encoded_id}
       conn = post(conn, agent_path(conn, :create, realm_name), data: existing_attrs)

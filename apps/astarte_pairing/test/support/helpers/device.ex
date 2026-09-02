@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.Pairing.Helpers.Device do
   @moduledoc false
   import ExUnit.CaptureLog
 

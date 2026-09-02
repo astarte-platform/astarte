@@ -20,7 +20,7 @@ defmodule Astarte.Secrets.DataEncryptionKeyCacheTest do
   use ExUnit.Case, async: false
   use Mimic
 
-  import Astarte.Helpers.Namespace
+  import Astarte.Secrets.Helpers.Namespace
 
   alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
 

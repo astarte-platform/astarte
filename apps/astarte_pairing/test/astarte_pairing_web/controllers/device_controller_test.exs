@@ -21,7 +21,7 @@ defmodule Astarte.PairingWeb.DeviceControllerTest do
   use Astarte.Pairing.Cases.Device
   use Astarte.Pairing.Cases.Conn, async: true
 
-  import Astarte.Helpers.Device
+  import Astarte.Pairing.Helpers.Device
 
   @secret "supersecret"
 

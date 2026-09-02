@@ -44,7 +44,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
 
-  alias Astarte.Helpers.Database
+  alias Astarte.DataUpdaterPlant.Helpers.Database
 
   @moduletag timeout: 180_000
 

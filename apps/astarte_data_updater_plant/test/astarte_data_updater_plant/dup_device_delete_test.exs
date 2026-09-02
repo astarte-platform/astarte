@@ -30,8 +30,8 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
+  alias Astarte.DataUpdaterPlant.Helpers.DataUpdater
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
-  alias Astarte.Helpers.DataUpdater
 
   setup :verify_on_exit!
   setup :set_mox_global

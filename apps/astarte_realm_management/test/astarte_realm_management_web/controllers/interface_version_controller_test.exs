@@ -21,7 +21,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceVersionControllerTest do
   use Astarte.RealmManagementWeb.ConnCase
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core
 

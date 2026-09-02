@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Interface do
+defmodule Astarte.AppEngine.API.Helpers.Interface do
   @moduledoc """
   Test helper functions to customize interface mappings with shared parameters.
   """

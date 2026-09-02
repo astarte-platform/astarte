@@ -20,7 +20,7 @@ defmodule Astarte.TriggerEngineWebTest do
   use Astarte.TriggerEngine.Cases.Database, async: true
   use ExUnitProperties
 
-  import Astarte.Helpers.Plug
+  import Astarte.TriggerEngine.Helpers.Plug
 
   test "/health returns ok if astarte is working correctly" do
     conn = get("/health")

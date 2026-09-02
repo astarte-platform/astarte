@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.DatabaseV2 do
+defmodule Astarte.AppEngine.API.Helpers.DatabaseV2 do
   @moduledoc false
 
   alias Astarte.Core.Realm

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Namespace do
+defmodule Astarte.Secrets.Helpers.Namespace do
   @moduledoc false
   import Mimic
 

@@ -36,7 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   alias Astarte.Secrets.EncryptedMessages
   alias COSE.Keys.Symmetric
 
-  import Astarte.Helpers.DataUpdater
+  import Astarte.DataUpdaterPlant.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
 
   setup_all %{realm_name: realm_name, device: device, interfaces: interfaces} do

@@ -15,14 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.RealmManagement.Helpers.Device do
   @moduledoc false
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.Helpers
+  alias Astarte.RealmManagement.Helpers
   alias Astarte.RealmManagement.Interfaces
 
   import ExUnit.CaptureLog

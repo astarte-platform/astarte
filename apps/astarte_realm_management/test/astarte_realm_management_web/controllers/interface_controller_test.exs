@@ -22,12 +22,12 @@ defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
 
   @moduletag :interfaces
 
-  import Astarte.Helpers.Database
+  import Astarte.RealmManagement.Helpers.Database
   import ExUnit.CaptureLog
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
   alias Astarte.RealmManagement.Interfaces.Core
 
   @interface_name "com.Some.Interface"

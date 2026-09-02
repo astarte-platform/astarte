@@ -45,6 +45,7 @@ Mimic.copy(Mississippi.Consumer.MessageTracker)
 Mimic.copy(System)
 Mimic.copy(Xandra)
 
-Mississippi.Producer.start_link(Astarte.Helpers.DataUpdater.mississippi_producer_opts!())
+Astarte.DataUpdaterPlant.Helpers.DataUpdater.mississippi_producer_opts!()
+|> Mississippi.Producer.start_link()
 
 ExUnit.start(capture_log: true)
