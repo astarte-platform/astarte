@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.Events.Cases.Data, async: true
 
   import Mimic
 

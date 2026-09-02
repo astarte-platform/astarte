@@ -18,7 +18,7 @@
 
 defmodule Astarte.FDO.ServiceInfoTest do
   use ExUnit.Case, async: true
-  use Astarte.Cases.Data, async: true
+  use Astarte.FDO.Cases.Data, async: true
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.FDO.Queries

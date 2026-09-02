@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
   import Mox
   import Astarte.Helpers.DataUpdater
 

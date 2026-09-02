@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
   import ExUnit.CaptureLog

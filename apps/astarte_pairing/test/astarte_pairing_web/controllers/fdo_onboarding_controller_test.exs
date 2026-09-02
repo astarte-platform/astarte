@@ -18,8 +18,8 @@
 
 defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.PairingWeb.CBORConnCase, async: true
-  use Astarte.Cases.Data
-  use Astarte.Cases.FDOSession
+  use Astarte.Pairing.Cases.Data
+  use Astarte.Pairing.Cases.FDOSession
   use Mimic
 
   alias Astarte.Core.Device

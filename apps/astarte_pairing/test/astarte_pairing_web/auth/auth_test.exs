@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.PairingWeb.AuthTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Conn, async: true
+  use Astarte.Pairing.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Conn, async: true
 
   alias Astarte.PairingWeb.Helpers.JWTTestHelper
 

@@ -21,10 +21,10 @@
 defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   @moduledoc false
   use ExUnitProperties
-  use Astarte.Cases.Data, async: true
+  use Astarte.AppEngine.API.Cases.Data, async: true
   use Mimic
-  use Astarte.Cases.Device
-  use Astarte.Cases.Conn
+  use Astarte.AppEngine.API.Cases.Device
+  use Astarte.AppEngine.API.Cases.Conn
 
   import Astarte.Generators.InterfaceUpdate
   import Astarte.Helpers.Device

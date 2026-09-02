@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumerTest do
-  use Astarte.Cases.Database, async: true
-  use Astarte.Cases.Trigger, triggers: Astarte.Fixtures.Trigger.all_triggers()
+  use Astarte.TriggerEngine.Cases.Database, async: true
+  use Astarte.TriggerEngine.Cases.Trigger, triggers: Astarte.Fixtures.Trigger.all_triggers()
   use ExUnitProperties
   use Mimic
 

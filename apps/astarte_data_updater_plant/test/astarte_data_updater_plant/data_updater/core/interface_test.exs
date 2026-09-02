@@ -30,9 +30,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.Helpers
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
   use ExUnitProperties
 
   import Ecto.Query

@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.Triggers do
+defmodule Astarte.RealmManagement.Cases.Triggers do
   @moduledoc """
   This module defines the setup for tests requiring access to the application
   database.

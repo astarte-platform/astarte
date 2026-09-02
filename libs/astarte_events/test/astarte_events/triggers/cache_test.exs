@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.Events.Triggers.CacheTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Cache
+  use Astarte.Events.Cases.Data, async: true
+  use Astarte.Events.Cases.Cache
 
   import Mimic
 

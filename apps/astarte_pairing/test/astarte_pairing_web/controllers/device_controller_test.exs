@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.PairingWeb.DeviceControllerTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.Conn, async: true
+  use Astarte.Pairing.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Device
+  use Astarte.Pairing.Cases.Conn, async: true
 
   import Astarte.Helpers.Device
 

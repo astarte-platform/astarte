@@ -16,7 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.AuthTest do
-  use Astarte.Cases.Conn
+  use Astarte.AppEngine.API.Cases.Conn
 
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Helpers.JWT, as: JWTTestHelper

@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.InterfacesTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   import ExUnit.CaptureLog
 

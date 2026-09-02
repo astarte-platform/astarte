@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
   @moduletag :interfaces

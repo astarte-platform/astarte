@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.FDOSession
+  use Astarte.FDO.Cases.Data, async: true
+  use Astarte.FDO.Cases.FDOSession
   alias Astarte.FDO.Core.OwnerOnboarding.EAToken
   alias Astarte.FDO.Core.OwnerOnboarding.ProveDevice
   alias Astarte.FDO.Core.PublicKey

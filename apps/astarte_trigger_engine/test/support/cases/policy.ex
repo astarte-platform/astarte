@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Policy do
+defmodule Astarte.TriggerEngine.Cases.Policy do
   @moduledoc """
   ExUnit case template for policy tests.
   """

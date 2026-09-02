@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.FDOSession do
+defmodule Astarte.Pairing.Cases.FDOSession do
   @moduledoc """
   This module defines the setup for tests requiring an FDO session with
   a fully initialized session including derived keys.

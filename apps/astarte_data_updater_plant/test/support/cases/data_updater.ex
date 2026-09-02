@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.DataUpdater do
+defmodule Astarte.DataUpdaterPlant.Cases.DataUpdater do
   @moduledoc """
   Setup the Mississippi Data Updater process so that it is available to tests.
   """

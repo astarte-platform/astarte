@@ -1,5 +1,5 @@
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumerTest do
-  use Astarte.Cases.Policy, async: true
+  use Astarte.TriggerEngine.Cases.Policy, async: true
   use Mimic
 
   alias AMQP.Channel

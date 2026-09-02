@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.TriggerEngine.PolicyTest do
-  use Astarte.Cases.Policy, async: true
+  use Astarte.TriggerEngine.Cases.Policy, async: true
   use ExUnitProperties
 
   import Mox

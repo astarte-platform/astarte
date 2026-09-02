@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.FDO.Onboarding.DoneTest do
-  use Astarte.Cases.Data, async: false
-  use Astarte.Cases.FDOSession
+  use Astarte.FDO.Cases.Data, async: false
+  use Astarte.FDO.Cases.FDOSession
 
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.Pairing.Cases.Device do
   @moduledoc false
   use ExUnitProperties
   use ExUnit.CaseTemplate

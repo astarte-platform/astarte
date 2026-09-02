@@ -21,9 +21,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  use Astarte.Cases.Data
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Data
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
 
   import Ecto.Query
 

@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.Data do
+defmodule Astarte.RealmManagement.Cases.Data do
   @moduledoc """
   This module defines the setup for tests requiring access to the application
   database.
@@ -37,7 +37,7 @@ defmodule Astarte.Cases.Data do
     jwt_public_key = Keyword.get_lazy(opts, :jwt_public_key, &jwt_public_key_pem/0)
 
     quote do
-      import Astarte.Cases.Data
+      import Astarte.RealmManagement.Cases.Data
       import Astarte.Helpers.Database
 
       @moduletag astarte_instance_id: unquote(astarte_instance_id)

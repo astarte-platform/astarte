@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
-  use Astarte.Cases.Channel
+  use Astarte.AppEngine.API.Cases.Channel
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.Groups

@@ -20,10 +20,10 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
   use Astarte.Generators.Utilities.ParamsGen
-  use Astarte.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
   use Mimic
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
 
   import Astarte.InterfaceUpdateGenerators
 

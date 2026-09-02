@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.FDOSession
+  use Astarte.FDO.Cases.Data, async: true
+  use Astarte.FDO.Cases.FDOSession
 
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash

@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.FDO.OwnershipVoucherTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.FDO.Cases.Data, async: true
 
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash

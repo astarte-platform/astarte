@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   use ExUnit.Case, async: true
-  use Astarte.Cases.Trigger
+  use Astarte.DataUpdaterPlant.Cases.Trigger
 
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
@@ -90,7 +90,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @custom_policy_queue "#{@realm}_#{@custom_policy_name}_queue"
   @custom_policy_routing_key "#{@realm}_#{@custom_policy_name}"
 
-  # Needed for Astarte.Cases.Trigger
+  # Needed for Astarte.DataUpdaterPlant.Cases.Trigger
   @moduletag realm_name: @realm
 
   setup_all do

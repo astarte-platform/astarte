@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Cache do
+defmodule Astarte.Events.Cases.Cache do
   @moduledoc """
   Test case for modules relying on cache state.
 
@@ -29,7 +29,7 @@ defmodule Astarte.Cases.Cache do
 
   using _opts do
     quote do
-      import Astarte.Cases.Cache
+      import Astarte.Events.Cases.Cache
     end
   end
 

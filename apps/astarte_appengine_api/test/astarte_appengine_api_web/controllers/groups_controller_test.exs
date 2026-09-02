@@ -18,7 +18,7 @@
 
 defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   use ExUnitProperties
-  use Astarte.Cases.Conn
+  use Astarte.AppEngine.API.Cases.Conn
 
   import Astarte.Core.Generators.Device
   import Astarte.Core.Generators.Group

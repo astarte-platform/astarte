@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.TriggerEngineWebTest do
-  use Astarte.Cases.Database, async: true
+  use Astarte.TriggerEngine.Cases.Database, async: true
   use ExUnitProperties
 
   import Astarte.Helpers.Plug

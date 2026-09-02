@@ -16,8 +16,8 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.AppEngine.API.Cases.Data, async: true
+  use Astarte.AppEngine.API.Cases.Device
   use ExUnitProperties
 
   import Astarte.Generators.InterfaceUpdate

@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.Pairing.AgentTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.Pairing.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Device
 
   import Mox
   import Astarte.Helpers.Triggers

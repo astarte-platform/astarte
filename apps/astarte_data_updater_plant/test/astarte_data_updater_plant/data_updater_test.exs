@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case, async: true
-  # use Astarte.Cases.Trigger
+  # use Astarte.DataUpdaterPlant.Cases.Trigger
 
   import Mox
 

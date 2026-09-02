@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Trigger do
+defmodule Astarte.TriggerEngine.Cases.Trigger do
   @moduledoc """
   ExUnit case template for trigger tests.
   """

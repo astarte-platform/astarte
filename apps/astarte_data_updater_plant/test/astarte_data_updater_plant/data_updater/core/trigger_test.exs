@@ -22,10 +22,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   use ExUnit.Case
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
-  use Astarte.Cases.Trigger
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Trigger
 
   import Astarte.Core.Generators.Device
 

@@ -8,9 +8,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
   use ExUnitProperties
 
   use Mimic

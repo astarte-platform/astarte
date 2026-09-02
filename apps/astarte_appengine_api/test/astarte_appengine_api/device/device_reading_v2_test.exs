@@ -17,8 +17,8 @@
 
 defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   use ExUnitProperties
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.AppEngine.API.Cases.Data, async: true
+  use Astarte.AppEngine.API.Cases.Device
 
   import Astarte.Generators.InterfaceUpdate
   import Astarte.Helpers.Device

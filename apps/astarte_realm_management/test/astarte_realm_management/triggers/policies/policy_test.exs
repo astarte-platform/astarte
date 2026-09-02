@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   import ExUnit.CaptureLog
 
