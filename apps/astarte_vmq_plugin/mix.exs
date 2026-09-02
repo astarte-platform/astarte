@@ -25,7 +25,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
