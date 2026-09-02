@@ -82,7 +82,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cbor, "~> 1.0"},
       {:con_cache, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
-      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
+      {:cyanide, github: "secomind/cyanide", override: true},
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},

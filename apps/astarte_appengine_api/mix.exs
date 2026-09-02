@@ -76,7 +76,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:ex_lttb, "~> 0.3"},
-      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
+      {:cyanide, github: "secomind/cyanide", override: true},
       {:guardian, "~> 2.4"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app

@@ -62,7 +62,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
-      {:cyanide, github: "noaccOS/cyanide", branch: "push-wuxvrvwqsrxv", override: true},
+      {:cyanide, github: "secomind/cyanide", override: true},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.11"},
       {:telemetry, "~> 1.0"},
