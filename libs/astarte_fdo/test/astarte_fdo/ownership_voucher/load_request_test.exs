@@ -65,7 +65,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   }
 
   setup do
-    Queries |> stub(:fetch_ownership_voucher, fn _, _ -> {:error, :not_found} end)
+    Queries |> stub(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
     DeviceQueries |> stub(:fetch, fn _, _ -> {:error, :device_not_found} end)
 
     :ok
@@ -88,7 +88,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       %{load_request: load_request} = context
 
       Queries
-      |> expect(:create_ownership_voucher, fn @sample_realm, ownership_voucher ->
+      |> expect(:create_ownership_voucher, fn ownership_voucher ->
         assert ownership_voucher.guid == load_request.device_guid
         assert ownership_voucher.device_id == load_request.device_id
         assert ownership_voucher.status == :created
@@ -246,7 +246,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       realm = @sample_realm
       guid = sample_device_guid()
       voucher = %OwnershipVoucher{guid: guid}
-      Queries |> expect(:fetch_ownership_voucher, fn ^realm, ^guid -> {:ok, voucher} end)
+      Queries |> expect(:fetch_ownership_voucher, fn ^guid -> {:ok, voucher} end)
 
       assert {:error, changeset} = from_changeset(@sample_params)
       assert %{ownership_voucher: ["guid has already been claimed"]} = errors_on(changeset)
@@ -254,7 +254,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
     test "a device_id of an already existing device" do
       realm = @sample_realm
-      Queries |> expect(:fetch_ownership_voucher, fn _, _ -> {:error, :not_found} end)
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
       DeviceQueries |> expect(:fetch, fn ^realm, @sample_device_id -> {:ok, %DeviceStruct{}} end)
 
       assert {:error, changeset} = from_changeset(@sample_params)

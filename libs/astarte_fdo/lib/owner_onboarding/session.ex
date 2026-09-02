@@ -40,6 +40,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
   typedstruct do
     field :guid, binary()
+    field :realm, String.t()
     field :hmac, Hash.t()
     field :device_id, Astarte.DataAccess.UUID
     field :nonce, binary()
@@ -83,6 +84,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
            %TO2Session{
              guid: guid,
              device_id: device_id,
+             realm: realm_name,
              hmac: hmac,
              nonce: nonce,
              prove_dv_nonce: prove_dv_nonce,
@@ -92,16 +94,13 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
            },
          session_params = Map.merge(session_params, signature_params),
          :ok <-
-           Queries.store_session(
-             realm_name,
-             guid,
-             session_params
-           ) do
+           Queries.store_session(session_params) do
       token = SessionToken.generate(guid, nonce)
 
       session =
         %Session{
           guid: guid,
+          realm: realm_name,
           hmac: hmac,
           device_id: device_id,
           nonce: nonce,
@@ -119,7 +118,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
   defp cleanup_previous_session(realm_name, device_id, guid) do
     with :ok <- cleanup_credentials(realm_name, device_id) do
-      Queries.delete_session(realm_name, guid)
+      Queries.delete_session(guid)
     end
   end
 
@@ -127,23 +126,22 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     DeviceQueries.unregister(realm_name, device_id)
   end
 
-  def add_setup_dv_nonce(session, realm_name, setup_dv_nonce) do
-    with :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.guid, setup_dv_nonce) do
+  def add_setup_dv_nonce(session, setup_dv_nonce) do
+    with :ok <- Queries.session_add_setup_dv_nonce(session.guid, setup_dv_nonce) do
       {:ok, %{session | setup_dv_nonce: setup_dv_nonce}}
     end
   end
 
-  def add_max_owner_service_info_size(session, realm_name, size) do
+  def add_max_owner_service_info_size(session, size) do
     with :ok <-
-           Queries.add_session_max_owner_service_info_size(realm_name, session.guid, size) do
+           Queries.add_session_max_owner_service_info_size(session.guid, size) do
       {:ok, %{session | max_owner_service_info_size: size}}
     end
   end
 
-  def add_owner_service_info(session, realm_name, owner_service_info) do
+  def add_owner_service_info(session, owner_service_info) do
     with :ok <-
            Queries.session_add_owner_service_info(
-             realm_name,
              session.guid,
              owner_service_info
            ) do
@@ -151,12 +149,11 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end
   end
 
-  def next_owner_service_info_chunk(session, realm_name) do
+  def next_owner_service_info_chunk(session) do
     case get_next_owner_chunk(session) do
       {:ok, index, service_info_chunk} ->
         with :ok <-
                Queries.session_update_last_chunk_sent(
-                 realm_name,
                  session.guid,
                  index
                ) do
@@ -171,7 +168,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
   defp get_next_owner_chunk(%{owner_service_info: chunks, last_chunk_sent: last}) do
     next_index = (last || -1) + 1
 
-    case Enum.at(chunks, next_index) do
+    case Enum.at(chunks || [], next_index) do
       nil ->
         :done
 
@@ -180,19 +177,18 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end
   end
 
-  def add_device_id(session, realm_name, device_id) do
-    with :ok <- Queries.session_update_device_id(realm_name, session.guid, device_id) do
+  def add_device_id(session, device_id) do
+    with :ok <- Queries.session_update_device_id(session.guid, device_id) do
       {:ok, %{session | device_id: device_id}}
     end
   end
 
-  def add_device_service_info(session, realm_name, new_service_info) do
+  def add_device_service_info(session, new_service_info) do
     service_info = encode_values_to_cbor(new_service_info)
     session = update_in(session.device_service_info, &Map.merge(&1 || %{}, service_info))
 
     with :ok <-
            Queries.session_add_device_service_info(
-             realm_name,
              session.guid,
              session.device_service_info
            ) do
@@ -221,10 +217,9 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end
   end
 
-  def add_replacement_hmac(session, realm_name, hmac) do
+  def add_replacement_hmac(session, hmac) do
     with :ok <-
            Queries.session_add_replacement_hmac(
-             realm_name,
              session.guid,
              hmac
            ) do
@@ -235,29 +230,28 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
   def build_session_secret(
         session = %{kex_suite_name: kex, guid: guid},
-        realm_name,
         %Astarte.Secrets.Key{} = owner_key,
         xb
       )
       when kex in ["ASYMKEX2048", "ASYMKEX3072"] do
     with {:ok, secret} <-
            Astarte.Secrets.decrypt(owner_key.name, xb, namespace: owner_key.namespace),
-         :ok <- Queries.add_session_secret(realm_name, guid, secret) do
+         :ok <- Queries.add_session_secret(guid, secret) do
       {:ok, %{session | secret: secret}}
     end
   end
 
-  def build_session_secret(session, realm_name, owner_key, xb) do
+  def build_session_secret(session, owner_key, xb) do
     %Session{kex_suite_name: kex, owner_random: owner_random, guid: guid} = session
 
     with {:ok, secret} <-
            SessionKey.compute_shared_secret(kex, owner_key, owner_random, xb),
-         :ok <- Queries.add_session_secret(realm_name, guid, secret) do
+         :ok <- Queries.add_session_secret(guid, secret) do
       {:ok, %{session | secret: secret}}
     end
   end
 
-  def derive_key(session, realm_name) do
+  def derive_key(session) do
     %Session{
       kex_suite_name: kex_suite_name,
       cipher_suite: cipher_suite,
@@ -268,7 +262,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
     with {:ok, sevk, svk, sek} <-
            SessionKey.derive_key(kex_suite_name, cipher_suite, secret, owner_random),
-         :ok <- Queries.add_session_keys(realm_name, guid, sevk, svk, sek) do
+         :ok <- Queries.add_session_keys(guid, sevk, svk, sek) do
       {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
     end
   end
@@ -294,12 +288,13 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     |> Encrypt0.encrypt_encode(cipher, sevk, iv)
   end
 
-  def fetch(realm_name, guid) do
-    with {:ok, database_session} <- Queries.fetch_session(realm_name, guid),
+  def fetch(guid) do
+    with {:ok, database_session} <- Queries.fetch_session(guid),
          {:ok, device_signature} <-
            SignatureInfo.database_params_to_device_signature(database_session) do
       %TO2Session{
         guid: guid,
+        realm: db_realm,
         device_id: device_id,
         hmac: hmac,
         nonce: db_nonce,
@@ -321,6 +316,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
       session = %Session{
         guid: guid,
+        realm: db_realm,
         device_id: device_id,
         hmac: hmac,
         nonce: db_nonce,

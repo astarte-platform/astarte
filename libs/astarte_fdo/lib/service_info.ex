@@ -35,14 +35,13 @@ defmodule Astarte.FDO.ServiceInfo do
   # If device has more data to send, save received part to the session
   # and respond with empty OwnerService Info
   def build_owner_service_info(
-        realm_name,
         session,
         %DeviceServiceInfo{
           is_more_service_info: true,
           service_info: service_info
         }
       ) do
-    Session.add_device_service_info(session, realm_name, service_info)
+    Session.add_device_service_info(session, service_info)
     resp = OwnerServiceInfo.empty()
     {:ok, resp}
   end
@@ -50,7 +49,6 @@ defmodule Astarte.FDO.ServiceInfo do
   # Case when the device yielded during Owner Service Info chunk transmission
   # by sending an empty ServiceInfo map.
   def build_owner_service_info(
-        realm_name,
         session,
         %DeviceServiceInfo{
           is_more_service_info: false,
@@ -58,18 +56,17 @@ defmodule Astarte.FDO.ServiceInfo do
         }
       )
       when map_size(service_info) == 0 do
-    send_next_owner_chunk(session, realm_name)
+    send_next_owner_chunk(session)
   end
 
-  defp send_next_owner_chunk(session, realm_name) do
+  defp send_next_owner_chunk(session) do
     with {:ok, _session, service_info_chunk} <-
-           Session.next_owner_service_info_chunk(session, realm_name) do
+           Session.next_owner_service_info_chunk(session) do
       {:ok, service_info_chunk}
     end
   end
 
   def build_and_send_owner_service_info(
-        realm_name,
         session,
         credentials_secret
       ) do
@@ -77,7 +74,7 @@ defmodule Astarte.FDO.ServiceInfo do
 
     owner_service_info =
       OwnerServiceInfo.build(
-        realm_name,
+        session.realm,
         credentials_secret,
         encoded_device_id,
         Config.base_url!()
@@ -93,11 +90,10 @@ defmodule Astarte.FDO.ServiceInfo do
     {:ok, session} =
       Session.add_owner_service_info(
         session,
-        realm_name,
         service_info_chunks
       )
 
-    send_next_owner_chunk(session, realm_name)
+    send_next_owner_chunk(session)
   end
 
   defp chunks_to_owner_service_info(chunks) do

@@ -85,15 +85,16 @@ defmodule Astarte.FDO.Helpers.Database do
   CREATE TABLE :keyspace.ownership_vouchers (
       guid blob,
       device_id uuid,
+      realm text,
+      status int,
       voucher_data blob,
       output_voucher blob,
+      user_id blob,
+      key_name text,
+      key_algorithm int,
       replacement_guid blob,
       replacement_rendezvous_info blob,
       replacement_public_key blob,
-      key_name varchar,
-      key_algorithm int,
-      user_id blob,
-      status int,
       PRIMARY KEY (guid)
    );
   """
@@ -101,6 +102,7 @@ defmodule Astarte.FDO.Helpers.Database do
   @create_to2_sessions_table """
   CREATE TABLE :keyspace.to2_sessions (
     guid blob,
+    realm text,
     device_id uuid,
     hmac blob,
     nonce blob,
@@ -323,8 +325,11 @@ defmodule Astarte.FDO.Helpers.Database do
   def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace)
+    execute!(astarte_keyspace, @create_session_key_type)
     execute!(astarte_keyspace, @create_kv_store)
     execute!(astarte_keyspace, @create_realms_table)
+    execute!(astarte_keyspace, @create_ownership_vouchers_table)
+    execute!(astarte_keyspace, @create_to2_sessions_table)
   end
 
   def setup!(realm_name) do
@@ -342,7 +347,6 @@ defmodule Astarte.FDO.Helpers.Database do
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
     execute!(realm_keyspace, @create_session_key_type)
-    execute!(realm_keyspace, @create_ownership_vouchers_table)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)
@@ -353,7 +357,6 @@ defmodule Astarte.FDO.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
-    execute!(realm_keyspace, @create_to2_sessions_table)
 
     :ok
   end
@@ -585,8 +588,8 @@ defmodule Astarte.FDO.Helpers.Database do
     |> DateTime.to_unix(:millisecond)
   end
 
-  def delete_session(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+  def delete_session(guid) do
+    keyspace = Realm.astarte_keyspace_name()
 
     query =
       from(s in TO2Session,

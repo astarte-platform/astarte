@@ -37,7 +37,6 @@ defmodule Astarte.PairingWeb.Router do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
     plug Astarte.PairingWeb.Plug.LogRealm
-    plug Astarte.PairingWeb.Plug.VerifyRealmExists
     plug Astarte.PairingWeb.Plug.SetupFDO
   end
 

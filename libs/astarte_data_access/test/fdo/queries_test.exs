@@ -68,15 +68,15 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
         key_algorithm: :es256
       }
 
-      assert :ok = Queries.create_ownership_voucher(@realm, ownership_voucher)
+      assert :ok = Queries.create_ownership_voucher(ownership_voucher)
 
       assert {:ok, %OwnershipVoucher{voucher_data: ^voucher}} =
-               Queries.fetch_ownership_voucher(@realm, guid)
+               Queries.fetch_ownership_voucher(guid)
     end
 
     test "get voucher returns error when not found" do
       guid = random_guid()
-      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(guid)
     end
 
     test "delete ownership voucher" do
@@ -87,30 +87,31 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
         guid: guid,
         voucher_data: voucher,
         key_name: "test_key_name",
-        key_algorithm: :es256
+        key_algorithm: :es256,
+        realm: @realm
       }
 
-      :ok = Queries.create_ownership_voucher(@realm, voucher)
+      :ok = Queries.create_ownership_voucher(voucher)
       assert {:ok, _} = Queries.delete_ownership_voucher(@realm, guid)
-      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(guid)
     end
   end
 
-  describe "fetch_device_id_and_ownership_voucher/2" do
+  describe "fetch_device_id_and_ownership_voucher_and_realm/1" do
     setup :setup_voucher
 
     test "returns the voucher and the device_id", context do
       %{realm_name: realm_name, guid: guid, device_id: device_id, voucher_data: voucher_data} =
         context
 
-      assert Queries.fetch_device_id_and_ownership_voucher(realm_name, guid) ==
-               {:ok, {device_id, voucher_data}}
+      assert Queries.fetch_device_id_and_ownership_voucher_and_realm(guid) ==
+               {:ok, {realm_name, device_id, voucher_data}}
     end
 
     test "returns :not_found for invalid guid", context do
       %{realm_name: realm_name} = context
 
-      assert Queries.fetch_device_id_and_ownership_voucher(realm_name, random_guid()) ==
+      assert Queries.fetch_device_id_and_ownership_voucher_and_realm(random_guid()) ==
                {:error, :not_found}
     end
   end
@@ -118,28 +119,28 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
   describe "session" do
     test "store, fetch, delete session" do
       guid = random_guid()
-      session = %TO2Session{guid: guid, nonce: :crypto.strong_rand_bytes(16)}
+      session = %TO2Session{guid: guid, nonce: :crypto.strong_rand_bytes(16), realm: @realm}
 
-      assert :ok = Queries.store_session(@realm, guid, session)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(session)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.guid == guid
-      assert Queries.delete_session(@realm, guid) == :ok
-      assert {:error, _} = Queries.fetch_session(@realm, guid)
+      assert Queries.delete_session(guid) == :ok
+      assert {:error, _} = Queries.fetch_session(guid)
     end
 
     test "fetch session returns error when not found" do
       guid = random_guid()
-      assert {:error, _} = Queries.fetch_session(@realm, guid)
+      assert {:error, _} = Queries.fetch_session(guid)
     end
 
     test "add session secret" do
       guid = random_guid()
-      session = %TO2Session{guid: guid}
+      session = %TO2Session{guid: guid, realm: @realm}
       secret = :crypto.strong_rand_bytes(32)
 
-      assert :ok = Queries.store_session(@realm, guid, session)
-      assert :ok = Queries.add_session_secret(@realm, guid, secret)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(session)
+      assert :ok = Queries.add_session_secret(guid, secret)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.secret == secret
     end
 
@@ -147,9 +148,9 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid = random_guid()
       nonce = :crypto.strong_rand_bytes(16)
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.session_add_setup_dv_nonce(@realm, guid, nonce)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.session_add_setup_dv_nonce(guid, nonce)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.setup_dv_nonce == nonce
     end
 
@@ -157,27 +158,27 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid = random_guid()
       device_id = :crypto.strong_rand_bytes(16)
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.session_update_device_id(@realm, guid, device_id)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.session_update_device_id(guid, device_id)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.device_id == device_id
     end
 
     test "add_session_max_owner_service_info_size" do
       guid = random_guid()
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.add_session_max_owner_service_info_size(@realm, guid, 1024)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.add_session_max_owner_service_info_size(guid, 1024)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.max_owner_service_info_size == 1024
     end
 
     test "session_update_last_chunk_sent" do
       guid = random_guid()
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.session_update_last_chunk_sent(@realm, guid, 5)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.session_update_last_chunk_sent(guid, 5)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.last_chunk_sent == 5
     end
 
@@ -185,9 +186,9 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid = random_guid()
       service_info = %{{"module", "msg"} => <<1, 2, 3>>}
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.session_add_device_service_info(@realm, guid, service_info)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.session_add_device_service_info(guid, service_info)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.device_service_info == service_info
     end
 
@@ -195,9 +196,9 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid = random_guid()
       owner_service_info = [:crypto.strong_rand_bytes(16), :crypto.strong_rand_bytes(16)]
 
-      assert :ok = Queries.store_session(@realm, guid, %TO2Session{guid: guid})
-      assert :ok = Queries.session_add_owner_service_info(@realm, guid, owner_service_info)
-      assert {:ok, fetched} = Queries.fetch_session(@realm, guid)
+      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: @realm})
+      assert :ok = Queries.session_add_owner_service_info(guid, owner_service_info)
+      assert {:ok, fetched} = Queries.fetch_session(guid)
       assert fetched.owner_service_info == owner_service_info
     end
   end
@@ -216,29 +217,29 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
     setup :setup_voucher
 
     test "updates the status of the ownership voucher", %{guid: guid} do
-      opts = [prefix: Realm.keyspace_name(@realm)]
+      opts = [prefix: Realm.astarte_keyspace_name()]
       assert %{status: :created} = Repo.get(OwnershipVoucher, guid, opts)
-      assert :ok == Queries.mark_voucher_as_claimed(@realm, guid)
+      assert :ok == Queries.mark_voucher_as_claimed(guid)
       assert %{status: :claimed} = Repo.get(OwnershipVoucher, guid, opts)
     end
   end
 
-  describe "get_owner_key_params/2" do
+  describe "get_owner_key_params/1" do
     setup :setup_ov_entry
 
     test "returns a map with key name and algorithm", context do
       %{guid: guid, key_name: key_name, key_algorithm: key_algorithm} = context
-      assert {:ok, result} = Queries.get_owner_key_params(@realm, guid)
+      assert {:ok, result} = Queries.get_owner_key_params(guid)
       assert %{name: key_name, algorithm: key_algorithm} == result
     end
 
     test "returns :not_found when the guid is not found", context do
       %{replacement_guid: non_existing_guid} = context
-      assert {:error, :not_found} = Queries.get_owner_key_params(@realm, non_existing_guid)
+      assert {:error, :not_found} = Queries.get_owner_key_params(non_existing_guid)
     end
   end
 
-  describe "get_replacement_data/2" do
+  describe "get_replacement_data/1" do
     setup :setup_ov_entry
 
     test "returns replacement data", context do
@@ -249,7 +250,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
         replacement_public_key: replacement_public_key
       } = context
 
-      assert {:ok, result} = Queries.get_replacement_data(@realm, guid)
+      assert {:ok, result} = Queries.get_replacement_data(guid)
 
       assert %{
                replacement_guid: replacement_guid,
@@ -260,7 +261,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
 
     test "returns :not_found when the guid is not found", context do
       %{replacement_guid: non_existing_guid} = context
-      assert {:error, :not_found} = Queries.get_owner_key_params(@realm, non_existing_guid)
+      assert {:error, :not_found} = Queries.get_owner_key_params(non_existing_guid)
     end
   end
 
@@ -281,16 +282,17 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid: guid,
       key_name: key_name,
       key_algorithm: key_algorithm,
+      realm: @realm,
       replacement_guid: replacement_guid,
       replacement_rendezvous_info: replacement_rendezvous_info,
       replacement_public_key: replacement_public_key
     }
 
     on_exit(fn ->
-      Repo.delete(ov, prefix: Realm.keyspace_name(@realm))
+      Repo.delete(ov, prefix: Realm.astarte_keyspace_name())
     end)
 
-    Repo.insert!(ov, prefix: Realm.keyspace_name(@realm))
+    Repo.insert!(ov, prefix: Realm.astarte_keyspace_name())
 
     %{
       guid: guid,
@@ -315,10 +317,11 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
         guid: guid,
         key_name: "key",
         key_algorithm: :es256,
-        voucher_data: voucher_data
+        voucher_data: voucher_data,
+        realm: @realm
       }
 
-    :ok = Queries.create_ownership_voucher(@realm, voucher)
+    :ok = Queries.create_ownership_voucher(voucher)
 
     %{
       realm_name: @realm,

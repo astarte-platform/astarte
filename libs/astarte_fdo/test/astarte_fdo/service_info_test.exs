@@ -59,10 +59,11 @@ defmodule Astarte.FDO.ServiceInfoTest do
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: sample_cbor_voucher(),
-      guid: guid
+      guid: guid,
+      realm: realm_name
     }
 
-    :ok = Queries.create_ownership_voucher(realm_name, voucher)
+    :ok = Queries.create_ownership_voucher(voucher)
 
     %{
       guid: guid,
@@ -92,11 +93,11 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
-      delete_session(realm_name, session.guid)
+      delete_session(session.guid)
     end)
 
-    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
-    {:ok, session} = Session.derive_key(session, realm_name)
+    {:ok, session} = Session.build_session_secret(session, owner_key, xb)
+    {:ok, session} = Session.derive_key(session)
 
     %{session: session, token: token}
   end
@@ -118,12 +119,11 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
       assert {:ok, empty_message} ==
                ServiceInfo.build_owner_service_info(
-                 realm_name,
                  session,
                  device_info
                )
 
-      {:ok, session_after} = Session.fetch(realm_name, session.guid)
+      {:ok, session_after} = Session.fetch(session.guid)
 
       assert expected_service_info == session_after.device_service_info
     end
@@ -145,18 +145,18 @@ defmodule Astarte.FDO.ServiceInfoTest do
         service_info: first_service_info
       }
 
-      ServiceInfo.build_owner_service_info(realm_name, session, device_info)
+      ServiceInfo.build_owner_service_info(session, device_info)
 
       device_info = %DeviceServiceInfo{
         is_more_service_info: true,
         service_info: second_service_info
       }
 
-      {:ok, session} = Session.fetch(realm_name, session.guid)
+      {:ok, session} = Session.fetch(session.guid)
 
-      ServiceInfo.build_owner_service_info(realm_name, session, device_info)
+      ServiceInfo.build_owner_service_info(session, device_info)
 
-      {:ok, session_after} = Session.fetch(realm_name, session.guid)
+      {:ok, session_after} = Session.fetch(session.guid)
 
       assert expected_service_info == session_after.device_service_info
     end
@@ -169,13 +169,12 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } do
       service_info = %{{"devmod", "sn"} => "serial_number_1234"}
 
-      {:ok, session} = Session.add_device_service_info(session, realm_name, service_info)
+      {:ok, session} = Session.add_device_service_info(session, service_info)
 
       credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
 
       assert {:ok, encoded_owner_service_info} =
                ServiceInfo.build_and_send_owner_service_info(
-                 realm_name,
                  session,
                  credentials_secret
                )
@@ -189,17 +188,16 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } do
       service_info = %{{"devmode", "active"} => true}
 
-      {:ok, session} = Session.add_device_service_info(session, realm_name, service_info)
+      {:ok, session} = Session.add_device_service_info(session, service_info)
 
       credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
 
       ServiceInfo.build_and_send_owner_service_info(
-        realm_name,
         session,
         credentials_secret
       )
 
-      {:ok, session_after} = Session.fetch(realm_name, session.guid)
+      {:ok, session_after} = Session.fetch(session.guid)
 
       empty_device_info = %DeviceServiceInfo{
         is_more_service_info: false,
@@ -210,7 +208,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
       assert {:ok, done_owner_message} ==
                ServiceInfo.build_owner_service_info(
-                 realm_name,
                  session_after,
                  empty_device_info
                )

@@ -31,6 +31,7 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
     field :guid, Astarte.DataAccess.UUID, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
     field :status, Ecto.Enum, values: [created: 0, claimed: 1], default: :created
+    field :realm, :string
     field :voucher_data, :binary
     field :output_voucher, :binary
     field :user_id, :binary

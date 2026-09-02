@@ -53,7 +53,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     %{
       conn: conn,
       create_path: fdo_onboarding_path(conn, action, realm),
-      realm_name: realm,
       message_id: message_id
     }
   end
@@ -64,7 +63,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
     setup :setup_authenticated
 
-    test "calls `OwnerOnboarding.hello_device/2`", %{
+    test "calls `OwnerOnboarding.hello_device/1`", %{
       conn: conn,
       create_path: path,
       message_id: id
@@ -72,7 +71,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       payload = CBOR.encode(%{hello: "device"})
       expected_response = %{"response" => true}
 
-      expect(OwnerOnboarding, :hello_device, fn _, _ ->
+      expect(OwnerOnboarding, :hello_device, fn _ ->
         {:ok, "session_key", CBOR.encode(expected_response)}
       end)
 
@@ -106,7 +105,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :ov_next_entry, fn _, _, _ ->
+      expect(OwnerOnboarding, :ov_next_entry, fn _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -140,7 +139,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :prove_device, fn _, _, _ ->
+      expect(OwnerOnboarding, :prove_device, fn _, _ ->
         {:ok, session, expected_response}
       end)
 
@@ -174,7 +173,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
     setup :setup_authenticated
 
-    test "calls OwnerOnboarding.build_owner_service_info_ready/3", %{
+    test "calls OwnerOnboarding.build_owner_service_info_ready/2", %{
       conn: conn,
       create_path: path,
       message_id: id,
@@ -184,7 +183,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "ok"}
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
+      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _ ->
         {:ok, session, expected_response}
       end)
 
@@ -228,7 +227,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, ^decoded ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -246,7 +245,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       assert conn.assigns.message_id == id
     end
 
-    test "calls ServiceInfo.build_owner_service_info/3 when device yields with empty service info",
+    test "calls ServiceInfo.build_owner_service_info/2 when device yields with empty service info",
          %{
            conn: conn,
            create_path: path,
@@ -258,7 +257,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, ^decoded ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -301,9 +300,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
         {:ok, credentials_secret}
       end)
 
-      expect(ServiceInfo, :build_and_send_owner_service_info, fn _realm_name,
-                                                                 _session,
-                                                                 ^credentials_secret ->
+      expect(ServiceInfo, :build_and_send_owner_service_info, fn _session, ^credentials_secret ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -344,7 +341,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "finished"}
       expected_cbor_response = CBOR.encode(expected_response)
 
-      expect(OwnerOnboarding, :done, fn _, _, _ -> {:ok, expected_cbor_response} end)
+      expect(OwnerOnboarding, :done, fn _, _ -> {:ok, expected_cbor_response} end)
 
       request_body = Session.encrypt_and_sign(session, CBOR.encode(%{done: 1}))
 

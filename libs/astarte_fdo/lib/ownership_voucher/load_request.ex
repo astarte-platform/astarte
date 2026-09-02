@@ -81,7 +81,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     |> validate_required([:hw_id, :ownership_voucher, :realm_name, :key_name, :key_algorithm])
     |> put_device_id(:hw_id, :device_id)
     |> put_device_guid()
-    |> ensure_voucher_not_already_claimed(:realm_name, :device_guid, :ownership_voucher)
+    |> ensure_voucher_not_already_claimed(:device_guid, :ownership_voucher)
     |> ensure_device_does_not_exist(:realm_name, :device_id)
     |> validate_change(:initial_introspection, &validate_introspection/2)
     |> validate_key_algorithm_compatible()
@@ -103,15 +103,13 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     |> decode_replacement_fields()
   end
 
-  defp ensure_voucher_not_already_claimed(%{valid?: false} = changeset, _, _, _), do: changeset
+  defp ensure_voucher_not_already_claimed(%{valid?: false} = changeset, _, _), do: changeset
 
-  defp ensure_voucher_not_already_claimed(changeset, realm_name, guid, voucher) do
-    # TODO: this should check vouchers in all realms
+  defp ensure_voucher_not_already_claimed(changeset, guid, voucher) do
     # SAFETY: we only call this on valid vouchers
-    realm_name = fetch_field!(changeset, realm_name)
     guid = fetch_field!(changeset, guid)
 
-    case Queries.fetch_ownership_voucher(realm_name, guid) do
+    case Queries.fetch_ownership_voucher(guid) do
       {:error, :not_found} -> changeset
       {:ok, _old_voucher} -> add_error(changeset, voucher, "guid has already been claimed")
     end
@@ -459,6 +457,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
     ownership_voucher = %OwnershipVoucherStruct{
       guid: guid,
+      realm: realm_name,
       device_id: device_id,
       status: :created,
       voucher_data: cbor_ownership_voucher,
@@ -469,6 +468,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       replacement_public_key: decoded_replacement_public_key
     }
 
-    Queries.create_ownership_voucher(realm_name, ownership_voucher)
+    Queries.create_ownership_voucher(ownership_voucher)
   end
 end

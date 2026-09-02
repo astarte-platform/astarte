@@ -50,11 +50,11 @@ defmodule Astarte.FDO.OwnerOnboarding do
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
 
-  def hello_device(realm_name, cbor_hello_device) do
+  def hello_device(cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
-         {:ok, {device_id, ownership_voucher}} <-
-           OwnershipVoucher.fetch_with_device_id(realm_name, guid),
+         {:ok, {realm_name, device_id, ownership_voucher}} <-
+           OwnershipVoucher.fetch_with_realm_and_device_id(guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key.alg),
@@ -124,20 +124,20 @@ defmodule Astarte.FDO.OwnerOnboarding do
     end
   end
 
-  def ov_next_entry(cbor_body, realm_name, guid) do
+  def ov_next_entry(cbor_body, guid) do
     # entry num represent the current entries we need to check for in the ov
     with {:ok, %GetOVNextEntry{entry_num: entry_num}} <- GetOVNextEntry.decode(cbor_body),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) do
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(guid) do
       OwnershipVoucher.get_ov_entry(ownership_voucher, entry_num)
     end
   end
 
-  def prove_device(realm_name, body, session) do
+  def prove_device(body, session) do
     guid = session.guid
 
-    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, guid),
-         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
+    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(guid),
+         {:ok, ov_entry} <- Queries.get_replacement_data(guid),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(session.realm, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       next_guid = ov_entry.replacement_guid || guid
 
@@ -155,7 +155,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
       with {:ok, %{resp: resp_msg, session: session}} <-
              verify_and_build_response(
-               realm_name,
                session,
                body,
                connection_credentials
@@ -166,7 +165,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
   end
 
   def verify_and_build_response(
-        realm_name,
         session = %{device_signature: {ecc, device_pub_key}},
         body,
         connection_credentials
@@ -185,9 +183,9 @@ defmodule Astarte.FDO.OwnerOnboarding do
          :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, prove_dv_nonce),
          :ok <- check_device_guid_equality(received_guid, guid),
          {:ok, session} <-
-           Session.add_setup_dv_nonce(session, realm_name, received_setup_dv_nonce),
-         {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
-         {:ok, session} <- Session.derive_key(session, realm_name),
+           Session.add_setup_dv_nonce(session, received_setup_dv_nonce),
+         {:ok, session} <- Session.build_session_secret(session, owner_key, xb),
+         {:ok, session} <- Session.derive_key(session),
          {:ok, resp_msg} <-
            build_setup_device_message(connection_credentials, received_setup_dv_nonce) do
       {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg, session: session}}
@@ -211,20 +209,21 @@ defmodule Astarte.FDO.OwnerOnboarding do
   end
 
   def build_owner_service_info_ready(
-        realm_name,
         session,
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
           max_owner_service_info_sz: max_owner_service_info_sz
         }
       ) do
-    with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
+    with {:ok, _} <- Queries.fetch_session(session.guid),
          {:ok, session} <-
-           Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
+           Session.add_max_owner_service_info_size(
+             session,
+             max_owner_service_info_sz
+           ),
          {:ok, session} <-
            Session.add_replacement_hmac(
              session,
-             realm_name,
              replacement_hmac || session.hmac
            ) do
       response =
@@ -238,38 +237,41 @@ defmodule Astarte.FDO.OwnerOnboarding do
     end
   end
 
-  def done(realm_name, to2_session, body) do
+  def done(to2_session, body) do
     # retrieve nonce NonceTO2ProveDv from session and check against incoming nonce from device
     # if match -> retrieve NonceTO2SetupDv from session and send back to device
     with {:ok, %DonePayload{nonce_to2_prove_dv: prove_dv_nonce_challenge}} <-
            DonePayload.decode(body),
          :ok <-
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
-         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, to2_session.guid),
-         :ok <- Queries.mark_voucher_as_claimed(realm_name, to2_session.guid),
-         :ok <- maybe_add_output_voucher(realm_name, ov_entry, to2_session),
-         {:ok, _device} <- Device.confirm(realm_name, to2_session.device_id) do
+         {:ok, ov_entry} <- Queries.get_replacement_data(to2_session.guid),
+         :ok <- Queries.mark_voucher_as_claimed(to2_session.guid),
+         :ok <- maybe_add_output_voucher(ov_entry, to2_session),
+         {:ok, _device} <- Device.confirm(to2_session.realm, to2_session.device_id) do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
       {:ok, done2_message}
     end
   end
 
-  defp maybe_add_output_voucher(realm_name, ov_entry, to2_session) do
+  defp maybe_add_output_voucher(ov_entry, to2_session) do
     case OwnershipVoucher.credential_reuse?(ov_entry) do
       true -> :ok
-      false -> add_output_voucher(realm_name, ov_entry, to2_session)
+      false -> add_output_voucher(ov_entry, to2_session)
     end
   end
 
-  defp add_output_voucher(realm_name, ov_entry, to2_session) do
-    with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
+  defp add_output_voucher(ov_entry, to2_session) do
+    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(to2_session.guid),
          # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
          {:ok, new_voucher} <-
-           OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do
+           OwnershipVoucher.generate_replacement_voucher(
+             ownership_voucher,
+             ov_entry,
+             to2_session
+           ) do
       cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
       Queries.add_output_voucher(
-        realm_name,
         to2_session.guid,
         cbor_voucher
       )
