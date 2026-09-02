@@ -58,8 +58,6 @@ defmodule Astarte.Adapters.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto, "~> 3.13.0", override: true},
-      {:ecto_sql, "~> 3.13.0", override: true},
       {:excoveralls, "~> 0.15", only: :test},
       {:stream_data, "~> 1.3", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev},
