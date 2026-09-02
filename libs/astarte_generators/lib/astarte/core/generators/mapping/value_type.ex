@@ -23,6 +23,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   use ExUnitProperties
 
   import Astarte.Common.Generators.DateTime
+  import Astarte.Common.Generators.Timestamp
 
   alias Astarte.Core.Mapping.ValueType
 
@@ -50,6 +51,8 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
             |> Code.string_to_quoted!()
           )
 
+  @type representation_t :: :native | :api | :database
+
   @doc """
   List of all astarte's ValueType atoms
   """
@@ -66,17 +69,76 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   Generates a valid value from ValueType
   """
   @spec value_from_type(type :: valid_t()) :: StreamData.t(any())
-  def value_from_type(:double), do: float()
-  def value_from_type(:integer), do: integer(-0x7FFFFFFF..0x7FFFFFFF)
-  def value_from_type(:boolean), do: boolean()
-  def value_from_type(:longinteger), do: integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
-  def value_from_type(:string), do: string(:utf8, max_length: 65_535)
-  def value_from_type(:binaryblob), do: binary(max_length: 65_535)
+  def value_from_type(type), do: value_from_type(type, [])
 
-  def value_from_type(:datetime), do: date_time()
+  @doc """
+  Generates a valid value using its native, API, or database representation.
 
-  def value_from_type(array) when is_atom(array),
-    do: type_array(array) |> value_from_type() |> list_of(max_length: 1023)
+  Database strings, blobs, and arrays are nonempty unless `force_allow_unset: true` is supplied.
+  """
+  @spec value_from_type(type :: valid_t(), options :: keyword()) :: StreamData.t(any())
+  def value_from_type(type, options) do
+    representation = Keyword.get(options, :representation, :native)
+    force_allow_unset = Keyword.get(options, :force_allow_unset, false)
+    value_from_type(type, representation, force_allow_unset)
+  end
+
+  defp value_from_type(:double, _representation, _force_allow_unset), do: float()
+
+  defp value_from_type(:integer, _representation, _force_allow_unset),
+    do: integer(-0x7FFFFFFF..0x7FFFFFFF)
+
+  defp value_from_type(:boolean, _representation, _force_allow_unset), do: boolean()
+
+  defp value_from_type(:longinteger, _representation, _force_allow_unset),
+    do: integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
+
+  defp value_from_type(:string, representation, force_allow_unset),
+    do:
+      string(:utf8,
+        min_length: minimum_length(representation, force_allow_unset),
+        max_length: 65_535
+      )
+
+  defp value_from_type(:binaryblob, :native, _force_allow_unset),
+    do: binary(max_length: 65_535)
+
+  defp value_from_type(:binaryblob, :api, force_allow_unset),
+    do:
+      binary(
+        min_length: minimum_length(:api, force_allow_unset),
+        max_length: 65_535
+      )
+      |> map(&Base.encode64/1)
+
+  defp value_from_type(:binaryblob, :database, force_allow_unset),
+    do:
+      binary(
+        min_length: minimum_length(:database, force_allow_unset),
+        max_length: 65_535
+      )
+      |> map(&%Cyanide.Binary{subtype: :generic, data: &1})
+
+  defp value_from_type(:datetime, :native, _force_allow_unset), do: date_time()
+
+  defp value_from_type(:datetime, :api, _force_allow_unset),
+    do: one_of([timestamp(), date_time() |> map(&DateTime.to_iso8601/1)])
+
+  defp value_from_type(:datetime, :database, _force_allow_unset),
+    do: one_of([timestamp(), date_time()])
+
+  defp value_from_type(array, representation, force_allow_unset) when is_atom(array),
+    do:
+      array
+      |> type_array()
+      |> value_from_type(representation, force_allow_unset)
+      |> list_of(
+        min_length: minimum_length(representation, force_allow_unset),
+        max_length: 1023
+      )
+
+  defp minimum_length(:database, false), do: 1
+  defp minimum_length(_representation, _force_allow_unset), do: 0
 
   defp type_array(:doublearray), do: :double
   defp type_array(:integerarray), do: :integer

@@ -57,5 +57,56 @@ defmodule Astarte.Core.Generators.Mapping.ValueTypeTest do
         assert validate_value(value_type, value)
       end
     end
+
+    property "generates API and database value representations" do
+      check all value_type <- value_type(),
+                api_value <- value_from_type(value_type, representation: :api),
+                database_value <- value_from_type(value_type, representation: :database) do
+        assert represented?(value_type, api_value, :api) and
+                 represented?(value_type, database_value, :database)
+      end
+    end
+
+    test "force_allow_unset permits empty database values" do
+      assert {"", []} ==
+               {
+                 value_from_type(:string,
+                   representation: :database,
+                   force_allow_unset: true
+                 )
+                 |> StreamData.resize(0)
+                 |> Enum.at(0),
+                 value_from_type(:stringarray,
+                   representation: :database,
+                   force_allow_unset: true
+                 )
+                 |> StreamData.resize(0)
+                 |> Enum.at(0)
+               }
+    end
   end
+
+  defp represented?(:binaryblob, value, :api), do: match?({:ok, _value}, Base.decode64(value))
+
+  defp represented?(:datetime, value, :api) when is_integer(value), do: true
+
+  defp represented?(:datetime, value, :api),
+    do: match?({:ok, _datetime, _offset}, DateTime.from_iso8601(value))
+
+  defp represented?(:binaryblob, %Cyanide.Binary{}, :database), do: true
+  defp represented?(:datetime, value, :database) when is_integer(value), do: true
+  defp represented?(:datetime, %DateTime{}, :database), do: true
+
+  defp represented?(type, values, representation) when is_list(values),
+    do: Enum.all?(values, &represented?(array_type(type), &1, representation))
+
+  defp represented?(type, value, _representation), do: validate_value(type, value) == :ok
+
+  defp array_type(:doublearray), do: :double
+  defp array_type(:integerarray), do: :integer
+  defp array_type(:longintegerarray), do: :longinteger
+  defp array_type(:booleanarray), do: :boolean
+  defp array_type(:stringarray), do: :string
+  defp array_type(:binaryblobarray), do: :binaryblob
+  defp array_type(:datetimearray), do: :datetime
 end
