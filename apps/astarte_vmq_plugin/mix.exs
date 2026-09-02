@@ -94,7 +94,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:xandra, "~> 0.20"},
       {:castore, "~> 1.0"},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:mimic, "~> 1.10", only: :test},
+      {:mimic, "~> 2.0", only: :test},
       {:mox, "~> 1.3", only: :test}
     ]
   end

@@ -23,7 +23,7 @@
   "libring": {:hex, :libring, "1.7.0", "4f245d2f1476cd7ed8f03740f6431acba815401e40299208c7f5c640e1883bda", [:mix], [], "hexpm", "070e3593cb572e04f2c8470dd0c119bc1817a7a0a7f88229f43cf0345268ec42"},
   "logfmt": {:hex, :logfmt, "3.3.2", "c432765cff9c26cf4ba78cf66ece183e56562dfeba6e2d9f077804cc4c756677", [:mix], [], "hexpm", "8dfc07bf11d362d1ffb11fa34647f4e78dba47247589cc94fd8c9155889c8fcb"},
   "merkle_map": {:hex, :merkle_map, "0.2.2", "f36ff730cca1f2658e317a3c73406f50bbf5ac8aff54cf837d7ca2069a6e251c", [:mix], [], "hexpm", "383107f0503f230ac9175e0631647c424efd027e89ea65ab5ea12eeb54257aaf"},
-  "mimic": {:hex, :mimic, "1.12.0", "34c9d1fb8e756df09ca5f96861d273f2bb01063df1a6a51a4c101f9ad7f07a9c", [:mix], [{:ham, "~> 0.2", [hex: :ham, repo: "hexpm", optional: false]}], "hexpm", "eaa43d495d6f3bc8099b28886e05a1b09a2a6be083f6385c3abc17599e5e2c43"},
+  "mimic": {:hex, :mimic, "2.4.0", "45482266f54cd66cac66557092e1f3ef0210da471706515ef7d17b379acc62a1", [:mix], [{:ham, "~> 0.3", [hex: :ham, repo: "hexpm", optional: false]}], "hexpm", "88ea63ffcb549455f9505813bbb3cec1e62ececf9992eb8c91e0b7b6695382b1"},
   "mississippi": {:git, "https://github.com/secomind/mississippi.git", "27233b3a34d21c955cc65c3132c89829e7adc06b", []},
   "mix_audit": {:hex, :mix_audit, "2.1.5", "c0f77cee6b4ef9d97e37772359a187a166c7a1e0e08b50edf5bf6959dfe5a016", [:make, :mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}, {:yaml_elixir, "~> 2.11", [hex: :yaml_elixir, repo: "hexpm", optional: false]}], "hexpm", "87f9298e21da32f697af535475860dc1d3617a010e0b418d2ec6142bc8b42d69"},
   "moar": {:hex, :moar, "5.0.0", "0e0f5a4fa8cdca96f28ae4dc3878fb2ebaaee73168c01d310538ce7fc77348ff", [:mix], [], "hexpm", "7c1f73ba30ac11c2d3993cd2da0bfea85e503c2154e3176fa6d1c1a0b3a895f5"},
