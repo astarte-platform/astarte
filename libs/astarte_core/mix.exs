@@ -60,7 +60,7 @@ defmodule Astarte.Core.Mixfile do
       {:ecto, "~> 3.4"},
       {:ecto_morph, "~> 0.1.23"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct"},
       {:protobuf, "~> 0.17"},
       {:jason, "~> 1.2"},
       {:elixir_uuid, "~> 1.2"},

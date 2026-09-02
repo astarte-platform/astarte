@@ -469,7 +469,7 @@ trap 'sigterm_handler' SIGTERM
 pid=$!
 if [ $start_join_cluster  -eq 1 ]; then
     mkdir -p /var/log/vernemq/log
-    /opt/astarte_vmq_plugin/join_cluster > /var/log/vernemq/log/join_cluster.log &
+    /opt/astarte_vmq_plugin/bin/join_cluster > /var/log/vernemq/log/join_cluster.log &
 fi
 
 wait $pid

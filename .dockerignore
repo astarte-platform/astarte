@@ -3,6 +3,10 @@
 !Dockerfile
 !.dockerignore
 
+!mix.exs
+!mix.lock
+!config/
+!/rel/
 !/apps/
 !/libs/
 !/tools/

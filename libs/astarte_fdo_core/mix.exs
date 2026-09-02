@@ -65,7 +65,7 @@ defmodule Astarte.FDO.Core.MixProject do
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mimic, "~> 2.3", only: :test},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]

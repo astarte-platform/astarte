@@ -28,15 +28,31 @@ defmodule Astarte.MixProject do
   end
 
   defp dialyzer do
-    []
+    [
+      plt_add_apps: [:ex_unit, :astarte_realm_management]
+    ]
   end
 
   defp releases do
-    []
+    for app <- [
+          :astarte_appengine_api,
+          :astarte_data_updater_plant,
+          :astarte_housekeeping,
+          :astarte_pairing,
+          :astarte_realm_management,
+          :astarte_trigger_engine,
+          :astarte_vmq_plugin
+        ] do
+      release_opts = [applications: [{app, :permanent}], overlays: ["apps/#{app}/rel/overlays"]]
+
+      {app, release_opts}
+    end
   end
 
   defp deps do
     [
+      # We need the hardcoded version from 343c6435a7ef06dd2662e950d33cb957f81bf68d
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
       {:excoveralls, "~> 0.18", only: :test}
     ]
   end

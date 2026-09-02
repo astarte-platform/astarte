@@ -19,11 +19,11 @@ ARG BUILD_ENV=prod
 ARG SERVICE
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
+ENV ASTARTE_LIBRARIES_PATH=../../libraries
 
 # Cache elixir deps
-COPY apps/$SERVICE/mix.exs ./
-COPY apps/$SERVICE/mix.lock ./
+COPY mix.exs mix.lock ./
+COPY apps/$SERVICE/mix.exs ./apps/$SERVICE/mix.exs
 COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
 COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
 COPY libs/astarte_config/mix.exs libraries/astarte_config/mix.exs
@@ -51,11 +51,16 @@ RUN mix do deps.get + deps.compile --skip-local-deps
 COPY libs ./libraries
 RUN mix deps.compile
 
+# TODO: remove when ported to root level config/
+COPY apps/$SERVICE/config config/
+
 # Add all the rest
-COPY apps/$SERVICE .
+COPY apps/$SERVICE apps/$SERVICE
+COPY rel ./rel
 
 # Build and release
-RUN mix do compile + release
+RUN mix compile
+RUN mix release $SERVICE
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
 FROM debian:trixie-20260623-slim

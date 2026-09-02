@@ -63,7 +63,7 @@
   "tortoise": {:hex, :tortoise, "0.10.0", "d8821b9a5052355ca61d9fa784652f435997fa98b210f88565c98f3494605efd", [:mix], [{:gen_state_machine, "~> 2.0 or ~> 3.0", [hex: :gen_state_machine, repo: "hexpm", optional: false]}], "hexpm", "926d97b03cd0d2f6e0e1ebf06c1efa50101de96d0317dea5604c1c9e43e66735"},
   "tortoise311": {:hex, :tortoise311, "0.11.2", "7985918958ebc525730725a87346c53f8cab5075207d3eb62624c22a800b062a", [:mix], [{:gen_state_machine, "~> 2.0 or ~> 3.0", [hex: :gen_state_machine, repo: "hexpm", optional: false]}], "hexpm", "a016359b09a51226b0e20ebd10c2e88e28be37ba679841aff7cc3c12e7cbea2b"},
   "typed_ecto_schema": {:hex, :typed_ecto_schema, "0.4.3", "1e5f3b6c763f9b5725975d3ab7f1554525f1f1399b966f2425acf04f9d8dd4fe", [:mix], [{:ecto, "~> 3.5", [hex: :ecto, repo: "hexpm", optional: false]}], "hexpm", "dcbd9b35b9fda5fa9258e0ae629a99cf4473bd7adfb85785d3f71dfe7a9b2bc0"},
-  "typedstruct": {:hex, :typedstruct, "0.5.4", "d1d33d58460a74f413e9c26d55e66fd633abd8ac0fb12639add9a11a60a0462a", [:make, :mix], [], "hexpm", "ffaef36d5dbaebdbf4ed07f7fb2ebd1037b2c1f757db6fb8e7bcbbfabbe608d8"},
+  "typedstruct": {:git, "https://github.com/saleyn/typedstruct.git", "a5939bb210619cd9c362b87094ee343c55494ec3", []},
   "tzdata": {:git, "https://github.com/lau/tzdata.git", "766f38de21e9cd3dc4b185ac6244466e4ee65308", []},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.7.1", "a48703a25c170eedadca83b11e88985af08d35f37c6f664d6dcfb106a97782fc", [:rebar3], [], "hexpm", "b3a917854ce3ae233619744ad1e0102e05673136776fb2fa76234f3e03b23642"},
   "websocket_client": {:hex, :websocket_client, "1.6.1", "115b33bf65727129224d3a602830c532481eeda667d37181abf326913473733f", [:rebar3], [], "hexpm", "d2623c48cfcdb41cf4d6b926ff042c2f505c56bada36048eb3bbe251ca4f4ad9"},

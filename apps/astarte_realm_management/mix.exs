@@ -25,10 +25,9 @@ defmodule Astarte.RealmManagement.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
-      build_path: "_build",
-      config_path: "config/config.exs",
-      deps_path: "deps",
-      lockfile: "mix.lock",
+      build_path: "../../_build",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

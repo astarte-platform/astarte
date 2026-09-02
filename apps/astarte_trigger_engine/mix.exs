@@ -26,6 +26,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -70,7 +73,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
       {:exandra, github: "vinniefranco/exandra"},

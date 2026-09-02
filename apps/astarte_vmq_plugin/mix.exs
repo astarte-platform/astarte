@@ -25,6 +25,9 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -83,6 +86,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:amqp, "~> 4.1"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:typedstruct, github: "saleyn/typedstruct", override: true},
       {:mississippi, github: "secomind/mississippi"},
       {:pretty_log, "~> 0.1"},
       {:flatlog, github: "annopaolo/flatlog"},

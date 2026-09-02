@@ -77,9 +77,8 @@ jobs:
       - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
         with:
           use-cache: false
-          working-directory: apps/${{ inputs.app }}
           mix-env: test
-      - run: mix dialyzer --format github --force-check
+      - run: mix dialyzer --format github --force-check --no-compile
         shell: bash
         env:
           MIX_ENV: "test"

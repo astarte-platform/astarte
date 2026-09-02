@@ -93,7 +93,7 @@
   "thoas": {:hex, :thoas, "1.2.1", "19a25f31177a17e74004d4840f66d791d4298c5738790fa2cc73731eb911f195", [:rebar3], [], "hexpm", "e38697edffd6e91bd12cea41b155115282630075c2a727e7a6b2947f5408b86a"},
   "thousand_island": {:hex, :thousand_island, "1.5.0", "f50a213cac97262b6d5ebb85745aa2c00fec1413191e6e66834788d45425cecb", [:mix], [{:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "708923d40523e43cf99041ab37a0d4b0ec426ac6438fa3716ab23d919eaeb412"},
   "typed_ecto_schema": {:hex, :typed_ecto_schema, "0.5.0", "cf0e387727dd898b6a67c80c8528d54bdb96e2318ee07dfbd65848fec2cde91f", [:mix], [{:ecto, "~> 3.5", [hex: :ecto, repo: "hexpm", optional: false]}], "hexpm", "061c500aa5ce03ed4defd85a2fa8ba9a53d036fc096459d570e7a4de05171ed1"},
-  "typedstruct": {:hex, :typedstruct, "0.5.4", "d1d33d58460a74f413e9c26d55e66fd633abd8ac0fb12639add9a11a60a0462a", [:make, :mix], [], "hexpm", "ffaef36d5dbaebdbf4ed07f7fb2ebd1037b2c1f757db6fb8e7bcbbfabbe608d8"},
+  "typedstruct": {:git, "https://github.com/saleyn/typedstruct.git", "a5939bb210619cd9c362b87094ee343c55494ec3", []},
   "tzdata": {:git, "https://github.com/lau/tzdata.git", "ac9d5362eab06744afb9e332cfd12ae326f4a68f", []},
   "uuid": {:hex, :uuid_erl, "2.0.7", "b2078d2cc814f53afa52d36c91e08962c7e7373585c623f4c0ea6dfb04b2af94", [:rebar3], [{:quickrand, ">= 2.0.7", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm", "4e4c5ca3461dc47c5e157ed42aa3981a053b7a186792af972a27b14a9489324e"},
   "vernemq_dev": {:git, "https://github.com/vernemq/vernemq_dev.git", "66ce2cc58ba2f79f748e1a77635582f27273e20d", []},

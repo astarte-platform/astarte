@@ -71,7 +71,7 @@ defmodule Astarte.RPC.MixProject do
       {:mimic, "~> 2.3", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},
       {:skogsra, "~> 2.0"},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct"},
       {:excoveralls, "~> 0.15", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
