@@ -51,12 +51,12 @@ RUN mix do deps.get + deps.compile --skip-local-deps
 COPY libs ./libraries
 RUN mix deps.compile
 
-# TODO: remove when ported to root level config/
-COPY apps/$SERVICE/config config/
-
 # Add all the rest
 COPY apps/$SERVICE apps/$SERVICE
 COPY rel ./rel
+COPY config ./config
+# TODO: remove when ported to root level config/
+RUN if [ -d "apps/$SERVICE/config" ]; then cp -rf "apps/$SERVICE/config/." config/; fi
 
 # Build and release
 RUN mix compile

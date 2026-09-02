@@ -26,6 +26,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       version: "1.5.0-dev",
       # x-release-please-end
       build_path: "../../_build",
+      config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
