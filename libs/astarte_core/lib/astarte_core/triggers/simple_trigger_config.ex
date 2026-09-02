@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -469,7 +469,7 @@ defmodule Astarte.Core.Triggers.SimpleTriggerConfig do
       group_name: group_name,
       interface_name: interface_name,
       interface_major: interface_major,
-      known_value: known_value && Cyanide.encode!(%{v: known_value}),
+      known_value: encode_known_value(known_value),
       match_path: match_path,
       data_trigger_type: trigger_type,
       value_match_operator: value_match_operator
@@ -483,6 +483,9 @@ defmodule Astarte.Core.Triggers.SimpleTriggerConfig do
       }
     }
   end
+
+  defp encode_known_value(nil), do: nil
+  defp encode_known_value(known_value), do: Cyanide.encode!(%{v: known_value})
 
   defp get_data_trigger_object(%SimpleTriggerConfig{} = config) do
     %SimpleTriggerConfig{
