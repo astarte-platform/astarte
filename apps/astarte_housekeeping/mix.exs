@@ -94,7 +94,6 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:xandra, github: "whatyouhide/xandra", override: true},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
       {:tzdata, github: "lau/tzdata", override: true}

@@ -68,7 +68,6 @@ defmodule AstarteE2E.MixProject do
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
-      {:xandra, github: "whatyouhide/xandra", ref: "fec767b918311db850c077ddb0f21ff431b63cdf", override: true},
       {:decimal, "~> 3.0", override: true}
     ]
   end
