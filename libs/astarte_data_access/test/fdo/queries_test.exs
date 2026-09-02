@@ -216,7 +216,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
     setup :setup_voucher
 
     test "updates the status of the ownership voucher", %{guid: guid} do
-      opts = [prefix: Realm.keyspace_name(@realm)]
+      opts = [prefix: Realm.astarte_keyspace_name()]
       assert %{status: :created} = Repo.get(OwnershipVoucher, guid, opts)
       assert :ok == Queries.mark_voucher_as_claimed(@realm, guid)
       assert %{status: :claimed} = Repo.get(OwnershipVoucher, guid, opts)
@@ -287,10 +287,10 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
     }
 
     on_exit(fn ->
-      Repo.delete(ov, prefix: Realm.keyspace_name(@realm))
+      Repo.delete(ov, prefix: Realm.astarte_keyspace_name())
     end)
 
-    Repo.insert!(ov, prefix: Realm.keyspace_name(@realm))
+    Repo.insert!(ov, prefix: Realm.astarte_keyspace_name())
 
     %{
       guid: guid,

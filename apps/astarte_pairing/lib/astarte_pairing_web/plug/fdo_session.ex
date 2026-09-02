@@ -26,6 +26,7 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
 
   import Plug.Conn
 
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding.SessionToken
   alias Astarte.PairingWeb.FDOFallbackController
@@ -35,11 +36,10 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
   end
 
   def call(conn, _opts) do
-    realm_name = Map.fetch!(conn.path_params, "realm_name")
-
     with [token] <- get_req_header(conn, "authorization"),
          {:ok, guid, token_nonce} <-
            SessionToken.verify(token),
+         {:ok, realm_name} <- Queries.get_ownership_voucher_realm(guid),
          {:ok, session} <- Session.fetch(realm_name, guid),
          :ok <- verify_nonce(session.nonce, token_nonce) do
       conn
