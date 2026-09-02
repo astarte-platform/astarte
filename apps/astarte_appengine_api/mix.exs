@@ -65,8 +65,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   defp deps do
     [
       {:astarte_core, path: astarte_lib("astarte_core")},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false},
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:amqp, "~> 4.1"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
