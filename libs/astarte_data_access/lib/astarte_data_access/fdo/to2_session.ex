@@ -47,6 +47,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   @primary_key false
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
+    field :realm, :string
     field :device_id, Astarte.DataAccess.UUID
     field :hmac, CBOREncoded, using: Hash
     field :nonce, :binary

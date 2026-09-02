@@ -51,9 +51,10 @@ defmodule Astarte.FDO.OwnerOnboarding do
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
 
-  def hello_device(realm_name, cbor_hello_device) do
+  def hello_device(_realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
+         {:ok, realm_name} <- Queries.get_ownership_voucher_realm(guid),
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),

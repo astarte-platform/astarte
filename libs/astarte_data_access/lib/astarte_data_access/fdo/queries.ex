@@ -32,7 +32,21 @@ defmodule Astarte.DataAccess.FDO.Queries do
   require Logger
 
   def get_ownership_voucher(realm_name, guid) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        where: o.realm == ^realm_name,
+        select: o.voucher_data
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch(query, guid, consistency: consistency)
+  end
+
+  def get_ownership_voucher_by_guid(guid) do
+    keyspace_name = Realm.astarte_keyspace_name()
 
     query =
       from o in OwnershipVoucher,
@@ -44,20 +58,41 @@ defmodule Astarte.DataAccess.FDO.Queries do
     Repo.fetch(query, guid, consistency: consistency)
   end
 
+  def get_ownership_voucher_realm(guid) do
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        select: o.realm
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch(query, guid, consistency: consistency)
+  end
+
   def list_ownership_vouchers(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:read)
     opts = [consistency: consistency, prefix: keyspace]
 
     Repo.fetch_all(OwnershipVoucher, opts)
+    |> case do
+      {:ok, vouchers} ->
+        {:ok, Enum.filter(vouchers, fn v -> v.realm == realm_name end)}
+
+      error ->
+        error
+    end
   end
 
   def get_owner_key_params(realm_name, guid) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace_name = Realm.astarte_keyspace_name()
 
     query =
       from OwnershipVoucher,
         prefix: ^keyspace_name,
+        where: [realm: ^realm_name],
         select: [:key_name, :key_algorithm]
 
     consistency = Consistency.domain_model(:read)
@@ -69,16 +104,18 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def get_replacement_data(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
 
     fields = [:replacement_guid, :replacement_rendezvous_info, :replacement_public_key]
 
     query =
       from OwnershipVoucher,
+        prefix: ^keyspace,
+        where: [realm: ^realm_name],
         select: ^fields
 
     consistency = Consistency.domain_model(:read)
-    opts = [consistency: consistency, prefix: keyspace]
+    opts = [consistency: consistency]
 
     with {:ok, data} <- Repo.fetch(query, guid, opts) do
       result = Map.take(data, fields)
@@ -90,17 +127,17 @@ defmodule Astarte.DataAccess.FDO.Queries do
         realm_name,
         attrs
       ) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace_name = Realm.astarte_keyspace_name()
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{status: :created}
+    %OwnershipVoucher{status: :created, realm: realm_name}
     |> OwnershipVoucher.changeset(attrs)
     |> Repo.insert(opts)
   end
 
   def delete_ownership_voucher(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
 
     %OwnershipVoucher{
       guid: guid
@@ -109,7 +146,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def mark_voucher_as_claimed(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
@@ -126,7 +163,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
         guid,
         new_voucher
       ) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
@@ -139,11 +176,11 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def store_session(realm_name, guid, session) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
-    session = %{session | guid: guid}
+    session = %{session | guid: guid, realm: realm_name}
 
     with {:ok, _} <- Repo.insert(session, opts) do
       :ok
@@ -151,7 +188,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def delete_session(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
@@ -205,7 +242,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   defp update_session(realm_name, guid, updates) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
@@ -219,7 +256,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def fetch_session(realm_name, guid) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:read)
     opts = [prefix: keyspace, consistency: consistency]
     Repo.fetch(TO2Session, guid, opts)

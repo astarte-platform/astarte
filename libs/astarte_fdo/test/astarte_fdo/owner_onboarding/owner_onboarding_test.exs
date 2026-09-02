@@ -154,19 +154,19 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     }
   end
 
-  describe "hello_device/2" do
-    test "P-256 Flow: negotiates ECDH256 and ES256", %{realm_name: realm_name, p256_x509: ctx} do
+  describe "hello_device/1" do
+    test "P-256 Flow: negotiates ECDH256 and ES256", %{p256_x509: ctx} do
       assert {:ok, token, resp_binary} =
-               OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+               OwnerOnboarding.hello_device(ctx.cbor_hello)
 
       assert is_binary(token)
       assert {:ok, sign1_msg} = Sign1.verify_decode(resp_binary, ctx.key_struct)
       assert sign1_msg.phdr.alg == :es256
     end
 
-    test "P-384 Flow: negotiates ECDH384 and ES384", %{realm_name: realm_name, p384_x509: ctx} do
+    test "P-384 Flow: negotiates ECDH384 and ES384", %{p384_x509: ctx} do
       assert {:ok, token, resp_binary} =
-               OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+               OwnerOnboarding.hello_device(ctx.cbor_hello)
 
       assert is_binary(token)
       assert {:ok, sign1_msg} = Sign1.verify_decode(resp_binary, ctx.key_struct)
@@ -175,11 +175,10 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   test "P-256 with X5CHAIN: extracts key from certificate chain", %{
-    realm_name: realm_name,
     p256_chain: ctx
   } do
     assert {:ok, token, resp_binary} =
-             OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+             OwnerOnboarding.hello_device(ctx.cbor_hello)
 
     assert is_binary(token)
     assert {:ok, sign1_msg} = Sign1.verify_decode(resp_binary, ctx.key_struct)
@@ -187,11 +186,10 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   test "P-384 with X5CHAIN: extracts key from P-384 certificate chain", %{
-    realm_name: realm_name,
     p384_chain: ctx
   } do
     assert {:ok, token, resp_binary} =
-             OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+             OwnerOnboarding.hello_device(ctx.cbor_hello)
 
     assert is_binary(token)
     assert {:ok, sign1_msg} = Sign1.verify_decode(resp_binary, ctx.key_struct)
