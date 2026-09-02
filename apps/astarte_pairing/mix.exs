@@ -80,7 +80,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:guardian, "~> 2.4"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.3", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},

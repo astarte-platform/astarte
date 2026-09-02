@@ -81,7 +81,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.3", only: :test},
       {:mimic, "~> 2.3", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},

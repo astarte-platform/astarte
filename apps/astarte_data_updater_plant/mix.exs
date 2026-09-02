@@ -85,7 +85,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cyanide, github: "secomind/cyanide", override: true},
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
-      {:mox, "~> 1.0", only: :test},
+      {:mox, "~> 1.3", only: :test},
       {:mimic, "~> 2.3", only: [:dev, :test]},
       {:exandra, github: "vinniefranco/exandra"},
       {:libcluster, "~> 3.3"},

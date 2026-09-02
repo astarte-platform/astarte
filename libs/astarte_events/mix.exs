@@ -62,7 +62,7 @@ defmodule Astarte.Events.Mixfile do
       {:con_cache, "~> 1.1"},
       {:excoveralls, "~> 0.15", only: :test},
       {:skogsra, "~> 2.2"},
-      {:mox, "~> 1.0", only: :test},
+      {:mox, "~> 1.3", only: :test},
       {:mimic, "~> 2.3", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_data_access, path: "../astarte_data_access"},
