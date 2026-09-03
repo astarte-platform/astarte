@@ -22,6 +22,8 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 COPY tools/astarte_import/mix.exs ./
 COPY tools/astarte_import/mix.lock ./
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
 COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
 COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
 RUN mix do deps.get + deps.compile --skip-local-deps

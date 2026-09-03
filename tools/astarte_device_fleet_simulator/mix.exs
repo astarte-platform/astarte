@@ -42,6 +42,7 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:astarte_core, path: astarte_lib("astarte_core"), override: true},
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:skogsra, "~> 2.3"},
       {:logfmt, "~> 3.3"},
@@ -49,5 +50,10 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
       {:elixir_uuid, "~> 1.2"},
       {:csv, "~> 3.2"}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
