@@ -22,6 +22,7 @@
 **/config/*.secret.exs
 **/.elixir_ls/
 **/.lexical/
+**/.expert/
 
 # Standard Erlang gitignore to be applied to all apps
 **/.eunit
