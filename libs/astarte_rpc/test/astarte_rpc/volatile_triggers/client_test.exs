@@ -44,10 +44,16 @@ defmodule Astarte.RPC.VolatileTriggers.ClientTest do
       %{realm_name: realm_name, tagged_device_simple_trigger: trigger, trigger_target: target} =
         context
 
+      test_process = self()
+
       EventsTriggers
-      |> expect(:install_volatile_trigger, fn ^realm_name, ^trigger, ^target, _data -> :ok end)
+      |> expect(:install_volatile_trigger, fn ^realm_name, ^trigger, ^target, _data ->
+        send(test_process, :volatile_trigger_installed)
+        :ok
+      end)
 
       VolatileTriggers.install(realm_name, trigger, target)
+      assert_receive :volatile_trigger_installed, 1000
     end
   end
 
@@ -56,12 +62,17 @@ defmodule Astarte.RPC.VolatileTriggers.ClientTest do
       %{realm_name: realm_name, trigger_target: target} =
         context
 
+      test_process = self()
       trigger_id = target.simple_trigger_id
 
       EventsTriggers
-      |> expect(:delete_volatile_trigger, fn ^realm_name, ^trigger_id -> :ok end)
+      |> expect(:delete_volatile_trigger, fn ^realm_name, ^trigger_id ->
+        send(test_process, :volatile_trigger_deleted)
+        :ok
+      end)
 
       VolatileTriggers.delete(realm_name, trigger_id)
+      assert_receive :volatile_trigger_deleted, 1000
     end
   end
 
