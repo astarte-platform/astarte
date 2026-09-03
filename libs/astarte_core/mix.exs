@@ -56,7 +56,7 @@ defmodule Astarte.Core.Mixfile do
 
   defp deps do
     [
-      {:cyanide, "~> 2.0"},
+      {:cyanide, github: "secomind/cyanide"},
       {:ecto, "~> 3.4"},
       {:ecto_morph, "~> 0.1.23"},
       {:typed_ecto_schema, "~> 0.4"},
