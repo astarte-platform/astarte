@@ -79,12 +79,6 @@ RUN apt-get -qq update && apt-get -qq install libssl3t64 curl jq iproute2 ncat &
 
 ENV PATH="/opt/vernemq/bin:$PATH"
 
-COPY --from=builder /build/astarte_vmq_plugin/docker/bin/vernemq.sh /usr/sbin/start_vernemq
-COPY --from=builder /build/astarte_vmq_plugin/docker/bin/join_cluster.sh /usr/sbin/join_cluster
-
-RUN chmod +x /usr/sbin/start_vernemq
-RUN chmod +x /usr/sbin/join_cluster
-
 # Copy our built stuff (both are self-contained with their ERTS release)
 COPY --from=builder /build/vernemq/_build/default/rel/vernemq /opt/vernemq/
 
@@ -112,4 +106,4 @@ VOLUME ["/opt/vernemq/log", "/opt/vernemq/data", "/opt/vernemq/etc"]
 
 HEALTHCHECK CMD vernemq ping | grep -q pong
 
-CMD ["start_vernemq"]
+CMD ["/opt/astarte_vmq_plugin/start_vernemq"]
