@@ -95,7 +95,7 @@ defmodule Astarte.Core.Generators.Mapping.BSONValueTest do
     property "validate data passing type" do
       check all type <- member_of(@not_wrapped_type),
                 bson_value_type <- bson_value_type(type) do
-        refute is_nil(Cyanide.decode!(bson_value_type))
+        assert %{"v" => _value} = Cyanide.decode!(bson_value_type)
       end
     end
 
