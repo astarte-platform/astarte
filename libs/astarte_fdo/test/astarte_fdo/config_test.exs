@@ -22,6 +22,7 @@ defmodule Astarte.FDO.ConfigTest do
   import Mimic
 
   alias Astarte.FDO.Config
+  alias Astarte.FDO.Config.BaseURLIp
   alias Astarte.FDO.Config.BaseURLProtocol
 
   describe "BaseURLProtocol.cast/1" do
@@ -46,13 +47,104 @@ defmodule Astarte.FDO.ConfigTest do
     end
   end
 
+  describe "BaseURLIp.cast/1" do
+    test "casts and normalizes valid IPv4 and IPv6 addresses" do
+      assert {:ok, "192.168.1.10"} == BaseURLIp.cast("192.168.1.10")
+      assert {:ok, "::1"} == BaseURLIp.cast("::1")
+      assert {:ok, "::1"} == BaseURLIp.cast("0:0:0:0:0:0:0:1")
+    end
+
+    test "returns error for invalid IP addresses" do
+      assert :error == BaseURLIp.cast("not an ip")
+      assert :error == BaseURLIp.cast("999.999.999.999")
+    end
+
+    test "returns error for unrecognised value" do
+      assert :error == BaseURLIp.cast(1234)
+    end
+  end
+
+  describe "base_url_host!/0" do
+    test "prefers the domain over the IP address when both are configured" do
+      stub(Config, :base_url_domain!, fn -> "astarte.example.com" end)
+      stub(Config, :base_url_ip!, fn -> "192.168.1.10" end)
+
+      assert Config.base_url_host!() == "astarte.example.com"
+    end
+
+    test "falls back to the IP address when the domain is not configured" do
+      stub(Config, :base_url_domain!, fn -> nil end)
+      stub(Config, :base_url_ip!, fn -> "192.168.1.10" end)
+
+      assert Config.base_url_host!() == "192.168.1.10"
+    end
+
+    test "treats a blank domain as unconfigured, same as nil" do
+      stub(Config, :base_url_domain!, fn -> "" end)
+      stub(Config, :base_url_ip!, fn -> "192.168.1.10" end)
+
+      assert Config.base_url_host!() == "192.168.1.10"
+    end
+
+    test "returns nil when neither is configured (including blank strings)" do
+      stub(Config, :base_url_domain!, fn -> "" end)
+      stub(Config, :base_url_ip!, fn -> nil end)
+
+      assert Config.base_url_host!() == nil
+    end
+  end
+
   describe "base_url!/0" do
     test "builds the URL from protocol, domain and port" do
       stub(Config, :base_url_protocol!, fn -> :https end)
       stub(Config, :base_url_domain!, fn -> "astarte.example.com" end)
+      stub(Config, :base_url_ip!, fn -> nil end)
       stub(Config, :base_url_port!, fn -> 443 end)
 
       assert Config.base_url!() == "https://astarte.example.com:443"
+    end
+
+    test "falls back to the IP address when no domain is configured" do
+      stub(Config, :base_url_protocol!, fn -> :http end)
+      stub(Config, :base_url_domain!, fn -> nil end)
+      stub(Config, :base_url_ip!, fn -> "192.168.1.10" end)
+      stub(Config, :base_url_port!, fn -> 80 end)
+
+      assert Config.base_url!() == "http://192.168.1.10:80"
+    end
+  end
+
+  describe "init!/0" do
+    test "raises when neither the domain nor the IP address is configured" do
+      stub(Config, :base_url_domain!, fn -> nil end)
+      stub(Config, :base_url_ip!, fn -> nil end)
+
+      assert_raise RuntimeError,
+                   "At least one of ASTARTE_BASE_URL_DOMAIN or ASTARTE_BASE_URL_IP must be configured",
+                   fn -> Config.init!() end
+    end
+
+    test "raises when the domain is a blank string and no IP is configured" do
+      stub(Config, :base_url_domain!, fn -> "" end)
+      stub(Config, :base_url_ip!, fn -> nil end)
+
+      assert_raise RuntimeError,
+                   "At least one of ASTARTE_BASE_URL_DOMAIN or ASTARTE_BASE_URL_IP must be configured",
+                   fn -> Config.init!() end
+    end
+
+    test "does not raise when the domain is configured" do
+      stub(Config, :base_url_domain!, fn -> "astarte.example.com" end)
+      stub(Config, :base_url_ip!, fn -> nil end)
+
+      assert Config.init!() == :ok
+    end
+
+    test "does not raise when the IP address is configured" do
+      stub(Config, :base_url_domain!, fn -> nil end)
+      stub(Config, :base_url_ip!, fn -> "192.168.1.10" end)
+
+      assert Config.init!() == :ok
     end
   end
 end

@@ -150,7 +150,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
         rendezvous_info: next_rv_info,
         owner_pub_key: next_owner_pub_key,
         owner_private_key: owner_key,
-        device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
+        device_info: "owned by astarte - realm #{realm_label(realm_name)}"
       }
 
       with {:ok, %{resp: resp_msg, session: session}} <-
@@ -295,5 +295,12 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
   defp build_done2_message(setup_dv_nonce) do
     %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
+  end
+
+  defp realm_label(realm_name) do
+    case Config.base_url_domain!() do
+      nil -> "#{realm_name} (#{Config.base_url_ip!()})"
+      domain -> "#{realm_name}.#{domain}"
+    end
   end
 end

@@ -45,9 +45,35 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2Addr do
     field :protocol, protocol()
   end
 
-  def for_realm(realm_name, domain, port, protocol) do
-    dns = "#{realm_name}.#{domain}"
-    %RvTO2Addr{dns: dns, port: port, protocol: protocol}
+  # A blank string is treated the same as nil: neither counts as "configured".
+  defguardp is_present(value) when is_binary(value) and value != ""
+
+  @doc """
+  Builds the RvTO2Addr entry for `realm_name`, given the configured base
+  `domain` and/or `ip` (at least one of the two is required).
+  """
+  def for_realm(realm_name, domain, ip, port, protocol)
+      when is_present(domain) or is_present(ip) do
+    dns = if is_present(domain), do: "#{realm_name}.#{domain}"
+    ip_bytes = if is_present(ip), do: encode_ip(ip)
+
+    %RvTO2Addr{ip: ip_bytes, dns: dns, port: port, protocol: protocol}
+  end
+
+  defp encode_ip(ip_string) do
+    case ip_string |> String.to_charlist() |> :inet.parse_address() do
+      {:ok, address} ->
+        ip_tuple_to_bytes(address)
+
+      {:error, reason} ->
+        raise ArgumentError, "invalid IP address #{inspect(ip_string)}: #{inspect(reason)}"
+    end
+  end
+
+  defp ip_tuple_to_bytes({a, b, c, d}), do: <<a, b, c, d>>
+
+  defp ip_tuple_to_bytes({a, b, c, d, e, f, g, h}) do
+    <<a::16, b::16, c::16, d::16, e::16, f::16, g::16, h::16>>
   end
 
   def encode(rv_to2_addr) do
