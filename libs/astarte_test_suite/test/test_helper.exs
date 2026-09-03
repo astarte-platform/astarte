@@ -16,4 +16,6 @@
 # limitations under the License.
 #
 
+Mimic.copy(Astarte.DataAccess.Repo)
+
 ExUnit.start()
