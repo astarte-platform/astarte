@@ -84,10 +84,13 @@ defmodule Astarte.FDO.TO0 do
         headers,
         wait_seconds \\ @default_wait_seconds
       ) do
+    host = Config.base_url_host!()
+
     realm_rv_to2_addr_entry =
       RvTO2Addr.for_realm(
         realm_name,
-        Config.base_url_domain!(),
+        host.type,
+        host.value,
         Config.base_url_port!(),
         Config.base_url_protocol!()
       )

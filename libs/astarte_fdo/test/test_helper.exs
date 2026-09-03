@@ -22,7 +22,7 @@ defmodule Astarte.FDO.TestEndpoint do
 end
 
 Application.put_env(:astarte_fdo, :endpoint, Astarte.FDO.TestEndpoint)
-Application.put_env(:astarte_fdo, :base_url_domain, "api.astarte.localhost")
+Application.put_env(:astarte_fdo, :base_url_host, "api.astarte.localhost")
 Application.put_env(:astarte_fdo, :base_url_port, 4003)
 Application.put_env(:astarte_fdo, :base_url_protocol, :http)
 

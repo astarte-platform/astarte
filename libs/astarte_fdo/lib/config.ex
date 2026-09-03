@@ -23,6 +23,7 @@ defmodule Astarte.FDO.Config do
 
   use Astarte.Config
 
+  alias Astarte.FDO.Config.BaseURLHost
   alias Astarte.FDO.Config.BaseURLProtocol
 
   @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
@@ -37,10 +38,13 @@ defmodule Astarte.FDO.Config do
     type: BaseURLProtocol,
     required: true
 
-  @envdoc "The astarte base domain, used for FDO authentication mechanism"
-  app_env :base_url_domain, :astarte_fdo, :base_url_domain,
-    os_env: "ASTARTE_BASE_URL_DOMAIN",
-    type: :binary,
+  @envdoc """
+  The astarte base URL host, used for FDO authentication mechanism. It can be
+  either a domain name or an IP address.
+  """
+  app_env :base_url_host, :astarte_fdo, :base_url_host,
+    os_env: "ASTARTE_BASE_URL_HOST",
+    type: BaseURLHost,
     required: true
 
   url_env :rendezvous, :astarte_fdo, :rendezvous, env_app: "PAIRING_FDO", default_port: 8041
@@ -57,9 +61,9 @@ defmodule Astarte.FDO.Config do
 
   def base_url! do
     protocol = __MODULE__.base_url_protocol!()
-    domain = __MODULE__.base_url_domain!()
+    host = __MODULE__.base_url_host!()
     port = __MODULE__.base_url_port!()
 
-    "#{protocol}://#{domain}:#{port}"
+    "#{protocol}://#{host}:#{port}"
   end
 end
