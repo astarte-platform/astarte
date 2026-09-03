@@ -60,6 +60,7 @@ defmodule Astarte.Core.Generators.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:cyanide, github: "secomind/cyanide", override: true},
       {:stream_data, "~> 1.1"},
       {:moar, "~> 5.0"},
       # Test section
