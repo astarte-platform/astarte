@@ -26,7 +26,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.Queries
-  alias Astarte.FDO.Config
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.Done, as: DonePayload
@@ -149,8 +148,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
         guid: next_guid,
         rendezvous_info: next_rv_info,
         owner_pub_key: next_owner_pub_key,
-        owner_private_key: owner_key,
-        device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
+        owner_private_key: owner_key
       }
 
       with {:ok, %{resp: resp_msg, session: session}} <-

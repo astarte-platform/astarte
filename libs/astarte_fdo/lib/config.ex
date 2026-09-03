@@ -23,6 +23,7 @@ defmodule Astarte.FDO.Config do
 
   use Astarte.Config
 
+  alias Astarte.FDO.Config.BaseURLIp
   alias Astarte.FDO.Config.BaseURLProtocol
 
   @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
@@ -37,11 +38,23 @@ defmodule Astarte.FDO.Config do
     type: BaseURLProtocol,
     required: true
 
-  @envdoc "The astarte base domain, used for FDO authentication mechanism"
+  @envdoc """
+  The astarte base domain, used for FDO authentication mechanism. At least
+  one between this and `base_url_ip` must be configured; when both are set,
+  devices are given preference for the domain over the IP address.
+  """
   app_env :base_url_domain, :astarte_fdo, :base_url_domain,
     os_env: "ASTARTE_BASE_URL_DOMAIN",
-    type: :binary,
-    required: true
+    type: :binary
+
+  @envdoc """
+  The astarte base IP address, used for FDO authentication mechanism as an
+  alternative to `base_url_domain`. At least one between this and `base_url_domain` must be
+  configured.
+  """
+  app_env :base_url_ip, :astarte_fdo, :base_url_ip,
+    os_env: "ASTARTE_BASE_URL_IP",
+    type: BaseURLIp
 
   url_env :rendezvous, :astarte_fdo, :rendezvous, env_app: "PAIRING_FDO", default_port: 8041
 
@@ -53,13 +66,39 @@ defmodule Astarte.FDO.Config do
   def init! do
     # check that all mandatory FDO variables are configured before starting
     __MODULE__.validate!()
+    validate_base_url_host!()
   end
 
   def base_url! do
     protocol = __MODULE__.base_url_protocol!()
-    domain = __MODULE__.base_url_domain!()
+    host = __MODULE__.base_url_host!() |> url_host()
     port = __MODULE__.base_url_port!()
 
-    "#{protocol}://#{domain}:#{port}"
+    "#{protocol}://#{host}:#{port}"
+  end
+
+  @doc """
+  Returns the preferred host to reach Astarte (a blank string counts as
+  unconfigured, same as nil).
+  """
+  def base_url_host! do
+    [__MODULE__.base_url_domain!(), __MODULE__.base_url_ip!()]
+    |> Enum.find(&(&1 not in [nil, ""]))
+  end
+
+  defp validate_base_url_host! do
+    if is_nil(__MODULE__.base_url_host!()) do
+      raise "At least one of ASTARTE_BASE_URL_DOMAIN or ASTARTE_BASE_URL_IP must be configured"
+    end
+
+    :ok
+  end
+
+  # An IPv6 address must be bracketed to be used in a URL
+  defp url_host(host) do
+    case (host || "") |> String.to_charlist() |> :inet.parse_ipv6strict_address() do
+      {:ok, _address} -> "[#{host}]"
+      {:error, _reason} -> host
+    end
   end
 end
