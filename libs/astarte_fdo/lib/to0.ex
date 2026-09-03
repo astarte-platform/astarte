@@ -88,6 +88,7 @@ defmodule Astarte.FDO.TO0 do
       RvTO2Addr.for_realm(
         realm_name,
         Config.base_url_domain!(),
+        Config.base_url_ip!(),
         Config.base_url_port!(),
         Config.base_url_protocol!()
       )

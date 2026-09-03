@@ -161,6 +161,10 @@ The URL which the device must use to initiate the TO2 protocol is in the form
 _<ASTARTE_REALM>.api.<ASTARTE_BASE_URL>/<FDO_URL>_; this is currently necessary to map the device
 session to the correct realm.
 
+Astarte's base URL can be configured as a domain name (`ASTARTE_BASE_URL_DOMAIN`), an IP address
+(`ASTARTE_BASE_URL_IP`), or both (at least one of the two is required). When both are configured, the device is expected to give preference to
+the domain name.
+
 #### TO0 Protocol
 
 TO0 messaging is started as soon as a new _Ownership Voucher_ is uploaded onto the platform by the

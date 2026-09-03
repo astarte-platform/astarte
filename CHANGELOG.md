@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+
+- [fdo] Allow configuring an IP address (`ASTARTE_BASE_URL_IP`) alongside, or instead of,
+  `ASTARTE_BASE_URL_DOMAIN` for FDO URL composition. At least one of the two must be configured
+  (checked at application start); when only one is set, the TO0.OwnerSign RVAddr entry only
+  carries that address, and when both are set it carries both, with devices expected to give
+  preference to the domain name.
+
 ## [1.4.0-rc.5] - 2026-08-20
 
 ### Fixed
