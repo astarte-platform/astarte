@@ -22,22 +22,22 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
   alias Astarte.TestSuite.Helpers.Realm, as: RealmHelper
 
-  @tag :real_db
+  @tag :integration
   test "realm helper sets realms flag" do
     assert context().realms_ready?
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper creates keyspaces for each instance and realm" do
     assert context().realm_keyspaces |> length() == 1
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper creates database statements for each realm" do
     assert context().realm_database_statements |> length() == 20
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper creates realm keyspace SQL" do
     context = context()
 
@@ -45,7 +45,7 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
              "CREATE KEYSPACE IF NOT EXISTS #{hd(context.realm_keyspaces)}"
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper inserts realm into the instance keyspace" do
     context = context()
 
@@ -53,7 +53,7 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
              "INSERT INTO #{hd(context.realm_keyspaces)}.realms"
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper creates devices table SQL" do
     context = context()
 
@@ -61,7 +61,7 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
              "CREATE TABLE IF NOT EXISTS #{hd(context.realm_keyspaces)}.devices"
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm helper creates interfaces table SQL" do
     context = context()
 

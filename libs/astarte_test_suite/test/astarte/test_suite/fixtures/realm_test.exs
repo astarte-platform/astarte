@@ -27,7 +27,7 @@ defmodule Astarte.TestSuite.Fixtures.RealmTest do
     assert context.realms_ready?
   end
 
-  @tag :real_db
+  @tag :integration
   test "realm fixture sets realms flag" do
     assert context().realms_ready?
   end

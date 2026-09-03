@@ -31,22 +31,22 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
     assert setup_context().instance_setup?
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance helper sets database flag" do
     assert context().instance_database_ready?
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance helper creates one keyspace per instance" do
     assert context().instance_keyspaces |> length() == 2
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance helper creates keyspace statements for each instance" do
     assert context().instance_database_statements |> length() == 4
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance helper creates astarte keyspace SQL" do
     context = context()
 
@@ -54,7 +54,7 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
              "CREATE KEYSPACE IF NOT EXISTS #{hd(context.instance_keyspaces)}"
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance helper creates realms table SQL" do
     context = context()
 

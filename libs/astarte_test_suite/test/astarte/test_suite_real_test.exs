@@ -21,7 +21,7 @@ defmodule Astarte.TestSuiteRealRealmContextTest do
     instance: [instances: %{"astarte_realm_test" => {"astarte_realm_test", nil}}],
     realm: [realm_names: ["realm1"]]
 
-  @moduletag :real_db
+  @moduletag :integration
   test "loads deduced graph cases in order", context do
     assert context.astarte_test_suite_loaded_cases == [:common, :instance, :realm]
   end
@@ -48,7 +48,7 @@ defmodule Astarte.TestSuiteRealInterfaceContextTest do
     instance: [instances: %{"astarte_iface_test" => {"astarte_iface_test", nil}}],
     interface: [interface_number: 1]
 
-  @moduletag :real_db
+  @moduletag :integration
   test "loads interface ancestors in order", context do
     assert context.astarte_test_suite_loaded_cases == [:common, :instance, :realm, :interface]
   end
@@ -74,7 +74,7 @@ defmodule Astarte.TestSuiteRealExternalCasesTest do
       {Astarte.TestSuiteTest.Cases.ParamsCase, [value: 7]}
     ]
 
-  @moduletag :real_db
+  @moduletag :integration
   test "applies external case without params", context do
     assert context.no_params_case?
   end

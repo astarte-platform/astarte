@@ -31,7 +31,7 @@ defmodule Astarte.TestSuite.Fixtures.InstanceTest do
     assert context.instance_database_ready?
   end
 
-  @tag :real_db
+  @tag :integration
   test "instance fixture sets database flag" do
     assert context().instance_database_ready?
   end
