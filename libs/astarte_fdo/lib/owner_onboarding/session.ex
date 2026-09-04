@@ -41,6 +41,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
   typedstruct do
     field :guid, binary()
+    field :realm, String.t()
     field :hmac, Hash.t()
     field :device_id, Astarte.DataAccess.UUID, default: nil
     field :nonce, binary()
@@ -103,6 +104,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
       session =
         %Session{
           guid: guid,
+          realm: realm_name,
           hmac: hmac,
           device_id: nil,
           nonce: nonce,
@@ -318,6 +320,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
            SignatureInfo.database_params_to_device_signature(database_session) do
       %TO2Session{
         guid: guid,
+        realm: db_realm,
         device_id: device_id,
         hmac: hmac,
         nonce: db_nonce,
@@ -339,6 +342,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
 
       session = %Session{
         guid: guid,
+        realm: db_realm,
         device_id: device_id,
         hmac: hmac,
         nonce: db_nonce,

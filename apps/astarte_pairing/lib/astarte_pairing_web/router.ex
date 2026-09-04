@@ -37,7 +37,6 @@ defmodule Astarte.PairingWeb.Router do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
     plug Astarte.PairingWeb.Plug.LogRealm
-    plug Astarte.PairingWeb.Plug.VerifyRealmExists
     plug Astarte.PairingWeb.Plug.SetupFDO
   end
 
@@ -49,7 +48,7 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.DecryptAndVerify
   end
 
-  scope "/v1/:realm_name/fdo/101", Astarte.PairingWeb do
+  scope "/v1/fdo/101", Astarte.PairingWeb do
     pipe_through :fdo
 
     post "/msg/60", FDOOnboardingController, :hello_device
