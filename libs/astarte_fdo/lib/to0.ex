@@ -30,10 +30,36 @@ defmodule Astarte.FDO.TO0 do
   alias Astarte.FDO.Rendezvous
   alias Astarte.FDO.Rendezvous.Core, as: RendezvousCore
 
-  def claim_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key) do
+  @default_wait_seconds 3600
+
+  def claim_ownership_voucher(
+        realm_name,
+        decoded_ownership_voucher,
+        owner_private_key,
+        opts \\ []
+      ) do
+    wait_seconds = Keyword.get(opts, :wait_seconds, @default_wait_seconds)
+
     with {:ok, %{nonce: nonce, headers: headers}} <- hello() do
-      owner_sign(realm_name, nonce, decoded_ownership_voucher, owner_private_key, headers)
+      owner_sign(
+        realm_name,
+        nonce,
+        decoded_ownership_voucher,
+        owner_private_key,
+        headers,
+        wait_seconds
+      )
     end
+  end
+
+  @doc """
+  Revokes a previously claimed ownership voucher's registration on the
+  rendezvous server.
+  """
+  def revoke_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key) do
+    claim_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key,
+      wait_seconds: 0
+    )
   end
 
   @doc """
@@ -50,7 +76,14 @@ defmodule Astarte.FDO.TO0 do
   Sends ownership voucher and waits for response from rendezvous server.
   Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time.
   """
-  def owner_sign(realm_name, nonce, ownership_voucher, owner_private_key, headers) do
+  def owner_sign(
+        realm_name,
+        nonce,
+        ownership_voucher,
+        owner_private_key,
+        headers,
+        wait_seconds \\ @default_wait_seconds
+      ) do
     realm_rv_to2_addr_entry =
       RvTO2Addr.for_realm(
         realm_name,
@@ -60,8 +93,6 @@ defmodule Astarte.FDO.TO0 do
       )
 
     rv_to2_addr = [realm_rv_to2_addr_entry]
-
-    wait_seconds = 3600
 
     with {:ok, request_body} <-
            RendezvousCore.build_owner_sign_message(

@@ -18,6 +18,7 @@
 
 defmodule Astarte.FDO.OwnershipVoucherTest do
   use Astarte.FDO.Cases.Data, async: true
+  use Mimic
 
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash
@@ -26,6 +27,8 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.Helpers
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.TO0
+  alias Astarte.Secrets
   alias COSE.Messages.Sign1
 
   setup do
@@ -53,6 +56,60 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
 
       assert {:ok, key_data} = Queries.get_owner_key_params(realm_name, device_id)
       assert %{name: key_name, algorithm: key_alg} == key_data
+    end
+  end
+
+  describe "delete/2" do
+    test "revokes the rendezvous registration and removes the voucher", ctx do
+      %{realm_name: realm_name, device_id: device_id} = ctx
+
+      attrs = %{
+        guid: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> {:ok, :fake_owner_key} end)
+
+      TO0
+      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+        :ok
+      end)
+
+      assert {:ok, _} = OwnershipVoucher.delete(realm_name, device_id)
+      assert {:error, :not_found} = Queries.get_ownership_voucher(realm_name, device_id)
+    end
+
+    test "does not delete the voucher if the rendezvous revocation fails", ctx do
+      %{realm_name: realm_name, device_id: device_id} = ctx
+
+      attrs = %{
+        guid: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> :error end)
+
+      assert {:error, :rendezvous_revocation_failed} =
+               OwnershipVoucher.delete(realm_name, device_id)
+
+      assert {:ok, _voucher_cbor} = Queries.get_ownership_voucher(realm_name, device_id)
+    end
+
+    test "returns {:error, :not_found} for an unknown guid", ctx do
+      %{realm_name: realm_name} = ctx
+      unknown_guid = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :not_found} = OwnershipVoucher.delete(realm_name, unknown_guid)
     end
   end
 

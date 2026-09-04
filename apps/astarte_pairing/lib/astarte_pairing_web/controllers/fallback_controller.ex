@@ -102,6 +102,15 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:missing_ownership_voucher)
   end
 
+  # Deleting an ownership voucher requires first revoking its registration on
+  # the FDO rendezvous server and the voucher is not deleted if that fails
+  def call(conn, {:error, :rendezvous_revocation_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
   # Catch unhandled errors
   def call(conn, :error) do
     conn

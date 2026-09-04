@@ -21,6 +21,7 @@ defmodule Astarte.FDO.To0Test do
   use Mimic
 
   alias Astarte.FDO.Rendezvous
+  alias Astarte.FDO.Rendezvous.Core, as: RendezvousCore
   alias Astarte.FDO.TO0
   alias COSE.Keys.ECC, as: Keys
 
@@ -95,6 +96,80 @@ defmodule Astarte.FDO.To0Test do
       |> expect(:send_hello, fn -> :error end)
 
       assert :error = TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key)
+    end
+
+    test "defaults to a wait time of 3600 seconds" do
+      nonce = :crypto.strong_rand_bytes(16)
+      ownership_voucher = sample_voucher()
+      owner_key = Keys.generate(:es256)
+
+      Rendezvous
+      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
+
+      RendezvousCore
+      |> expect(:build_owner_sign_message, fn _ov, _key, _nonce, _addrs, 3600 ->
+        {:ok, "request-body"}
+      end)
+
+      Rendezvous
+      |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
+
+      assert :ok = TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key)
+    end
+
+    test "threads a custom :wait_seconds option through to the rendezvous server" do
+      nonce = :crypto.strong_rand_bytes(16)
+      ownership_voucher = sample_voucher()
+      owner_key = Keys.generate(:es256)
+
+      Rendezvous
+      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
+
+      RendezvousCore
+      |> expect(:build_owner_sign_message, fn _ov, _key, _nonce, _addrs, 0 ->
+        {:ok, "request-body"}
+      end)
+
+      Rendezvous
+      |> expect(:register_ownership, fn _body, _headers -> {:ok, 0} end)
+
+      assert :ok =
+               TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key,
+                 wait_seconds: 0
+               )
+    end
+  end
+
+  describe "revoke_ownership_voucher/3" do
+    test "registers with the rendezvous server using a wait time of 0 seconds" do
+      nonce = :crypto.strong_rand_bytes(16)
+      ownership_voucher = sample_voucher()
+      owner_key = Keys.generate(:es256)
+
+      Rendezvous
+      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
+
+      RendezvousCore
+      |> expect(:build_owner_sign_message, fn _ov, _key, _nonce, _addrs, 0 ->
+        {:ok, "request-body"}
+      end)
+
+      Rendezvous
+      |> expect(:register_ownership, fn _body, _headers -> {:ok, 0} end)
+
+      assert :ok = TO0.revoke_ownership_voucher("testrealm", ownership_voucher, owner_key)
+    end
+
+    test "returns :error when the rendezvous server rejects the revocation" do
+      nonce = :crypto.strong_rand_bytes(16)
+      ownership_voucher = sample_voucher()
+      owner_key = Keys.generate(:es256)
+
+      Rendezvous
+      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
+      |> expect(:register_ownership, fn _body, _headers -> :error end)
+
+      assert :error = TO0.revoke_ownership_voucher("testrealm", ownership_voucher, owner_key)
     end
   end
 end

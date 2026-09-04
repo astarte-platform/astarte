@@ -21,6 +21,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Pairing.Cases.Data
   use Mimic
 
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -235,6 +236,59 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert UUID.string_to_binary!(ownership_voucher_result["guid"])
       assert ownership_voucher_result["status"] == "created"
       assert ownership_voucher_result["input_voucher"] == @sample_ownership_voucher_pem
+    end
+  end
+
+  describe "delete_ownership_voucher/2" do
+    test "returns 204 and deletes the voucher when it exists", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:delete, fn ^realm_name, ^guid -> {:ok, :deleted} end)
+
+      conn
+      |> delete(path)
+      |> response(204)
+    end
+
+    test "returns 404 when the voucher does not exist", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:delete, fn ^realm_name, ^guid -> {:error, :not_found} end)
+
+      conn
+      |> delete(path)
+      |> response(404)
+    end
+
+    test "returns 404 when the guid is malformed", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, "not-a-guid")
+
+      conn
+      |> delete(path)
+      |> response(404)
+    end
+
+    test "returns 500 when the rendezvous revocation fails", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:delete, fn ^realm_name, ^guid -> {:error, :rendezvous_revocation_failed} end)
+
+      conn
+      |> delete(path)
+      |> response(500)
     end
   end
 

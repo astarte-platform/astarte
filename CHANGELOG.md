@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.4.0-rc.5] - 2026-08-20
+
+### Fixed
+
+- [astarte_data_updater_plant] Make object values only validate type on selected interface
+- [astarte_data_updater_plant] Ensure binaryblob data is correctly validated
+
 ## [1.4.0-rc.4] - 2026-08-06
 
 ### Added
@@ -89,7 +96,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
 
-## [1.3.3] - Unreleased
+## [1.3.3] - 2026-08-07
 
 ### Fixed
 

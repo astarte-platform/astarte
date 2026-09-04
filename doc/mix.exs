@@ -10,8 +10,9 @@ defmodule Doc.MixProject do
 
     [
       app: :doc,
+      # x-release-please-start-version
       version: "1.5.0-dev",
-      elixir: "~> 1.20",
+      # x-release-please-end
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Clea Astarte",

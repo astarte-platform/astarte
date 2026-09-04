@@ -5,7 +5,7 @@ defmodule Astarte.Config.MixProject do
     [
       app: :astarte_config,
       # x-release-please-start-version
-      version: "1.4.0-rc.2",
+      version: "1.5.0-dev",
       # x-release-please-end
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
