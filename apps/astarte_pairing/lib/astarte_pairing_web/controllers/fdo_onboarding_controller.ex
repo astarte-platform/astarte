@@ -317,7 +317,7 @@ operation :service_info_end,
     cbor_hello_device = conn.assigns.cbor_body
 
     with {:ok, token, response_msg} <-
-           OwnerOnboarding.hello_device(cbor_hello_device) do
+           OwnerOnboarding.hello_device(nil, cbor_hello_device) do
       conn
       |> put_resp_header("authorization", token)
       |> render("default.cbor", %{cbor_response: response_msg})
