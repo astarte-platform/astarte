@@ -20,7 +20,7 @@ import React, { useCallback } from 'react';
 import { Button, Modal, Spinner } from 'react-bootstrap';
 import type { ModalProps } from 'react-bootstrap';
 
-type BoostrapVariant =
+type BootstrapVariant =
   | 'primary'
   | 'secondary'
   | 'success'
@@ -36,7 +36,7 @@ interface Props {
   children: React.ReactNode;
   confirmLabel?: string;
   confirmOnEnter?: boolean;
-  confirmVariant?: BoostrapVariant;
+  confirmVariant?: BootstrapVariant;
   disabled?: boolean;
   isConfirming?: boolean;
   onCancel?: () => void;

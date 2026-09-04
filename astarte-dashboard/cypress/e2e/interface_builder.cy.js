@@ -533,7 +533,7 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add Mapping');
-          cy.get('#mappingEndpoint').paste('/enpdoint');
+          cy.get('#mappingEndpoint').paste('/endpoint');
           cy.get('button').contains('Add').click();
         });
 

@@ -97,7 +97,7 @@ const widgets = {
 
 type JsonSchemaFormProps = ComponentProps<typeof JsonSchemaForm>;
 
-type BoostrapVariant =
+type BootstrapVariant =
   | 'primary'
   | 'secondary'
   | 'success'
@@ -111,7 +111,7 @@ type BoostrapVariant =
 interface Props {
   cancelLabel?: string;
   confirmLabel?: string;
-  confirmVariant?: BoostrapVariant;
+  confirmVariant?: BootstrapVariant;
   initialData?: JsonSchemaFormProps['formData'];
   isConfirming?: boolean;
   liveValidate?: boolean;

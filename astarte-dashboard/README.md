@@ -56,7 +56,7 @@ containing the following keys:
   + Pairing: api_url + /pairing
   + Flow: api_url + /flow
 
-  The special string `localhost` sets the enpoints the one ones used in the Astarte in 5 minutes guide
+  The special string `localhost` sets the endpoints the one ones used in the Astarte in 5 minutes guide
 
   + AppEngine: `http://localhost:4002`
   + Realm Management: `http://localhost:4000`
