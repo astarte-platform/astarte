@@ -52,7 +52,7 @@ Realms build upon the concept of keyspaces in Cassandra. Each Realm has its very
 
 ## Message Ordering
 
-In Astarte, transports are given the task to deliver messages in a well-known AMQP structure. The ordering of such messages is then preserved on a set of criterias:
+In Astarte, transports are given the task to deliver messages in a well-known AMQP structure. The ordering of such messages is then preserved on a set of criteria:
 
 - There is no such thing as "in-order" among devices. A message X sent to device A can be processed after a message Y sent to device B even if Y was ingested in the AMQP queue before X. This is intentional and by design.
 - All messages to a specific device A are _always guaranteed_ to be processed in the very same order of the transport ingestion.

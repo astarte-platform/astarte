@@ -68,13 +68,13 @@ function AttemptLogin(): React.ReactElement {
 
   const persistent = false;
 
-  let succesfulLogin = false;
+  let successfulLogin = false;
 
   if (realm && token) {
-    succesfulLogin = astarte.login({ realm, token, authUrl }, persistent);
+    successfulLogin = astarte.login({ realm, token, authUrl }, persistent);
   }
 
-  if (!succesfulLogin) {
+  if (!successfulLogin) {
     return <Navigate to="/login" replace />;
   }
 
