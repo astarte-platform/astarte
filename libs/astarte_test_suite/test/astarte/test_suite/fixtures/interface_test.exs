@@ -35,7 +35,7 @@ defmodule Astarte.TestSuite.Fixtures.InterfaceTest do
     assert context.interfaces_registered?
   end
 
-  @tag :real_db
+  @tag :integration
   test "interface fixture sets registration flag" do
     assert context().interfaces_registered?
   end

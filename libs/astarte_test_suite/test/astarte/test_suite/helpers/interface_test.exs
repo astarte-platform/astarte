@@ -53,12 +53,12 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     end
   end
 
-  @tag :real_db
+  @tag :integration
   test "interface helper sets registration flag after real persistence" do
     assert persisted_context().interfaces_registered?
   end
 
-  @tag :real_db
+  @tag :integration
   test "interface helper records one keyspace result after real persistence" do
     context = persisted_context()
 
@@ -67,7 +67,7 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
            |> Map.fetch!(:keyspace) == context.instances |> Map.keys() |> hd()
   end
 
-  @tag :real_db
+  @tag :integration
   test "interface helper persists multiple interfaces in same keyspace" do
     context = persisted_context_multiple_interfaces()
 
@@ -79,7 +79,7 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     assert Map.has_key?(result, :result)
   end
 
-  @tag :real_db
+  @tag :integration
   test "interface helper records endpoint and interface results" do
     context = persisted_context()
 
@@ -93,7 +93,7 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
 
   # TODO: use the procedure in `astarte_data_access` asap
   # TODO: make test properly
-  # @tag :real_db
+  # @tag :integration
   # test "interface helper raises when interface insertion fails" do
   #   assert_raise RuntimeError, ~r/failed to insert interface into/, fn ->
   #     invalid_interface_context()
@@ -103,7 +103,7 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
 
   # TODO: use the procedure in `astarte_data_access` asap
   # TODO: make test properly
-  # @tag :real_db
+  # @tag :integration
   # test "interface helper raises when endpoint insertion fails" do
   #   assert_raise RuntimeError, ~r/failed to insert endpoint into/, fn ->
   #     invalid_endpoint_context()
