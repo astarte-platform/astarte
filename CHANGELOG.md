@@ -7,6 +7,156 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.5.0-dev](https://github.com/astarte-platform/astarte/compare/v1.5.0-dev...v1.5.0-dev) (2026-08-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* return Policy directly from from_policy_proto ([#168](https://github.com/astarte-platform/astarte/issues/168))
+* **generators:** nuke to_changes + use adapters
+* **data_access:** obliterate `astarte_data_access_generator` ([#2003](https://github.com/astarte-platform/astarte/issues/2003))
+* **adapters:** macro `transform` is not retro-compatible anymore
+* The SECRET_KEY_BASE environment variable is now mandatory
+* **housekeeping:** Consolidate AMQP management configuration ([#1804](https://github.com/astarte-platform/astarte/issues/1804))
+* **generators:** The group generator doesn't accept whole device structs as parameters anymore
+* The trigger target decoding function now returns a map, in order to be compliant with the defined type specifications.
+
+### Features
+
+* **adapters:** add `transformp` ([#2048](https://github.com/astarte-platform/astarte/issues/2048)) ([46e4337](https://github.com/astarte-platform/astarte/commit/46e433781ef1c2bc76f54088f4c43c149964b106))
+* **adapters:** introduce `transform` macro ([bcfbd83](https://github.com/astarte-platform/astarte/commit/bcfbd83006de9ccf277bde7cf187945f586f136f))
+* add encrypted endpoints ([#1999](https://github.com/astarte-platform/astarte/issues/1999)) ([372a2cb](https://github.com/astarte-platform/astarte/commit/372a2cbe2ff3179e2f7f33d15aa7df4fbc22ff27))
+* add keepalive option ([34d0302](https://github.com/astarte-platform/astarte/commit/34d03020ba4c34b63649e9d6762da38f782c1580))
+* add required flag support to interface mappings ([#524](https://github.com/astarte-platform/astarte/issues/524)) ([82018e1](https://github.com/astarte-platform/astarte/commit/82018e1c918553bc8c3aa2849a4f35a709cd497d))
+* add required flag support to interface mappings ([#524](https://github.com/astarte-platform/astarte/issues/524)) ([b9a4418](https://github.com/astarte-platform/astarte/commit/b9a4418d10fb8385c0495182c6dca1520b02967e))
+* add support for data encryption in interface mappings ([af1174a](https://github.com/astarte-platform/astarte/commit/af1174a792f43637972e76b4a2c3e290a11a7c2d))
+* **appengine:** Decrypt stored values ([#2029](https://github.com/astarte-platform/astarte/issues/2029)) ([d0fa44e](https://github.com/astarte-platform/astarte/commit/d0fa44e83758d81b42a5e64b4baba482eb7d3c49))
+* **appengine:** Encrypt value before publishing ([75feb09](https://github.com/astarte-platform/astarte/commit/75feb094dd87f9c80f646fff1a10e9eaf7687ed1))
+* **appengine:** Validate required mappings ([#1854](https://github.com/astarte-platform/astarte/issues/1854)) ([4e69df4](https://github.com/astarte-platform/astarte/commit/4e69df46ab846a54a53e4c578119ab12faec2753))
+* **config:** add url_env and http client ([1072889](https://github.com/astarte-platform/astarte/commit/107288968639ba7217bd922b440fd8b016ca37ae))
+* **data_access:** add core adapters interface and mapping ([a42c235](https://github.com/astarte-platform/astarte/commit/a42c235c6cb45c8c44044c909d5ac1b60dd33897))
+* **data_access:** add storage and storage_type ([01c3046](https://github.com/astarte-platform/astarte/commit/01c304693575b198208809c95918858be80320aa))
+* **docker:** add health status ([#1929](https://github.com/astarte-platform/astarte/issues/1929)) ([ff816f3](https://github.com/astarte-platform/astarte/commit/ff816f3f51a61921b75efe399f65e21f863284a4))
+* **dup:** Encrypt device shared secret ([#2104](https://github.com/astarte-platform/astarte/issues/2104)) ([5047681](https://github.com/astarte-platform/astarte/commit/5047681b9d530e88eff77ac9618bea5932ef98af))
+* **dup:** Validate required interface mapping ([#1849](https://github.com/astarte-platform/astarte/issues/1849)) ([038ff72](https://github.com/astarte-platform/astarte/commit/038ff72a5a90fc6d2729639831c1af928a282018))
+* **fdo:** add FDO owner keys list page with algorithm filter ([5d65179](https://github.com/astarte-platform/astarte/commit/5d651793b0945f0ebc3f1659f023fd605d44024c))
+* **fdo:** add FDO vouchers list page ([f8b3c55](https://github.com/astarte-platform/astarte/commit/f8b3c551ad2a162f2f0a944b73fdbeb138d94c77))
+* **fdo:** added ownership voucher upload and key generation/upload ([ba2d914](https://github.com/astarte-platform/astarte/commit/ba2d9149521880cd639ff38c18fb8433d7242187))
+* **fdo:** added ownership voucher upload and key generation/upload ([0cd6c77](https://github.com/astarte-platform/astarte/commit/0cd6c77007e6d3d487b4b713643ddd6ec5266ba7))
+* **fdo:** update voucher load page with key algorithm selection ([2542f03](https://github.com/astarte-platform/astarte/commit/2542f030d51776beb9f5d9511e50a088337cba5c))
+* **generators:** allow parameterization of the `group` generator ([7301504](https://github.com/astarte-platform/astarte/commit/730150442f826362b1efc68c4aa19236c25d2dfa))
+* Hide Dashboard sidebar using user config ([#521](https://github.com/astarte-platform/astarte/issues/521)) ([fa77970](https://github.com/astarte-platform/astarte/commit/fa779708172a05e6421b1642fc36c20928a0aa07))
+* **housekeeping:** add default datastream maximum storage retention for realms ([c6a4c38](https://github.com/astarte-platform/astarte/commit/c6a4c38f06812250f6930bb57afcf2d05d42a21c))
+* **housekeeping:** Create realm KEK during realm migrations ([1ae655d](https://github.com/astarte-platform/astarte/commit/1ae655d043abec6c248107e736f40ca66521276e))
+* **housekeeping:** Create realm vhosts for old realms ([#1839](https://github.com/astarte-platform/astarte/issues/1839)) ([96e5d7b](https://github.com/astarte-platform/astarte/commit/96e5d7b93ef6da6b1901f1215f363fd166bee5f1))
+* **housekeeping:** default astarte keyspace replication to NetworkTopologyStrategy ([1e65322](https://github.com/astarte-platform/astarte/commit/1e6532292f360301fc74f46b7ee42c06ac34fcc7))
+* **housekeeping:** default astarte keyspace replication to NetworkTopologyStrategy ([6523b2a](https://github.com/astarte-platform/astarte/commit/6523b2a255fa0f997e55bd6b815565a3499a6391))
+* **housekeeping:** default realm keyspace replication uses data from db ([a7718be](https://github.com/astarte-platform/astarte/commit/a7718bec0b8e4824edbc3cea36b26c4c0ea82c6b))
+* **housekeeping:** save keyspace replication to KvStore ([#1934](https://github.com/astarte-platform/astarte/issues/1934)) ([bd6049d](https://github.com/astarte-platform/astarte/commit/bd6049d220cf77bff72f5be4ff42e64f26b7e34a))
+* **housekeeping:** Support for retrieving default Realm replication settings via API ([9ae525a](https://github.com/astarte-platform/astarte/commit/9ae525a92fbdd828510108167b39aa770708c284))
+* **mapping:** Add required field ([#141](https://github.com/astarte-platform/astarte/issues/141)) ([40c707a](https://github.com/astarte-platform/astarte/commit/40c707afce475f2b49404ec49ee893f8a1698c5e))
+* **pairing:** add ownership voucher list endpoint ([#1917](https://github.com/astarte-platform/astarte/issues/1917)) ([49a43d5](https://github.com/astarte-platform/astarte/commit/49a43d5436bb7a8f8459e9c9aa64bc0786232596))
+* **pairing:** Add rendezvous server SSL configuration options ([#1843](https://github.com/astarte-platform/astarte/issues/1843)) ([16e41af](https://github.com/astarte-platform/astarte/commit/16e41af2c097ff496a9f81ec94f442e76b235ead))
+* **pairing:** add support for ASYMKEX algorithms ([8d62930](https://github.com/astarte-platform/astarte/commit/8d629308f47fd53694fdd05da1672d40117615ed))
+* **pairing:** add support for DHKEX shared key derivation algorithms ([0218266](https://github.com/astarte-platform/astarte/commit/02182661ee49f5d6dcd7356c0776c1f990b58598))
+* **pairing:** add support for SECP384R1 (ES384) and dynamic FDO key exchange ([34717d6](https://github.com/astarte-platform/astarte/commit/34717d602d659d9714c4ef1d5224986e966aa585))
+* **pairing:** allow key uploading ([#1874](https://github.com/astarte-platform/astarte/issues/1874)) ([7782a2a](https://github.com/astarte-platform/astarte/commit/7782a2a407b750dfc2342c15c28027d1c202cd89))
+* **pairing:** allow listing owner keys ([#1871](https://github.com/astarte-platform/astarte/issues/1871)) ([4859bcc](https://github.com/astarte-platform/astarte/commit/4859bcc2d871b64c9c90e5d890fd28f8f415d1c6))
+* **pairing:** expose API endpoint to create keys in OpenBao ([#1870](https://github.com/astarte-platform/astarte/issues/1870)) ([11fb1d0](https://github.com/astarte-platform/astarte/commit/11fb1d008d899c4e32d3c4a5f0433da8c420d307))
+* **pairing:** implement FDO feature gate ([#1778](https://github.com/astarte-platform/astarte/issues/1778)) ([50a9287](https://github.com/astarte-platform/astarte/commit/50a9287f39c99fe0be13d82c5fc4981e7ff2c85a))
+* **pairing:** return compatible keys for ownership voucher ([b58e77e](https://github.com/astarte-platform/astarte/commit/b58e77e2a04c83fabb573548fff191777ae683a4))
+* **pairing:** signing/verification of TO2 msgs with any owner key type ([3516101](https://github.com/astarte-platform/astarte/commit/35161016d4bf96fe3a7f6a5789bd6d3c2d1ab78f))
+* **pairing:** validate ownership voucher against stored key ([7234b63](https://github.com/astarte-platform/astarte/commit/7234b63c9edd03e696a77752f5e636287b06456d))
+* **rm:** Enable optional interface endpoints ([#1847](https://github.com/astarte-platform/astarte/issues/1847)) ([8a34ea2](https://github.com/astarte-platform/astarte/commit/8a34ea26c2b4694af515afd8a6aec8bb80702b77))
+* **rm:** immediately delete devices in best case scenario ([d3a656b](https://github.com/astarte-platform/astarte/commit/d3a656bbd0f9c1f6962ca28c8dbfe1f98f3d9fd7))
+* **rpc:** init realm management rpc ([ccb8c2a](https://github.com/astarte-platform/astarte/commit/ccb8c2ac8a00f0daef1f29b53aa9d8413bb61782))
+* **secrets:** add configurable base namespace through `ASTARTE_VAULT_BASE_NAMESPACE` environment variable (default: `""`) ([e3d47b7](https://github.com/astarte-platform/astarte/commit/e3d47b7ff763df6aebbcf9003a151a793a750392))
+* Store shared secret as session_key ([897a383](https://github.com/astarte-platform/astarte/commit/897a383f79596e37a6ddf3dcb70520c89d97f2ef))
+* support runtime configuration via environment variables ([#538](https://github.com/astarte-platform/astarte/issues/538)) ([d06c51f](https://github.com/astarte-platform/astarte/commit/d06c51ff8af47e64f0901a260379fd6ec1aa8924))
+* **test_suite:** set new project ([#1927](https://github.com/astarte-platform/astarte/issues/1927)) ([ad0147d](https://github.com/astarte-platform/astarte/commit/ad0147db0b04f0bb43e807c0cf6a3bbd2b47bd89))
+* **trigger:** support registration and deletion triggers in dashboard ([#517](https://github.com/astarte-platform/astarte/issues/517)) ([caca470](https://github.com/astarte-platform/astarte/commit/caca470dab68da0f391cabb92c3d68ce9cc41a72))
+
+
+### Bug Fixes
+
+* Allow default values for simple strategy ([e98ca77](https://github.com/astarte-platform/astarte/commit/e98ca77b30f0f82e33bd75138a8bd75538d8174c))
+* allow rpc server horizontal scalability ([ab28f63](https://github.com/astarte-platform/astarte/commit/ab28f634d551e6005440e75ab3a0edccaaa0a4c6))
+* allow rpc server horizontal scalability ([0d0ce1f](https://github.com/astarte-platform/astarte/commit/0d0ce1fb2e6725396a8cdd97cd424a5b1b3fff2a))
+* **appengine:** Handle parameters on encrypted endpoints ([#2120](https://github.com/astarte-platform/astarte/issues/2120)) ([029c630](https://github.com/astarte-platform/astarte/commit/029c630f426141fc66ef8864cc9a11e5e43d01e9))
+* Avoid crash on invalid properties message ([0808aa5](https://github.com/astarte-platform/astarte/commit/0808aa586fd4954d7f14b110fd40127c06942d41))
+* avoid race condition with queue termination ([df38d63](https://github.com/astarte-platform/astarte/commit/df38d632ae09ecbf9ae86232481dc3f3c5d59588))
+* avoid race condition with queue termination ([19bbc24](https://github.com/astarte-platform/astarte/commit/19bbc241aa8570c19616e48160561f928c901789))
+* delete unconfirmed devices ([8ff9fd8](https://github.com/astarte-platform/astarte/commit/8ff9fd87257c287abf2a2fdc53f665714bb065c3))
+* **delivery-policies:** correct readonly state in error handler modal ([9da341c](https://github.com/astarte-platform/astarte/commit/9da341c5e56bbcb50dc29eb293342ada0181fadb))
+* **delivery-policies:** correct readonly state in error handler modal ([d4633cd](https://github.com/astarte-platform/astarte/commit/d4633cda791915244babe0a39264eebe5cfeda6f))
+* **dup:** allow rpc server horizontal scalability ([#2108](https://github.com/astarte-platform/astarte/issues/2108)) ([a4a841e](https://github.com/astarte-platform/astarte/commit/a4a841ed05085f62544460ae82928f953a9e4f04))
+* **dup:** bound AMQP consumers memory growth ([#2114](https://github.com/astarte-platform/astarte/issues/2114)) ([40e09e1](https://github.com/astarte-platform/astarte/commit/40e09e1f5eda7cda92bcef69df54b00d4e1fa81a))
+* **dup:** enforce strict state transitions for errors and resets ([#2046](https://github.com/astarte-platform/astarte/issues/2046)) ([236742c](https://github.com/astarte-platform/astarte/commit/236742cebc39f98b16880c24175d1d6b6c7cbbc8))
+* **dup:** ensure binaryblob data is correctly validated ([aedc414](https://github.com/astarte-platform/astarte/commit/aedc41483304772556dfad06550a94b7eb2c18c6))
+* **dup:** ensure device deletion rpc always checks updated status ([#1838](https://github.com/astarte-platform/astarte/issues/1838)) ([18000f0](https://github.com/astarte-platform/astarte/commit/18000f061ddac780194da146333d4f2721ca700a))
+* **dup:** increase device process resiliency ([#1852](https://github.com/astarte-platform/astarte/issues/1852)) ([44dd26e](https://github.com/astarte-platform/astarte/commit/44dd26ea4e0df56e2018a18e0fe7af6761e74d65))
+* **dup:** restore correct type validation checks for incoming data ([4789d04](https://github.com/astarte-platform/astarte/commit/4789d047c13c13f5c9ec6abfbd14cfa7cd0ae2a8))
+* **dup:** stop re-queueing rejected messages ([#2105](https://github.com/astarte-platform/astarte/issues/2105)) ([646202e](https://github.com/astarte-platform/astarte/commit/646202eb044d7d7e55a8305222509b7f0de1d2cc))
+* **dup:** stop remapping interface loading failed error ([#2119](https://github.com/astarte-platform/astarte/issues/2119)) ([d859209](https://github.com/astarte-platform/astarte/commit/d8592091e1a48d5a50dee923e3a7d2cc487e55b2))
+* ensure devices are eventually deleted ([#2064](https://github.com/astarte-platform/astarte/issues/2064)) ([c6cf7fc](https://github.com/astarte-platform/astarte/commit/c6cf7fcbe1f535aa95ccaef376d32e3ef43cbe98))
+* ensure RPC server reliability ([#150](https://github.com/astarte-platform/astarte/issues/150)) ([9990d48](https://github.com/astarte-platform/astarte/commit/9990d4806bf41a2f8f499f6f43d89a30449ad515))
+* ensure RPC server reliability ([#2115](https://github.com/astarte-platform/astarte/issues/2115)) ([5a8e359](https://github.com/astarte-platform/astarte/commit/5a8e3591600472046e042bcac084b5206b141071))
+* **fdo:** delete devices from previous sessions ([#2028](https://github.com/astarte-platform/astarte/issues/2028)) ([43de307](https://github.com/astarte-platform/astarte/commit/43de307c3b33e7f440505bc29279265957e1b3de))
+* **fdo:** Ensure data from previous session is deleted ([9593d55](https://github.com/astarte-platform/astarte/commit/9593d55a3d23dfb18f591f85695cf86957de805b))
+* **fdo:** make use of vault_base_namespace in find_key ([fe5ad3c](https://github.com/astarte-platform/astarte/commit/fe5ad3cd6efea52c3dd6a3f6f70c207d4a214b83))
+* **fdo:** Properly respond to service info messages after IsDone=True ([5027d0a](https://github.com/astarte-platform/astarte/commit/5027d0a4fb248bd419773285984fa4e077aa565c))
+* **fdo:** route FDO voucher API calls through pairing service ([6be7654](https://github.com/astarte-platform/astarte/commit/6be7654cc740c427a059ec1e7d9b9ee2131ab1fb))
+* **housekeeping:** Allow resuming partially completed realm deletions ([#2059](https://github.com/astarte-platform/astarte/issues/2059)) ([450c738](https://github.com/astarte-platform/astarte/commit/450c738fa451d63c2f31eb911a8da5267d047eb6))
+* **housekeeping:** ensure migration process completes successfully ([feb52d5](https://github.com/astarte-platform/astarte/commit/feb52d53fd04f0e863c3f9cdef6ea89f81559a9c))
+* **housekeeping:** ensure realms are created correctly ([#1882](https://github.com/astarte-platform/astarte/issues/1882)) ([97699cf](https://github.com/astarte-platform/astarte/commit/97699cfdabfd3ab029856ae70b031894c91c4380))
+* **housekeeping:** fix migrator crash ([3e2bdb2](https://github.com/astarte-platform/astarte/commit/3e2bdb2cb4d64c240b1e5744cd14e3d65cd678f2))
+* **housekeeping:** Fix migrator for replicated astarte keyspaces ([#1879](https://github.com/astarte-platform/astarte/issues/1879)) ([8cc9b48](https://github.com/astarte-platform/astarte/commit/8cc9b48c922215dc1d6ec41cec35ef6c709abaab))
+* **housekeeping:** Fix realm creation ([#2018](https://github.com/astarte-platform/astarte/issues/2018)) ([036172b](https://github.com/astarte-platform/astarte/commit/036172bd9f1ec8b90b327e9b8127b4ecaf04a6ea))
+* **housekeeping:** msg field shows in logs ([0f294de](https://github.com/astarte-platform/astarte/commit/0f294deeb975a15db02ea9519a1109ebe1f1dc45))
+* **interfaces:** resolve explicit_timestamp injection and modal form submission-m ([55fc84c](https://github.com/astarte-platform/astarte/commit/55fc84c028ea17c96332cfa7db15cf77c604b942))
+* **mappings:** allow required key for object aggregated interface ([#142](https://github.com/astarte-platform/astarte/issues/142)) ([a6efa2e](https://github.com/astarte-platform/astarte/commit/a6efa2e87b7f121cc7656640cdff88c408e180f5))
+* **pairing:** correctly handle serviceinfo device heartbeat ([#1744](https://github.com/astarte-platform/astarte/issues/1744)) ([2f0ab1f](https://github.com/astarte-platform/astarte/commit/2f0ab1f43ddabce0b40fe6365e7c40b3c5df2be9))
+* **pairing:** ensure TO2 messages have correct content type ([#1907](https://github.com/astarte-platform/astarte/issues/1907)) ([977a6f2](https://github.com/astarte-platform/astarte/commit/977a6f2fb35b8118dd0b9d5cd661775cf1296721))
+* **pairing:** Implement Service Info chunks ([#2097](https://github.com/astarte-platform/astarte/issues/2097)) ([e65afd6](https://github.com/astarte-platform/astarte/commit/e65afd648f3077d2a9be181ca3e24e715d05f3dd))
+* **pairing:** msg field shows in logs ([cce52e7](https://github.com/astarte-platform/astarte/commit/cce52e7f270c3d39d59dedca7bfb4806c4bb4b20))
+* properly cleanup rpc supervisor ([1b66cc6](https://github.com/astarte-platform/astarte/commit/1b66cc649db486316f9a4cca5e7d6ebf7e3988c3))
+* properly cleanup rpc supervisor ([#2109](https://github.com/astarte-platform/astarte/issues/2109)) ([1657e50](https://github.com/astarte-platform/astarte/commit/1657e508318cf38ac97cc2c52010cad16d88fe01))
+* reject interfaces with conflicting options in aggregate mappings (fw-port for release 1.3) ([42b92a5](https://github.com/astarte-platform/astarte/commit/42b92a5c83aae0e5de23a4f611e87d703a5a24d5))
+* Remove vulnerable cowlib dependency ([#2006](https://github.com/astarte-platform/astarte/issues/2006)) ([30bfbf7](https://github.com/astarte-platform/astarte/commit/30bfbf7fa36550d77024e3268ce6159c98be3a1a))
+* resolve compile warnings-as-errors failures ([0d6c78a](https://github.com/astarte-platform/astarte/commit/0d6c78a46656a67747883aadc0fbffac8470ec1d))
+* resolve compile warnings-as-errors failures ([99733a3](https://github.com/astarte-platform/astarte/commit/99733a3adeeaad0fb2afe999b9596ca744a325e4))
+* resolve credo, dialyzer and deps.audit CI errors ([12d59ca](https://github.com/astarte-platform/astarte/commit/12d59cae7f352758ccdfcba2bdab4d839e4eb5c5))
+* resolve dialyzer and deps.audit CI errors ([38352db](https://github.com/astarte-platform/astarte/commit/38352db64d125317f41badb98e1d420e4deabba1))
+* **rm:** detect conflicting options in intf aggregate mappings ([#1605](https://github.com/astarte-platform/astarte/issues/1605)) ([07eecd0](https://github.com/astarte-platform/astarte/commit/07eecd09cf09da4eb347869f0ad132567fc49945))
+* **rm:** fix corner case when installing interfaces without data retention ttl ([0bd45eb](https://github.com/astarte-platform/astarte/commit/0bd45eb5e1427d51dd68dc62a74c1790f6c05ec4))
+* **rm:** Properly show default values for all mapping parameters ([#2061](https://github.com/astarte-platform/astarte/issues/2061)) ([3f0b864](https://github.com/astarte-platform/astarte/commit/3f0b864131d32328fc8241df05207afca96ecd1d))
+* **rm:** Return descriptive errors for nonexistent realms ([#1831](https://github.com/astarte-platform/astarte/issues/1831)) ([aef2b22](https://github.com/astarte-platform/astarte/commit/aef2b220ded9a72f346cffa3877738159561752c))
+* **secrets:** correct vault namespace URL ([#2093](https://github.com/astarte-platform/astarte/issues/2093)) ([c0c7a0c](https://github.com/astarte-platform/astarte/commit/c0c7a0cbf5ff2e909fcae1bc2664072e3d38f688))
+* **secrets:** correctly identify public key of rotated keys ([fec8e42](https://github.com/astarte-platform/astarte/commit/fec8e4269e189393dd1926a5f0eee1e5a262237b))
+* **secrets:** ensure API compatibility with Hashicorp Vault in namespace creation ([b847726](https://github.com/astarte-platform/astarte/commit/b847726e9fa3972868d65ea70ff782591723c45a))
+* Solve capabilities message stalling queues ([2a9f009](https://github.com/astarte-platform/astarte/commit/2a9f0090d6cd1fd426b0c90da838d241c51ac4be))
+* trigger target decoding is now compliant to the typespec ([#133](https://github.com/astarte-platform/astarte/issues/133)) ([43e96a2](https://github.com/astarte-platform/astarte/commit/43e96a2bef68374647c10900c412a5c1cc2c9a83))
+* Use network topology as default realm replication ([4c1884b](https://github.com/astarte-platform/astarte/commit/4c1884b0bfc2584241e717aac389a6966c108395))
+
+
+### Miscellaneous Chores
+
+* make SECRET_KEY_BASE environment variable mandatory ([#1928](https://github.com/astarte-platform/astarte/issues/1928)) ([98a0284](https://github.com/astarte-platform/astarte/commit/98a0284fae5df2b6494866f02379d8e3dc1f8f66))
+
+
+### Code Refactoring
+
+* **adapters:** change DSL syntax and macro parsing ([dc26e7d](https://github.com/astarte-platform/astarte/commit/dc26e7d4a27df13f63c09f2953557ff05d2a273e))
+* **data_access:** obliterate `astarte_data_access_generator` ([#2003](https://github.com/astarte-platform/astarte/issues/2003)) ([11a8de1](https://github.com/astarte-platform/astarte/commit/11a8de1b86d463f0f1fbab67befaaf233ca0e4e3))
+* **generators:** nuke to_changes + use adapters ([85c05c6](https://github.com/astarte-platform/astarte/commit/85c05c67ccbf971c90c6c73a5f35facdb27cdf6f))
+* **housekeeping:** Consolidate AMQP management configuration ([#1804](https://github.com/astarte-platform/astarte/issues/1804)) ([f06395d](https://github.com/astarte-platform/astarte/commit/f06395d8ab08773d4b668d3e56dc17a91cbf1587))
+* return Policy directly from from_policy_proto ([#168](https://github.com/astarte-platform/astarte/issues/168)) ([ceae205](https://github.com/astarte-platform/astarte/commit/ceae2056ee37ed0b9413f74470f5e416db4f0cdf))
+
+
+### Continuous Integration
+
+* add release-please for automated versioning and changelog ([643d061](https://github.com/astarte-platform/astarte/commit/643d06107ad8432b126d69e3a1165c4fa52abca5))
+
 ## [1.4.0-rc.4] - 2026-08-06
 
 ### Added
