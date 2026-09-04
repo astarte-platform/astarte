@@ -1,0 +1,45 @@
+[package]
+name = "astarte-e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "A library that provides communication and pairing primitives to an Astarte Cluster"
+
+[features]
+default = ["clap"]
+clap = ["dep:clap"]
+
+[dependencies]
+astarte-device-sdk.workspace = true
+async-channel.workspace = true
+base64.workspace = true
+bson.workspace = true
+chrono.workspace = true
+clap = { workspace = true, features = ["derive", "env"], optional = true }
+color-eyre.workspace = true
+eyre.workspace = true
+lapin.workspace = true
+phoenix-chan.workspace = true
+prost.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+rustls.workspace = true
+rustls-platform-verifier.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tokio-stream.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+insta = { workspace = true, features = ["json"] }
+prost-build = "0.14.4"
+tempfile.workspace = true
+tracing-subscriber.workspace = true
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/mod.rs"
+required-features = ["clap"]

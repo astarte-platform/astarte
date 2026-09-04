@@ -1,0 +1,68 @@
+{
+  "interface_name": "org.astarte-platform.e2e.ServerAggregate",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "aggregation": "object",
+  "ownership": "server",
+  "description": "Test aggregate interface.",
+  "doc": "Test interface used to test aggregates.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/double_endpoint",
+      "type": "double"
+    },
+    {
+      "endpoint": "/%{sensor_id}/integer_endpoint",
+      "type": "integer"
+    },
+    {
+      "endpoint": "/%{sensor_id}/boolean_endpoint",
+      "type": "boolean"
+    },
+    {
+      "endpoint": "/%{sensor_id}/longinteger_endpoint",
+      "type": "longinteger"
+    },
+    {
+      "endpoint": "/%{sensor_id}/string_endpoint",
+      "type": "string"
+    },
+    {
+      "endpoint": "/%{sensor_id}/binaryblob_endpoint",
+      "type": "binaryblob"
+    },
+    {
+      "endpoint": "/%{sensor_id}/datetime_endpoint",
+      "type": "datetime"
+    },
+    {
+      "endpoint": "/%{sensor_id}/doublearray_endpoint",
+      "type": "doublearray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/integerarray_endpoint",
+      "type": "integerarray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/booleanarray_endpoint",
+      "type": "booleanarray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/longintegerarray_endpoint",
+      "type": "longintegerarray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/stringarray_endpoint",
+      "type": "stringarray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/binaryblobarray_endpoint",
+      "type": "binaryblobarray"
+    },
+    {
+      "endpoint": "/%{sensor_id}/datetimearray_endpoint",
+      "type": "datetimearray"
+    }
+  ]
+}

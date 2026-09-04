@@ -1,0 +1,25 @@
+---
+source: astarte-e2e/src/astarte_event.rs
+expression: trigger
+---
+{
+  "name": "some_trigger",
+  "policy": "my_policy",
+  "action": {
+    "http_url": "https://example.com/",
+    "http_method": "POST",
+    "http_static_headers": {
+      "AnotherHeader": "anothervalue",
+      "MyHeader": "value"
+    },
+    "ignore_ssl_errors": true,
+    "template": "some-template",
+    "template_type": "some-template-type"
+  },
+  "simple_triggers": [
+    {
+      "on": "device_registered",
+      "type": "device_trigger"
+    }
+  ]
+}
