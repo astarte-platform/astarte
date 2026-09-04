@@ -64,12 +64,12 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       }
 
       assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
-      assert {:ok, ^voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:ok, ^voucher} = Queries.get_ownership_voucher(guid)
     end
 
     test "get voucher returns error when not found" do
       guid = random_guid()
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.get_ownership_voucher(guid)
     end
 
     test "delete ownership voucher" do
@@ -85,7 +85,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
 
       assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
       assert {:ok, _} = Queries.delete_ownership_voucher(@realm, guid)
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.get_ownership_voucher(guid)
     end
 
     test "replace ownership voucher" do
@@ -111,7 +111,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
 
       assert {:ok, _} = Queries.create_ownership_voucher(@realm, new_attrs)
 
-      assert {:ok, ^new_voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:ok, ^new_voucher} = Queries.get_ownership_voucher(guid)
     end
   end
 
@@ -281,6 +281,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid: guid,
       key_name: key_name,
       key_algorithm: key_algorithm,
+      realm: @realm,
       replacement_guid: replacement_guid,
       replacement_rendezvous_info: replacement_rendezvous_info,
       replacement_public_key: replacement_public_key

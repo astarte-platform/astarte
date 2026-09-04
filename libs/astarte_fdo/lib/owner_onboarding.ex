@@ -50,11 +50,11 @@ defmodule Astarte.FDO.OwnerOnboarding do
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
 
-  def hello_device(_realm_name, cbor_hello_device) do
+  def hello_device(cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
          {:ok, realm_name} <- Queries.get_ownership_voucher_realm(guid),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key.alg),
@@ -123,10 +123,10 @@ defmodule Astarte.FDO.OwnerOnboarding do
     end
   end
 
-  def ov_next_entry(cbor_body, realm_name, guid) do
+  def ov_next_entry(cbor_body, guid) do
     # entry num represent the current entries we need to check for in the ov
     with {:ok, %GetOVNextEntry{entry_num: entry_num}} <- GetOVNextEntry.decode(cbor_body),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) do
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(guid) do
       OwnershipVoucher.get_ov_entry(ownership_voucher, entry_num)
     end
   end
@@ -134,7 +134,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def prove_device(realm_name, body, session) do
     guid = session.guid
 
-    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(guid),
          {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
@@ -257,7 +257,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
   end
 
   defp add_output_voucher(realm_name, ov_entry, to2_session) do
-    with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
+    with {:ok, old_voucher} <- OwnershipVoucher.fetch(to2_session.guid),
          # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
          {:ok, new_voucher} <-
            OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do

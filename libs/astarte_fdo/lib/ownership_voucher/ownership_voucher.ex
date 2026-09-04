@@ -47,7 +47,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   if that fails, the voucher is not deleted.
   """
   def delete(realm_name, guid) do
-    with {:ok, voucher_cbor} <- Queries.get_ownership_voucher(realm_name, guid),
+    with {:ok, voucher_cbor} <- Queries.get_ownership_voucher(guid),
          :ok <- revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
       Queries.delete_ownership_voucher(realm_name, guid)
     end
@@ -69,8 +69,8 @@ defmodule Astarte.FDO.OwnershipVoucher do
     end
   end
 
-  def fetch(realm_name, guid) do
-    case Queries.get_ownership_voucher(realm_name, guid) do
+  def fetch(guid) do
+    case Queries.get_ownership_voucher(guid) do
       {:ok, ownership_voucher_cbor} ->
         OwnershipVoucher.decode_cbor(ownership_voucher_cbor)
 

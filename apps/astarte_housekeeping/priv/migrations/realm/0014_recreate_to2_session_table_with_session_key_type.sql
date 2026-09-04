@@ -16,7 +16,7 @@ CREATE TABLE :keyspace.to2_sessions (
   sevk session_key,
   svk session_key,
   sek session_key,
-  device_service_info map<tuple<text, text>, blob>,
+  device_service_info map<frozen<tuple<text, text>>, blob>,
   owner_service_info list<blob>,
   last_chunk_sent int,
   replacement_guid blob,

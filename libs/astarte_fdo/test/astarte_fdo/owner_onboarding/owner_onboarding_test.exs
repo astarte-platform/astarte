@@ -316,20 +316,20 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   describe "ov_next_entry/3" do
     test "returns {:ok, entry} for valid entry_num 0", %{realm_name: realm_name, device_id: guid} do
       cbor_body = CBOR.encode([0])
-      assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid)
+      assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, guid)
     end
 
     test "returns {:error, :message_body_error} for invalid CBOR body", context do
       %{realm_name: realm_name, device_id: guid} = context
 
       assert {:error, :message_body_error} =
-               OwnerOnboarding.ov_next_entry(<<0xFF>>, realm_name, guid)
+               OwnerOnboarding.ov_next_entry(<<0xFF>>, guid)
     end
 
     test "returns error when guid does not match any voucher", %{realm_name: realm_name} do
       cbor_body = CBOR.encode([0])
       unknown_guid = :crypto.strong_rand_bytes(16)
-      assert {:error, _} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, unknown_guid)
+      assert {:error, _} = OwnerOnboarding.ov_next_entry(cbor_body, unknown_guid)
     end
   end
 end

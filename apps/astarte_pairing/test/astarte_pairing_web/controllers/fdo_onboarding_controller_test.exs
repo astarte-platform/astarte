@@ -103,7 +103,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :ov_next_entry, fn _, _, _ ->
+      expect(OwnerOnboarding, :ov_next_entry, fn _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 

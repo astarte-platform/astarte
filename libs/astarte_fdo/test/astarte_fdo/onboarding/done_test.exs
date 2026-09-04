@@ -90,10 +90,10 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
            session: session,
            done_msg: done_msg
          } do
-      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, old_voucher} = OwnershipVoucher.fetch(session.guid)
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
-      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, voucher} = OwnershipVoucher.fetch(session.guid)
 
       assert voucher.entries == old_voucher.entries
       assert voucher.hmac == old_voucher.hmac
@@ -109,9 +109,9 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
 
       session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
-      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, old_voucher} = OwnershipVoucher.fetch(session.guid)
 
-      keyspace = Realm.keyspace_name(realm_name)
+      keyspace = Realm.astarte_keyspace_name()
 
       ov_record_before = Repo.get!(DataAccessOwnershipVoucher, session.guid, prefix: keyspace)
 
@@ -174,7 +174,7 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
     test "marks the voucher as claimed", context do
       %{realm: realm_name, session: session, done_msg: done_msg} = context
       guid = session.guid
-      opts = [prefix: Realm.keyspace_name(realm_name)]
+      opts = [prefix: Realm.astarte_keyspace_name()]
       assert %{status: :created} = Repo.get(DataAccessOwnershipVoucher, guid, opts)
       assert {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
       assert %{status: :claimed} = Repo.get(DataAccessOwnershipVoucher, guid, opts)

@@ -132,7 +132,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
       }
     ]
 
-operation :prove_device,
+  operation :prove_device,
     security: [%{"FDOSessionToken" => []}],
     summary: "FDO TO2 ProveDevice",
     operation_id: "FDOProveDevice",
@@ -178,7 +178,7 @@ operation :prove_device,
       }
     ]
 
-operation :done,
+  operation :done,
     security: [%{"FDOSessionToken" => []}],
     summary: "FDO TO2 Done",
     operation_id: "FDODone",
@@ -221,7 +221,7 @@ operation :done,
       }
     ]
 
-operation :service_info_start,
+  operation :service_info_start,
     security: [%{"FDOSessionToken" => []}],
     summary: "FDO TO2 Service Info Ready",
     operation_id: "FDOServiceInfoReady",
@@ -266,7 +266,7 @@ operation :service_info_start,
       }
     ]
 
-operation :service_info_end,
+  operation :service_info_end,
     security: [%{"FDOSessionToken" => []}],
     summary: "FDO TO2 Service Info",
     operation_id: "FDOServiceInfoEnd",
@@ -329,7 +329,7 @@ operation :service_info_end,
     session = conn.assigns.to2_session
 
     with {:ok, response} <-
-           OwnerOnboarding.ov_next_entry(cbor_body, session.realm, session.guid) do
+           OwnerOnboarding.ov_next_entry(cbor_body, session.guid) do
       conn
       |> render("default.cbor", %{cbor_response: response})
     end
@@ -354,7 +354,8 @@ operation :service_info_end,
   def done(conn, _params) do
     to2_session = conn.assigns.to2_session
 
-    with {:ok, response_msg} <- OwnerOnboarding.done(to2_session.realm, to2_session, conn.assigns.body) do
+    with {:ok, response_msg} <-
+           OwnerOnboarding.done(to2_session.realm, to2_session, conn.assigns.body) do
       conn
       |> render("secure.cbor", %{cbor_response: response_msg})
     end

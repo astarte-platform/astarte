@@ -106,8 +106,7 @@ jobs:
       - name: Checkout fdo e2e repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          repository: noaccos/astarte-device-fdo-rust
-          ref: push-mzlxtwylktkr
+          repository: astarte-platform/astarte-device-fdo-rust
       - uses: ./.github/actions/install-deps
       - name: Install astartectl
         run: |
@@ -150,7 +149,7 @@ jobs:
           path: .tmp/cache/containers
           key: ${{ runner.os }}-${{ hashFiles('justfile', 'scripts/**/*.sh', 'containers/**') }}
       - name: Install just
-        uses: taiki-e/install-action@575f713d0233afba556737a7b85080563be14186 # v2.49.43
+        uses: taiki-e/install-action@fa23953489c080190314742a9b907f8e97c6767c # v2.87.10
         with:
           tool: just
       - run: just go-server-setup

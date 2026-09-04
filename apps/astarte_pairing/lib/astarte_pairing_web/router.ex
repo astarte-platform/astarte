@@ -48,7 +48,7 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.DecryptAndVerify
   end
 
-  scope "/v1/fdo/101", Astarte.PairingWeb do
+  scope "/fdo/101", Astarte.PairingWeb do
     pipe_through :fdo
 
     post "/msg/60", FDOOnboardingController, :hello_device
