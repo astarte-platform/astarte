@@ -153,6 +153,20 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
         assert :error = type_value_from_path(aggregation, not_exists_path, package)
       end
     end
+
+    test "type_value_from_path/3 traverses object fields and rejects missing paths" do
+      type = %{"alpha" => :integer, "beta" => :string}
+      value = %{"alpha" => 10, "beta" => "value"}
+      field = type |> Map.keys() |> List.last()
+      package = %{path: "/base", type: type, value: value}
+
+      assert type_value_from_path(:object, "/base/#{field}", package) == %{
+               type: Map.fetch!(type, field),
+               value: Map.fetch!(value, field)
+             }
+
+      assert :error = type_value_from_path(:object, "/base/missing", package)
+    end
   end
 
   @doc false
