@@ -44,13 +44,18 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
   @spec valid_mapping_update_for(Interface.t(), representation_t()) :: StreamData.t(t())
   @spec valid_mapping_update_for(Interface.t(), representation_t(), keyword()) ::
           StreamData.t(t())
-  def valid_mapping_update_for(interface, representation, params \\ [])
+  def valid_mapping_update_for(interface, representation, params \\ []) do
+    selection = Keyword.get(params, :selection, :optional)
+    params = Keyword.delete(params, :selection)
+    valid_mapping_update_for(interface, representation, params, selection)
+  end
 
-  def valid_mapping_update_for(
-        %Interface{aggregation: :individual, mappings: mappings, type: interface_type},
-        representation,
-        params
-      ) do
+  defp valid_mapping_update_for(
+         %Interface{aggregation: :individual, mappings: mappings, type: interface_type},
+         representation,
+         params,
+         _selection
+       ) do
     params gen(
              all(
                mapping <- member_of(mappings),
@@ -74,12 +79,13 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
     end
   end
 
-  def valid_mapping_update_for(
-        %Interface{aggregation: :object} = interface,
-        representation,
-        params
-      ),
-      do: object_mapping_update(interface, representation, params)
+  defp valid_mapping_update_for(
+         %Interface{aggregation: :object} = interface,
+         representation,
+         params,
+         selection
+       ),
+       do: object_mapping_update(interface, representation, params, selection)
 
   @doc """
   Generates a valid represented value for one value type or an object value type map.
@@ -110,12 +116,12 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
   defp reliability(:properties, _mapping_reliability), do: :unique
   defp reliability(:datastream, mapping_reliability), do: mapping_reliability
 
-  defp object_mapping_update(interface, representation, params) do
+  defp object_mapping_update(interface, representation, params, selection) do
     {endpoint, value_types, reliability} = object_interface_info(interface)
 
     params gen(
              all(
-               value_type <- optional_map(value_types),
+               value_type <- select_value_types(value_types, selection),
                path <- path_from_endpoint(endpoint),
                value <- valid_update_value_for(value_type, representation, params),
                params: params
@@ -153,4 +159,7 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
     do: endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
 
   defp endpoint_postfix(endpoint), do: endpoint |> String.split("/") |> List.last()
+
+  defp select_value_types(value_types, :optional), do: optional_map(value_types)
+  defp select_value_types(value_types, :complete), do: fixed_map(value_types)
 end

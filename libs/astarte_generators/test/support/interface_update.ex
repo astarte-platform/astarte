@@ -25,6 +25,19 @@ defmodule Astarte.Core.Generators.InterfaceUpdateTest.Support do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  @spec complete_object_update?(
+          Interface.t(),
+          Astarte.Core.Generators.InterfaceUpdate.t()
+        ) :: boolean()
+  def complete_object_update?(%Interface{mappings: mappings}, %{value_type: value_type}) do
+    mapping_keys =
+      MapSet.new(mappings, fn %Mapping{endpoint: endpoint} ->
+        endpoint |> String.split("/") |> List.last()
+      end)
+
+    MapSet.new(Map.keys(value_type)) == mapping_keys
+  end
+
   @spec valid_update?(
           Interface.t(),
           Astarte.Core.Generators.InterfaceUpdate.t(),
