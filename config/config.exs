@@ -69,6 +69,17 @@ config :astarte_appengine_api, swagger_ui: true
 
 config :astarte_appengine_api, :max_results_limit, 10000
 
+config :astarte_trigger_engine, :amqp_consumer_options,
+  host: "localhost",
+  username: "guest",
+  password: "guest",
+  virtual_host: "/",
+  port: 5672
+
+config :astarte_trigger_engine, :amqp_events_exchange_name, "astarte_events"
+config :astarte_trigger_engine, :amqp_events_queue_name, "astarte_events"
+config :astarte_trigger_engine, :amqp_events_routing_key, "trigger_engine"
 config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsConsumer
+config :astarte_trigger_engine, ecto_repos: [Astarte.DataAccess.Repo]
 
 import_config "#{config_env()}.exs"

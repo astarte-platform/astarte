@@ -45,6 +45,9 @@ vQIDAQAB
 -----END PUBLIC KEY-----
 """
 
+config :astarte_trigger_engine, :amqp_consumer_options,
+  host: System.get_env("RABBITMQ_HOST", "localhost")
+
 config :astarte_trigger_engine, :events_consumer, MockEventsConsumer
 
 config :astarte_secrets, vault_authentication_mechanism: :token
