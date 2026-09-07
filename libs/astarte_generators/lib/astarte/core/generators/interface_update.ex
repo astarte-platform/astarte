@@ -28,6 +28,20 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  @fallible_value_types [
+    :integer,
+    :longinteger,
+    :string,
+    :binaryblob,
+    :doublearray,
+    :integerarray,
+    :booleanarray,
+    :longintegerarray,
+    :stringarray,
+    :binaryblobarray,
+    :datetimearray
+  ]
+
   @type representation_t :: :api | :database
   @type value_type_t :: atom() | %{String.t() => atom()}
   @type t :: %{
@@ -170,4 +184,29 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
       Map.take(value_types, Enum.uniq(selected_keys))
     end
   end
+
+  defp select_value_types(value_types, :fallible) do
+    {fallible_keys, other_keys} = split_fallible_keys(value_types)
+
+    gen all selected_fallible_keys <- list_of(member_of(fallible_keys), min_length: 1),
+            selected_other_keys <- optional_keys(other_keys) do
+      Map.take(value_types, Enum.uniq(selected_fallible_keys ++ selected_other_keys))
+    end
+  end
+
+  defp split_fallible_keys(value_types),
+    do: value_types |> Map.to_list() |> split_fallible_keys([], [])
+
+  defp split_fallible_keys([], fallible_keys, other_keys),
+    do: {fallible_keys, other_keys}
+
+  defp split_fallible_keys([{key, value_type} | entries], fallible_keys, other_keys)
+       when value_type in @fallible_value_types,
+       do: split_fallible_keys(entries, [key | fallible_keys], other_keys)
+
+  defp split_fallible_keys([{key, _value_type} | entries], fallible_keys, other_keys),
+    do: split_fallible_keys(entries, fallible_keys, [key | other_keys])
+
+  defp optional_keys([]), do: constant([])
+  defp optional_keys(keys), do: list_of(member_of(keys))
 end
