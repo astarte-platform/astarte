@@ -14,6 +14,8 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   check_origin: false,
   pubsub_server: Astarte.AppEngine.API.PubSub
 
+config :logger, level: :debug
+
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [
