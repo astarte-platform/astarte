@@ -162,4 +162,12 @@ defmodule Astarte.Core.Generators.InterfaceUpdate do
 
   defp select_value_types(value_types, :optional), do: optional_map(value_types)
   defp select_value_types(value_types, :complete), do: fixed_map(value_types)
+
+  defp select_value_types(value_types, :nonempty) do
+    keys = Map.keys(value_types)
+
+    gen all selected_keys <- list_of(member_of(keys), min_length: 1) do
+      Map.take(value_types, Enum.uniq(selected_keys))
+    end
+  end
 end
