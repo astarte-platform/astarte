@@ -295,7 +295,7 @@ interface InstrospectionTableProps {
   onRemoveInterface: (interfaceDescriptor: AstarteInterfaceDescriptor) => void;
 }
 
-const InstrospectionTable = ({
+const IntrospectionTable = ({
   interfaces,
   onAddInterface,
   onRemoveInterface,
@@ -499,7 +499,7 @@ export default (): React.ReactElement => {
             />
           </Form.Group>
           {shouldSendIntrospection && (
-            <InstrospectionTable
+            <IntrospectionTable
               interfaces={introspectionInterfaces}
               onAddInterface={addInterfaceToIntrospection}
               onRemoveInterface={removeIntrospectionInterface}

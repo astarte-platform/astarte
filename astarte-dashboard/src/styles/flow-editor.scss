@@ -19,7 +19,7 @@
 $producer-color: rgb(192, 255, 0);
 $consumer-color: rgb(255, 0, 192);
 $producer-consumer-color: rgb(0, 192, 255);
-$hightlight-color: rgb(81, 203, 238);
+$highlight-color: rgb(81, 203, 238);
 
 $block-border-width: 1px;
 $block-radius: 5px;
@@ -87,8 +87,8 @@ $block-radius: 5px;
       }
 
       .native-node.selected {
-        box-shadow: 0 0 5px $hightlight-color;
-        border-color: $hightlight-color;
+        box-shadow: 0 0 5px $highlight-color;
+        border-color: $highlight-color;
       }
 
       .native-node.producer {
