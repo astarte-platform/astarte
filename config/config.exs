@@ -32,7 +32,9 @@ config :logger, :console,
     :module,
     :function,
     :request_id,
-    :tag
+    :tag,
+    :datacenter,
+    :replication_factor
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
@@ -83,5 +85,21 @@ config :astarte_trigger_engine, :amqp_events_queue_name, "astarte_events"
 config :astarte_trigger_engine, :amqp_events_routing_key, "trigger_engine"
 config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsConsumer
 config :astarte_trigger_engine, ecto_repos: [Astarte.DataAccess.Repo]
+
+config :astarte_housekeeping,
+  ecto_repos: [Astarte.DataAccess.Repo],
+  namespace: Astarte.Housekeeping
+
+config :astarte_housekeeping, Astarte.DataAccess.Repo,
+  migration_primary_key: [name: :id, type: :integer]
+
+config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  url: [host: "localhost"],
+  secret_key_base: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
+  render_errors: [view: Astarte.HousekeepingWeb.ErrorView, accepts: ~w(json)]
+
+config :astarte_housekeeping, Astarte.HousekeepingWeb.AuthGuardian,
+  allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
 import_config "#{config_env()}.exs"

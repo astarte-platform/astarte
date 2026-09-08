@@ -10,6 +10,10 @@ appengine_port = System.get_env("APPENGINE_API_PORT", "4002") |> String.to_integ
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint, http: [port: appengine_port]
 
+housekeeping_port = System.get_env("HOUSEKEEPING_API_PORT", "4001") |> String.to_integer()
+
+config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint, http: [port: housekeeping_port]
+
 if level = System.get_env("ASTARTE_LOG_LEVEL") do
   allowed_levels = [
     "emergency",
