@@ -34,7 +34,9 @@ config :logger, :console,
     :request_id,
     :tag,
     :datacenter,
-    :replication_factor
+    :replication_factor,
+    :hw_id,
+    :common_name
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
@@ -101,5 +103,24 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
 
 config :astarte_housekeeping, Astarte.HousekeepingWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
+
+config :astarte_pairing,
+  namespace: Astarte.Pairing
+
+config :astarte_pairing, Astarte.PairingWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  url: [host: "localhost"],
+  secret_key_base: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
+  render_errors: [view: Astarte.PairingWeb.ErrorView, accepts: ~w(json)]
+
+# FDO session tokens use the endpoint's secret_key_base
+config :astarte_fdo, :endpoint, Astarte.PairingWeb.Endpoint
+
+config :astarte_pairing, Astarte.PairingWeb.AuthGuardian,
+  allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
+
+config :mime, :types, %{
+  "application/cbor" => ["cbor"]
+}
 
 import_config "#{config_env()}.exs"

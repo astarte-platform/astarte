@@ -14,6 +14,10 @@ housekeeping_port = System.get_env("HOUSEKEEPING_API_PORT", "4001") |> String.to
 
 config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint, http: [port: housekeeping_port]
 
+pairing_port = System.get_env("PAIRING_API_PORT", "4003") |> String.to_integer()
+
+config :astarte_pairing, Astarte.PairingWeb.Endpoint, http: [port: pairing_port]
+
 if level = System.get_env("ASTARTE_LOG_LEVEL") do
   allowed_levels = [
     "emergency",
@@ -38,6 +42,9 @@ end
 case service do
   "astarte_appengine_api" ->
     config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
+
+  "astarte_pairing" ->
+    config :astarte_rpc, :astarte_services, [:astarte_realm_management]
 
   _ ->
     :ok
