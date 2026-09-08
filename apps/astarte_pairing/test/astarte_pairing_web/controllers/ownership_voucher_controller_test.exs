@@ -22,6 +22,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Mimic
 
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.Pairing.Queries
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -58,6 +59,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   -----END OWNERSHIP VOUCHER-----
   """
 
+  @sample_ownership_voucher_guid "b1f1d8f0-3a9f-4cf8-b46b-23a94cfc66e7"
+
   @sample_load_params %{
     data: %{
       "ownership_voucher" => sample_voucher(),
@@ -70,7 +73,10 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     realm_name = Map.fetch!(context, :realm_name)
     alg = Map.get(context, :key_algorithm, :es256)
     {:ok, namespace} = Secrets.create_namespace(realm_name, alg)
-    on_exit(fn -> cleanup_namespace(namespace) end)
+    on_exit(fn ->
+      cleanup_namespace(namespace)
+      delete_sample_voucher(context)
+    end)
 
     %{namespace: namespace}
   end
@@ -163,6 +169,30 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, @sample_load_params)
       |> response(422)
+    end
+
+    test "returns 409 when trying to upload a voucher for an already existing GUID", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
+    {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+    :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+    params = %{
+      data: %{
+        "ownership_voucher" => @sample_ownership_voucher_pem,
+        "key_name" => @sample_key_name,
+        "key_algorithm" => "es256"
+      }
+    }
+
+    conn
+    |> post(path, params)
+    |> json_response(200)
+
+    # retry loading the same voucher => GUID conflict
+    conn
+    |> post(path, params)
+    |> json_response(409)
+
     end
   end
 
@@ -332,5 +362,11 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       Secrets.enable_key_deletion(key, namespace: namespace)
       Secrets.delete_key(key, namespace: namespace)
     end)
+  end
+
+  # avoid tests failing due to 'voucher already uploaded'
+  defp delete_sample_voucher(context) do
+    # TODO cambia quando non usiamo più il realm
+    Queries.delete_ownership_voucher(context.astarte_instance_id <> context.realm_name, @sample_ownership_voucher_guid)
   end
 end

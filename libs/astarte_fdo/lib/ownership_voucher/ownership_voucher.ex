@@ -31,8 +31,15 @@ defmodule Astarte.FDO.OwnershipVoucher do
   require Logger
 
   def save_voucher(realm_name, attrs) do
-    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
-      :ok
+    case Queries.create_ownership_voucher(realm_name, attrs) do
+      {:ok, _} ->
+        :ok
+
+      {:error, %Ecto.Changeset{errors: [guid: {_, [stale: true]}]}} ->
+        {:error, :duplicated_voucher_guid}
+
+      error ->
+        error
     end
   end
 

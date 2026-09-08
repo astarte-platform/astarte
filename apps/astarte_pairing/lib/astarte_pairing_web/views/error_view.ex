@@ -95,6 +95,14 @@ defmodule Astarte.PairingWeb.ErrorView do
     }
   end
 
+  def render("duplicated_voucher_guid.json", _assigns) do
+    %{
+      errors: %{
+        detail: "An Ownership Voucher for this GUID is already present"
+      }
+    }
+  end
+
   def render("422.json", _assigns) do
     %{
       errors: %{
