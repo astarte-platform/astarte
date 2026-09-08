@@ -77,9 +77,6 @@ defmodule Astarte.TestSuite.MixProject do
   defp deps do
     [
       {:stream_data, "~> 1.1"},
-      {:ecto, "~> 3.12.0", override: true},
-      {:ecto_sql, "~> 3.12.0", override: true},
-      {:decimal, "~> 3.0", override: true},
       {:plug, "~> 1.20"},
       # Test section
 
