@@ -25,11 +25,11 @@ defmodule Astarte.FDO.ServiceInfo do
   can be transmitted in manageable pieces.
   """
 
+  alias Astarte.Core.Device
   alias Astarte.FDO.Config
-  alias Astarte.FDO.Core.ServiceInfo
-
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.FDO.Core.ServiceInfo
   alias Astarte.FDO.OwnerOnboarding.Session
 
   # If device has more data to send, save received part to the session
@@ -61,21 +61,6 @@ defmodule Astarte.FDO.ServiceInfo do
     send_next_owner_chunk(session, realm_name)
   end
 
-  # Device has no more data to send, proceed sending OwnerService info
-  def build_owner_service_info(
-        realm_name,
-        session,
-        encoded_device_id,
-        credentials_secret
-      ) do
-    build_and_send_owner_service_info(
-      session,
-      realm_name,
-      encoded_device_id,
-      credentials_secret
-    )
-  end
-
   defp send_next_owner_chunk(session, realm_name) do
     with {:ok, _session, service_info_chunk} <-
            Session.next_owner_service_info_chunk(session, realm_name) do
@@ -83,12 +68,13 @@ defmodule Astarte.FDO.ServiceInfo do
     end
   end
 
-  defp build_and_send_owner_service_info(
-         session,
-         realm_name,
-         encoded_device_id,
-         credentials_secret
-       ) do
+  def build_and_send_owner_service_info(
+        session,
+        credentials_secret
+      ) do
+    %{realm_name: realm_name, device_id: device_id} = session
+    encoded_device_id = Device.encode_device_id(device_id)
+
     owner_service_info =
       OwnerServiceInfo.build(
         realm_name,

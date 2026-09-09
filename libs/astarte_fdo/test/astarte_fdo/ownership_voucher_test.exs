@@ -20,6 +20,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   use Astarte.Cases.Data, async: true
   use Mimic
 
+  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucherStruct
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher, as: OwnershipVoucherCore
@@ -35,42 +36,18 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
     %{device_id: :crypto.strong_rand_bytes(16)}
   end
 
-  describe "handle ownership voucher," do
-    test "save voucher data ", ctx do
-      %{
-        realm_name: realm_name,
-        device_id: device_id
-      } = ctx
-
-      key_name = "some_key"
-      key_alg = :es256
-
-      attrs = %{
-        guid: device_id,
-        key_name: key_name,
-        key_algorithm: key_alg,
-        voucher_data: Helpers.sample_cbor_voucher()
-      }
-
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
-
-      assert {:ok, key_data} = Queries.get_owner_key_params(realm_name, device_id)
-      assert %{name: key_name, algorithm: key_alg} == key_data
-    end
-  end
-
   describe "delete/2" do
     test "revokes the rendezvous registration and removes the voucher", ctx do
       %{realm_name: realm_name, device_id: device_id} = ctx
 
-      attrs = %{
+      ownership_voucher = %OwnershipVoucherStruct{
         guid: device_id,
         key_name: "some_key",
         key_algorithm: :es256,
         voucher_data: Helpers.sample_cbor_voucher()
       }
 
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+      :ok = Queries.create_ownership_voucher(realm_name, ownership_voucher)
 
       Secrets
       |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> {:ok, :fake_owner_key} end)
@@ -81,20 +58,20 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       end)
 
       assert {:ok, _} = OwnershipVoucher.delete(realm_name, device_id)
-      assert {:error, :not_found} = Queries.get_ownership_voucher(realm_name, device_id)
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(realm_name, device_id)
     end
 
     test "does not delete the voucher if the rendezvous revocation fails", ctx do
       %{realm_name: realm_name, device_id: device_id} = ctx
 
-      attrs = %{
+      ownership_voucher = %OwnershipVoucherStruct{
         guid: device_id,
         key_name: "some_key",
         key_algorithm: :es256,
         voucher_data: Helpers.sample_cbor_voucher()
       }
 
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+      :ok = Queries.create_ownership_voucher(realm_name, ownership_voucher)
 
       Secrets
       |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> :error end)
@@ -102,7 +79,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       assert {:error, :rendezvous_revocation_failed} =
                OwnershipVoucher.delete(realm_name, device_id)
 
-      assert {:ok, _voucher_cbor} = Queries.get_ownership_voucher(realm_name, device_id)
+      assert {:ok, _voucher_cbor} = Queries.fetch_ownership_voucher(realm_name, device_id)
     end
 
     test "returns {:error, :not_found} for an unknown guid", ctx do

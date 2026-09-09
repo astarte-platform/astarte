@@ -20,6 +20,11 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
@@ -36,12 +41,15 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   yfLzYWUTgxViGMfJkvql4W3zrtRaVPU9I06TOHFC2Mwy+9S3A7UWv/EWtg==
   -----END PUBLIC KEY-----
   """
+  @sample_device_id Device.random_device_id()
+  @sample_hw_id Device.encode_device_id(@sample_device_id)
 
   @sample_key_name "owner_key"
   @sample_key_algorithm "ecdsa-p256"
-  @sample_realm "test_realm"
+  @sample_realm "testrealm"
 
   @sample_params %{
+    "hw_id" => @sample_hw_id,
     "ownership_voucher" => sample_voucher(),
     "key_name" => @sample_key_name,
     "key_algorithm" => @sample_key_algorithm,
@@ -56,7 +64,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     public_pem: @sample_owner_public_key_pem
   }
 
-  setup :verify_on_exit!
+  setup do
+    Queries |> stub(:fetch_ownership_voucher, fn _, _ -> {:error, :not_found} end)
+    DeviceQueries |> stub(:fetch, fn _, _ -> {:error, :device_not_found} end)
+
+    :ok
+  end
 
   describe "changeset/2 with valid params" do
     setup do
@@ -188,6 +201,25 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       assert %{key_name: ["does not match the public key in the ownership voucher's last entry"]} =
                errors_on(changeset)
+    end
+
+    test "a guid which already has an associated ownership voucher" do
+      realm = @sample_realm
+      guid = sample_device_guid()
+      voucher = %OwnershipVoucher{guid: guid}
+      Queries |> expect(:fetch_ownership_voucher, fn ^realm, ^guid -> {:ok, voucher} end)
+
+      assert {:error, changeset} = from_changeset(@sample_params)
+      assert %{ownership_voucher: ["guid has already been claimed"]} = errors_on(changeset)
+    end
+
+    test "a device_id of an already existing device" do
+      realm = @sample_realm
+      Queries |> expect(:fetch_ownership_voucher, fn _, _ -> {:error, :not_found} end)
+      DeviceQueries |> expect(:fetch, fn ^realm, @sample_device_id -> {:ok, %DeviceStruct{}} end)
+
+      assert {:error, changeset} = from_changeset(@sample_params)
+      assert %{device_id: ["already exists"]} = errors_on(changeset)
     end
   end
 

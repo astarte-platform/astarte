@@ -84,6 +84,7 @@ defmodule Astarte.FDO.Helpers.Database do
   @create_ownership_vouchers_table """
   CREATE TABLE :keyspace.ownership_vouchers (
       guid blob,
+      device_id uuid,
       voucher_data blob,
       output_voucher blob,
       replacement_guid blob,
@@ -292,14 +293,6 @@ defmodule Astarte.FDO.Helpers.Database do
     )
   """
 
-  @create_unconfirmed_devices_table """
-  CREATE TABLE :keyspace.unconfirmed_devices (
-      device_id uuid,
-      created_at timestamp,
-      PRIMARY KEY ((device_id))
-    )
-  """
-
   @insert_public_key """
     INSERT INTO :keyspace.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
@@ -360,7 +353,6 @@ defmodule Astarte.FDO.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
-    execute!(realm_keyspace, @create_unconfirmed_devices_table)
     execute!(realm_keyspace, @create_to2_sessions_table)
 
     :ok

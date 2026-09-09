@@ -47,6 +47,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   @create_ownership_vouchers_table """
   CREATE TABLE autotestrealm.ownership_vouchers (
      guid blob,
+     device_id uuid,
       voucher_data blob,
       output_voucher blob,
       replacement_guid blob,
@@ -114,14 +115,6 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       object_uuid uuid,
 
       PRIMARY KEY ((object_name), object_type)
-    );
-  """
-  @create_unconfirmed_devices_table """
-    CREATE TABLE autotestrealm.unconfirmed_devices (
-      device_id uuid,
-      created_at timestamp,
-
-      PRIMARY KEY ((device_id))
     );
   """
   @create_devices_table """
@@ -474,7 +467,6 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       {:ok, _} ->
         Xandra.execute!(conn, @create_capabilities_type)
         Xandra.execute!(conn, @create_devices_table)
-        Xandra.execute!(conn, @create_unconfirmed_devices_table)
         Xandra.execute!(conn, @create_names_table)
         Xandra.execute!(conn, @create_kv_store)
         Xandra.execute!(conn, @create_endpoints_table)

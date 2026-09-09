@@ -21,9 +21,10 @@ defmodule Astarte.DataAccess.Device.XandraTest do
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Device.UnconfirmedDevice
   alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
   alias Astarte.DataAccess.Repo
+
+  import Ecto.Query
 
   setup do
     Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
@@ -112,6 +113,38 @@ defmodule Astarte.DataAccess.Device.XandraTest do
     end
   end
 
+  describe "fetch_with_unconfirmed_status/2" do
+    test "returns an existing device" do
+      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+
+      assert {:ok, device} = Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+      assert device.device_id == device_id
+    end
+
+    test "returns error for a missing device" do
+      missing_id = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :device_not_found} =
+               Device.fetch_with_unconfirmed_status("autotestrealm", missing_id)
+    end
+
+    test "adds :confirmed status for confirmed device" do
+      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+
+      assert {:ok, device} = Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+      assert device.confirmation_status == :confirmed
+    end
+
+    test "adds :unconfirmed status for unconfirmed device" do
+      {:ok, device_id} = CoreDevice.decode_device_id("aWag-VlVKC--1S-vfzZ9uQ")
+
+      :ok = Device.add_unconfirmed_credentials("autotestrealm", device_id, "credentials_hash")
+
+      assert {:ok, device} = Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+      assert device.confirmation_status == :unconfirmed
+    end
+  end
+
   describe "register/5" do
     test "registers a new device" do
       new_device_id = :crypto.strong_rand_bytes(16)
@@ -149,22 +182,6 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.credentials_secret == "secret_v2"
     end
 
-    test "with unconfirmed: true creates `Astarte.DataAccess.Device.UnconfirmedDevice` entry" do
-      device_id = CoreDevice.random_device_id()
-
-      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
-
-      assert {:ok, device} =
-               Device.register("autotestrealm", device_id, "extid", "secret_v2",
-                 unconfirmed: true
-               )
-
-      assert device.credentials_secret == "secret_v2"
-
-      assert {:ok, %UnconfirmedDevice{device_id: ^device_id}} =
-               Repo.fetch(UnconfirmedDevice, device_id, prefix: "autotestrealm")
-    end
-
     test "re-registers an unconfirmed device with initial_introspection" do
       device_id = :crypto.strong_rand_bytes(16)
 
@@ -184,17 +201,83 @@ defmodule Astarte.DataAccess.Device.XandraTest do
     end
   end
 
-  describe "confirm/2" do
-    setup :add_unconfirmed_device
+  describe "unregister/2" do
+    test "sets credentials secret and credentials request to nil" do
+      device_id = :crypto.strong_rand_bytes(16)
 
-    test "confirms an unconfirmed device", %{device_id: device_id} do
-      assert {:ok, _} = Device.confirm("autotestrealm", device_id)
-      refute Repo.get(UnconfirmedDevice, device_id, prefix: "autotestrealm")
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
+
+      assert :ok = Device.unregister("autotestrealm", device_id)
+
+      {:ok, device} = Device.fetch("autotestrealm", device_id)
+      assert %{first_credentials_request: nil, credentials_secret: nil} = device
     end
 
-    test "does nothing for confirmed devices", %{device_id: device_id} do
-      {:ok, device} = Device.confirm("autotestrealm", device_id)
-      assert Device.confirm("autotestrealm", device_id) == {:ok, device}
+    test "returns not found when the device does not exist" do
+      device_id = :crypto.strong_rand_bytes(16)
+      assert {:error, :device_not_found} = Device.unregister("autotestrealm", device_id)
+    end
+  end
+
+  describe "add_unconfirmed_credentials/3" do
+    setup :add_device_without_credentials
+
+    test "adds the credentials secret hash with a ttl", context do
+      %{device_id: device_id, credentials_secret: credentials_secret} = context
+
+      device_query =
+        DeviceStruct
+        |> select([d], %{
+          credentials_secret: d.credentials_secret,
+          credentials_secret_ttl: fragment("TTL(?)", d.credentials_secret)
+        })
+
+      assert :ok =
+               Device.add_unconfirmed_credentials("autotestrealm", device_id, credentials_secret)
+
+      assert {:ok, result} = Repo.fetch(device_query, device_id, prefix: "autotestrealm")
+      assert result.credentials_secret == credentials_secret
+      assert result.credentials_secret_ttl != nil
+    end
+  end
+
+  describe "confirm/2" do
+    setup :add_device_without_credentials
+
+    test "confirms an unconfirmed device", context do
+      %{device_id: device_id, credentials_secret: credentials_secret} = context
+      :ok = Device.add_unconfirmed_credentials("autotestrealm", device_id, credentials_secret)
+
+      assert {:ok, _} = Device.confirm("autotestrealm", device_id)
+
+      assert {:ok, %{confirmation_status: :confirmed}} =
+               Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+    end
+
+    test "does nothing for confirmed devices", context do
+      %{
+        device_id: device_id,
+        credentials_secret: credentials_secret,
+        encoded_device_id: encoded_device_id
+      } = context
+
+      {:ok, _device} =
+        Device.register("autotestrealm", device_id, encoded_device_id, credentials_secret)
+
+      {:ok, %{confirmation_status: :confirmed} = device_before} =
+        Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+
+      assert {:ok, _} = Device.confirm("autotestrealm", device_id)
+
+      {:ok, %{confirmation_status: :confirmed} = device_after} =
+        Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+
+      assert device_before == device_after
+    end
+
+    test "returns an error when the credentials have expired", context do
+      %{device_id: device_id} = context
+      assert {:error, :expired_credentials} = Device.confirm("autotestrealm", device_id)
     end
 
     test "returns an error when the device does not exist" do
@@ -203,19 +286,17 @@ defmodule Astarte.DataAccess.Device.XandraTest do
     end
   end
 
-  defp add_unconfirmed_device(_context) do
+  defp add_device_without_credentials(_context) do
     device_id = CoreDevice.random_device_id()
     encoded_device_id = CoreDevice.encode_device_id(device_id)
     credentials_secret = "credentials_secret"
-    opts = [unconfirmed: true]
 
     on_exit(fn ->
       Repo.delete!(%DeviceStruct{device_id: device_id}, prefix: "autotestrealm")
-      Repo.delete!(%UnconfirmedDevice{device_id: device_id}, prefix: "autotestrealm")
     end)
 
     {:ok, _} =
-      Device.register("autotestrealm", device_id, encoded_device_id, credentials_secret, opts)
+      Device.register("autotestrealm", device_id, encoded_device_id, nil)
 
     %{
       device_id: device_id,

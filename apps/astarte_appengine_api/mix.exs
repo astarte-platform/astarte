@@ -88,7 +88,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_json_schema, "~> 0.9"},
       {:current_rabbit_pool, "~> 1.1"},
       {:phoenix_swagger, "~> 0.8"},
-      {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
@@ -114,8 +113,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:mimic, "~> 1.11", only: :test},
-      {:decimal, "~> 3.0", override: true},
-      {:ecto, "~> 3.13", override: true}
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 

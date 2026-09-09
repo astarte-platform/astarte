@@ -82,7 +82,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
       {:decimal, "~> 3.0", override: true},
-      {:exandra, "~> 0.13"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},

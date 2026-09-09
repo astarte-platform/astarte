@@ -71,7 +71,8 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:exandra, "~> 0.13"},
+      {:exandra, github: "noaccOS/exandra", branch: "push-umzomonkrlnl"},
+      {:xandra, "== 0.19.4", override: true},
       {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
