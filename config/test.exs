@@ -169,3 +169,18 @@ config :astarte_fdo, fdo_rendezvous_url: "http://localhost:8041"
 
 config :bcrypt_elixir,
   log_rounds: 4
+
+config :astarte_data_updater_plant, :amqp_consumer_options,
+  host: System.get_env("RABBITMQ_HOST") || "localhost"
+
+config :astarte_data_updater_plant, :astarte_instance_id, "test"
+
+config :astarte_data_updater_plant,
+       :vernemq_plugin_rpc_client,
+       Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+
+config :astarte_data_updater_plant, :amqp_data_queue_total_count, 1
+config :astarte_data_updater_plant, :amqp_data_queue_range_end, 0
+config :astarte_data_updater_plant, :amqp_data_queue_range_start, 0
+
+config :astarte_events, :connection_backoff, 0

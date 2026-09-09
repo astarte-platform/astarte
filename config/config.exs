@@ -36,7 +36,8 @@ config :logger, :console,
     :datacenter,
     :replication_factor,
     :hw_id,
-    :common_name
+    :common_name,
+    :ip_address
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
@@ -122,5 +123,24 @@ config :astarte_pairing, Astarte.PairingWeb.AuthGuardian,
 config :mime, :types, %{
   "application/cbor" => ["cbor"]
 }
+
+config :astarte_data_updater_plant, :data_queue_prefix, "astarte_data_"
+
+config :astarte_data_updater_plant, :amqp_consumer_options,
+  host: "localhost",
+  username: "guest",
+  password: "guest",
+  virtual_host: "/",
+  port: 5672
+
+config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
+
+config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300
+
+config :astarte_data_updater_plant, ecto_repos: [Astarte.DataAccess.Repo]
+
+config :astarte_data_updater_plant, Astarte.DataAccess.Repo, []
+
+config :astarte_events, :connection_backoff, 10_000
 
 import_config "#{config_env()}.exs"
