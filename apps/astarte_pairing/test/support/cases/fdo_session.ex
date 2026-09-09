@@ -35,6 +35,8 @@ defmodule Astarte.Cases.FDOSession do
   use ExUnit.CaseTemplate
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucherStruct
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
@@ -74,7 +76,7 @@ defmodule Astarte.Cases.FDOSession do
     {owner_key_struct, device_key, ownership_voucher} = generate_keys_and_voucher(key_type)
     owner_key_pem = COSE.Keys.to_pem(owner_key_struct)
     cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
-    device_id = Device.random_device_id()
+    guid = Device.random_device_id()
 
     key_alg =
       case key_type do
@@ -90,20 +92,24 @@ defmodule Astarte.Cases.FDOSession do
 
     {:ok, owner_key} = Secrets.get_key(key_type, namespace: namespace)
 
-    attrs = %{
+    device_id = context.device_without_credentials.device_id
+
+    voucher = %OwnershipVoucherStruct{
+      device_id: device_id,
       key_name: key_type,
       key_algorithm: key_alg,
       voucher_data: cbor_ownership_voucher,
-      guid: device_id
+      guid: guid
     }
 
-    insert_voucher(context.realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(context.realm_name, voucher)
 
     %{
       owner_key: owner_key,
       owner_key_pem: owner_key_pem,
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,
+      guid: guid,
       device_id: device_id,
       device_key: device_key
     }
@@ -131,16 +137,21 @@ defmodule Astarte.Cases.FDOSession do
       HelloDevice.generate(
         kex_name: kex_name,
         easig_info: context.device_key.alg,
-        guid: context.device_id
+        guid: context.guid
       )
-
-    {:ok, token, session} =
-      Session.new(context.realm_name, hello_device, context.ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)
-      delete_session(context.realm_name, session.guid)
+      delete_session(context.realm_name, context.guid)
     end)
+
+    {:ok, token, session} =
+      Session.new(
+        context.realm_name,
+        context.device_id,
+        hello_device,
+        context.ownership_voucher
+      )
 
     {:ok, session} =
       Session.build_session_secret(session, context.realm_name, context.owner_key, xb)

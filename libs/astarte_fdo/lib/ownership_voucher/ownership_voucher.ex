@@ -22,19 +22,15 @@ defmodule Astarte.FDO.OwnershipVoucher do
   fetching them, and generating replacement vouchers.
   """
 
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
   alias Astarte.FDO.TO0
+  alias Astarte.RPC.RealmManagement
   alias Astarte.Secrets
 
   require Logger
-
-  def save_voucher(realm_name, attrs) do
-    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
-      :ok
-    end
-  end
 
   def list(realm_name) do
     Queries.list_ownership_vouchers(realm_name)
@@ -47,9 +43,20 @@ defmodule Astarte.FDO.OwnershipVoucher do
   if that fails, the voucher is not deleted.
   """
   def delete(realm_name, guid) do
-    with {:ok, voucher_cbor} <- Queries.get_ownership_voucher(realm_name, guid),
-         :ok <- revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(realm_name, guid),
+         :ok <- revoke_rendezvous_registration(realm_name, guid, ownership_voucher.voucher_data),
+         :ok <- ensure_device_voucher_deletion(realm_name, ownership_voucher.device_id) do
       Queries.delete_ownership_voucher(realm_name, guid)
+    end
+  end
+
+  defp ensure_device_voucher_deletion(realm_name, device_id) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    case RealmManagement.delete_device(realm_name, encoded_device_id) do
+      :ok -> :ok
+      {:error, :device_not_found} -> :ok
+      error -> error
     end
   end
 
@@ -70,12 +77,20 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   def fetch(realm_name, guid) do
-    case Queries.get_ownership_voucher(realm_name, guid) do
-      {:ok, ownership_voucher_cbor} ->
-        OwnershipVoucher.decode_cbor(ownership_voucher_cbor)
+    case Queries.fetch_ownership_voucher(realm_name, guid) do
+      {:ok, ownership_voucher} ->
+        OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data)
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def fetch_with_device_id(realm_name, guid) do
+    with {:ok, {device_id, ownership_voucher_cbor}} <-
+           Queries.fetch_device_id_and_ownership_voucher(realm_name, guid),
+         {:ok, ownership_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher_cbor) do
+      {:ok, {device_id, ownership_voucher}}
     end
   end
 

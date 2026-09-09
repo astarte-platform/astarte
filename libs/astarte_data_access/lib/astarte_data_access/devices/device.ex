@@ -68,5 +68,7 @@ defmodule Astarte.DataAccess.Devices.Device do
     field :protocol_revision, :integer
     field :total_received_bytes, :integer
     field :total_received_msgs, :integer
+
+    field :confirmation_status, Ecto.Enum, values: [:confirmed, :unconfirmed], virtual: true
   end
 end

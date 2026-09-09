@@ -23,6 +23,10 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
   use TypedEctoSchema
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucherStruct
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
@@ -37,6 +41,9 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   import Ecto.Changeset
 
   typed_embedded_schema do
+    field :hw_id, :string
+    field :initial_introspection, :map, default: %{}
+    field :device_id, Astarte.DataAccess.UUID, virtual: true
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
@@ -61,6 +68,8 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   def changeset(%LoadRequest{} = request, params) do
     request
     |> cast(params, [
+      :hw_id,
+      :initial_introspection,
       :ownership_voucher,
       :realm_name,
       :key_name,
@@ -69,8 +78,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       :replacement_public_key,
       :replacement_guid
     ])
-    |> validate_required([:ownership_voucher, :realm_name, :key_name, :key_algorithm])
+    |> validate_required([:hw_id, :ownership_voucher, :realm_name, :key_name, :key_algorithm])
+    |> put_device_id(:hw_id, :device_id)
     |> put_device_guid()
+    |> ensure_voucher_not_already_claimed(:realm_name, :device_guid, :ownership_voucher)
+    |> ensure_device_does_not_exist(:realm_name, :device_id)
+    |> validate_change(:initial_introspection, &validate_introspection/2)
     |> validate_key_algorithm_compatible()
     |> fetch_owner_key()
     |> verify_owner_key_matches()
@@ -88,6 +101,76 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       end
     end)
     |> decode_replacement_fields()
+  end
+
+  defp ensure_voucher_not_already_claimed(%{valid?: false} = changeset, _, _, _), do: changeset
+
+  defp ensure_voucher_not_already_claimed(changeset, realm_name, guid, voucher) do
+    # TODO: this should check vouchers in all realms
+    # SAFETY: we only call this on valid vouchers
+    realm_name = fetch_field!(changeset, realm_name)
+    guid = fetch_field!(changeset, guid)
+
+    case Queries.fetch_ownership_voucher(realm_name, guid) do
+      {:error, :not_found} -> changeset
+      {:ok, _old_voucher} -> add_error(changeset, voucher, "guid has already been claimed")
+    end
+  end
+
+  defp ensure_device_does_not_exist(%{valid?: false} = changeset, _, _), do: changeset
+
+  defp ensure_device_does_not_exist(changeset, realm_name_field, device_id_field) do
+    # SAFETY: we only call this on valid vouchers
+    realm_name = fetch_field!(changeset, realm_name_field)
+    device_id = fetch_field!(changeset, device_id_field)
+
+    case DeviceQueries.fetch(realm_name, device_id) do
+      {:error, :device_not_found} -> changeset
+      {:ok, _device} -> add_error(changeset, device_id_field, "already exists")
+    end
+  end
+
+  def put_device_id(%{valid?: false} = changeset, _encoded_field, _device_id_field), do: changeset
+
+  def put_device_id(changeset, encoded_field, device_id_field) do
+    case validate_hw_id_change(changeset, encoded_field) do
+      {:ok, device_id} -> changeset |> put_change(device_id_field, device_id)
+      {:error, changeset} -> changeset
+    end
+  end
+
+  def validate_hw_id(changeset, _field) when not changeset.valid?, do: changeset
+
+  def validate_hw_id(changeset, field) do
+    case validate_hw_id_change(changeset, field) do
+      {:ok, _device_id} -> changeset
+      {:error, changeset} -> changeset
+    end
+  end
+
+  defp validate_hw_id_change(changeset, field) do
+    with {:ok, hw_id} <- fetch_change(changeset, field),
+         {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
+      {:ok, device_id}
+    else
+      _ ->
+        {:error, add_error(changeset, field, "is not a valid base64 encoded 128 bits id")}
+    end
+  end
+
+  def validate_introspection(field, introspection) when is_map(introspection) do
+    Enum.reduce(introspection, [], fn
+      {interface_name, %{"major" => major, "minor" => minor}}, acc
+      when is_integer(major) and is_integer(minor) ->
+        if major < 0 or minor < 0 do
+          [{field, "has negative versions in interface #{interface_name}"} | acc]
+        else
+          acc
+        end
+
+      {interface_name, _}, acc ->
+        [{field, "has invalid format for interface #{interface_name}"} | acc]
+    end)
   end
 
   defp validate_replacement_rendezvous_info(changeset) do
@@ -358,5 +441,34 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       _ ->
         :error
     end
+  end
+
+  @spec store_voucher(t()) :: :ok | {:error, term()}
+  def store_voucher(load_request) do
+    %LoadRequest{
+      realm_name: realm_name,
+      device_guid: guid,
+      device_id: device_id,
+      cbor_ownership_voucher: cbor_ownership_voucher,
+      key_name: key_name,
+      key_algorithm: key_algorithm,
+      replacement_guid: replacement_guid,
+      decoded_replacement_rendezvous_info: decoded_replacement_rendezvous_info,
+      decoded_replacement_public_key: decoded_replacement_public_key
+    } = load_request
+
+    ownership_voucher = %OwnershipVoucherStruct{
+      guid: guid,
+      device_id: device_id,
+      status: :created,
+      voucher_data: cbor_ownership_voucher,
+      key_name: key_name,
+      key_algorithm: key_algorithm,
+      replacement_guid: replacement_guid,
+      replacement_rendezvous_info: decoded_replacement_rendezvous_info,
+      replacement_public_key: decoded_replacement_public_key
+    }
+
+    Queries.create_ownership_voucher(realm_name, ownership_voucher)
   end
 end
