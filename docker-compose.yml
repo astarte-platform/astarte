@@ -268,7 +268,7 @@ services:
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:4.3.1-management
+    image: rabbitmq:4.3.4-management
     hostname: rabbitmq
     restart: on-failure
     ports:
