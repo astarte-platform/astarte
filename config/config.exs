@@ -37,7 +37,11 @@ config :logger, :console,
     :replication_factor,
     :hw_id,
     :common_name,
-    :ip_address
+    :ip_address,
+    :interface_major,
+    :trigger_name,
+    :policy_name,
+    :reason
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
@@ -134,13 +138,21 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
   port: 5672
 
 config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
-
 config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300
-
 config :astarte_data_updater_plant, ecto_repos: [Astarte.DataAccess.Repo]
-
 config :astarte_data_updater_plant, Astarte.DataAccess.Repo, []
 
 config :astarte_events, :connection_backoff, 10_000
+
+config :astarte_realm_management, namespace: Astarte.RealmManagement
+
+config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  url: [host: "localhost"],
+  secret_key_base: "CixkA/Dn3ya0rSp9nV0ZkvE0qEaSp2cKH/hzp5LiPK9iEGjX6S92b8fDrnfgCS5Y",
+  render_errors: [view: Astarte.RealmManagementWeb.ErrorView, accepts: ~w(json)]
+
+config :astarte_realm_management, Astarte.RealmManagementWeb.AuthGuardian,
+  allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
 import_config "#{config_env()}.exs"

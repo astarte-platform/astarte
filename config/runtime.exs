@@ -18,6 +18,11 @@ pairing_port = System.get_env("PAIRING_API_PORT", "4003") |> String.to_integer()
 
 config :astarte_pairing, Astarte.PairingWeb.Endpoint, http: [port: pairing_port]
 
+realm_management_port = System.get_env("REALM_MANAGEMENT_API_PORT", "4000") |> String.to_integer()
+
+config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
+  http: [port: realm_management_port]
+
 if level = System.get_env("ASTARTE_LOG_LEVEL") do
   allowed_levels = [
     "emergency",
@@ -45,6 +50,13 @@ case service do
 
   "astarte_pairing" ->
     config :astarte_rpc, :astarte_services, [:astarte_realm_management]
+
+  "astarte_realm_management" ->
+    config :astarte_rpc, :astarte_services, [
+      :astarte_data_updater_plant,
+      :astarte_pairing,
+      :astarte_realm_management
+    ]
 
   _ ->
     :ok

@@ -14,6 +14,13 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   check_origin: false,
   watchers: []
 
+config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
+  http: [port: 4000],
+  debug_errors: true,
+  code_reloader: true,
+  check_origin: false,
+  watchers: []
+
 config :astarte_pairing, Astarte.PairingWeb.Endpoint,
   http: [port: 4003],
   debug_errors: true,
