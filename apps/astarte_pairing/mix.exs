@@ -69,7 +69,7 @@ defmodule Astarte.Pairing.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, path: "../astarte_core"},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},

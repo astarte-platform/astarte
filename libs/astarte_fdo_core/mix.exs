@@ -57,7 +57,7 @@ defmodule Astarte.FDO.Core.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
+      {:astarte_core, path: "../../apps/astarte_core"},
       {:ecto, "~> 3.10"},
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},
