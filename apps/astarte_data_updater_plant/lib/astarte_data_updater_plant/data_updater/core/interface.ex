@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -232,9 +232,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
       :object ->
         with {:guessed, guessed_endpoints} <-
                EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
-          all_mappings = Map.take(mappings, guessed_endpoints) |> Map.values()
-
+             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings),
+             {:ok, _first_mapping} <- Map.fetch(mappings, first_endpoint_id) do
+          # Return the list of all matching mappings directly for object aggregates
+          all_mappings = Enum.map(guessed_endpoints, &Map.fetch!(mappings, &1))
           {:ok, all_mappings}
         else
           :error ->
