@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, path: "../astarte_core"},
       {:jason, "~> 1.2"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
