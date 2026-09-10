@@ -41,10 +41,17 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
 
   defp amqp_data_consumers_childspecs(queue_range_start, queue_range_end) do
     queue_prefix = Config.data_queue_prefix!()
+    fullsweep_after = Config.amqp_data_consumer_fullsweep_after!()
 
     for queue_index <- queue_range_start..queue_range_end do
       queue_name = "#{queue_prefix}#{queue_index}"
-      args = [queue_name: queue_name, queue_index: queue_index]
+
+      args = [
+        queue_name: queue_name,
+        queue_index: queue_index,
+        fullsweep_after: fullsweep_after
+      ]
+
       Supervisor.child_spec({AMQPDataConsumer, args}, id: {AMQPDataConsumer, queue_index})
     end
   end
