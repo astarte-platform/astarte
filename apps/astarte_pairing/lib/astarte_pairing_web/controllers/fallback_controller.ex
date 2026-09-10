@@ -111,6 +111,14 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:"500")
   end
 
+  # An Ownership Voucher with this GUID is already present in Astarte
+  def call(conn, {:error, :duplicated_voucher_guid}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:duplicated_voucher_guid)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn

@@ -169,6 +169,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
            |> Ecto.Changeset.apply_action(:insert),
          :ok <-
            OwnershipVoucher.save_voucher(realm_name, %{
+             # realm_name should probably be inside here TBD
              voucher_data: req.cbor_ownership_voucher,
              guid: req.device_guid,
              key_name: req.key_name,

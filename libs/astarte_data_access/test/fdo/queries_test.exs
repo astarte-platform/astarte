@@ -88,7 +88,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
     end
 
-    test "replace ownership voucher" do
+    test "replace ownership voucher attempt is rejected" do
       guid = random_guid()
       old_voucher = sample_voucher()
       new_voucher = sample_voucher()
@@ -109,9 +109,8 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
         key_algorithm: :es256
       }
 
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, new_attrs)
-
-      assert {:ok, ^new_voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, %Ecto.Changeset{errors: [guid: {_, [stale: true]}]}} =
+               Queries.create_ownership_voucher(@realm, new_attrs)
     end
   end
 

@@ -87,12 +87,21 @@ defmodule Astarte.DataAccess.FDO.Queries do
   end
 
   def create_ownership_voucher(
+        # need to be inside attrs
         realm_name,
         attrs
       ) do
+    # -> Realm.astarte_keyspace_name()
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    # explicitly prevent updates to an already existing entry for the same GUID;
+    # expect a "stale entry error" if no rows were changed due to GUID already present
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      overwrite: false,
+      stale_error_field: :guid
+    ]
 
     %OwnershipVoucher{status: :created}
     |> OwnershipVoucher.changeset(attrs)
