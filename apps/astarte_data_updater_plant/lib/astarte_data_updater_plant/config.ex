@@ -131,6 +131,18 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 300
 
+  @envdoc """
+  The `fullsweep_after` process flag set on each AMQPDataConsumer process, forcing more
+  frequent full sweep garbage collections for those processes specifically, to help bound
+  their memory growth.
+  """
+  app_env :amqp_data_consumer_fullsweep_after,
+          :astarte_data_updater_plant,
+          :amqp_data_consumer_fullsweep_after,
+          os_env: "DATA_UPDATER_PLANT_AMQP_DATA_CONSUMER_FULLSWEEP_AFTER",
+          type: :integer,
+          default: 20
+
   @envdoc "The port where Data Updater Plant metrics will be exposed."
   app_env :port, :astarte_data_updater_plant, :port,
     os_env: "DATA_UPDATER_PLANT_PORT",
