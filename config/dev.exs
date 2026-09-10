@@ -41,3 +41,5 @@ config :astarte_fdo, :base_url_protocol, :http
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
+
+config :astarte_vmq_plugin, :registry_mfa, {Astarte.VMQ.Plugin.Utils, :empty_plugin_functions, []}
