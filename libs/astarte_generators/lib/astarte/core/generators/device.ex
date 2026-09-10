@@ -28,6 +28,7 @@ defmodule Astarte.Core.Generators.Device do
 
   import Astarte.Common.Generators.Ip
   import Astarte.Common.Generators.Timestamp
+  import Astarte.Common.Generators.UUID
   import Astarte.Core.Generators.Interface
 
   alias Astarte.Core.Interface
@@ -88,12 +89,7 @@ defmodule Astarte.Core.Generators.Device do
   See https://docs.astarte-platform.org/astarte/latest/010-design_principles.html#device-id
   """
   @spec device_id() :: StreamData.t(<<_::128>>)
-  def device_id do
-    gen all seq <- binary(length: 16) do
-      <<u0::48, _::4, u1::12, _::2, u2::62>> = seq
-      <<u0::48, 4::4, u1::12, 2::2, u2::62>>
-    end
-  end
+  def device_id, do: uuid()
 
   @doc """
   Generates a valid Astarte encoded Device id

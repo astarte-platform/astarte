@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -236,6 +236,35 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
                          params: [a: constant(10)],
                          exclude: [:a] do
             a
+          end
+        end
+
+      assert_raise CompileError, fn ->
+        Code.eval_quoted(quoted, [], __ENV__)
+      end
+    end
+
+    test "params gen all accepts a dynamic exclude list" do
+      quoted =
+        quote do
+          exclude = []
+
+          params gen all a <- integer(0..0),
+                         params: [a: constant(10)],
+                         exclude: exclude do
+            a
+          end
+        end
+
+      assert {%StreamData{}, _bindings} = Code.eval_quoted(quoted, [], __ENV__)
+    end
+
+    test "params gen all rejects assignments within a generation" do
+      quoted =
+        quote do
+          params gen all a = b <- constant(10),
+                         params: [] do
+            {a, b}
           end
         end
 
