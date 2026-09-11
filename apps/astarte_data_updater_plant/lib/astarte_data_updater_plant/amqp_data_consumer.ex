@@ -63,8 +63,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   @impl true
   def init(args) do
-    fullsweep_after = Keyword.get(args, :fullsweep_after, 20)
-    Process.flag(:fullsweep_after, fullsweep_after)
+    Process.flag(:fullsweep_after, 20)
 
     queue_name = Keyword.fetch!(args, :queue_name)
     {:ok, %State{queue_name: queue_name}, {:continue, :init_consume}}
