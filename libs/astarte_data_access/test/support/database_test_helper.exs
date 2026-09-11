@@ -44,25 +44,34 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   );
   """
 
+  @create_astarte_session_key_type """
+  CREATE TYPE astarte.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   @create_ownership_vouchers_table """
-  CREATE TABLE autotestrealm.ownership_vouchers (
+  CREATE TABLE astarte.ownership_vouchers (
      guid blob,
-      voucher_data blob,
-      output_voucher blob,
-      replacement_guid blob,
-      replacement_rendezvous_info blob,
-      replacement_public_key blob,
-      key_name varchar,
-      key_algorithm int,
-      user_id blob,
-      status int,
-      PRIMARY KEY (guid)
+     realm text,
+     status int,
+     voucher_data blob,
+     output_voucher blob,
+     user_id blob,
+     key_name text,
+     key_algorithm int,
+     replacement_guid blob,
+     replacement_rendezvous_info blob,
+     replacement_public_key blob,
+     PRIMARY KEY (guid)
   );
   """
 
   @create_to2_sessions_table """
-  CREATE TABLE autotestrealm.to2_sessions (
+  CREATE TABLE astarte.to2_sessions (
     guid blob,
+    realm text,
     device_id uuid,
     hmac blob,
     nonce blob,
@@ -82,9 +91,6 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     device_service_info map<frozen<tuple<text, text>>, blob>,
     owner_service_info list<blob>,
     last_chunk_sent int,
-    replacement_guid blob,
-    replacement_rv_info blob,
-    replacement_pub_key blob,
     replacement_hmac blob,
     PRIMARY KEY (guid)
   )
@@ -483,8 +489,6 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         Xandra.execute!(conn, @create_test_object_table)
         Xandra.execute!(conn, @create_interfaces_table)
         Xandra.execute!(conn, @create_session_key_type)
-        Xandra.execute!(conn, @create_ownership_vouchers_table)
-        Xandra.execute!(conn, @create_to2_sessions_table)
         :ok
 
       {:error, msg} ->
@@ -494,7 +498,10 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
 
   def create_astarte_keyspace(conn) do
     Xandra.execute!(conn, @create_astarte_keyspace)
+    Xandra.execute!(conn, @create_astarte_session_key_type)
     Xandra.execute!(conn, @create_realms_table)
+    Xandra.execute!(conn, @create_ownership_vouchers_table)
+    Xandra.execute!(conn, @create_to2_sessions_table)
   end
 
   def destroy_astarte_keyspace(conn) do

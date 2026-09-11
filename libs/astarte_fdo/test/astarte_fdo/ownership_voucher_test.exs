@@ -81,7 +81,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       end)
 
       assert {:ok, _} = OwnershipVoucher.delete(realm_name, device_id)
-      assert {:error, :not_found} = Queries.get_ownership_voucher(realm_name, device_id)
+      assert {:error, :not_found} = Queries.get_ownership_voucher(device_id)
     end
 
     test "does not delete the voucher if the rendezvous revocation fails", ctx do
@@ -102,7 +102,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       assert {:error, :rendezvous_revocation_failed} =
                OwnershipVoucher.delete(realm_name, device_id)
 
-      assert {:ok, _voucher_cbor} = Queries.get_ownership_voucher(realm_name, device_id)
+      assert {:ok, _voucher_cbor} = Queries.get_ownership_voucher(device_id)
     end
 
     test "returns {:error, :not_found} for an unknown guid", ctx do

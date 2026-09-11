@@ -170,9 +170,9 @@ defmodule Astarte.Helpers.FDO do
   end
 
   def insert_voucher(realm_name, attrs) when is_map(attrs) do
-    %DBOwnershipVoucher{}
+    %DBOwnershipVoucher{realm: realm_name}
     |> DBOwnershipVoucher.changeset(attrs)
-    |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
+    |> Repo.insert(prefix: Realm.astarte_keyspace_name())
   end
 
   def generate_p384_x5chain_data_and_pem do

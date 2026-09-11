@@ -47,13 +47,12 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   defp setup_authenticated(context, action, message_id) do
-    %{conn: conn, realm_name: realm, token: token} = context
+    %{conn: conn, token: token} = context
     conn = put_req_header(conn, "authorization", token)
 
     %{
       conn: conn,
-      create_path: fdo_onboarding_path(conn, action, realm),
-      realm_name: realm,
+      create_path: fdo_onboarding_path(conn, action),
       message_id: message_id
     }
   end
@@ -63,7 +62,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       setup_authenticated(context, :hello_device, 60)
     end
 
-    test "calls `OwnerOnboarding.hello_device/2`", %{
+    test "calls `OwnerOnboarding.hello_device/1`", %{
       conn: conn,
       create_path: path,
       message_id: id
@@ -71,7 +70,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       payload = CBOR.encode(%{hello: "device"})
       expected_response = %{"response" => true}
 
-      expect(OwnerOnboarding, :hello_device, fn _, _ ->
+      expect(OwnerOnboarding, :hello_device, fn _ ->
         {:ok, "session_key", CBOR.encode(expected_response)}
       end)
 
@@ -104,7 +103,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :ov_next_entry, fn _, _, _ ->
+      expect(OwnerOnboarding, :ov_next_entry, fn _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -170,7 +169,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       setup_authenticated(context, :service_info_start, 66)
     end
 
-    test "calls OwnerOnboarding.build_owner_service_info_ready/3", %{
+    test "calls OwnerOnboarding.build_owner_service_info_ready/2", %{
       conn: conn,
       create_path: path,
       message_id: id,
@@ -180,7 +179,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "ok"}
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
+      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _ ->
         {:ok, session, expected_response}
       end)
 
