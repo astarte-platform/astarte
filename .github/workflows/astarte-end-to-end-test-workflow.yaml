@@ -106,7 +106,8 @@ jobs:
       - name: Checkout fdo e2e repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          repository: astarte-platform/astarte-device-fdo-rust
+          repository: noaccos/astarte-device-fdo-rust
+          ref: push-mzlxtwylktkr
       - uses: ./.github/actions/install-deps
       - name: Install astartectl
         run: |
@@ -149,7 +150,7 @@ jobs:
           path: .tmp/cache/containers
           key: ${{ runner.os }}-${{ hashFiles('justfile', 'scripts/**/*.sh', 'containers/**') }}
       - name: Install just
-        uses: taiki-e/install-action@fa23953489c080190314742a9b907f8e97c6767c # v2.87.10
+        uses: taiki-e/install-action@575f713d0233afba556737a7b85080563be14186 # v2.49.43
         with:
           tool: just
       - run: just go-server-setup
@@ -161,20 +162,12 @@ jobs:
       - name: Create realm
         working-directory: .tmp/repos/astarte
         run: |
-          astartectl config clusters create "test" \
-          --api-url http://api.astarte.localhost \
-          --housekeeping-key "compose/astarte-keys/housekeeping_private.pem"
-
-          astartectl config contexts create "test-context" \
-          --cluster "test" \
-          --realm-name "test" \
-          --realm-private-key "test_private.pem"
-
-          astartectl config contexts update "test-context" --activate 
-
-          astartectl housekeeping realms create -y "test" 
+          astartectl housekeeping realms create -y "test" \
+            --astarte-url "http://api.astarte.localhost" \
+            --realm-public-key "test_public.pem" \
+            -k compose/astarte-keys/housekeeping_private.pem
       - name: Run FDO
-        run: ./scripts/ci/e2e-test.sh
+        run: just astarte-run
       - name: Check Docker
         working-directory: .tmp/repos/astarte
         if: ${{ failure() }}
