@@ -111,18 +111,10 @@ defmodule Astarte.Pairing.EngineTest do
       realm: realm,
       unconfirmed_device: %{encoded_id: device_id}
     } do
-      initial_introspection = [
-        %{
-          interface_name: "org.astarteplatform.Values",
-          major_version: 0,
-          minor_version: 3
-        },
-        %{
-          interface_name: "org.astarteplatform.OtherValues",
-          major_version: 1,
-          minor_version: 2
-        }
-      ]
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => 0, "minor" => 3},
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 2}
+      }
 
       assert {:ok, _credentials_secret} =
                Engine.register_device(realm, device_id,
@@ -141,8 +133,14 @@ defmodule Astarte.Pairing.EngineTest do
 
     test "fails when device_registration_limit is reached", %{
       realm: realm,
+      astarte_instance_id: astarte_instance_id,
       confirmed_device: %{encoded_id: hw_id, first_registration: first_registration}
     } do
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        DatabaseTestHelper.set_device_registration_limit(realm, nil)
+      end)
+
       DatabaseTestHelper.set_device_registration_limit(realm, 1)
 
       assert DatabaseTestHelper.get_first_registration(realm, hw_id)
@@ -180,12 +178,18 @@ defmodule Astarte.Pairing.EngineTest do
 
     test "succeeds when re-registering an existing device after device_registration_limit is reached",
          %{
-           realm: realm
+           realm: realm,
+           astarte_instance_id: astarte_instance_id
          } do
-      DatabaseTestHelper.set_device_registration_limit(realm, 7)
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        DatabaseTestHelper.set_device_registration_limit(realm, nil)
+      end)
+
       hw_id = DatabaseTestHelper.random_128_bit_hw_id()
       {:ok, _credentials_secret} = Engine.register_device(realm, hw_id)
       :ok = Engine.unregister_device(realm, hw_id)
+      DatabaseTestHelper.set_device_registration_limit(realm, 1)
 
       assert {:ok, _credentials_secret} = Engine.register_device(realm, hw_id)
     end

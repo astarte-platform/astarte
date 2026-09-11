@@ -47,6 +47,24 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.Agent do
     @moduledoc false
     require OpenApiSpex
 
+    @hw_id %Schema{
+      type: :string
+    }
+
+    @initial_introspection %Schema{
+      type: :object,
+      description: """
+      An optional object specifying the initial introspection for the device. The keys
+      of the object are the interface names, while the values are objects with the "major"
+      and "minor" properties, specifying the major and minor version of the interface
+      that is going to be supported by the device.
+      """,
+      additionalProperties: IntrospectionEntry
+    }
+
+    def hw_id, do: @hw_id
+    def initial_introspection, do: @initial_introspection
+
     OpenApiSpex.schema(%{
       title: "DeviceRegistrationRequest",
       type: :object,
@@ -54,19 +72,8 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.Agent do
         data: %Schema{
           type: :object,
           properties: %{
-            hw_id: %Schema{
-              type: :string
-            },
-            initial_introspection: %Schema{
-              type: :object,
-              description: """
-              An optional object specifying the initial introspection for the device. The keys
-              of the object are the interface names, while the values are objects with the "major"
-              and "minor" properties, specifying the major and minor version of the interface
-              that is going to be supported by the device.
-              """,
-              additionalProperties: IntrospectionEntry
-            }
+            hw_id: @hw_id,
+            initial_introspection: @initial_introspection
           },
           required: [:hw_id]
         }

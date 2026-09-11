@@ -30,12 +30,6 @@ defmodule Astarte.FDO.OwnershipVoucher do
 
   require Logger
 
-  def save_voucher(realm_name, attrs) do
-    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
-      :ok
-    end
-  end
-
   def list(realm_name) do
     Queries.list_ownership_vouchers(realm_name)
   end
@@ -47,7 +41,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   if that fails, the voucher is not deleted.
   """
   def delete(realm_name, guid) do
-    with {:ok, voucher_cbor} <- Queries.get_ownership_voucher(realm_name, guid),
+    with {:ok, voucher_cbor} <- Queries.fetch_ownership_voucher(realm_name, guid),
          :ok <- revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
       Queries.delete_ownership_voucher(realm_name, guid)
     end
@@ -70,12 +64,20 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   def fetch(realm_name, guid) do
-    case Queries.get_ownership_voucher(realm_name, guid) do
+    case Queries.fetch_ownership_voucher(realm_name, guid) do
       {:ok, ownership_voucher_cbor} ->
         OwnershipVoucher.decode_cbor(ownership_voucher_cbor)
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def fetch_with_device_id(realm_name, guid) do
+    with {:ok, {device_id, ownership_voucher_cbor}} <-
+           Queries.get_device_id_and_ownership_voucher(realm_name, guid),
+         {:ok, ownership_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher_cbor) do
+      {:ok, {device_id, ownership_voucher}}
     end
   end
 

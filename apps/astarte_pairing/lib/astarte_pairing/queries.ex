@@ -71,17 +71,6 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def unregister_device(realm_name, device_id) do
-    with {:ok, device} <- Astarte.DataAccess.Device.fetch(realm_name, device_id),
-         {:ok, _device} <- do_unregister_device(realm_name, device) do
-      :ok
-    else
-      {:error, reason} ->
-        Logger.warning("Unregister error: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-
   def check_already_registered_device(realm_name, device_id) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
@@ -91,19 +80,6 @@ defmodule Astarte.Pairing.Queries do
       %Device{} -> true
       nil -> false
     end
-  end
-
-  defp do_unregister_device(realm_name, %Device{} = device) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    consistency = Consistency.device_info(:write)
-
-    device
-    |> Ecto.Changeset.change(
-      first_credentials_request: nil,
-      credentials_secret: nil
-    )
-    |> Repo.update(prefix: keyspace_name, consistency: consistency)
   end
 
   def update_device_after_credentials_request(realm_name, device, cert_data, device_ip, nil) do
@@ -173,19 +149,6 @@ defmodule Astarte.Pairing.Queries do
       |> Repo.one!(prefix: keyspace, consistency: consistency)
 
     {:ok, count}
-  end
-
-  def get_ownership_voucher(realm_name, guid) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    query =
-      from o in OwnershipVoucher,
-        prefix: ^keyspace_name,
-        select: o.voucher_data
-
-    consistency = Consistency.domain_model(:read)
-
-    Repo.fetch(query, guid, consistency: consistency)
   end
 
   def get_owner_private_key(realm_name, guid) do

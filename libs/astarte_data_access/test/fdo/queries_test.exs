@@ -56,62 +56,36 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       guid = random_guid()
       voucher = sample_voucher()
 
-      attrs = %{
+      ownership_voucher = %OwnershipVoucher{
         guid: guid,
         voucher_data: voucher,
         key_name: "test_key_name",
         key_algorithm: :es256
       }
 
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
-      assert {:ok, ^voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert :ok = Queries.create_ownership_voucher(@realm, ownership_voucher)
+      assert {:ok, ^voucher} = Queries.fetch_ownership_voucher(@realm, guid)
     end
 
     test "get voucher returns error when not found" do
       guid = random_guid()
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
     end
 
     test "delete ownership voucher" do
       guid = random_guid()
       voucher = sample_voucher()
 
-      attrs = %{
+      voucher = %OwnershipVoucher{
         guid: guid,
         voucher_data: voucher,
         key_name: "test_key_name",
         key_algorithm: :es256
       }
 
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
+      :ok = Queries.create_ownership_voucher(@realm, voucher)
       assert {:ok, _} = Queries.delete_ownership_voucher(@realm, guid)
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
-    end
-
-    test "replace ownership voucher" do
-      guid = random_guid()
-      old_voucher = sample_voucher()
-      new_voucher = sample_voucher()
-
-      old_attrs = %{
-        guid: guid,
-        voucher_data: old_voucher,
-        key_name: "test_key_name",
-        key_algorithm: :es256
-      }
-
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, old_attrs)
-
-      new_attrs = %{
-        guid: guid,
-        voucher_data: new_voucher,
-        key_name: "test_key_name",
-        key_algorithm: :es256
-      }
-
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, new_attrs)
-
-      assert {:ok, ^new_voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
     end
   end
 
@@ -307,12 +281,13 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
 
     on_exit(fn -> Queries.delete_ownership_voucher(@realm, guid) end)
 
-    Queries.create_ownership_voucher(@realm, %{
-      guid: guid,
-      key_name: "key",
-      key_algorithm: :es256,
-      voucher_data: <<0>>
-    })
+    :ok =
+      Queries.create_ownership_voucher(@realm, %OwnershipVoucher{
+        guid: guid,
+        key_name: "key",
+        key_algorithm: :es256,
+        voucher_data: <<0>>
+      })
 
     %{guid: guid}
   end

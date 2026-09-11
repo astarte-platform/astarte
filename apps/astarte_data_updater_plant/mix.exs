@@ -78,7 +78,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:mississippi, github: "secomind/mississippi", branch: "release-1.0"},
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},
-      {:exandra, "~> 0.13"},
       {:current_rabbit_pool, "~> 1.1"},
       {:libcluster, "~> 3.3"},
       # https://github.com/elixir-horde/horde/pull/291
@@ -86,7 +85,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:xandra, "~> 0.13"},
       {:decimal, "~> 3.0", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},

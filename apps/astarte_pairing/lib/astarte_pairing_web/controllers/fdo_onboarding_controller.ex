@@ -20,7 +20,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   use Astarte.PairingWeb, :controller
   use OpenApiSpex.ControllerSpecs
 
-  alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.OwnerOnboarding
@@ -466,31 +465,15 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
          session,
          %DeviceServiceInfo{is_more_service_info: false, service_info: service_info}
        ) do
+    device_id = session.device_id
+
     with {:ok, session} <-
-           Session.add_device_service_info(session, realm_name, service_info) do
-      decoded_service_info =
-        Session.decode_device_service_info(session.device_service_info)
-
-      device_id = generate_device_id(decoded_service_info)
-      encoded_device_id = Device.encode_device_id(device_id)
-
-      with {:ok, session} <-
-             Session.add_device_id(session, realm_name, device_id),
-           {:ok, credentials_secret} <-
-             Engine.register_device(realm_name, encoded_device_id, unconfirmed: true) do
-        ServiceInfo.build_owner_service_info(
-          realm_name,
-          session,
-          encoded_device_id,
-          credentials_secret
-        )
-      end
+           Session.add_device_service_info(session, realm_name, service_info),
+         {:ok, credentials_secret} <- Engine.add_unconfirmed_credentials(realm_name, device_id) do
+      ServiceInfo.build_and_send_owner_service_info(
+        session,
+        credentials_secret
+      )
     end
   end
-
-  defp generate_device_id(%{{"devmod", "sn"} => %{"value" => sn}}) do
-    UUID.uuid5(:oid, sn, :raw)
-  end
-
-  defp generate_device_id(_), do: Device.random_device_id()
 end

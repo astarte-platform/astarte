@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Agent.DeviceRegistrationRequest do
 
   import Ecto.Changeset
 
-  alias Astarte.Core.Device
+  alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.Pairing.Agent.DeviceRegistrationRequest
 
   @primary_key false
@@ -36,36 +36,7 @@ defmodule Astarte.Pairing.Agent.DeviceRegistrationRequest do
     request
     |> cast(attrs, [:hw_id, :initial_introspection])
     |> validate_required([:hw_id])
-    |> validate_hw_id(:hw_id)
-    |> validate_change(:initial_introspection, &validate_introspection/2)
-  end
-
-  defp validate_hw_id(changeset, field) do
-    with {:ok, hw_id} <- fetch_change(changeset, field),
-         {:ok, _decoded_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-      changeset
-    else
-      # No hw_id, already handled
-      :error ->
-        changeset
-
-      _ ->
-        add_error(changeset, field, "is not a valid base64 encoded 128 bits id")
-    end
-  end
-
-  defp validate_introspection(field, introspection) when is_map(introspection) do
-    Enum.reduce(introspection, [], fn
-      {interface_name, %{"major" => major, "minor" => minor}}, acc
-      when is_integer(major) and is_integer(minor) ->
-        if major < 0 or minor < 0 do
-          [{field, "has negative versions in interface #{interface_name}"}]
-        else
-          acc
-        end
-
-      {interface_name, _}, acc ->
-        [{field, "has invalid format for interface #{interface_name}"} | acc]
-    end)
+    |> LoadRequest.validate_hw_id(:hw_id)
+    |> validate_change(:initial_introspection, &LoadRequest.validate_introspection/2)
   end
 end

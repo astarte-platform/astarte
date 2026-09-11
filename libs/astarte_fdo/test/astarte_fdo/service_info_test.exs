@@ -21,6 +21,8 @@ defmodule Astarte.FDO.ServiceInfoTest do
   use Astarte.Cases.Data, async: true
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
@@ -33,8 +35,8 @@ defmodule Astarte.FDO.ServiceInfoTest do
   import Astarte.FDO.Helpers
 
   setup_all %{realm_name: realm_name} do
-    device_id = sample_device_guid()
-    hello_device = HelloDevice.generate(device_id: device_id)
+    guid = sample_device_guid()
+    hello_device = HelloDevice.generate(guid: guid)
     ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
     device_key = ECC.generate(:es256)
@@ -48,17 +50,17 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
     {:ok, owner_key} = Astarte.Secrets.get_key(key_name, namespace: namespace)
 
-    attrs = %{
+    voucher = %OwnershipVoucher{
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: ownership_voucher,
-      guid: device_id
+      guid: guid
     }
 
-    Queries.create_ownership_voucher(realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(realm_name, voucher)
 
     %{
-      device_id: device_id,
+      guid: guid,
       hello_device: hello_device,
       ownership_voucher: ownership_voucher,
       owner_key: owner_key,
@@ -78,8 +80,14 @@ defmodule Astarte.FDO.ServiceInfoTest do
       xb: xb
     } = context
 
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    # Add device without credentials secret
+    {:ok, _} = DeviceQueries.register(context.realm_name, device_id, encoded_device_id, nil)
+
     {:ok, token, session} =
-      Session.new(realm_name, hello_device, ownership_voucher)
+      Session.new(realm_name, device_id, hello_device, ownership_voucher)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)

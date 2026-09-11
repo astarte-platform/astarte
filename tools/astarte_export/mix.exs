@@ -30,8 +30,6 @@ defmodule AstarteExport.MixProject do
       {:astarte_core,
        github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.5", override: true},
       {:decimal, "~> 3.0", override: true},
-      {:xandra, "~> 0.19.4"},
-      {:exandra, "~>0.16.0"},
       {:distillery, "~> 2.1.1"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},

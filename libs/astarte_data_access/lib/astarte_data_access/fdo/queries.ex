@@ -31,13 +31,26 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
   require Logger
 
-  def get_ownership_voucher(realm_name, guid) do
+  def fetch_ownership_voucher(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
         select: o.voucher_data
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch(query, guid, consistency: consistency)
+  end
+
+  def get_device_id_and_ownership_voucher(realm_name, guid) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        select: {o.device_id, o.voucher_data}
 
     consistency = Consistency.domain_model(:read)
 
@@ -86,17 +99,15 @@ defmodule Astarte.DataAccess.FDO.Queries do
     end
   end
 
-  def create_ownership_voucher(
-        realm_name,
-        attrs
-      ) do
+  @spec create_ownership_voucher(String.t(), OwnershipVoucher.t()) :: :ok | {:error, term()}
+  def create_ownership_voucher(realm_name, ownership_voucher) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{status: :created}
-    |> OwnershipVoucher.changeset(attrs)
-    |> Repo.insert(opts)
+    with {:ok, _} <- Repo.insert(ownership_voucher, opts) do
+      :ok
+    end
   end
 
   def delete_ownership_voucher(realm_name, guid) do

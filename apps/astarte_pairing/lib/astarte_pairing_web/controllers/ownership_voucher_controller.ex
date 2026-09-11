@@ -23,9 +23,13 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.FDO.TO0
+  alias Astarte.Pairing.Engine
+  alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher, as: OVApiSpec
   alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets.Core, as: SecretsCore
+  alias OpenApiSpex.MediaType
+  alias OpenApiSpex.Response
   alias OpenApiSpex.Schema
 
   action_fallback Astarte.PairingWeb.FallbackController
@@ -51,6 +55,19 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
       ok: {"Ownership voucher registered successfully", nil, nil},
       bad_request: {"Invalid request body", nil, nil},
       unauthorized: {"Unauthorized", nil, nil},
+      forbidden: %Response{
+        description: "Forbidden or Authorization path not matched",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              oneOf: [
+                Errors.ForbiddenResponse,
+                Errors.AuthorizationPathNotMatchedResponse
+              ]
+            }
+          }
+        }
+      },
       not_found: {"Realm not found", nil, nil},
       internal_server_error: {"Internal server error", nil, nil}
     ]
@@ -167,22 +184,15 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
     with {:ok, req} <-
            LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
            |> Ecto.Changeset.apply_action(:insert),
-         :ok <-
-           OwnershipVoucher.save_voucher(realm_name, %{
-             voucher_data: req.cbor_ownership_voucher,
-             guid: req.device_guid,
-             key_name: req.key_name,
-             key_algorithm: req.key_algorithm,
-             replacement_guid: req.replacement_guid,
-             replacement_rendezvous_info: req.decoded_replacement_rendezvous_info,
-             replacement_public_key: req.decoded_replacement_public_key
-           }),
+         :ok <- LoadRequest.store_voucher(req),
          :ok <-
            TO0.claim_ownership_voucher(
              realm_name,
              req.decoded_ownership_voucher,
              req.extracted_owner_key
-           ) do
+           ),
+         opts = [initial_introspection: req.initial_introspection, with_credentials?: false],
+         {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
       json(conn, %{
         data: %{
           public_key: req.extracted_owner_key.public_pem,
