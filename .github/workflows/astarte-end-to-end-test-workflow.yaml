@@ -161,12 +161,20 @@ jobs:
       - name: Create realm
         working-directory: .tmp/repos/astarte
         run: |
-          astartectl housekeeping realms create -y "test" \
-            --astarte-url "http://api.astarte.localhost" \
-            --realm-public-key "test_public.pem" \
-            -k compose/astarte-keys/housekeeping_private.pem
+          astartectl config clusters create "test" \
+          --api-url http://api.astarte.localhost \
+          --housekeeping-key "compose/astarte-keys/housekeeping_private.pem"
+
+          astartectl config contexts create "test-context" \
+          --cluster "test" \
+          --realm-name "test" \
+          --realm-private-key "test_private.pem"
+
+          astartectl config contexts update "test-context" --activate 
+
+          astartectl housekeeping realms create -y "test" 
       - name: Run FDO
-        run: just astarte-run
+        run: ./scripts/ci/e2e-test.sh
       - name: Check Docker
         working-directory: .tmp/repos/astarte
         if: ${{ failure() }}
