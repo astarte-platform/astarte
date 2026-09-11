@@ -151,7 +151,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            format: :binary,
            description:
              "This message prepares for ownership transfer, where the credentials previously used to take over the device are
-               replaced, based on the new credentials downloaded from the Owner Onboarding Service.",
+              replaced, based on the new credentials downloaded from the Owner Onboarding Service.",
            example: [
              "RendezvousInfo",
              "Guid",
@@ -367,7 +367,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     with {:ok, device_service_info_ready} <- DeviceServiceInfoReady.decode(conn.assigns.body),
          {:ok, session, response} <-
            OwnerOnboarding.build_owner_service_info_ready(
-             session.realm,
              session,
              device_service_info_ready
            ) do

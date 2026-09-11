@@ -1201,6 +1201,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     with :ok <- create_astarte_keyspace(default_replication),
          :ok <- create_realms_table(),
          :ok <- create_astarte_kv_store(),
+         :ok <- create_astarte_session_key_type(),
+         :ok <- create_astarte_to2_sessions_table(),
+         :ok <- create_astarte_ownership_vouchers_table(),
          :ok <- insert_astarte_schema_version(),
          keyspace_replication_map = keyspace_replication_map(default_replication),
          :ok <- save_keyspace_replication(keyspace_replication_map) do
@@ -1408,6 +1411,117 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     case Repo.query(query, [], opts) do
       {:ok, _} ->
         Logger.info("Initialized Astarte KV Store")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_session_key_type do
+    query = """
+    CREATE TYPE #{Realm.astarte_keyspace_name()}.session_key (
+      alg int,
+      k blob
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte session_key type")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      {:error, %Xandra.Error{reason: :invalid} = err} ->
+        if err.message =~ "already exists" do
+          :ok
+        else
+          {:error, err}
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_to2_sessions_table do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.to2_sessions (
+      guid blob,
+      realm text,
+      device_id uuid,
+      hmac blob,
+      nonce blob,
+      sig_type int,
+      epid_group blob,
+      device_public_key blob,
+      prove_dv_nonce blob,
+      setup_dv_nonce blob,
+      kex_suite_name ascii,
+      cipher_suite_name int,
+      max_owner_service_info_size int,
+      owner_random blob,
+      secret blob,
+      sevk frozen<session_key>,
+      svk frozen<session_key>,
+      sek frozen<session_key>,
+      device_service_info map<frozen<tuple<text, text>>, blob>,
+      owner_service_info list<blob>,
+      last_chunk_sent int,
+      replacement_hmac blob,
+      PRIMARY KEY (guid)
+    )
+    WITH default_time_to_live = 7200;
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte to2_sessions table")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_ownership_vouchers_table do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.ownership_vouchers (
+      guid blob,
+      realm text,
+      status int,
+      voucher_data blob,
+      output_voucher blob,
+      user_id blob,
+      key_name text,
+      key_algorithm int,
+      replacement_guid blob,
+      replacement_rendezvous_info blob,
+      replacement_public_key blob,
+      PRIMARY KEY (guid)
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte ownership_vouchers table")
         :ok
 
       {:error, %Xandra.Error{reason: :already_exists}} ->

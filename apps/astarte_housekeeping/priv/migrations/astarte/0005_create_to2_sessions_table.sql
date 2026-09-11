@@ -1,5 +1,6 @@
 CREATE TABLE :keyspace.to2_sessions (
   guid blob,
+  realm text,
   device_id uuid,
   hmac blob,
   nonce blob,
@@ -13,15 +14,12 @@ CREATE TABLE :keyspace.to2_sessions (
   max_owner_service_info_size int,
   owner_random blob,
   secret blob,
-  sevk session_key,
-  svk session_key,
-  sek session_key,
-  device_service_info map<tuple<text, text>, blob>,
+  sevk frozen<session_key>,
+  svk frozen<session_key>,
+  sek frozen<session_key>,
+  device_service_info map<frozen<tuple<text, text>>, blob>,
   owner_service_info list<blob>,
   last_chunk_sent int,
-  replacement_guid blob,
-  replacement_rv_info blob,
-  replacement_pub_key blob,
   replacement_hmac blob,
   PRIMARY KEY (guid)
 )

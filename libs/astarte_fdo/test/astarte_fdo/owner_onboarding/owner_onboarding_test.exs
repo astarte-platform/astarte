@@ -196,7 +196,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     assert sign1_msg.phdr.alg == :es384
   end
 
-  describe "build_owner_service_info_ready/3" do
+  describe "build_owner_service_info_ready/2" do
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
          %{
            realm: realm_name,
@@ -208,7 +208,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
       assert {:ok, session, response} =
                OwnerOnboarding.build_owner_service_info_ready(
-                 realm_name,
                  session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: new_hmac,
@@ -228,7 +227,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     } do
       assert {:ok, _session, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
-                 realm_name,
                  session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: nil,
@@ -245,7 +243,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
       assert {:ok, _, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
-                 realm_name,
                  session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
@@ -262,7 +259,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
       assert {:ok, _, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
-                 realm_name,
                  session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
@@ -278,8 +274,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
       assert {:error, :failed_66} =
                OwnerOnboarding.build_owner_service_info_ready(
-                 realm_name,
-                 %Session{guid: :crypto.strong_rand_bytes(16)},
+                 %Session{guid: :crypto.strong_rand_bytes(16), realm: realm_name},
                  %DeviceServiceInfoReady{
                    replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: 0

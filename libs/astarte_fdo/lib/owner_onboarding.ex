@@ -210,20 +210,19 @@ defmodule Astarte.FDO.OwnerOnboarding do
   end
 
   def build_owner_service_info_ready(
-        realm_name,
         session,
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
           max_owner_service_info_sz: max_owner_service_info_sz
         }
       ) do
-    with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
+    with {:ok, _} <- Queries.fetch_session(session.realm, session.guid),
          {:ok, session} <-
-           Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
+           Session.add_max_owner_service_info_size(session, session.realm, max_owner_service_info_sz),
          {:ok, session} <-
            Session.add_replacement_hmac(
              session,
-             realm_name,
+             session.realm,
              replacement_hmac || session.hmac
            ) do
       response =

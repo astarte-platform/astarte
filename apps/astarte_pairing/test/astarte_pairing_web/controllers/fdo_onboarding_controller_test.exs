@@ -169,7 +169,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       setup_authenticated(context, :service_info_start, 66)
     end
 
-    test "calls OwnerOnboarding.build_owner_service_info_ready/3", %{
+    test "calls OwnerOnboarding.build_owner_service_info_ready/2", %{
       conn: conn,
       create_path: path,
       message_id: id,
@@ -179,7 +179,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "ok"}
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
+      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _ ->
         {:ok, session, expected_response}
       end)
 

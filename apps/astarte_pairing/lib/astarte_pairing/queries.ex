@@ -180,7 +180,6 @@ defmodule Astarte.Pairing.Queries do
 
     query =
       from o in OwnershipVoucher,
-        hints: ["ALLOW FILTERING"],
         prefix: ^keyspace_name,
         select: o.voucher_data
 
