@@ -129,7 +129,12 @@ const astarteDeviceObjectSchema = yup
   })
   .required();
 
-type AstarteDeviceStatus = 'never_connected' | 'connected' | 'disconnected' | 'in_deletion';
+type AstarteDeviceStatus =
+  | 'never_connected'
+  | 'connected'
+  | 'disconnected'
+  | 'in_deletion'
+  | 'unknown_status';
 
 export class AstarteDevice {
   id: string;
@@ -204,6 +209,9 @@ export class AstarteDevice {
     }
     if (this.lastConnection == null) {
       return 'never_connected';
+    }
+    if (this.lastConnection && !this.lastDisconnection && !this.isConnected) {
+      return 'unknown_status';
     }
     return this.isConnected ? 'connected' : 'disconnected';
   }

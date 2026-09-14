@@ -40,6 +40,7 @@ const iconToClassName = {
   statusOK: 'fas fa-check-circle color-green',
   statusConnected: 'fas fa-circle color-green',
   statusDisconnected: 'fas fa-circle color-red',
+  statusUnknown: 'fas fa-question-circle color-yellow',
   statusExWarning: 'fas fa-exclamation-circle color-yellow',
   statusWarning: 'fas fa-circle color-yellow',
   statusKO: 'fas fa-times-circle color-red',

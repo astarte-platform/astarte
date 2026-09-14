@@ -119,11 +119,16 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
     iconTooltip = 'Connected';
     statusLabel = 'Connected';
     lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
-  } else if (device.lastConnection) {
+  } else if (device.lastConnection && device.lastDisconnection) {
     icon = 'statusDisconnected' as const;
     iconTooltip = 'Disconnected';
     statusLabel = 'Disconnected';
     lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
+  } else if (device.lastConnection) {
+    icon = 'statusUnknown' as const;
+    iconTooltip = 'Unknown';
+    statusLabel = 'Unknown status';
+    lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else {
     icon = 'statusNeverConnected' as const;
     iconTooltip = 'Never connected';
