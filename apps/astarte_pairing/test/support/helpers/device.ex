@@ -68,14 +68,14 @@ defmodule Astarte.Helpers.Device do
     introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
     interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
     interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
-    secret = CredentialsSecret.hash(secret)
+    hash = if secret, do: CredentialsSecret.hash(secret)
 
     device_db_params = %{
       introspection: introspection,
       introspection_minor: introspection_minor,
       exchanged_bytes_by_interface: interfaces_bytes,
       exchanged_msgs_by_interface: interfaces_msgs,
-      credentials_secret: secret
+      credentials_secret: hash
     }
 
     device_db = struct(Device, Map.merge(device, device_db_params))

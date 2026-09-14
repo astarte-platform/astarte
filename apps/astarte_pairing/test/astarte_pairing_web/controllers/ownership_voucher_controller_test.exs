@@ -21,11 +21,25 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
   import Astarte.Helpers.FDO
+
+  @sample_device_id Device.random_device_id()
+  @sample_hw_id Device.encode_device_id(@sample_device_id)
+
+  @sample_initial_introspection %{
+    "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
+    "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
+  }
 
   @sample_key_name "owner_key"
 
@@ -37,6 +51,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   -----END EC PRIVATE KEY-----
   """
 
+  @sample_guid <<177, 241, 216, 240, 58, 159, 76, 248, 180, 107, 35, 169, 76, 252, 102, 231>>
   @sample_ownership_voucher_pem """
   -----BEGIN OWNERSHIP VOUCHER-----
   hRhlWL6GGGVQsfHY8DqfTPi0ayOpTPxm54GEggNDGR+SggJFRH8AAAGCBEMZH5KC
@@ -60,6 +75,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   @sample_load_params %{
     data: %{
+      "hw_id" => @sample_hw_id,
       "ownership_voucher" => sample_voucher(),
       "key_name" => @sample_key_name,
       "key_algorithm" => "es256"
@@ -75,7 +91,19 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     %{namespace: namespace}
   end
 
-  setup :verify_on_exit!
+  setup context do
+    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+
+      %DeviceStruct{device_id: @sample_device_id}
+      |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
+
+      Queries.delete_ownership_voucher(realm_name, sample_device_guid())
+      Queries.delete_ownership_voucher(realm_name, @sample_guid)
+    end)
+  end
 
   describe "/fdo/ownership_vouchers" do
     setup :register_setup
@@ -91,6 +119,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
       params = %{
         data: %{
+          "hw_id" => @sample_hw_id,
           "ownership_voucher" => @sample_ownership_voucher_pem,
           "key_name" => @sample_key_name,
           "key_algorithm" => "es256"
@@ -103,6 +132,64 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         |> json_response(200)
 
       assert get_in(body, ["data", "public_key"]) == expected_public_key
+    end
+
+    test "registers the device without a credentials secret", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      assert {:ok, %{credentials_secret: nil}} =
+               DeviceQueries.fetch(realm_name, @sample_device_id)
+    end
+
+    test "registers the device with the specified initial introspection", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "initial_introspection" => @sample_initial_introspection,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      assert {:ok, device} = DeviceQueries.fetch(realm_name, @sample_device_id)
+
+      assert device.introspection == %{
+               "org.astarteplatform.OtherValues" => 1,
+               "org.astarteplatform.Values" => 0
+             }
+
+      assert device.introspection_minor == %{
+               "org.astarteplatform.OtherValues" => 0,
+               "org.astarteplatform.Values" => 4
+             }
     end
 
     test "returns 422 when the ownership_voucher field is missing", context do
@@ -306,6 +393,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
     params = %{
       data: %{
+        "hw_id" => @sample_hw_id,
         "ownership_voucher" => @sample_ownership_voucher_pem,
         "key_name" => @sample_key_name,
         "key_algorithm" => "es256"

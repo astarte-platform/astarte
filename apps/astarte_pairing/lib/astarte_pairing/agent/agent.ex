@@ -26,31 +26,15 @@ defmodule Astarte.Pairing.Agent do
   alias Astarte.Pairing.Agent.DeviceRegistrationResponse
   alias Astarte.Pairing.Engine
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceRegisteredEvent
-  alias Astarte.Events.Triggers
-  alias Astarte.Events.TriggersHandler
-
   def register_device(realm, attrs \\ %{}) do
     changeset =
       %DeviceRegistrationRequest{}
       |> DeviceRegistrationRequest.changeset(attrs)
 
-    with {:ok,
-          %DeviceRegistrationRequest{hw_id: hw_id, initial_introspection: initial_introspection}} <-
-           Ecto.Changeset.apply_action(changeset, :insert),
-         initial_introspection =
-           Enum.map(initial_introspection, fn {interface_name,
-                                               %{"major" => major, "minor" => minor}} ->
-             %{
-               interface_name: interface_name,
-               major_version: major,
-               minor_version: minor
-             }
-           end),
-         {:ok, credentials_secret} <-
-           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection) do
-      dispatch_device_registration_trigger(realm, hw_id)
-
+    with {:ok, request} <- Ecto.Changeset.apply_action(changeset, :insert),
+         %{hw_id: hw_id, initial_introspection: initial_introspection} = request,
+         opts = [initial_introspection: initial_introspection],
+         {:ok, credentials_secret} <- Engine.register_device(realm, hw_id, opts) do
       {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}}
     end
   end
@@ -59,30 +43,5 @@ defmodule Astarte.Pairing.Agent do
     with {:ok, _} <- Device.decode_device_id(device_id) do
       Engine.unregister_device(realm, device_id)
     end
-  end
-
-  defp dispatch_device_registration_trigger(realm_name, hw_id) do
-    timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-    event_key = :on_device_registered
-    event_type = :device_registered_event
-    {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
-
-    Triggers.find_device_trigger_targets(realm_name, device_id, event_key)
-    |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceRegisteredEvent{})
-  end
-
-  defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do
-    targets
-    |> Enum.map(fn {target, policy} ->
-      TriggersHandler.dispatch_event(
-        event,
-        event_type,
-        target,
-        realm_name,
-        device_id,
-        timestamp,
-        policy
-      )
-    end)
   end
 end

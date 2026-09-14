@@ -20,6 +20,9 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.FDOSession
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
@@ -40,6 +43,8 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p256_x509} = Keys.from_pem(key_p256_x509)
     cbor_p256_x509 = OVCore.cbor_encode(voucher_p256_x509)
     id_p256_x509 = voucher_p256_x509.header.guid
+    device_id_p256_x509 = Device.random_device_id()
+    DeviceQueries.register(realm_name, device_id_p256_x509, "p256x509", nil)
     key_alg = :es256
     key_name = "ECDH256_X509_#{System.unique_integer([:positive])}"
     {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
@@ -47,14 +52,15 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     :ok = Secrets.import_key(key_name, key_alg, key_p256_x509, namespace: namespace)
     {:ok, _key_p256_x509} = Secrets.get_key(key_name, namespace: namespace)
 
-    attrs = %{
+    voucher = %OwnershipVoucher{
+      device_id: device_id_p256_x509,
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_p256_x509,
       guid: id_p256_x509
     }
 
-    Queries.create_ownership_voucher(realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(realm_name, voucher)
 
     hello_msg_p256_x509 =
       HelloDevice.generate(guid: id_p256_x509, kex_name: "ECDH256", easig_info: :es256)
@@ -68,20 +74,23 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p384_x509} = Keys.from_pem(key_p384_x509)
     cbor_p384_x509 = OVCore.cbor_encode(voucher_p384_x509)
     id_p384_x509 = voucher_p384_x509.header.guid
+    device_id_p384_x509 = Device.random_device_id()
+    DeviceQueries.register(realm_name, device_id_p384_x509, "p384x509", nil)
 
     {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p384_x509, namespace: namespace)
     {:ok, _key_p384_x509} = Secrets.get_key(key_name, namespace: namespace)
 
-    attrs = %{
+    voucher = %OwnershipVoucher{
+      device_id: device_id_p384_x509,
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_p384_x509,
       guid: id_p384_x509
     }
 
-    Queries.create_ownership_voucher(realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(realm_name, voucher)
 
     hello_msg_p384_x509 =
       HelloDevice.generate(guid: id_p384_x509, kex_name: "ECDH384", easig_info: :es384)
@@ -94,19 +103,24 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p256_chain} = Keys.from_pem(key_p256_chain)
     cbor_p256_chain = OVCore.cbor_encode(voucher_p256_chain)
     id_p256_chain = voucher_p256_chain.header.guid
+    device_id_p256_chain = Device.random_device_id()
+    :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
+    DeviceQueries.register(realm_name, device_id_p256_chain, "p256chain", nil)
+
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
     {:ok, _key_p256_chain} = Secrets.get_key(key_name, namespace: namespace)
 
-    attrs = %{
+    voucher = %OwnershipVoucher{
+      device_id: device_id_p256_chain,
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_p256_chain,
       guid: id_p256_chain
     }
 
-    Queries.create_ownership_voucher(realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(realm_name, voucher)
 
     hello_msg_p256_x5chain =
       HelloDevice.generate(guid: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
@@ -119,19 +133,23 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p384_chain} = Keys.from_pem(key_p384_chain)
     cbor_p384_chain = OVCore.cbor_encode(voucher_p384_chain)
     id_p384_chain = voucher_p384_chain.header.guid
+    device_id_p384_chain = Device.random_device_id()
+    DeviceQueries.register(realm_name, device_id_p384_chain, "p384chain", nil)
+
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p384_chain, namespace: namespace)
     {:ok, _key_p384_chain} = Secrets.get_key(key_name, namespace: namespace)
 
-    attrs = %{
+    voucher = %OwnershipVoucher{
+      device_id: device_id_p384_chain,
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_p384_chain,
       guid: id_p384_chain
     }
 
-    Queries.create_ownership_voucher(realm_name, attrs)
+    :ok = Queries.create_ownership_voucher(realm_name, voucher)
 
     hello_msg_p384_x5chain =
       HelloDevice.generate(guid: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)
@@ -139,15 +157,27 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     cbor_hello_p384_x5chain = HelloDevice.cbor_encode(hello_msg_p384_x5chain)
 
     %{
-      p256_x509: %{id: id_p256_x509, cbor_hello: cbor_hello_p256_x509, key_struct: key_p256_x509},
+      p256_x509: %{
+        id: id_p256_x509,
+        device_id: device_id_p256_x509,
+        cbor_hello: cbor_hello_p256_x509,
+        key_struct: key_p256_x509
+      },
       p256_chain: %{
         id: id_p256_chain,
+        device_id: device_id_p256_chain,
         cbor_hello: cbor_hello_p256_chain,
         key_struct: key_p256_chain
       },
-      p384_x509: %{id: id_p384_x509, cbor_hello: cbor_hello_p384_x509, key_struct: key_p384_x509},
+      p384_x509: %{
+        id: id_p384_x509,
+        device_id: device_id_p384_x509,
+        cbor_hello: cbor_hello_p384_x509,
+        key_struct: key_p384_x509
+      },
       p384_chain: %{
         id: id_p384_chain,
+        device_id: device_id_p384_chain,
         cbor_hello: cbor_hello_p384_x5chain,
         key_struct: key_p384_chain
       }
@@ -316,7 +346,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   describe "ov_next_entry/3" do
-    test "returns {:ok, entry} for valid entry_num 0", %{realm_name: realm_name, device_id: guid} do
+    test "returns {:ok, entry} for valid entry_num 0", %{realm_name: realm_name, guid: guid} do
       cbor_body = CBOR.encode([0])
       assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid)
     end

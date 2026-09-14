@@ -22,7 +22,10 @@ defmodule Astarte.Pairing.Engine do
   """
 
   alias Astarte.Core.Device
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceRegisteredEvent
   alias Astarte.DataAccess.Device, as: DataAccessDevice
+  alias Astarte.Events.Triggers
+  alias Astarte.Events.TriggersHandler
   alias Astarte.Pairing.CertVerifier
   alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config
@@ -51,7 +54,7 @@ defmodule Astarte.Pairing.Engine do
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
+         {:ok, device} <- DataAccessDevice.fetch_with_unconfirmed_status(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
          {:credentials_inhibited?, false} <-
@@ -122,6 +125,8 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
+  @spec register_device(String.t(), Device.encoded_device_id(), keyword()) ::
+          {:ok, nil} | {:ok, String.t()} | {:error, term()}
   def register_device(realm, hardware_id, opts \\ []) do
     Logger.debug(
       "register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
@@ -129,12 +134,29 @@ defmodule Astarte.Pairing.Engine do
 
     :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
 
+    opts =
+      Keyword.update(
+        opts,
+        :initial_introspection,
+        [],
+        &Enum.map(&1, fn {interface_name, %{"major" => major, "minor" => minor}} ->
+          %{
+            interface_name: interface_name,
+            major_version: major,
+            minor_version: minor
+          }
+        end)
+      )
+
+    with_credentials? = Keyword.get(opts, :with_credentials?, true)
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          :ok <- verify_can_register_device(realm, device_id),
-         credentials_secret <- CredentialsSecret.generate(),
-         secret_hash <- CredentialsSecret.hash(credentials_secret),
+         {credentials_secret, secret_hash} = generate_credentials_secret(with_credentials?),
          {:ok, _device} <-
            DataAccessDevice.register(realm, device_id, hardware_id, secret_hash, opts) do
+      dispatch_device_registration_trigger(realm, hardware_id)
+
       {:ok, credentials_secret}
     else
       {:error, :shutdown} ->
@@ -143,6 +165,47 @@ defmodule Astarte.Pairing.Engine do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  def add_unconfirmed_credentials(realm_name, device_id) do
+    {credentials_secret, secret_hash} = generate_credentials_secret(true)
+
+    with :ok <- DataAccessDevice.add_unconfirmed_credentials(realm_name, device_id, secret_hash) do
+      {:ok, credentials_secret}
+    end
+  end
+
+  defp generate_credentials_secret(false = _with_credentials?), do: {nil, nil}
+
+  defp generate_credentials_secret(true = _with_credentials?) do
+    credentials_secret = CredentialsSecret.generate()
+    secret_hash = CredentialsSecret.hash(credentials_secret)
+    {credentials_secret, secret_hash}
+  end
+
+  defp dispatch_device_registration_trigger(realm_name, hw_id) do
+    timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    event_key = :on_device_registered
+    event_type = :device_registered_event
+    {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
+
+    Triggers.find_device_trigger_targets(realm_name, device_id, event_key)
+    |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceRegisteredEvent{})
+  end
+
+  defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do
+    targets
+    |> Enum.map(fn {target, policy} ->
+      TriggersHandler.dispatch_event(
+        event,
+        event_type,
+        target,
+        realm_name,
+        device_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   defp verify_can_register_device(realm_name, device_id) do
@@ -188,7 +251,7 @@ defmodule Astarte.Pairing.Engine do
     )
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.unregister_device(realm, device_id)
+      DataAccessDevice.unregister(realm, device_id)
     end
   end
 

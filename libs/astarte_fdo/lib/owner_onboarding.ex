@@ -53,13 +53,15 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, {device_id, ownership_voucher}} <-
+           OwnershipVoucher.fetch_with_device_id(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key.alg),
          {:ok, token, session} <-
            Session.new(
              realm_name,
+             device_id,
              hello_device,
              ownership_voucher
            ) do
@@ -245,13 +247,17 @@ defmodule Astarte.FDO.OwnerOnboarding do
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
          {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, to2_session.guid),
          :ok <- Queries.mark_voucher_as_claimed(realm_name, to2_session.guid),
+         :ok <- maybe_add_output_voucher(realm_name, ov_entry, to2_session),
          {:ok, _device} <- Device.confirm(realm_name, to2_session.device_id) do
-      if not OwnershipVoucher.credential_reuse?(ov_entry) do
-        add_output_voucher(realm_name, ov_entry, to2_session)
-      end
-
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
       {:ok, done2_message}
+    end
+  end
+
+  defp maybe_add_output_voucher(realm_name, ov_entry, to2_session) do
+    case OwnershipVoucher.credential_reuse?(ov_entry) do
+      true -> :ok
+      false -> add_output_voucher(realm_name, ov_entry, to2_session)
     end
   end
 

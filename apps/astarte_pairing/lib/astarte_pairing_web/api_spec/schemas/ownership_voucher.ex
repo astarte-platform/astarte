@@ -24,12 +24,16 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
     @moduledoc false
     require OpenApiSpex
 
+    alias Astarte.PairingWeb.ApiSpec.Schemas.Agent.DeviceRegistrationRequest
+
     OpenApiSpex.schema(%{
       type: :object,
       properties: %{
         data: %Schema{
           type: :object,
           properties: %{
+            hw_id: DeviceRegistrationRequest.hw_id(),
+            initial_introspection: DeviceRegistrationRequest.initial_introspection(),
             ownership_voucher: %Schema{
               type: :string,
               description:
@@ -61,7 +65,7 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
               description: "Optional PEM-encoded replacement public key."
             }
           },
-          required: [:ownership_voucher, :key_name, :key_algorithm]
+          required: [:hw_id, :ownership_voucher, :key_name, :key_algorithm]
         }
       },
       required: [:data]

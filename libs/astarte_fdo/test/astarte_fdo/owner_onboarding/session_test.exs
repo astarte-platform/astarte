@@ -21,12 +21,12 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.OwnerOnboarding.Session
-  alias Astarte.RPC.RealmManagement
   alias COSE.Keys
   alias COSE.Keys.ECC
   alias COSE.Keys.Symmetric
@@ -37,6 +37,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     test "returns required session information", context do
       %{
         realm: realm_name,
+        device_id: device_id,
         hello_device: hello_device,
         ownership_voucher: ownership_voucher
       } = context
@@ -44,6 +45,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, _token, session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
@@ -53,28 +55,27 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert session.owner_random
       assert session.xa
       assert {:es256, %ECC{}} = session.device_signature
+      assert session.device_id == device_id
     end
 
-    test "cleans up previously registered devices", context do
+    test "cleans up previously unconfirmed device credentials", context do
       %{
         realm: realm_name,
         hello_device: hello_device,
         device_id: device_id,
-        encoded_device_id: encoded_device_id,
         ownership_voucher: ownership_voucher
       } = context
 
-      create_session_with_device_id(realm_name, hello_device, ownership_voucher, device_id)
+      :ok = DeviceQueries.add_unconfirmed_credentials(realm_name, device_id, "secret")
 
-      RealmManagement
-      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
-
-      assert {:ok, _, _} = Session.new(realm_name, hello_device, ownership_voucher)
+      assert {:ok, _, _} = Session.new(realm_name, device_id, hello_device, ownership_voucher)
+      assert {:ok, %{credentials_secret: nil}} = DeviceQueries.fetch(realm_name, device_id)
     end
 
     test "cleans up previous device session", context do
       %{
         realm: realm_name,
+        device_id: device_id,
         hello_device: hello_device,
         ownership_voucher: ownership_voucher
       } = context
@@ -84,6 +85,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, token_1, _session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
@@ -94,6 +96,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, token_2, _session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
@@ -243,15 +246,15 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   end
 
   describe "derive_key/2 with P-384 (ECDH384)" do
-    setup %{realm: realm_name} do
+    setup %{realm: realm_name, device_id: device_id} do
       {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
       {:ok, p384_owner_key} = Keys.from_pem(owner_key_pem)
 
-      device_id = p384_voucher.header.guid
+      guid = p384_voucher.header.guid
 
       hello_device =
         HelloDevice.generate(
-          device_id: device_id,
+          guid: guid,
           kex_name: "ECDH384",
           easig_info: :es384
         )
@@ -259,7 +262,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher)
+        Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session_with_secret} =
         Session.build_session_secret(session, realm_name, p384_owner_key, xb)
@@ -275,15 +278,15 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   end
 
   describe "next_owner_service_info_chunk/2" do
-    setup %{realm: realm_name} do
+    setup %{realm: realm_name, device_id: device_id} do
       {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
       {:ok, p384_owner_key} = Keys.from_pem(owner_key_pem)
 
-      device_id = p384_voucher.header.guid
+      guid = p384_voucher.header.guid
 
       hello_device =
         HelloDevice.generate(
-          device_id: device_id,
+          guid: guid,
           kex_name: "ECDH384",
           easig_info: :es384
         )
@@ -291,7 +294,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher)
+        Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session} =
         Session.build_session_secret(session, realm_name, p384_owner_key, xb)

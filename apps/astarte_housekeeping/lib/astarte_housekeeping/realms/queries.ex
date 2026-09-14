@@ -310,7 +310,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
-         :ok <- create_unconfirmed_devices_table(keyspace_name),
          :ok <- create_ownership_vouchers_table(keyspace_name),
          :ok <- create_to2_sessions_table(keyspace_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
@@ -650,24 +649,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_unconfirmed_devices_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.unconfirmed_devices (
-      device_id uuid,
-      created_at timestamp,
-      PRIMARY KEY (device_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
   defp create_ownership_vouchers_table(keyspace_name) do
     query = """
     CREATE TABLE #{keyspace_name}.ownership_vouchers (
       guid blob,
+      device_id uuid,
       voucher_data blob,
       output_voucher blob,
       replacement_guid blob,

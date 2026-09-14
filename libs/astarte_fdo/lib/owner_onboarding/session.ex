@@ -25,7 +25,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
   """
   use TypedStruct
 
-  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.FDO.Core.Hash
@@ -36,13 +36,12 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
   alias Astarte.FDO.Core.OwnerOnboarding.SignatureInfo
   alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.OwnerOnboarding.SessionToken
-  alias Astarte.RPC.RealmManagement
   alias COSE.Messages.Encrypt0
 
   typedstruct do
     field :guid, binary()
     field :hmac, Hash.t()
-    field :device_id, Astarte.DataAccess.UUID, default: nil
+    field :device_id, Astarte.DataAccess.UUID
     field :nonce, binary()
     field :device_signature, SignatureInfo.device_signature()
     field :prove_dv_nonce, binary()
@@ -62,7 +61,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     field :replacement_hmac, Hash.t() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher) do
+  def new(realm_name, device_id, hello_device, ownership_voucher) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
     hmac = ownership_voucher.hmac
@@ -77,13 +76,13 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     with {:ok, owner_random, xa} <- SessionKey.new(kex_name),
          {:ok, device_signature} <-
            Helpers.validate_signature_info(easig_info, ownership_voucher),
-         :ok <- cleanup_previous_session(realm_name, guid),
+         :ok <- cleanup_previous_session(realm_name, device_id, guid),
          signature_params =
            SignatureInfo.device_signature_to_database_params(device_signature),
          session_params =
            %TO2Session{
              guid: guid,
-             device_id: nil,
+             device_id: device_id,
              hmac: hmac,
              nonce: nonce,
              prove_dv_nonce: prove_dv_nonce,
@@ -104,7 +103,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
         %Session{
           guid: guid,
           hmac: hmac,
-          device_id: nil,
+          device_id: device_id,
           nonce: nonce,
           prove_dv_nonce: prove_dv_nonce,
           kex_suite_name: kex_name,
@@ -118,31 +117,14 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
     end
   end
 
-  defp cleanup_previous_session(realm_name, guid) do
-    with :ok <- cleanup_device(realm_name, guid) do
+  defp cleanup_previous_session(realm_name, device_id, guid) do
+    with :ok <- cleanup_credentials(realm_name, device_id) do
       Queries.delete_session(realm_name, guid)
     end
   end
 
-  defp cleanup_device(realm_name, guid) do
-    case fetch(realm_name, guid) do
-      {:ok, %Session{device_id: device_id}} when device_id != nil ->
-        # Device was registered, delete it
-        encoded_device_id = Device.encode_device_id(device_id)
-        ensure_device_deleted(realm_name, encoded_device_id)
-
-      _ ->
-        # Nothing to cleanup
-        :ok
-    end
-  end
-
-  defp ensure_device_deleted(realm_name, encoded_device_id) do
-    case RealmManagement.delete_device(realm_name, encoded_device_id) do
-      :ok -> :ok
-      {:error, :device_not_found} -> :ok
-      error -> error
-    end
+  defp cleanup_credentials(realm_name, device_id) do
+    DeviceQueries.unregister(realm_name, device_id)
   end
 
   def add_setup_dv_nonce(session, realm_name, setup_dv_nonce) do

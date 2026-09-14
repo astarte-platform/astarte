@@ -22,17 +22,15 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   """
   use TypedEctoSchema
 
-  import Ecto.Changeset
-
   alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   alias Astarte.FDO.Core.PublicKey
 
   @primary_key false
   typed_schema "ownership_vouchers" do
     field :guid, Astarte.DataAccess.UUID, primary_key: true
-    field :status, Ecto.Enum, values: [created: 0, claimed: 1]
+    field :device_id, Astarte.DataAccess.UUID
+    field :status, Ecto.Enum, values: [created: 0, claimed: 1], default: :created
     field :voucher_data, :binary
     field :output_voucher, :binary
     field :user_id, :binary
@@ -41,20 +39,5 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
     field :replacement_guid, :binary
     field :replacement_rendezvous_info, CBOREncoded, using: RendezvousInfo
     field :replacement_public_key, CBOREncoded, using: PublicKey
-  end
-
-  @doc false
-  def changeset(%OwnershipVoucher{} = record, attrs) do
-    record
-    |> cast(attrs, [
-      :key_name,
-      :voucher_data,
-      :guid,
-      :key_algorithm,
-      :replacement_guid,
-      :replacement_rendezvous_info,
-      :replacement_public_key
-    ])
-    |> validate_required([:key_name, :key_algorithm, :voucher_data, :guid])
   end
 end

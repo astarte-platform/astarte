@@ -23,9 +23,6 @@ defmodule Astarte.Helpers.FDO do
 
   import StreamData
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
@@ -167,12 +164,6 @@ defmodule Astarte.Helpers.FDO do
 
   def hello_ack(nonce) do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
-  end
-
-  def insert_voucher(realm_name, attrs) when is_map(attrs) do
-    %DBOwnershipVoucher{}
-    |> DBOwnershipVoucher.changeset(attrs)
-    |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 
   def generate_p384_x5chain_data_and_pem do

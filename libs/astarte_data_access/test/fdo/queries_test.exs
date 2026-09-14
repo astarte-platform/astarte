@@ -19,6 +19,7 @@
 defmodule Astarte.DataAccess.FDO.QueriesTest do
   use ExUnit.Case
 
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.Queries
@@ -52,66 +53,65 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
   defp sample_voucher, do: :crypto.strong_rand_bytes(32)
 
   describe "ownership voucher" do
+    setup :setup_voucher
+
     test "create and get voucher data" do
       guid = random_guid()
+      device_id = Device.random_device_id()
       voucher = sample_voucher()
 
-      attrs = %{
+      ownership_voucher = %OwnershipVoucher{
         guid: guid,
+        device_id: device_id,
         voucher_data: voucher,
         key_name: "test_key_name",
         key_algorithm: :es256
       }
 
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
-      assert {:ok, ^voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert :ok = Queries.create_ownership_voucher(@realm, ownership_voucher)
+
+      assert {:ok, %OwnershipVoucher{voucher_data: ^voucher}} =
+               Queries.fetch_ownership_voucher(@realm, guid)
     end
 
     test "get voucher returns error when not found" do
       guid = random_guid()
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
     end
 
     test "delete ownership voucher" do
       guid = random_guid()
       voucher = sample_voucher()
 
-      attrs = %{
+      voucher = %OwnershipVoucher{
         guid: guid,
         voucher_data: voucher,
         key_name: "test_key_name",
         key_algorithm: :es256
       }
 
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, attrs)
+      :ok = Queries.create_ownership_voucher(@realm, voucher)
       assert {:ok, _} = Queries.delete_ownership_voucher(@realm, guid)
-      assert {:error, _} = Queries.get_ownership_voucher(@realm, guid)
+      assert {:error, _} = Queries.fetch_ownership_voucher(@realm, guid)
+    end
+  end
+
+  describe "fetch_device_id_and_ownership_voucher/2" do
+    setup :setup_voucher
+
+    test "returns the voucher and the device_id", context do
+      %{realm_name: realm_name, guid: guid, device_id: device_id, voucher_data: voucher_data} =
+        context
+
+      assert Queries.fetch_device_id_and_ownership_voucher(realm_name, guid) ==
+               {:ok, {device_id, voucher_data}}
     end
 
-    test "replace ownership voucher" do
-      guid = random_guid()
-      old_voucher = sample_voucher()
-      new_voucher = sample_voucher()
+    test "returns :not_found for invalid guid", context do
+      %{realm_name: realm_name} = context
 
-      old_attrs = %{
-        guid: guid,
-        voucher_data: old_voucher,
-        key_name: "test_key_name",
-        key_algorithm: :es256
-      }
-
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, old_attrs)
-
-      new_attrs = %{
-        guid: guid,
-        voucher_data: new_voucher,
-        key_name: "test_key_name",
-        key_algorithm: :es256
-      }
-
-      assert {:ok, _} = Queries.create_ownership_voucher(@realm, new_attrs)
-
-      assert {:ok, ^new_voucher} = Queries.get_ownership_voucher(@realm, guid)
+      assert Queries.fetch_device_id_and_ownership_voucher(realm_name, random_guid()) ==
+               {:error, :not_found}
     end
   end
 
@@ -304,16 +304,28 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
 
   defp setup_voucher(_context) do
     guid = :crypto.strong_rand_bytes(16)
+    device_id = Device.random_device_id()
+    voucher_data = sample_voucher()
 
     on_exit(fn -> Queries.delete_ownership_voucher(@realm, guid) end)
 
-    Queries.create_ownership_voucher(@realm, %{
-      guid: guid,
-      key_name: "key",
-      key_algorithm: :es256,
-      voucher_data: <<0>>
-    })
+    voucher =
+      %OwnershipVoucher{
+        device_id: device_id,
+        guid: guid,
+        key_name: "key",
+        key_algorithm: :es256,
+        voucher_data: voucher_data
+      }
 
-    %{guid: guid}
+    :ok = Queries.create_ownership_voucher(@realm, voucher)
+
+    %{
+      realm_name: @realm,
+      guid: guid,
+      device_id: device_id,
+      voucher: voucher,
+      voucher_data: voucher_data
+    }
   end
 end

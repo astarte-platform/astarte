@@ -80,7 +80,6 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:decimal, "~> 3.0", override: true},
-      {:exandra, github: "vinniefranco/exandra", override: true},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},
       {:observer_cli, "~> 1.5"},
