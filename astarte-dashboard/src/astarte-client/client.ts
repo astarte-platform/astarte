@@ -792,9 +792,11 @@ class AstarteClient {
   }
 
   async uploadFdoVoucher(
+    hwId: AstarteDevice['id'],
     keyName: string,
     voucherText: string,
     options?: {
+      initialIntrospection?: { [interfaceName: string]: AstarteInterfaceDescriptor };
       keyAlgorithm?: string;
       replacementGuid?: string;
       replacementRvInfo?: string;
@@ -802,6 +804,7 @@ class AstarteClient {
     },
   ): Promise<any> {
     const payloadData: any = {
+      hw_id: hwId,
       ownership_voucher: voucherText,
     };
 
@@ -811,6 +814,13 @@ class AstarteClient {
 
     if (options?.keyAlgorithm?.trim()) {
       payloadData.key_algorithm = options.keyAlgorithm;
+    }
+
+    if (!_.isEmpty(options?.initialIntrospection)) {
+      payloadData.initial_introspection = _.mapValues(
+        options?.initialIntrospection,
+        (interfaceDescriptor) => _.pick(interfaceDescriptor, ['minor', 'major']),
+      );
     }
 
     if (options?.replacementGuid?.trim()) {
