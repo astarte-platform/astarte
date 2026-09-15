@@ -817,10 +817,10 @@ class AstarteClient {
       payloadData.replacement_guid = options.replacementGuid;
     }
     if (options?.replacementRvInfo?.trim()) {
-      payloadData.replacement_rv_info = options.replacementRvInfo;
+      payloadData.replacement_rendezvous_info = options.replacementRvInfo;
     }
     if (options?.replacementPubKey?.trim()) {
-      payloadData.replacement_pub_key = options.replacementPubKey;
+      payloadData.replacement_public_key = options.replacementPubKey;
     }
 
     return axios({
