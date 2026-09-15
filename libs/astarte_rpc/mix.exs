@@ -59,7 +59,7 @@ defmodule Astarte.RPC.MixProject do
 
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
+      {:astarte_core, path: "../../apps/astarte_core"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},

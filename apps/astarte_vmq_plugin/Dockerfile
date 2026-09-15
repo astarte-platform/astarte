@@ -34,8 +34,6 @@ ENV ASTARTE_LIBRARIES_PATH=../../libraries
 # Cache elixir deps
 ADD mix.exs mix.lock .
 ADD apps/astarte_vmq_plugin/mix.exs apps/astarte_vmq_plugin/
-COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
 RUN mix do deps.get + deps.compile --skip-local-deps
 
 COPY libs/astarte_core libraries/astarte_core

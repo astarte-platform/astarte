@@ -66,7 +66,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, path: "../astarte_core"},
       {:phoenix, "~> 1.7"},
       {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},

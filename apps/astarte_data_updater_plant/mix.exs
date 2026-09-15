@@ -78,7 +78,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, path: "../astarte_core"},
       {:jason, "~> 1.2"},
       {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},

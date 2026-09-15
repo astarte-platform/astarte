@@ -63,7 +63,7 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
+      {:astarte_core, path: "../../apps/astarte_core"},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},

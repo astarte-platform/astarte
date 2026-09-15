@@ -24,8 +24,8 @@ COPY tools/astarte_e2e/mix.exs ./
 COPY tools/astarte_e2e/mix.lock ./
 COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
 COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
-COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
+COPY apps/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY apps/astarte_core/mix.lock libraries/astarte_core/mix.lock
 COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
 COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
 COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs

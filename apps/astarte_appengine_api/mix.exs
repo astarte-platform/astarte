@@ -68,7 +68,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, path: "../astarte_core"},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:amqp, "~> 4.1"},
       {:phoenix, "~> 1.7"},
