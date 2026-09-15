@@ -48,6 +48,11 @@ const DeviceStatus = ({ status }: DeviceStatusProps): React.ReactElement => {
       icon = 'statusInDeletion' as const;
       break;
 
+    case 'unknown_status':
+      statusString = 'Unknown status';
+      icon = 'statusUnknown' as const;
+      break;
+
     case 'never_connected':
     default:
       statusString = 'Never connected';
