@@ -91,7 +91,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
                )
 
       Queries
-      |> expect(:delete_session, fn ^realm_name, ^guid -> :ok end)
+      |> expect(:delete_session, fn ^guid -> :ok end)
 
       assert {:ok, token_2, _session} =
                Session.new(
@@ -218,7 +218,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
   end
 
-  describe "derive_key/2" do
+  describe "derive_key/1" do
     setup context do
       %{
         realm: realm_name,
@@ -227,7 +227,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         owner_key: owner_key
       } = context
 
-      {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
+      {:ok, session} = Session.build_session_secret(session, owner_key, xb)
 
       %{session: session}
     end
@@ -238,7 +238,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         session: session
       } = context
 
-      assert {:ok, session} = Session.derive_key(session, realm_name)
+      assert {:ok, session} = Session.derive_key(session)
       assert %Symmetric{k: binary_key, alg: alg} = session.sevk
       assert is_binary(binary_key)
       assert alg == :aes_256_gcm
@@ -265,13 +265,13 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session_with_secret} =
-        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+        Session.build_session_secret(session, p384_owner_key, xb)
 
       %{session: session_with_secret}
     end
 
     test "successfully derives keys using SHA-384 logic", %{session: session, realm: realm_name} do
-      assert {:ok, derived_session} = Session.derive_key(session, realm_name)
+      assert {:ok, derived_session} = Session.derive_key(session)
       assert %Symmetric{k: key_bytes, alg: :aes_256_gcm} = derived_session.sevk
       assert byte_size(key_bytes) == 32
     end
@@ -297,10 +297,10 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session} =
-        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+        Session.build_session_secret(session, p384_owner_key, xb)
 
       chunks = [<<1>>, <<2>>]
-      {:ok, session} = Session.add_owner_service_info(session, realm_name, chunks)
+      {:ok, session} = Session.add_owner_service_info(session, chunks)
 
       %{session: session, chunks: chunks}
     end
@@ -311,7 +311,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       first_chunk = Enum.at(chunks, 0)
 
       assert {:ok, new_session, ^first_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert new_session.last_chunk_sent == 0
     end
@@ -320,10 +320,10 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       %{realm_name: realm_name, session: session, chunks: chunks} = context
       second_chunk = Enum.at(chunks, 1)
 
-      {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session, realm_name)
+      {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session)
 
       assert {:ok, new_session, ^second_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert new_session.last_chunk_sent == 1
     end
@@ -341,16 +341,16 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         for _ <- 1..chunks_len, reduce: session do
           session ->
             {:ok, session, _next_chunk} =
-              Session.next_owner_service_info_chunk(session, realm_name)
+              Session.next_owner_service_info_chunk(session)
 
             session
         end
 
       assert {:ok, session_1, ^done_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert {:ok, session_2, ^done_chunk} =
-               Session.next_owner_service_info_chunk(session_1, realm_name)
+               Session.next_owner_service_info_chunk(session_1)
 
       assert session_1.last_chunk_sent == last_chunk
       assert session_2.last_chunk_sent == last_chunk

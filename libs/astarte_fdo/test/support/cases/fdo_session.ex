@@ -105,10 +105,11 @@ defmodule Astarte.Cases.FDOSession do
       key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_ownership_voucher,
-      guid: guid
+      guid: guid,
+      realm: context.realm_name
     }
 
-    Queries.create_ownership_voucher(context.realm_name, voucher)
+    Queries.create_ownership_voucher(voucher)
 
     %{
       owner_key: owner_key,
@@ -154,13 +155,13 @@ defmodule Astarte.Cases.FDOSession do
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)
-      delete_session(context.realm_name, session.guid)
+      delete_session(session.guid)
     end)
 
     {:ok, session} =
-      Session.build_session_secret(session, context.realm_name, context.owner_key, xb)
+      Session.build_session_secret(session, context.owner_key, xb)
 
-    {:ok, session} = Session.derive_key(session, context.realm_name)
+    {:ok, session} = Session.derive_key(session)
 
     %{
       hello_device: hello_device,

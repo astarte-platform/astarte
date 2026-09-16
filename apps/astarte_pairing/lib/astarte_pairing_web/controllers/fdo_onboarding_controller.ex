@@ -40,14 +40,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     summary: "FDO TO2 Hello Device",
     operation_id: "FDOHelloDevice",
     description: "Sets up new owner for proof of ownership.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
     request_body: {
       "TO2 Hello Device",
       "application/cbor",
@@ -101,14 +93,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     summary: "FDO TO2 GetOVNextEntry",
     operation_id: "FDOGetOVNextEntry",
     description: "Requests the next Ownership Voucher Entry.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
     request_body: {
       "TO2 GetOVNextEntry",
       "application/cbor",
@@ -152,14 +136,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     summary: "FDO TO2 ProveDevice",
     operation_id: "FDOProveDevice",
     description: "Proves the provenance of the Device to the new owner.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
     request_body: {
       "TO2 ProveDeviceRequest",
       "application/cbor",
@@ -206,14 +182,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     summary: "FDO TO2 Done",
     operation_id: "FDODone",
     description: "Indicates successful completion of the Transfer of Ownership.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
     request_body: {
       "TO2 Done",
       "application/cbor",
@@ -228,7 +196,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            format: :binary,
            description:
              "This message provides an opportunity for a final ACK after the Owner has invoked the System Info block to
-                          establish agent-to-server communications between the Device and its final Owner.",
+                           establish agent-to-server communications between the Device and its final Owner.",
            example: [
              "NonceTO2SetupDv"
            ]
@@ -258,15 +226,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     operation_id: "FDOServiceInfoReady",
     description:
       "This message signals a state change between the authentication phase of the protocol and the provisioning
-                  phase (ServiceInfo) negotiation.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
+                   phase (ServiceInfo) negotiation.",
     request_body: {
       "TO2 Service Info Ready",
       "application/cbor",
@@ -281,7 +241,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            format: :binary,
            description:
              "This message responds to TO2.DeviceServiceInfoReady and indicates that the Owner Onboarding Service is
-                        ready to start ServiceInfo.",
+                         ready to start ServiceInfo.",
            example: [
              "maxDeviceServiceInfoSz"
            ]
@@ -311,15 +271,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     operation_id: "FDOServiceInfoEnd",
     description:
       "Sends as many Device to Owner ServiceInfo entries as will conveniently fit into a message, based on protocol
-            and Device constraints.",
-    parameters: [
-      realm_name: [
-        in: :path,
-        description: "Name of the realm the device belongs to.",
-        type: :string,
-        required: true
-      ]
-    ],
+             and Device constraints.",
     request_body: {
       "CBOR Service Info End",
       "application/cbor",
@@ -334,7 +286,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            format: :binary,
            description:
              "Sends as many Owner to Device ServiceInfo entries as will conveniently fit into a message, based on protocol
-                          and implementation constraints. This message is part of a loop with TO2.DeviceServiceInfo.",
+                           and implementation constraints. This message is part of a loop with TO2.DeviceServiceInfo.",
            example: [
              "IsMoreServiceInfo,",
              "IsDone",
@@ -361,11 +313,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     ]
 
   def hello_device(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_hello_device = conn.assigns.cbor_body
 
     with {:ok, token, response_msg} <-
-           OwnerOnboarding.hello_device(realm_name, cbor_hello_device) do
+           OwnerOnboarding.hello_device(cbor_hello_device) do
       conn
       |> put_resp_header("authorization", token)
       |> render("default.cbor", %{cbor_response: response_msg})
@@ -373,27 +324,24 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   def ov_next_entry(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_body = conn.assigns.cbor_body
-
-    guid = conn.assigns.to2_session.guid
+    session = conn.assigns.to2_session
 
     with {:ok, response} <-
-           OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid) do
+           OwnerOnboarding.ov_next_entry(cbor_body, session.guid) do
       conn
       |> render("default.cbor", %{cbor_response: response})
     end
   end
 
   def prove_device(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_body = conn.assigns.cbor_body
+    session = conn.assigns.to2_session
 
     with {:ok, session, response} <-
            OwnerOnboarding.prove_device(
-             realm_name,
              cbor_body,
-             conn.assigns.to2_session
+             session
            ) do
       conn
       |> assign(:to2_session, session)
@@ -402,23 +350,22 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   def done(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
     to2_session = conn.assigns.to2_session
 
-    with {:ok, response_msg} <- OwnerOnboarding.done(realm_name, to2_session, conn.assigns.body) do
+    with {:ok, response_msg} <-
+           OwnerOnboarding.done(to2_session, conn.assigns.body) do
       conn
       |> render("secure.cbor", %{cbor_response: response_msg})
     end
   end
 
   def service_info_start(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
+    session = conn.assigns.to2_session
 
     with {:ok, device_service_info_ready} <- DeviceServiceInfoReady.decode(conn.assigns.body),
          {:ok, session, response} <-
            OwnerOnboarding.build_owner_service_info_ready(
-             realm_name,
-             conn.assigns.to2_session,
+             session,
              device_service_info_ready
            ) do
       conn
@@ -428,13 +375,12 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   def service_info_end(conn, _params) do
-    realm_name = Map.fetch!(conn.params, "realm_name")
+    session = conn.assigns.to2_session
 
     with {:ok, device_service_info} <- DeviceServiceInfo.decode(conn.assigns.body),
          {:ok, response} <-
            build_owner_service_info_response(
-             realm_name,
-             conn.assigns.to2_session,
+             session,
              device_service_info
            ) do
       conn
@@ -443,35 +389,31 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   defp build_owner_service_info_response(
-         realm_name,
          session,
          %DeviceServiceInfo{is_more_service_info: true} = device_service_info
        ) do
-    ServiceInfo.build_owner_service_info(realm_name, session, device_service_info)
+    ServiceInfo.build_owner_service_info(session, device_service_info)
   end
 
   defp build_owner_service_info_response(
-         realm_name,
          session,
          %DeviceServiceInfo{is_more_service_info: false, service_info: service_info} =
            device_service_info
        )
        when map_size(service_info) == 0 do
-    ServiceInfo.build_owner_service_info(realm_name, session, device_service_info)
+    ServiceInfo.build_owner_service_info(session, device_service_info)
   end
 
   defp build_owner_service_info_response(
-         realm_name,
          session,
          %DeviceServiceInfo{is_more_service_info: false, service_info: service_info}
        ) do
     device_id = session.device_id
 
     with {:ok, session} <-
-           Session.add_device_service_info(session, realm_name, service_info),
-         {:ok, credentials_secret} <- Engine.add_unconfirmed_credentials(realm_name, device_id) do
+           Session.add_device_service_info(session, service_info),
+         {:ok, credentials_secret} <- Engine.add_unconfirmed_credentials(session.realm, device_id) do
       ServiceInfo.build_and_send_owner_service_info(
-        realm_name,
         session,
         credentials_secret
       )

@@ -135,7 +135,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                prove_device_msg,
                creds
@@ -178,7 +177,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -209,7 +207,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :message_body_error} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -241,7 +238,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -288,7 +284,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds
@@ -316,7 +311,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds
@@ -344,7 +338,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds

@@ -42,11 +42,17 @@ defmodule Astarte.FDO.OwnershipVoucher do
   The corresponding registration on the FDO rendezvous server is revoked first;
   if that fails, the voucher is not deleted.
   """
-  def delete(realm_name, guid) do
-    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(realm_name, guid),
-         :ok <- revoke_rendezvous_registration(realm_name, guid, ownership_voucher.voucher_data),
-         :ok <- ensure_device_voucher_deletion(realm_name, ownership_voucher.device_id) do
-      Queries.delete_ownership_voucher(realm_name, guid)
+  def delete(realm, guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         :ok <-
+           revoke_rendezvous_registration(
+             ownership_voucher.realm,
+             guid,
+             ownership_voucher.voucher_data
+           ),
+         :ok <-
+           ensure_device_voucher_deletion(ownership_voucher.realm, ownership_voucher.device_id) do
+      Queries.delete_ownership_voucher(realm, guid)
     end
   end
 
@@ -76,21 +82,24 @@ defmodule Astarte.FDO.OwnershipVoucher do
     end
   end
 
-  def fetch(realm_name, guid) do
-    case Queries.fetch_ownership_voucher(realm_name, guid) do
-      {:ok, ownership_voucher} ->
-        OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data)
-
-      {:error, reason} ->
-        {:error, reason}
+  def fetch(guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid) do
+      OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data)
     end
   end
 
-  def fetch_with_device_id(realm_name, guid) do
-    with {:ok, {device_id, ownership_voucher_cbor}} <-
-           Queries.fetch_device_id_and_ownership_voucher(realm_name, guid),
+  def fetch_with_realm(guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         {:ok, decoded_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data) do
+      {:ok, {ownership_voucher.realm, decoded_voucher}}
+    end
+  end
+
+  def fetch_with_realm_and_device_id(guid) do
+    with {:ok, {realm_name, device_id, ownership_voucher_cbor}} <-
+           Queries.fetch_device_id_and_ownership_voucher_and_realm(guid),
          {:ok, ownership_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher_cbor) do
-      {:ok, {device_id, ownership_voucher}}
+      {:ok, {realm_name, device_id, ownership_voucher}}
     end
   end
 

@@ -310,8 +310,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
-         :ok <- create_ownership_vouchers_table(keyspace_name),
-         :ok <- create_to2_sessions_table(keyspace_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
          :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
@@ -649,69 +647,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_ownership_vouchers_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.ownership_vouchers (
-      guid blob,
-      device_id uuid,
-      voucher_data blob,
-      output_voucher blob,
-      replacement_guid blob,
-      replacement_rendezvous_info blob,
-      replacement_public_key blob,
-      key_name varchar,
-      key_algorithm int,
-      user_id blob,
-      status int,
-      PRIMARY KEY (guid)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
   defp create_session_key_type(keyspace_name) do
     query = """
     CREATE TYPE #{keyspace_name}.session_key (
       alg int,
       k blob
     );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_to2_sessions_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.to2_sessions (
-      guid blob,
-      device_id uuid,
-      hmac blob,
-      nonce blob,
-      sig_type int,
-      epid_group blob,
-      device_public_key blob,
-      prove_dv_nonce blob,
-      setup_dv_nonce blob,
-      kex_suite_name ascii,
-      cipher_suite_name int,
-      max_owner_service_info_size int,
-      owner_random blob,
-      secret blob,
-      sevk session_key,
-      svk session_key,
-      sek session_key,
-      device_service_info map<tuple<text, text>, blob>,
-      owner_service_info list<blob>,
-      last_chunk_sent int,
-      replacement_hmac blob,
-      PRIMARY KEY (guid)
-    )
-    WITH default_time_to_live = 7200;
     """
 
     with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
@@ -1187,6 +1128,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     with :ok <- create_astarte_keyspace(default_replication),
          :ok <- create_realms_table(),
          :ok <- create_astarte_kv_store(),
+         :ok <- create_astarte_session_key_type(),
+         :ok <- create_astarte_to2_sessions_table(),
+         :ok <- create_astarte_ownership_vouchers_table(),
          :ok <- insert_astarte_schema_version(),
          keyspace_replication_map = keyspace_replication_map(default_replication),
          :ok <- save_keyspace_replication(keyspace_replication_map) do
@@ -1394,6 +1338,121 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     case Repo.query(query, [], opts) do
       {:ok, _} ->
         Logger.info("Initialized Astarte KV Store")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_session_key_type do
+    query = """
+    CREATE TYPE #{Realm.astarte_keyspace_name()}.session_key (
+      alg int,
+      k blob
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte session_key type")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      {:error, %Xandra.Error{reason: :invalid} = err} ->
+        if err.message =~ "already exists" do
+          :ok
+        else
+          {:error, err}
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_to2_sessions_table do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.to2_sessions (
+      guid blob,
+      realm text,
+      device_id uuid,
+      hmac blob,
+      nonce blob,
+      sig_type int,
+      epid_group blob,
+      device_public_key blob,
+      prove_dv_nonce blob,
+      setup_dv_nonce blob,
+      kex_suite_name ascii,
+      cipher_suite_name int,
+      max_owner_service_info_size int,
+      owner_random blob,
+      secret blob,
+      sevk frozen<session_key>,
+      svk frozen<session_key>,
+      sek frozen<session_key>,
+      device_service_info map<frozen<tuple<text, text>>, blob>,
+      owner_service_info list<blob>,
+      last_chunk_sent int,
+      replacement_guid blob,
+      replacement_rv_info blob,
+      replacement_pub_key blob,
+      replacement_hmac blob,
+      PRIMARY KEY (guid)
+    )
+    WITH default_time_to_live = 7200;
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte to2_sessions table")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  defp create_astarte_ownership_vouchers_table do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.ownership_vouchers (
+      guid blob,
+      realm text,
+      status int,
+      device_id uuid,
+      voucher_data blob,
+      output_voucher blob,
+      user_id blob,
+      key_name text,
+      key_algorithm int,
+      replacement_guid blob,
+      replacement_rendezvous_info blob,
+      replacement_public_key blob,
+      PRIMARY KEY (guid)
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
+
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte ownership_vouchers table")
         :ok
 
       {:error, %Xandra.Error{reason: :already_exists}} ->

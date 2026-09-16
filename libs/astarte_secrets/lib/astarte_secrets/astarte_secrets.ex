@@ -23,7 +23,7 @@ defmodule Astarte.Secrets do
   end
 
   def get_key_for_guid(realm_name, user_id \\ nil, guid) do
-    with {:ok, params} <- Queries.get_owner_key_params(realm_name, guid),
+    with {:ok, params} <- Queries.get_owner_key_params(guid),
          {:ok, namespace} <- create_namespace(realm_name, user_id, params.algorithm) do
       get_key(params.name, namespace: namespace)
     end
