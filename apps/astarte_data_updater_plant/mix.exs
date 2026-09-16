@@ -81,7 +81,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:libcluster, "~> 3.3"},
-      {:horde, "~> 0.9"},
+      # https://github.com/elixir-horde/horde/pull/291
+      {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},
