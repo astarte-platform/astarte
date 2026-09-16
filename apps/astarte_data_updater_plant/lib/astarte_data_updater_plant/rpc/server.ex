@@ -25,14 +25,19 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   """
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
-  use GenServer, restart: :transient
+  use GenServer, restart: :permanent
   require Logger
 
   def start_link(args, opts \\ []) do
     name = {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
     opts = Keyword.put(opts, :name, name)
 
-    GenServer.start_link(__MODULE__, args, opts)
+    with {:error, {:already_started, pid}} <- GenServer.start_link(__MODULE__, args, opts) do
+      "RPC server: already running: #{inspect(pid)}"
+      |> Logger.debug(tag: "rpc_started")
+
+      {:ok, pid}
+    end
   end
 
   @impl GenServer
