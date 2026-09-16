@@ -67,3 +67,8 @@ jobs:
     with:
       app: "astarte_vmq_plugin"
     secrets: inherit
+  astarte_test_suite:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_test_suite"
+    secrets: inherit

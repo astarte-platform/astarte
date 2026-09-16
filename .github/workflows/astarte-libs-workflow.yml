@@ -57,11 +57,6 @@ jobs:
     with:
       lib: "astarte_fdo_core"
     secrets: inherit
-  astarte_test_suite:
-    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
-    with:
-      lib: "astarte_test_suite"
-    secrets: inherit
   astarte_rpc:
     uses: ./.github/workflows/astarte-libs-build-workflow.yaml
     with:

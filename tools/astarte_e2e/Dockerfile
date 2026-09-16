@@ -38,8 +38,6 @@ COPY libs/astarte_rpc/mix.exs libs/astarte_rpc/mix.exs
 COPY libs/astarte_rpc/mix.lock libs/astarte_rpc/mix.lock
 COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
-COPY libs/astarte_test_suite/mix.exs libs/astarte_test_suite/mix.exs
-COPY libs/astarte_test_suite/mix.lock libs/astarte_test_suite/mix.lock
 
 # astarte_core is needed by astarte_device which is a remote dep
 RUN mix do deps.get + deps.compile astarte_core + deps.compile --skip-local-deps
