@@ -25,6 +25,10 @@ defmodule Astarte.TestSuite.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps() ++ astarte_required_modules(),
@@ -54,9 +58,9 @@ defmodule Astarte.TestSuite.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_generators, path: "../astarte_generators"},
-      {:astarte_data_access, path: "../astarte_data_access"},
-      {:astarte_adapters, path: "../astarte_adapters"}
+      {:astarte_generators, path: "../../libs/astarte_generators"},
+      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:astarte_adapters, path: "../../libs/astarte_adapters"}
     ]
   end
 
