@@ -1,0 +1,69 @@
+name: Build and Test Astarte Apps
+
+on:
+  push:
+    paths:
+      - "apps/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-apps-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-[0-9]+.[0-9]+"
+  create:
+  pull_request:
+    paths:
+      - "apps/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-apps-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_appengine_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+  astarte_fdo:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_fdo"
+    secrets: inherit
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
+  astarte_vmq_plugin:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_vmq_plugin"
+    secrets: inherit

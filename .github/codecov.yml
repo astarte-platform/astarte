@@ -110,7 +110,7 @@ flags:
   astarte_fdo:
     carryforward: true
     paths:
-      - libs/astarte_fdo
+      - apps/astarte_fdo
   astarte_fdo_core:
     carryforward: true
     paths:

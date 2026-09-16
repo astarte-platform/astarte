@@ -19,36 +19,36 @@ ARG BUILD_ENV=prod
 ARG SERVICE
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=../../libraries
+ENV ASTARTE_LIBRARIES_PATH=../../libs
 
 # Cache elixir deps
 COPY mix.exs mix.lock ./
 COPY apps/$SERVICE/mix.exs ./apps/$SERVICE/mix.exs
-COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
-COPY libs/astarte_config/mix.exs libraries/astarte_config/mix.exs
-COPY libs/astarte_config/mix.lock libraries/astarte_config/mix.lock
-COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
-COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
-COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
-COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-COPY libs/astarte_fdo/mix.exs libraries/astarte_fdo/mix.exs
-COPY libs/astarte_fdo/mix.lock libraries/astarte_fdo/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
-COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
-COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
-COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
-COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
-COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
-COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
+COPY apps/astarte_fdo/mix.exs ./apps/astarte_fdo/mix.exs
+COPY libs/astarte_adapters/mix.exs libs/astarte_adapters/mix.exs
+COPY libs/astarte_adapters/mix.lock libs/astarte_adapters/mix.lock
+COPY libs/astarte_config/mix.exs libs/astarte_config/mix.exs
+COPY libs/astarte_config/mix.lock libs/astarte_config/mix.lock
+COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
+COPY libs/astarte_data_access/mix.exs libs/astarte_data_access/mix.exs
+COPY libs/astarte_data_access/mix.lock libs/astarte_data_access/mix.lock
+COPY libs/astarte_events/mix.exs libs/astarte_events/mix.exs
+COPY libs/astarte_events/mix.lock libs/astarte_events/mix.lock
+COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
+COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
+COPY libs/astarte_generators/mix.exs libs/astarte_generators/mix.exs
+COPY libs/astarte_generators/mix.lock libs/astarte_generators/mix.lock
+COPY libs/astarte_rpc/mix.exs libs/astarte_rpc/mix.exs
+COPY libs/astarte_rpc/mix.lock libs/astarte_rpc/mix.lock
+COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
+COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
+COPY libs/astarte_test_suite/mix.exs libs/astarte_test_suite/mix.exs
+COPY libs/astarte_test_suite/mix.lock libs/astarte_test_suite/mix.lock
 RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs ./libraries
+COPY libs ./libs
+COPY apps/astarte_fdo apps/astarte_fdo
 RUN mix deps.compile
 
 # Add all the rest
