@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 import { useAstarte } from '../AstarteManager';
 
 interface UploadState {
@@ -13,9 +14,11 @@ export const useFdo = () => {
 
   const uploadVoucher = useCallback(
     async (
+      hwId: AstarteDevice['id'],
       keyName: string,
       voucherText: string,
       options?: {
+        initialIntrospection?: { [interfaceName: string]: AstarteInterfaceDescriptor };
         keyAlgorithm?: string;
         replacementGuid?: string;
         replacementRvInfo?: string;
@@ -25,7 +28,7 @@ export const useFdo = () => {
       setState({ status: 'loading', error: null });
 
       try {
-        const response = await client.uploadFdoVoucher(keyName, voucherText, options);
+        const response = await client.uploadFdoVoucher(hwId, keyName, voucherText, options);
         setState({ status: 'success', error: null });
         return response;
       } catch (err: any) {
