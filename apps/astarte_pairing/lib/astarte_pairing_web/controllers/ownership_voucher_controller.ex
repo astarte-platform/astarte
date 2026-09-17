@@ -184,13 +184,13 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
     with {:ok, req} <-
            LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
            |> Ecto.Changeset.apply_action(:insert),
-         :ok <- LoadRequest.store_voucher(req),
          :ok <-
            TO0.claim_ownership_voucher(
              realm_name,
              req.decoded_ownership_voucher,
              req.extracted_owner_key
            ),
+         :ok <- LoadRequest.store_voucher(req),
          opts = [initial_introspection: req.initial_introspection, with_credentials?: false],
          {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
       json(conn, %{
