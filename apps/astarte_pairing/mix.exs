@@ -97,6 +97,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "ispirata/cfxxl"},
+      {:ecto, "~> 3.13", override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},

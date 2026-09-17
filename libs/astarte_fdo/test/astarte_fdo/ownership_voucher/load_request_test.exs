@@ -429,7 +429,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   end
 
   describe "changeset/2 public_keys_match? :x5chain path" do
-    test "accepts a key whose EC point is embedded in the x5chain certificate" do
+    test "accepts a key whose EC point is embedded in the x5chain certificate chain" do
       # generate_p256_x509_data_and_pem returns a voucher whose cert_chain holds
       # a real self-signed DER cert for the device key.
       {voucher, private_pem} = generate_p256_x509_data_and_pem()
@@ -438,6 +438,33 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(OVCore, :entry_public_key, fn _entry ->
         {:ok, %PublicKey{encoding: :x5chain, body: [cert_der], type: :secp256r1}}
+      end)
+
+      matching_key = %Key{
+        name: @sample_key_name,
+        namespace: "fdo_owner_keys/#{@sample_realm}/ecdsa-p256",
+        alg: :es256,
+        public_pem: public_pem
+      }
+
+      stub(Secrets, :create_namespace, fn _realm, :es256 ->
+        {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p256"}
+      end)
+
+      stub(Secrets, :get_key, fn _name, _opts -> {:ok, matching_key} end)
+
+      assert %LoadRequest{key_algorithm: :es256} = from_changeset!(@sample_params)
+    end
+
+    test "accepts a key whose EC point is embedded in the single x5chain certificate" do
+      # generate_p256_x509_data_and_pem returns a voucher whose cert_chain holds
+      # a real self-signed DER cert for the device key.
+      {voucher, private_pem} = generate_p256_x509_data_and_pem()
+      [cert_der | _] = voucher.cert_chain
+      public_pem = ec_private_pem_to_public_pem(private_pem)
+
+      stub(OVCore, :entry_public_key, fn _entry ->
+        {:ok, %PublicKey{encoding: :x5chain, body: cert_der, type: :secp256r1}}
       end)
 
       matching_key = %Key{

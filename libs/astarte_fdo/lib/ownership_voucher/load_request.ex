@@ -355,6 +355,15 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     end
   end
 
+  defp public_keys_match?(:x5chain, cert_der, pem) when is_binary(cert_der) do
+    with {:ok, cert_spki_der} <- spki_der_from_cert(cert_der),
+         [{_, pem_spki_der, :not_encrypted}] <- :public_key.pem_decode(pem) do
+      cert_spki_der == pem_spki_der
+    else
+      _ -> false
+    end
+  end
+
   # :cosekey — decode CBOR map, decode PEM via OTP, compare key material.
   defp public_keys_match?(:cosekey, cosekey_cbor, pem) do
     with {:ok, cose_map, ""} <- CBOR.decode(cosekey_cbor),
