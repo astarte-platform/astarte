@@ -60,7 +60,7 @@ defmodule Astarte.TestSuite.MixProject do
     [
       {:astarte_generators, path: "../../libs/astarte_generators"},
       {:astarte_data_access, path: "../../libs/astarte_data_access"},
-      {:astarte_adapters, path: "../../libs/astarte_adapters"}
+      {:astarte_adapters, in_umbrella: true}
     ]
   end
 

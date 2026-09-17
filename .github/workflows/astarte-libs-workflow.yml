@@ -67,8 +67,3 @@ jobs:
     with:
       lib: "astarte_secrets"
     secrets: inherit
-  astarte_adapters:
-    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
-    with:
-      lib: "astarte_adapters"
-    secrets: inherit
