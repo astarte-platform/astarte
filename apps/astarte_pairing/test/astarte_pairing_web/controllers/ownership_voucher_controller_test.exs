@@ -388,6 +388,25 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> response(404)
     end
 
+    test "returns 404 when the voucher exists but does not belong to the realm for which the user is authenticated",
+         context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+
+      path =
+        ownership_voucher_path(
+          conn,
+          :delete_ownership_voucher,
+          realm_name,
+          @sample_ownership_voucher_guid
+        )
+
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:ok, %{realm: "another_realm"}} end)
+
+      conn
+      |> delete(path)
+      |> response(404)
+    end
+
     test "returns 500 when the rendezvous revocation fails", context do
       %{auth_conn: conn, realm_name: realm_name} = context
       guid = :crypto.strong_rand_bytes(16)

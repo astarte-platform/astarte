@@ -216,7 +216,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   @doc """
   Deletes an ownership voucher.
 
-  Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown.
+  Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown (in the realm).
   """
   def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
     with {:ok, guid} <- decode_guid(guid_str),

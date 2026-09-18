@@ -44,6 +44,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   """
   def delete(realm, guid) do
     with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         :ok <- ensure_voucher_in_realm(ownership_voucher.realm, realm),
          :ok <-
            revoke_rendezvous_registration(
              ownership_voucher.realm,
@@ -53,6 +54,14 @@ defmodule Astarte.FDO.OwnershipVoucher do
          :ok <-
            ensure_device_voucher_deletion(ownership_voucher.realm, ownership_voucher.device_id) do
       Queries.delete_ownership_voucher(guid)
+    end
+  end
+
+  # security check: is the voucher belonging to the realm for which the deletion request is made?
+  defp ensure_voucher_in_realm(voucher_realm, request_realm) do
+    case voucher_realm == request_realm do
+      true -> :ok
+      false -> {:error, :not_found}
     end
   end
 
