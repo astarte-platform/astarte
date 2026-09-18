@@ -388,7 +388,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
 
       OwnershipVoucher
-      |> expect(:delete, fn _, ^guid -> {:ok, :deleted} end)
+      |> expect(:delete, fn _, ^guid -> :ok end)
 
       conn
       |> delete(path)

@@ -224,7 +224,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   """
   def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
     with {:ok, guid} <- decode_guid(guid_str),
-         {:ok, _} <- OwnershipVoucher.delete(realm_name, guid) do
+         :ok <- OwnershipVoucher.delete(realm_name, guid) do
       send_resp(conn, :no_content, "")
     end
   end

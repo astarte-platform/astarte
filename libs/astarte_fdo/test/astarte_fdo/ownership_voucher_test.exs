@@ -87,7 +87,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       RealmManagement
       |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
 
-      assert {:ok, _} = OwnershipVoucher.delete(realm_name, guid)
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
       assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
     end
 
@@ -123,7 +123,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
         {:error, :device_not_found}
       end)
 
-      assert {:ok, _} = OwnershipVoucher.delete(realm_name, guid)
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
       assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
     end
 
@@ -148,6 +148,42 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
                OwnershipVoucher.delete(realm_name, guid)
 
       assert {:ok, _voucher} = Queries.fetch_ownership_voucher(guid)
+    end
+
+    test "succeeds when the device deletion already removed the voucher", ctx do
+      %{
+        realm_name: realm_name,
+        guid: guid,
+        device_id: device_id,
+        encoded_device_id: encoded_device_id
+      } = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      TO0
+      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+        :ok
+      end)
+
+      RealmManagement
+      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id ->
+        Queries.delete_ownership_voucher(guid)
+      end)
+
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
     end
 
     test "returns {:error, :not_found} for an unknown guid", ctx do

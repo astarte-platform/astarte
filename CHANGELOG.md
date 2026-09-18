@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [fdo] Rename `ASTARTE_BASE_URL_DOMAIN` to `ASTARTE_BASE_URL_HOST`. Its value may now be
   either a domain name or an IP address
+- [fdo] Deleting a device also deletes its ownership voucher.
 
 ## [1.4.0-rc.5] - 2026-08-20
 

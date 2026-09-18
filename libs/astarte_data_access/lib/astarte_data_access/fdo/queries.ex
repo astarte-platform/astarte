@@ -132,6 +132,10 @@ defmodule Astarte.DataAccess.FDO.Queries do
       guid: guid
     }
     |> Repo.delete(prefix: keyspace)
+    |> case do
+      {:ok, _voucher} -> :ok
+      error -> error
+    end
   end
 
   def mark_voucher_as_claimed(guid) do
