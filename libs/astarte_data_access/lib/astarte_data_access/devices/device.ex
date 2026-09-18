@@ -48,6 +48,7 @@ defmodule Astarte.DataAccess.Devices.Device do
     field :first_credentials_request, DateTimeMs
     field :first_registration, DateTimeMs
     field :groups, Exandra.Map, key: :string, value: UUID
+    field :guid, UUID
     field :inhibit_credentials_request, :boolean
     field :introspection, Exandra.Map, key: :string, value: :integer
     field :introspection_minor, Exandra.Map, key: :string, value: :integer

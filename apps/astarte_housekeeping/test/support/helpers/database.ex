@@ -96,6 +96,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     attributes map<varchar, varchar>,
     groups map<text, timeuuid>,
     capabilities capabilities,
+    guid blob,
 
     PRIMARY KEY (device_id)
   )

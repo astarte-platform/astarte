@@ -153,6 +153,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities frozen<capabilities>,
+        guid blob,
 
         PRIMARY KEY (device_id)
       );
