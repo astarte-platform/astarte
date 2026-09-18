@@ -72,3 +72,8 @@ jobs:
     with:
       app: "astarte_test_suite"
     secrets: inherit
+  astarte_adapters:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_adapters"
+    secrets: inherit

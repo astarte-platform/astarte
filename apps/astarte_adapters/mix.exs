@@ -7,6 +7,10 @@ defmodule Astarte.Adapters.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -42,9 +46,9 @@ defmodule Astarte.Adapters.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, path: "../astarte_core"},
-      {:astarte_data_access, path: "../astarte_data_access"},
-      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
+      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]}
     ]
   end
 
@@ -76,5 +80,10 @@ defmodule Astarte.Adapters.MixProject do
         "GitHub" => "https://github.com/astarte-platform/astarte"
       }
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

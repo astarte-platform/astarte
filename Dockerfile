@@ -25,8 +25,6 @@ ENV ASTARTE_LIBRARIES_PATH=../../libs
 COPY mix.exs mix.lock ./
 COPY apps/$SERVICE/mix.exs ./apps/$SERVICE/mix.exs
 COPY apps/astarte_fdo/mix.exs ./apps/astarte_fdo/mix.exs
-COPY libs/astarte_adapters/mix.exs libs/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libs/astarte_adapters/mix.lock
 COPY libs/astarte_config/mix.exs libs/astarte_config/mix.exs
 COPY libs/astarte_config/mix.lock libs/astarte_config/mix.lock
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
@@ -47,6 +45,7 @@ RUN mix do deps.get + deps.compile --skip-local-deps
 
 COPY libs ./libs
 COPY apps/astarte_fdo apps/astarte_fdo
+COPY apps/astarte_adapters apps/astarte_adapters
 RUN mix deps.compile
 
 # Add all the rest

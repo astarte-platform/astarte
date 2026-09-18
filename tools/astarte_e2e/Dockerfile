@@ -17,13 +17,16 @@ RUN mix local.hex --force && \
 # Pass --build-arg BUILD_ENV=dev to build a dev image
 ARG BUILD_ENV=prod
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libs
+ENV ASTARTE_LIBRARIES_PATH=/app/libs
+ENV ASTARTE_APPS_PATH=/app/astarte_apps/apps
 
 # Cache elixir deps
 COPY tools/astarte_e2e/mix.exs ./
 COPY tools/astarte_e2e/mix.lock ./
-COPY libs/astarte_adapters/mix.exs libs/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libs/astarte_adapters/mix.lock
+COPY mix.exs astarte_apps/mix.exs
+COPY mix.lock astarte_apps/mix.lock
+COPY apps/astarte_adapters/mix.exs astarte_apps/apps/astarte_adapters/mix.exs
+
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
 COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
 COPY libs/astarte_data_access/mix.exs libs/astarte_data_access/mix.exs
@@ -39,14 +42,13 @@ COPY libs/astarte_rpc/mix.lock libs/astarte_rpc/mix.lock
 COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
 
-# astarte_core is needed by astarte_device which is a remote dep
-RUN mix do deps.get + deps.compile astarte_core + deps.compile --skip-local-deps
-
+COPY tools/astarte_e2e ./
+COPY apps ./astarte_apps/apps
 COPY libs ./libs
-RUN mix deps.compile
 
-# Add all the rest
-COPY tools/astarte_e2e .
+RUN mix deps.get --only $BUILD_ENV
+RUN mix deps.compile astarte_core --include-children
+RUN mix deps.compile
 
 # Build and release
 RUN mix do compile + release
