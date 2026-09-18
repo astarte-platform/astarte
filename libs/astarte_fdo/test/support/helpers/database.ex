@@ -159,6 +159,7 @@ defmodule Astarte.FDO.Helpers.Database do
     capabilities capabilities,
 
     groups map<text, timeuuid>,
+    fdo_guid blob,
 
     PRIMARY KEY (device_id)
   )

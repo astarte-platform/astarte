@@ -136,6 +136,7 @@ defmodule Astarte.Helpers.Database do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities capabilities,
+        fdo_guid blob,
 
         PRIMARY KEY (device_id)
       );
