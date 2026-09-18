@@ -191,7 +191,11 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
              req.extracted_owner_key
            ),
          :ok <- LoadRequest.store_voucher(req),
-         opts = [initial_introspection: req.initial_introspection, with_credentials?: false],
+         opts = [
+           initial_introspection: req.initial_introspection,
+           with_credentials?: false,
+           fdo_guid: req.device_guid
+         ],
          {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
       json(conn, %{
         data: %{

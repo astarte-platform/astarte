@@ -158,6 +158,36 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
                DeviceQueries.fetch(realm_name, @sample_device_id)
     end
 
+    test "registers the device with the voucher's guid", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      body =
+        conn
+        |> post(path, params)
+        |> json_response(200)
+
+      guid = get_in(body, ["data", "guid"])
+      assert guid == @sample_ownership_voucher_guid
+
+      voucher_guid = UUID.string_to_binary!(guid)
+
+      assert {:ok, %{fdo_guid: ^voucher_guid}} =
+               DeviceQueries.fetch(realm_name, @sample_device_id)
+    end
+
     test "registers the device with the specified initial introspection", context do
       %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
         context
