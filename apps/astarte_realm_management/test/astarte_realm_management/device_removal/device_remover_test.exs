@@ -33,6 +33,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   alias Astarte.Core.Device
 
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.Queries, as: FDOQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
@@ -77,6 +80,33 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
 
     assert_receive ^ref
+  end
+
+  test "deletes the ownership voucher bound to the device", %{realm_name: realm_name} do
+    keyspace = Realm.keyspace_name(realm_name)
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    device_id = Device.random_device_id()
+    guid = :crypto.strong_rand_bytes(16)
+
+    on_exit(fn ->
+      Repo.delete(%DeviceStruct{device_id: device_id}, prefix: keyspace)
+      Repo.delete(%OwnershipVoucher{guid: guid}, prefix: astarte_keyspace)
+    end)
+
+    Repo.insert!(%DeviceStruct{device_id: device_id, guid: guid}, prefix: keyspace)
+
+    Repo.insert!(%OwnershipVoucher{guid: guid, device_id: device_id, realm: realm_name},
+      prefix: astarte_keyspace
+    )
+
+    insert_deletion_entry(realm_name, device_id, [])
+    reset_cache(realm_name)
+
+    assert {:ok, _voucher} = FDOQueries.fetch_ownership_voucher(guid)
+
+    DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
+
+    assert {:error, :not_found} = FDOQueries.fetch_ownership_voucher(guid)
   end
 
   defp insert_deletion_entry(realm_name, device_id, groups) do

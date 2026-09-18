@@ -24,9 +24,12 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   """
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.FDO.Queries, as: FDOQueries
   alias Astarte.DataAccess.Interface
   alias Astarte.RealmManagement.DeviceRemoval.Queries, as: DeviceRemovalQueries
   alias Astarte.RealmManagement.TriggersHandler
+
+  require Logger
 
   @doc """
   Deletes individual datastreams for a device in a realm.
@@ -177,6 +180,26 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
     } = entry
 
     DeviceRemovalQueries.delete_kv_store_entry!(realm_name, group_name, key)
+  end
+
+  @doc """
+  Deletes the ownership voucher bound to a device, if any.
+
+  N.B.: only the database row is removed.
+  """
+  def delete_ownership_voucher!(_realm_name, nil), do: :ok
+
+  def delete_ownership_voucher!(realm_name, guid) do
+    _ =
+      Logger.info(
+        "Deleting ownership voucher without revoking its rendezvous registration",
+        realm: realm_name,
+        tag: "fdo_voucher_deleted_without_revocation"
+      )
+
+    {:ok, _voucher} = FDOQueries.delete_ownership_voucher(realm_name, guid)
+
+    :ok
   end
 
   @doc """
