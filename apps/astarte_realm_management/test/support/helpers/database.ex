@@ -95,6 +95,7 @@ defmodule Astarte.Helpers.Database do
     attributes map<varchar, varchar>,
     capabilities capabilities,
     groups map<text, timeuuid>,
+    guid blob,
 
     PRIMARY KEY (device_id)
   )
@@ -232,6 +233,24 @@ defmodule Astarte.Helpers.Database do
     )
   """
 
+  @create_ownership_vouchers_table """
+  CREATE TABLE IF NOT EXISTS :keyspace.ownership_vouchers (
+    guid blob,
+    realm text,
+    status int,
+    device_id uuid,
+    voucher_data blob,
+    output_voucher blob,
+    user_id blob,
+    key_name text,
+    key_algorithm int,
+    replacement_guid blob,
+    replacement_rendezvous_info blob,
+    replacement_public_key blob,
+    PRIMARY KEY (guid)
+  )
+  """
+
   @insert_public_key """
     INSERT INTO :keyspace.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
@@ -247,6 +266,7 @@ defmodule Astarte.Helpers.Database do
     execute!(astarte_keyspace, @create_keyspace)
     execute!(astarte_keyspace, @create_kv_store)
     execute!(astarte_keyspace, @create_realms_table)
+    execute!(astarte_keyspace, @create_ownership_vouchers_table)
   end
 
   def setup!(realm_name) do

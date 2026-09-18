@@ -784,6 +784,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       attributes map<varchar, varchar>,
       groups map<varchar, timeuuid>,
       capabilities capabilities,
+      guid blob,
 
       PRIMARY KEY (device_id)
     );

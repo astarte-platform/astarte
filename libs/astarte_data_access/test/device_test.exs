@@ -135,6 +135,16 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       assert device.confirmation_status == :confirmed
     end
 
+    test "returns the device guid" do
+      device_id = :crypto.strong_rand_bytes(16)
+      guid = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret", guid: guid)
+
+      assert {:ok, %{guid: ^guid}} =
+               Device.fetch_with_unconfirmed_status("autotestrealm", device_id)
+    end
+
     test "adds :unconfirmed status for unconfirmed device" do
       {:ok, device_id} = CoreDevice.decode_device_id("aWag-VlVKC--1S-vfzZ9uQ")
 
@@ -157,6 +167,27 @@ defmodule Astarte.DataAccess.Device.XandraTest do
                  "base64encodedid",
                  credentials_secret
                )
+    end
+
+    test "registers a device with the given guid" do
+      device_id = :crypto.strong_rand_bytes(16)
+      guid = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret", guid: guid)
+
+      assert {:ok, %{guid: ^guid}} = Device.fetch("autotestrealm", device_id)
+    end
+
+    test "keeps the guid when re-registering an unconfirmed device without one" do
+      device_id = :crypto.strong_rand_bytes(16)
+      guid = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} =
+               Device.register("autotestrealm", device_id, "extid", "secret_v1", guid: guid)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v2")
+
+      assert {:ok, %{guid: ^guid}} = Device.fetch("autotestrealm", device_id)
     end
 
     test "returns error when registering an already-confirmed device" do

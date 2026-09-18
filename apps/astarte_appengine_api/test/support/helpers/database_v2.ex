@@ -97,6 +97,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
     capabilities capabilities,
 
     groups map<text, timeuuid>,
+    guid blob,
 
     PRIMARY KEY (device_id)
   )
