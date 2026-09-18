@@ -52,7 +52,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
            ),
          :ok <-
            ensure_device_voucher_deletion(ownership_voucher.realm, ownership_voucher.device_id) do
-      Queries.delete_ownership_voucher(realm, guid)
+      Queries.delete_ownership_voucher(guid)
     end
   end
 

@@ -104,19 +104,32 @@ defmodule Astarte.DataAccess.FDO.Queries do
   def create_ownership_voucher(ownership_voucher) do
     keyspace_name = Realm.astarte_keyspace_name()
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    # explicitly prevent updates to an already existing entry for the same GUID;
+    # expect a "stale entry error" if no rows were changed due to GUID already present
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      overwrite: false,
+      stale_error_field: :guid
+    ]
 
-    with {:ok, _} <- Repo.insert(ownership_voucher, opts) do
-      :ok
+    case Repo.insert(ownership_voucher, opts) do
+      {:ok, _} ->
+        :ok
+
+      {:error, %Ecto.Changeset{errors: [guid: {_, [stale: true]}]}} ->
+        {:error, :duplicated_voucher_guid}
+
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
-  def delete_ownership_voucher(realm, guid) do
+  def delete_ownership_voucher(guid) do
     keyspace = Realm.astarte_keyspace_name()
 
     %OwnershipVoucher{
-      guid: guid,
-      realm: realm
+      guid: guid
     }
     |> Repo.delete(prefix: keyspace)
   end

@@ -46,7 +46,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
-      Queries.delete_ownership_voucher(realm_name, guid)
+      Queries.delete_ownership_voucher(guid)
     end)
 
     %{

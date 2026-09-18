@@ -92,8 +92,20 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       }
 
       :ok = Queries.create_ownership_voucher(voucher)
-      assert {:ok, _} = Queries.delete_ownership_voucher(@realm, guid)
+      assert {:ok, _} = Queries.delete_ownership_voucher(guid)
       assert {:error, _} = Queries.fetch_ownership_voucher(guid)
+    end
+
+    test "replace/reupload ownership voucher attempt is rejected" do
+      voucher_attrs = %OwnershipVoucher{
+        guid: random_guid(),
+        voucher_data: sample_voucher(),
+        key_name: "test_key_name",
+        key_algorithm: :es256
+      }
+
+      assert :ok = Queries.create_ownership_voucher(voucher_attrs)
+      assert {:error, :duplicated_voucher_guid} = Queries.create_ownership_voucher(voucher_attrs)
     end
   end
 
@@ -108,9 +120,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
                {:ok, {realm_name, device_id, voucher_data}}
     end
 
-    test "returns :not_found for invalid guid", context do
-      %{realm_name: realm_name} = context
-
+    test "returns :not_found for invalid guid" do
       assert Queries.fetch_device_id_and_ownership_voucher_and_realm(random_guid()) ==
                {:error, :not_found}
     end
@@ -309,7 +319,7 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
     device_id = Device.random_device_id()
     voucher_data = sample_voucher()
 
-    on_exit(fn -> Queries.delete_ownership_voucher(@realm, guid) end)
+    on_exit(fn -> Queries.delete_ownership_voucher(guid) end)
 
     voucher =
       %OwnershipVoucher{

@@ -51,7 +51,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   -----END EC PRIVATE KEY-----
   """
 
-  @sample_guid <<177, 241, 216, 240, 58, 159, 76, 248, 180, 107, 35, 169, 76, 252, 102, 231>>
   @sample_ownership_voucher_pem """
   -----BEGIN OWNERSHIP VOUCHER-----
   hRhlWL6GGGVQsfHY8DqfTPi0ayOpTPxm54GEggNDGR+SggJFRH8AAAGCBEMZH5KC
@@ -72,6 +71,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   KgRKDMZ26gaTvdOSYOiWl+hL0gCbdyhXp5dySgYsHYEn
   -----END OWNERSHIP VOUCHER-----
   """
+
+  @sample_ownership_voucher_guid "b1f1d8f0-3a9f-4cf8-b46b-23a94cfc66e7"
 
   @sample_load_params %{
     data: %{
@@ -100,8 +101,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       %DeviceStruct{device_id: @sample_device_id}
       |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
 
-      Queries.delete_ownership_voucher(realm_name, sample_device_guid())
-      Queries.delete_ownership_voucher(realm_name, @sample_guid)
+      Queries.delete_ownership_voucher(@sample_ownership_voucher_guid)
     end)
   end
 
@@ -250,6 +250,30 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, @sample_load_params)
       |> response(422)
+    end
+
+    test "returns 422 when trying to upload a voucher for an already existing GUID", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      # retry loading the same voucher => GUID conflict
+      conn
+      |> post(path, params)
+      |> json_response(422)
     end
   end
 
