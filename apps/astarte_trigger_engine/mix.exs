@@ -86,7 +86,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.3", only: :test},
-      {:mimic, "~> 2.3", only: :test},
+      {:mimic, "~> 2.3", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},

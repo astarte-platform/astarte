@@ -26,6 +26,7 @@ COPY tools/astarte_e2e/mix.lock ./
 COPY mix.exs astarte_apps/mix.exs
 COPY mix.lock astarte_apps/mix.lock
 COPY apps/astarte_adapters/mix.exs astarte_apps/apps/astarte_adapters/mix.exs
+COPY apps/astarte_rpc/mix.exs astarte_apps/apps/astarte_rpc/mix.exs
 
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
 COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
@@ -37,8 +38,6 @@ COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
 COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
 COPY libs/astarte_generators/mix.exs libs/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libs/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libs/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libs/astarte_rpc/mix.lock
 COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
 
