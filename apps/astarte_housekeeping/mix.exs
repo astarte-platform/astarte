@@ -93,7 +93,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
+      {:astarte_secrets, in_umbrella: true},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},

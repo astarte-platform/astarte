@@ -68,7 +68,7 @@ defmodule Astarte.FDO.MixProject do
       {:astarte_data_access, path: "../../libs/astarte_data_access"},
       {:astarte_fdo_core, path: "../../libs/astarte_fdo_core"},
       {:astarte_rpc, in_umbrella: true},
-      {:astarte_secrets, path: "../../libs/astarte_secrets"},
+      {:astarte_secrets, in_umbrella: true},
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
