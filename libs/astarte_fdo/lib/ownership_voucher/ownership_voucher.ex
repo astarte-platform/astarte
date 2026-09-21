@@ -41,7 +41,6 @@ defmodule Astarte.FDO.OwnershipVoucher do
 
   The corresponding registration on the FDO rendezvous server is revoked first;
   if that fails, the voucher is not deleted.
-
   """
   @spec delete(String.t(), binary()) :: :ok | {:error, term()}
   def delete(realm, guid) do
