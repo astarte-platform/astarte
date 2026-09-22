@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+
+- [fdo] Add `POST /v1/:realm_name/fdo/ownership_vouchers/:guid/to0` to run TO0 again for an
+  ownership voucher, refreshing how long the rendezvous server keeps serving its registration.
+  The resulting expiry is reported when listing the ownership vouchers of a realm.
+
 ### Changed
 
 - [fdo] Rename `ASTARTE_BASE_URL_DOMAIN` to `ASTARTE_BASE_URL_HOST`. Its value may now be

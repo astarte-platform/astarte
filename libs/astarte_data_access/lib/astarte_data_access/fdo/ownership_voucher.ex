@@ -22,6 +22,7 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   """
   use TypedEctoSchema
 
+  alias Astarte.DataAccess.DateTime, as: DateTimeMs
   alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   alias Astarte.FDO.Core.PublicKey
@@ -40,5 +41,6 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
     field :replacement_guid, :binary
     field :replacement_rendezvous_info, CBOREncoded, using: RendezvousInfo
     field :replacement_public_key, CBOREncoded, using: PublicKey
+    field :expiry, DateTimeMs
   end
 end

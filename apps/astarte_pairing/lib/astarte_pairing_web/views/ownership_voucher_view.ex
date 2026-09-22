@@ -34,7 +34,8 @@ defmodule Astarte.PairingWeb.OwnershipVoucherView do
       replacement_guid: output_guid,
       voucher_data: input_voucher,
       output_voucher: output_voucher,
-      status: status
+      status: status,
+      expiry: expiry
     } = voucher
 
     guid = render_one(guid, OwnershipVoucherView, "guid.json", as: :guid)
@@ -47,7 +48,8 @@ defmodule Astarte.PairingWeb.OwnershipVoucherView do
       status: status,
       output_guid: output_guid,
       input_voucher: input_voucher,
-      output_voucher: output_voucher
+      output_voucher: output_voucher,
+      expiry: expiry
     }
   end
 

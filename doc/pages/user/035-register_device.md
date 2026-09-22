@@ -139,6 +139,15 @@ during _TO2_ exchanges (namely `replacement GUID`, `replacement owner public key
 `replacement rendezvous info`). The replacement ownership voucher that is made available after
 _TO2_ completion contains the updated information.
 
+The _Rendezvous Server_ only serves a registration for a limited amount of time, which it
+negotiates at the end of _TO0_. Astarte stores the resulting expiry and reports it, together with
+the voucher status, when listing the ownership vouchers of a realm. Once a registration has
+expired, the device can no longer find its owner through the _Rendezvous Server_:
+`POST /fdo/ownership_vouchers/:guid/to0` runs _TO0_ again and refreshes the expiry. Only vouchers
+whose device has not completed _Device Onboard_ yet (i.e. with a `created` status) can be
+re-registered this way: _TO2_ consumes the registration, so the expiry is cleared along with the
+status change.
+
 ## Credentials Secret Lifecycle
 
 _Credentials Secrets_ are meant to be immutable - as such, they should be handled with extreme care.

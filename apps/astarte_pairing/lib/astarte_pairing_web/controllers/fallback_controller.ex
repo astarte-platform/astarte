@@ -111,6 +111,23 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:"500")
   end
 
+  # Both uploading a voucher and re-running TO0 register it on the FDO
+  # rendezvous server, and neither can succeed if that fails
+  def call(conn, {:error, :rendezvous_registration_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
+  # Once Device Onboard completes, the voucher is not registered on the rendezvous anymore
+  def call(conn, {:error, :device_already_onboarded}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:device_already_onboarded)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn

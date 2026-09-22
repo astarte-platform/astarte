@@ -71,7 +71,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     :ok
   end
 
-  describe "store_voucher/1" do
+  describe "store_voucher/2" do
     setup do
       Secrets
       |> stub(:create_namespace, fn _realm, _alg ->
@@ -86,6 +86,9 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
     test "calls the query to create the ownership voucher", context do
       %{load_request: load_request} = context
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
 
       Queries
       |> expect(:create_ownership_voucher, fn ownership_voucher ->
@@ -103,10 +106,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         assert ownership_voucher.replacement_public_key ==
                  load_request.decoded_replacement_public_key
 
+        assert ownership_voucher.expiry == expiry
+
         :ok
       end)
 
-      assert :ok = LoadRequest.store_voucher(load_request)
+      assert :ok = LoadRequest.store_voucher(load_request, expiry)
     end
   end
 
