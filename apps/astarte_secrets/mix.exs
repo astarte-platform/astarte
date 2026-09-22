@@ -25,6 +25,10 @@ defmodule AstarteSecrets.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       test_coverage: [tool: ExCoveralls],
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -45,9 +49,9 @@ defmodule AstarteSecrets.MixProject do
 
   defp deps do
     [
-      {:astarte_config, path: "../astarte_config"},
-      {:astarte_data_access, path: "../astarte_data_access"},
-      {:astarte_generators, path: "../astarte_generators", only: :test},
+      {:astarte_config, path: "../../libs/astarte_config"},
+      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:astarte_generators, path: "../../libs/astarte_generators", only: :test},
       {:castore, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -62,7 +66,8 @@ defmodule AstarteSecrets.MixProject do
       {:httpoison, "~> 3.0", override: true},
       {:hackney, github: "benoitc/hackney", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
-      {:con_cache, "~> 1.0"}
+      {:con_cache, "~> 1.0"},
+      {:pretty_log, "~> 0.1"}
     ]
   end
 end

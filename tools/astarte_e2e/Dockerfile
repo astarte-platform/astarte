@@ -38,8 +38,6 @@ COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
 COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
 COPY libs/astarte_generators/mix.exs libs/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libs/astarte_generators/mix.lock
-COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
-COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
 
 COPY tools/astarte_e2e ./
 COPY apps ./astarte_apps/apps
