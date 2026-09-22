@@ -92,8 +92,15 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       }
 
       :ok = Queries.create_ownership_voucher(voucher)
-      assert {:ok, _} = Queries.delete_ownership_voucher(guid)
+      assert :ok = Queries.delete_ownership_voucher(guid)
       assert {:error, _} = Queries.fetch_ownership_voucher(guid)
+    end
+
+    test "delete ownership voucher succeeds when it is already gone" do
+      guid = random_guid()
+
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
+      assert :ok = Queries.delete_ownership_voucher(guid)
     end
 
     test "replace/reupload ownership voucher attempt is rejected" do

@@ -133,6 +133,8 @@ defmodule Astarte.DataAccess.Device do
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
+    fdo_guid = Keyword.get(opts, :fdo_guid)
+
     keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace_name, consistency: consistency]
@@ -146,7 +148,8 @@ defmodule Astarte.DataAccess.Device do
       total_received_bytes: 0,
       total_received_msgs: 0,
       introspection: introspection,
-      introspection_minor: introspection_minor
+      introspection_minor: introspection_minor,
+      fdo_guid: fdo_guid
     }
     |> Repo.insert(opts)
   end
@@ -162,18 +165,27 @@ defmodule Astarte.DataAccess.Device do
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    keyspace_name = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-    opts = [prefix: keyspace_name, consistency: consistency]
-
-    device
-    |> Ecto.Changeset.change(%{
+    changes = %{
       credentials_secret: credentials_secret,
       inhibit_credentials_request: false,
       protocol_revision: 0,
       introspection: introspection,
       introspection_minor: introspection_minor
-    })
+    }
+
+    # Don't overwrite an already assigned fdo_guid when none is given
+    changes =
+      case Keyword.get(opts, :fdo_guid) do
+        nil -> changes
+        fdo_guid -> Map.put(changes, :fdo_guid, fdo_guid)
+      end
+
+    keyspace_name = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace_name, consistency: consistency]
+
+    device
+    |> Ecto.Changeset.change(changes)
     |> Repo.insert(opts)
   end
 
@@ -252,6 +264,7 @@ defmodule Astarte.DataAccess.Device do
           first_credentials_request: d.first_credentials_request,
           first_registration: d.first_registration,
           groups: d.groups,
+          fdo_guid: d.fdo_guid,
           inhibit_credentials_request: d.inhibit_credentials_request,
           introspection: d.introspection,
           introspection_minor: d.introspection_minor,
@@ -282,6 +295,7 @@ defmodule Astarte.DataAccess.Device do
         first_credentials_request: first_credentials_request,
         first_registration: first_registration,
         groups: groups,
+        fdo_guid: fdo_guid,
         inhibit_credentials_request: inhibit_credentials_request,
         introspection: introspection,
         introspection_minor: introspection_minor,
@@ -318,6 +332,7 @@ defmodule Astarte.DataAccess.Device do
           first_credentials_request: first_credentials_request,
           first_registration: first_registration,
           groups: groups,
+          fdo_guid: fdo_guid,
           inhibit_credentials_request: inhibit_credentials_request,
           introspection: introspection,
           introspection_minor: introspection_minor,

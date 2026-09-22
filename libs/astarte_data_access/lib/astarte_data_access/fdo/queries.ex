@@ -127,11 +127,17 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
   def delete_ownership_voucher(guid) do
     keyspace = Realm.astarte_keyspace_name()
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
 
     %OwnershipVoucher{
       guid: guid
     }
-    |> Repo.delete(prefix: keyspace)
+    |> Repo.delete(opts)
+    |> case do
+      {:ok, _voucher} -> :ok
+      error -> error
+    end
   end
 
   def mark_voucher_as_claimed(guid) do
