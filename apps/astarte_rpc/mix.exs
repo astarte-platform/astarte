@@ -25,6 +25,10 @@ defmodule Astarte.RPC.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -59,10 +63,10 @@ defmodule Astarte.RPC.MixProject do
 
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
-      {:astarte_data_access, path: "../astarte_data_access"},
-      {:astarte_events, path: "../astarte_events", runtime: false},
-      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:astarte_core, path: "../../libs/astarte_core"},
+      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:astarte_events, path: "../../libs/astarte_events", runtime: false},
+      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:mneme, "~> 0.10", only: [:dev, :test]},

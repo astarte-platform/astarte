@@ -25,6 +25,8 @@ ENV ASTARTE_LIBRARIES_PATH=../../libs
 COPY mix.exs mix.lock ./
 COPY apps/$SERVICE/mix.exs ./apps/$SERVICE/mix.exs
 COPY apps/astarte_fdo/mix.exs ./apps/astarte_fdo/mix.exs
+COPY apps/astarte_rpc/mix.exs ./apps/astarte_rpc/mix.exs
+
 COPY libs/astarte_config/mix.exs libs/astarte_config/mix.exs
 COPY libs/astarte_config/mix.lock libs/astarte_config/mix.lock
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
@@ -37,8 +39,6 @@ COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
 COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
 COPY libs/astarte_generators/mix.exs libs/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libs/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libs/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libs/astarte_rpc/mix.lock
 COPY libs/astarte_secrets/mix.exs libs/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libs/astarte_secrets/mix.lock
 RUN mix do deps.get + deps.compile --skip-local-deps
@@ -46,6 +46,7 @@ RUN mix do deps.get + deps.compile --skip-local-deps
 COPY libs ./libs
 COPY apps/astarte_fdo apps/astarte_fdo
 COPY apps/astarte_adapters apps/astarte_adapters
+COPY apps/astarte_rpc apps/astarte_rpc
 RUN mix deps.compile
 
 # Add all the rest

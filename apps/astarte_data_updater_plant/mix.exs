@@ -98,7 +98,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:bandit, "~> 1.11"},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      {:astarte_rpc, in_umbrella: true},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.1"},
