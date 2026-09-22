@@ -65,6 +65,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       key_algorithm int,
       user_id blob,
       status int,
+      expiry timestamp,
       PRIMARY KEY (guid)
   );
   """
