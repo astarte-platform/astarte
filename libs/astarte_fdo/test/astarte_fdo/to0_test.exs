@@ -48,7 +48,7 @@ defmodule Astarte.FDO.To0Test do
     end
   end
 
-  describe "owner_sign/5" do
+  describe "owner_sign/4" do
     test "returns :ok when Rendezvous.register_ownership/2 returns {:ok, _}" do
       nonce = :crypto.strong_rand_bytes(16)
       ownership_voucher = sample_voucher()
@@ -59,7 +59,7 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.owner_sign("testrealm", nonce, ownership_voucher, owner_key, headers)
+      assert :ok = TO0.owner_sign(nonce, ownership_voucher, owner_key, headers)
     end
 
     test "returns :error when Rendezvous.register_ownership/2 returns :error" do
@@ -71,11 +71,11 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> :error end)
 
-      assert :error = TO0.owner_sign("testrealm", nonce, ownership_voucher, owner_key, headers)
+      assert :error = TO0.owner_sign(nonce, ownership_voucher, owner_key, headers)
     end
   end
 
-  describe "claim_ownership_voucher/3" do
+  describe "claim_ownership_voucher/2" do
     test "returns :ok on successful hello and owner_sign" do
       nonce = :crypto.strong_rand_bytes(16)
       ownership_voucher = sample_voucher()
@@ -85,7 +85,7 @@ defmodule Astarte.FDO.To0Test do
       |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key)
+      assert :ok = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
     end
 
     test "returns early with :error if hello fails" do
@@ -95,7 +95,7 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:send_hello, fn -> :error end)
 
-      assert :error = TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key)
+      assert :error = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
     end
 
     test "defaults to a wait time of 3600 seconds" do
@@ -114,7 +114,7 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key)
+      assert :ok = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
     end
 
     test "threads a custom :wait_seconds option through to the rendezvous server" do
@@ -134,13 +134,11 @@ defmodule Astarte.FDO.To0Test do
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 0} end)
 
       assert :ok =
-               TO0.claim_ownership_voucher("testrealm", ownership_voucher, owner_key,
-                 wait_seconds: 0
-               )
+               TO0.claim_ownership_voucher(ownership_voucher, owner_key, wait_seconds: 0)
     end
   end
 
-  describe "revoke_ownership_voucher/3" do
+  describe "revoke_ownership_voucher/2" do
     test "registers with the rendezvous server using a wait time of 0 seconds" do
       nonce = :crypto.strong_rand_bytes(16)
       ownership_voucher = sample_voucher()
@@ -157,7 +155,7 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 0} end)
 
-      assert :ok = TO0.revoke_ownership_voucher("testrealm", ownership_voucher, owner_key)
+      assert :ok = TO0.revoke_ownership_voucher(ownership_voucher, owner_key)
     end
 
     test "returns :error when the rendezvous server rejects the revocation" do
@@ -169,7 +167,7 @@ defmodule Astarte.FDO.To0Test do
       |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
       |> expect(:register_ownership, fn _body, _headers -> :error end)
 
-      assert :error = TO0.revoke_ownership_voucher("testrealm", ownership_voucher, owner_key)
+      assert :error = TO0.revoke_ownership_voucher(ownership_voucher, owner_key)
     end
   end
 end

@@ -18,6 +18,7 @@
 
 defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
+  import Astarte.PairingWeb.FDORoutes
 
   pipeline :realm_api do
     plug :accepts, ["json"]
@@ -49,21 +50,12 @@ defmodule Astarte.PairingWeb.Router do
   end
 
   scope "/v1/:realm_name/fdo/101", Astarte.PairingWeb do
-    pipe_through :fdo
+    fdo_routes()
+  end
 
-    post "/msg/60", FDOOnboardingController, :hello_device
-
-    pipe_through :fdo_session
-
-    post "/msg/62", FDOOnboardingController, :ov_next_entry
-
-    post "/msg/64", FDOOnboardingController, :prove_device
-
-    pipe_through :fdo_tunnel
-
-    post "/msg/66", FDOOnboardingController, :service_info_start
-    post "/msg/68", FDOOnboardingController, :service_info_end
-    post "/msg/70", FDOOnboardingController, :done
+  # 3. Nuova rotta (senza :realm_name)
+  scope "/fdo/101", Astarte.PairingWeb do
+    fdo_routes()
   end
 
   scope "/v1/:realm_name", Astarte.PairingWeb do

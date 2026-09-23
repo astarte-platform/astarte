@@ -186,7 +186,6 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
            |> Ecto.Changeset.apply_action(:insert),
          :ok <-
            TO0.claim_ownership_voucher(
-             realm_name,
              req.decoded_ownership_voucher,
              req.extracted_owner_key
            ),

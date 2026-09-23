@@ -158,8 +158,7 @@ of the device onto its reference platform. Astarte implements the TO0 and TO2 pr
 
 TO0 and TO2 communications are carried out only over HTTP/HTTPS transport in the current implementation.
 The URL which the device must use to initiate the TO2 protocol is in the form
-_<ASTARTE_REALM>.api.<ASTARTE_BASE_URL>/<FDO_URL>_; this is currently necessary to map the device
-session to the correct realm.
+api._<ASTARTE_BASE_URL>/<FDO_URL>_ or _<ASTARTE_BASE_URL>/<FDO_URL>_;
 
 #### TO0 Protocol
 

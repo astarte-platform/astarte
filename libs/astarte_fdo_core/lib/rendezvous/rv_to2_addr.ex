@@ -56,18 +56,17 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2Addr do
   `host_value` is an `:inet.ip_address()` that is encoded to its byte
   representation and carried in the `ip` field.
   """
-  @spec for_realm(
-          String.t(),
+  @spec for_host(
           host_type(),
           String.t() | :inet.ip_address(),
           non_neg_integer(),
           protocol()
         ) :: t()
-  def for_realm(realm_name, :domain, domain, port, protocol) do
-    %RvTO2Addr{dns: "#{realm_name}.#{domain}", port: port, protocol: protocol}
+  def for_host(:domain, domain, port, protocol) do
+    %RvTO2Addr{dns: "#{domain}", port: port, protocol: protocol}
   end
 
-  def for_realm(_realm_name, :ip, address, port, protocol) do
+  def for_host(:ip, address, port, protocol) do
     %RvTO2Addr{ip: ip_tuple_to_bytes(address), port: port, protocol: protocol}
   end
 
