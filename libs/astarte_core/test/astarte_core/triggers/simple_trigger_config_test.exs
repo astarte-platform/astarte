@@ -381,6 +381,32 @@ defmodule Astarte.Core.SimpleTriggerConfigTest do
       assert config == SimpleTriggerConfig.from_tagged_simple_trigger(tagged_simple_trigger)
     end
 
+    test "data SimpleTriggerConfig roundtrips with false known value" do
+      params = %{@valid_data_trigger_map | "known_value" => false}
+      encoded_known_value = Cyanide.encode!(%{v: false})
+
+      assert {:ok, %SimpleTriggerConfig{known_value: false} = config} =
+               SimpleTriggerConfig.changeset(%SimpleTriggerConfig{}, params)
+               |> Ecto.Changeset.apply_action(:insert)
+
+      tagged_simple_trigger = SimpleTriggerConfig.to_tagged_simple_trigger(config)
+
+      assert %TaggedSimpleTrigger{
+               simple_trigger_container:
+                 %SimpleTriggerContainer{
+                   simple_trigger:
+                     {:data_trigger, %DataTrigger{known_value: ^encoded_known_value}}
+                 } = simple_trigger_container
+             } = tagged_simple_trigger
+
+      assert simple_trigger_container ==
+               simple_trigger_container
+               |> SimpleTriggerContainer.encode()
+               |> SimpleTriggerContainer.decode()
+
+      assert config == SimpleTriggerConfig.from_tagged_simple_trigger(tagged_simple_trigger)
+    end
+
     test "data SimpleTriggerConfig roundtrips with any interface" do
       any_interface_object_id = SimpleTriggersUtils.any_interface_object_id()
       any_interface_object_type_int = SimpleTriggersUtils.object_type_to_int!(:any_interface)
