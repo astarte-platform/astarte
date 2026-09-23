@@ -7,6 +7,10 @@ defmodule Astarte.Config.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -29,7 +33,7 @@ defmodule Astarte.Config.MixProject do
     [
       {:skogsra, "~> 2.2"},
       {:castore, "~> 1.0"},
-      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0"},

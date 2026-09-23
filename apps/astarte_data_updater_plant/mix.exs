@@ -113,7 +113,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:hkdf, "~> 0.3.0"},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
+      {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
   end
