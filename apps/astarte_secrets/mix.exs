@@ -49,9 +49,9 @@ defmodule AstarteSecrets.MixProject do
 
   defp deps do
     [
-      {:astarte_config, path: "../../libs/astarte_config"},
+      {:astarte_config, in_umbrella: true},
       {:astarte_data_access, path: "../../libs/astarte_data_access"},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: :test},
+      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       {:castore, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -64,7 +64,7 @@ defmodule AstarteSecrets.MixProject do
       {:x509, "~> 0.8"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
+      {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
       {:con_cache, "~> 1.0"},
       {:pretty_log, "~> 0.1"}

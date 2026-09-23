@@ -66,7 +66,7 @@ defmodule AstarteE2E.MixProject do
       {:hukai, "~> 0.3"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
+      {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
       {:decimal, "~> 3.0", override: true}
     ]

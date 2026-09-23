@@ -81,6 +81,7 @@ jobs:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
     with:
       app: "astarte_rpc"
+    secrets: inherit
   astarte_secrets:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
     with:
@@ -90,4 +91,9 @@ jobs:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
     with:
       app: "astarte_events"
+    secrets: inherit
+  astarte_config:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_config"
     secrets: inherit

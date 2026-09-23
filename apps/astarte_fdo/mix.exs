@@ -64,7 +64,7 @@ defmodule Astarte.FDO.MixProject do
       {:ecto, "~> 3.10"},
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},
-      {:astarte_config, path: "../../libs/astarte_config"},
+      {:astarte_config, in_umbrella: true},
       {:astarte_data_access, path: "../../libs/astarte_data_access"},
       {:astarte_fdo_core, path: "../../libs/astarte_fdo_core"},
       {:astarte_rpc, in_umbrella: true},
@@ -81,7 +81,7 @@ defmodule Astarte.FDO.MixProject do
       {:phoenix, "~> 1.7"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
-      {:hackney, github: "benoitc/hackney", override: true},
+      {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true},
       {:pretty_log, "~> 0.1"}
     ]
