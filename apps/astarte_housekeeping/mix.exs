@@ -92,7 +92,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_events, in_umbrella: true},
       {:astarte_secrets, in_umbrella: true},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},

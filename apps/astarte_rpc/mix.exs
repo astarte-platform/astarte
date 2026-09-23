@@ -65,7 +65,7 @@ defmodule Astarte.RPC.MixProject do
     [
       {:astarte_core, path: "../../libs/astarte_core"},
       {:astarte_data_access, path: "../../libs/astarte_data_access"},
-      {:astarte_events, path: "../../libs/astarte_events", runtime: false},
+      {:astarte_events, in_umbrella: true, runtime: false},
       {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
