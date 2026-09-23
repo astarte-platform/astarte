@@ -43,3 +43,12 @@ config :astarte_fdo, :base_url_protocol, :http
 config :phoenix, :stacktrace_depth, 20
 
 config :astarte_vmq_plugin, :registry_mfa, {Astarte.VMQ.Plugin.Utils, :empty_plugin_functions, []}
+
+cassandra_host = System.get_env("CASSANDRA_DB_HOST", "localhost")
+
+cassandra_port =
+  System.get_env("CASSANDRA_DB_PORT", "9042")
+  |> String.to_integer()
+
+config :astarte_data_access,
+  xandra_nodes: "#{cassandra_host}:#{cassandra_port}"

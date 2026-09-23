@@ -47,7 +47,7 @@ defmodule Astarte.Adapters.MixProject do
   defp astarte_required_modules() do
     [
       {:astarte_core, path: astarte_lib("astarte_core")},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]}
     ]
   end

@@ -64,7 +64,7 @@ defmodule Astarte.FDO.Core.MixProject do
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 2.3", only: :test},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:typedstruct, github: "saleyn/typedstruct"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}

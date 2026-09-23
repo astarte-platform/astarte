@@ -41,8 +41,13 @@ defmodule AstarteExport.MixProject do
       {:xml_stream_writer, "~> 0.1"},
       {:excoveralls, "~> 0.12", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")}
+      {:astarte_data_access, path: astarte_app("astarte_data_access")}
     ]
+  end
+
+  defp astarte_app(app_name) do
+    base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
+    Path.join(base_directory, app_name)
   end
 
   defp astarte_lib(library_name) do
