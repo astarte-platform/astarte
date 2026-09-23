@@ -86,3 +86,8 @@ jobs:
     with:
       app: "astarte_secrets"
     secrets: inherit
+  astarte_events:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_events"
+    secrets: inherit

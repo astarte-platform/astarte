@@ -90,7 +90,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_adapters, in_umbrella: true, only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_events, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
       {:mimic, "~> 2.3", only: [:test, :dev]},
       {:ssl_verify_fun, "~> 1.1.7"},

@@ -103,7 +103,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:mimic, "~> 2.3", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
-      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_events, in_umbrella: true},
       {:astarte_fdo, in_umbrella: true},
       {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, in_umbrella: true},
