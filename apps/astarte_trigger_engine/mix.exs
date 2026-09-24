@@ -79,7 +79,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:exandra, github: "vinniefranco/exandra"},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},

@@ -33,7 +33,7 @@ defmodule Astarte.Config.MixProject do
     [
       {:skogsra, "~> 2.2"},
       {:castore, "~> 1.0"},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0"},

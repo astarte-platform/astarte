@@ -75,7 +75,7 @@ defmodule Astarte.FDO.MixProject do
       {:castore, "~> 1.0"},
       {:mimic, "~> 2.4", only: [:test, :dev]},
       {:stream_data, "~> 1.1", only: [:test, :dev]},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: [:test, :dev]},
+      {:astarte_generators, in_umbrella: true, only: [:test, :dev]},
       {:typedstruct, github: "saleyn/typedstruct"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.7"},

@@ -51,7 +51,7 @@ defmodule AstarteSecrets.MixProject do
     [
       {:astarte_config, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:castore, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

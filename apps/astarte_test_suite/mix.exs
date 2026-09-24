@@ -58,8 +58,8 @@ defmodule Astarte.TestSuite.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_generators, path: "../../libs/astarte_generators"},
       {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true},
       {:astarte_adapters, in_umbrella: true}
     ]
   end

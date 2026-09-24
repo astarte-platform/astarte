@@ -87,7 +87,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_adapters, in_umbrella: true, only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_events, in_umbrella: true},
