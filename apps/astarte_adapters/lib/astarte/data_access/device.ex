@@ -23,19 +23,27 @@ defmodule Astarte.DataAccess.Adapters.Device do
   use Astarte.Adapters
 
   alias Astarte.Core.Interface
-  alias Astarte.DataAccess.Groups.GroupedDevice
+  alias Astarte.DataAccess.UUID
+
+  @type group_membership :: %{
+          required(:group_name) => String.t(),
+          required(:insertion_uuid) => UUID.t()
+        }
 
   @type source :: %{
-          required(:device) => map(),
+          required(:connected) => boolean(),
+          required(:device_id) => Astarte.Core.Device.device_id(),
+          required(:grouped_devices) => [group_membership()],
+          required(:inhibit_credentials_request) => boolean(),
           required(:interfaces) => [Interface.t()],
-          optional(:grouped_devices) => [GroupedDevice.t()]
+          required(:total_received_bytes) => non_neg_integer(),
+          required(:total_received_msgs) => non_neg_integer(),
+          optional(atom()) => term()
         }
 
   transform from_core_device_to_change do
     @source source()
     @returns map()
-
-    pre_process &pre_process/1
 
     keep :device_id,
          :connected,
@@ -64,22 +72,6 @@ defmodule Astarte.DataAccess.Adapters.Device do
     field :introspection <- :interfaces, &introspection/1
     field :introspection_minor <- :interfaces, &introspection_minor/1
   end
-
-  defp pre_process(%{
-         device: device,
-         grouped_devices: grouped_devices,
-         interfaces: interfaces
-       }),
-       do:
-         device
-         |> Map.put(:grouped_devices, grouped_devices)
-         |> Map.put(:interfaces, interfaces)
-
-  defp pre_process(%{device: device, interfaces: interfaces}),
-    do:
-      device
-      |> Map.put(:grouped_devices, [])
-      |> Map.put(:interfaces, interfaces)
 
   defp groups(grouped_devices),
     do: Map.new(grouped_devices, &{&1.group_name, &1.insertion_uuid})
