@@ -70,7 +70,8 @@ defmodule Astarte.DataAccess.Adapters.Triggers.TriggerTest do
     ])
   end
 
-  defp policy_links(_trigger_uuid, policy) when policy in [nil, ""], do: []
+  defp policy_links(_trigger_uuid, nil), do: []
+  defp policy_links(_trigger_uuid, ""), do: []
 
   defp policy_links(trigger_uuid, policy) do
     [

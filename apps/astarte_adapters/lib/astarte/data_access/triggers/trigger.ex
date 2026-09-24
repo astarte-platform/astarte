@@ -34,46 +34,66 @@ defmodule Astarte.DataAccess.Adapters.Triggers.Trigger do
     @source Trigger.t()
     @returns changes()
 
-    pre_process &pre_process/1
-
-    keep :trigger, :trigger_by_name, :policy_links
+    field :trigger, &trigger_change/1
+    field :trigger_by_name, &trigger_by_name_change/1
+    field :policy_links, &policy_links/1
   end
 
-  defp pre_process(%Trigger{name: name, policy: policy, trigger_uuid: trigger_uuid} = trigger) do
-    trigger_uuid_string = UUID.binary_to_string!(trigger_uuid)
+  transformp trigger_change do
+    pre_process &trigger_change_pre_process/1
 
-    %{
-      trigger: %{
-        group: "triggers",
-        key: trigger_uuid_string,
-        value: Trigger.encode(trigger)
-      },
-      trigger_by_name: %{
-        group: "triggers-by-name",
-        key: name,
-        value: trigger_uuid,
-        value_type: :uuid
-      },
-      policy_links: policy_links(trigger_uuid_string, policy)
-    }
+    keep :group
+
+    field :key <- :trigger_uuid, &UUID.binary_to_string!/1
+    field :value, &Trigger.encode/1
   end
 
-  defp policy_links(_trigger_uuid, nil), do: []
-  defp policy_links(_trigger_uuid, ""), do: []
+  transformp trigger_by_name_change do
+    pre_process &trigger_by_name_change_pre_process/1
 
-  defp policy_links(trigger_uuid, policy) do
+    keep :group, :value_type
+
+    field :key <- :name
+    field :value <- :trigger_uuid
+  end
+
+  transformp trigger_policy_index_change do
+    pre_process &trigger_policy_index_change_pre_process/1
+
+    keep :group, :value_type
+
+    field :key <- :trigger_uuid, &UUID.binary_to_string!/1
+    field :value <- :trigger_uuid, &UUID.binary_to_string!/1
+  end
+
+  transformp trigger_policy_reference_change do
+    pre_process &trigger_policy_reference_change_pre_process/1
+
+    keep :group
+
+    field :key <- :trigger_uuid, &UUID.binary_to_string!/1
+    field :value <- :policy
+  end
+
+  defp trigger_change_pre_process(%Trigger{} = trigger),
+    do: Map.put(trigger, :group, "triggers")
+
+  defp trigger_by_name_change_pre_process(%Trigger{} = trigger),
+    do: Map.merge(trigger, %{group: "triggers-by-name", value_type: :uuid})
+
+  defp trigger_policy_index_change_pre_process(%Trigger{policy: policy} = trigger),
+    do: Map.merge(trigger, %{group: "triggers-with-policy-#{policy}", value_type: :uuid})
+
+  defp trigger_policy_reference_change_pre_process(%Trigger{} = trigger),
+    do: Map.put(trigger, :group, "trigger_to_policy")
+
+  defp policy_links(%Trigger{policy: nil}), do: []
+  defp policy_links(%Trigger{policy: ""}), do: []
+
+  defp policy_links(%Trigger{} = trigger) do
     [
-      %{
-        group: "triggers-with-policy-#{policy}",
-        key: trigger_uuid,
-        value: trigger_uuid,
-        value_type: :uuid
-      },
-      %{
-        group: "trigger_to_policy",
-        key: trigger_uuid,
-        value: policy
-      }
+      trigger_policy_index_change(trigger),
+      trigger_policy_reference_change(trigger)
     ]
   end
 end
