@@ -20,7 +20,7 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  import Astarte.Core.CQLUtils, only: [interface_name_to_table_name: 2]
+  import Astarte.Core.CQLUtils, only: [endpoint_id: 3, interface_name_to_table_name: 2]
   import Astarte.Core.Generators.Interface
 
   import Astarte.DataAccess.Adapters.Interface
@@ -28,6 +28,7 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
   alias Ecto.Changeset
 
   alias Astarte.Core.Interface, as: InterfaceCore
+  alias Astarte.Core.Mapping.EndpointsAutomaton
 
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Interface
@@ -71,6 +72,17 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
         assert interface_core.doc == normalize_empty(interface, :doc)
         assert interface_core.description == normalize_empty(interface, :description)
 
+        {:ok, {transitions, accepting_states}} =
+          EndpointsAutomaton.build(interface_core.mappings)
+
+        assert :erlang.binary_to_term(interface.automaton_transitions) == transitions
+
+        assert :erlang.binary_to_term(interface.automaton_accepting_states) ==
+                 Map.new(accepting_states, fn {state, endpoint} ->
+                   {state,
+                    endpoint_id(interface_core.name, interface_core.major_version, endpoint)}
+                 end)
+
         mappings_endpoints =
           Enum.zip(
             Enum.sort_by(interface_core.mappings, & &1.endpoint_id),
@@ -79,6 +91,10 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
 
         for {mapping_core, endpoint} <- mappings_endpoints do
           assert interface_core.interface_id == endpoint.interface_id
+          assert interface_core.name == endpoint.interface_name
+          assert interface_core.major_version == endpoint.interface_major_version
+          assert interface_core.minor_version == endpoint.interface_minor_version
+          assert interface_core.type == endpoint.interface_type
           assert mapping_core.endpoint == endpoint.endpoint
           assert mapping_core.value_type == endpoint.value_type
           assert mapping_core.reliability == endpoint.reliability
@@ -91,6 +107,7 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
 
           assert mapping_core.allow_unset == endpoint.allow_unset
           assert mapping_core.explicit_timestamp == endpoint.explicit_timestamp
+          assert mapping_core.required == endpoint.required
           assert mapping_core.endpoint_id == endpoint.endpoint_id
           assert mapping_core.doc == normalize_empty(endpoint, :doc)
           assert mapping_core.description == normalize_empty(endpoint, :description)
