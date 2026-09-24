@@ -29,7 +29,6 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTriggerTest do
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.SimpleTrigger
@@ -44,22 +43,19 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTriggerTest do
                     parent_trigger_id: parent_trigger_id,
                     simple_trigger_id: simple_trigger_id
                   ) do
+        source = %{
+          simple_trigger_config: simple_trigger_config,
+          trigger_target: trigger_target
+        }
+
         %{
           simple_trigger:
-            %{
-              trigger_data: trigger_data,
-              trigger_target: encoded_trigger_target
-            } = simple_trigger,
+            %{trigger_data: trigger_data, trigger_target: encoded_trigger_target} =
+              simple_trigger,
           simple_trigger_reference: %{value: encoded_reference} = simple_trigger_reference
-        } =
-          from_core_simple_trigger_to_change(%{
-            parent_trigger_id: parent_trigger_id,
-            simple_trigger_config: simple_trigger_config,
-            simple_trigger_id: simple_trigger_id,
-            trigger_target: trigger_target
-          })
+        } = from_core_simple_trigger_to_change(source)
 
-        %TaggedSimpleTrigger{
+        %{
           object_id: object_id,
           object_type: object_type,
           simple_trigger_container: simple_trigger_container
@@ -88,6 +84,12 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTriggerTest do
                  trigger_target: TriggerTargetContainer.encode(expected_trigger_target)
                }
 
+        assert simple_trigger_reference == %{
+                 group: "simple-triggers-by-uuid",
+                 key: UUID.binary_to_string!(simple_trigger_id),
+                 value: AstarteReference.encode(expected_reference)
+               }
+
         assert SimpleTriggerContainer.decode(trigger_data) == simple_trigger_container
         assert TriggerTargetContainer.decode(encoded_trigger_target) == expected_trigger_target
 
@@ -99,12 +101,6 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTriggerTest do
                       simple_trigger_id: ^simple_trigger_id
                     }}
                } = TriggerTargetContainer.decode(encoded_trigger_target)
-
-        assert simple_trigger_reference == %{
-                 group: "simple-triggers-by-uuid",
-                 key: UUID.binary_to_string!(simple_trigger_id),
-                 value: AstarteReference.encode(expected_reference)
-               }
 
         assert AstarteReference.decode(encoded_reference) == expected_reference
       end

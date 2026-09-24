@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTrigger do
   @moduledoc """
-  Mappings from simple trigger configurations to their database entries.
+  Mappings from simple trigger configurations and targets to their database entries.
   """
   use Astarte.Adapters
 
@@ -28,13 +28,10 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTrigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.DataAccess.UUID, as: DataAccessUUID
 
   @type source :: %{
-          parent_trigger_id: DataAccessUUID.t(),
-          simple_trigger_config: SimpleTriggerConfig.t(),
-          simple_trigger_id: DataAccessUUID.t(),
-          trigger_target: AMQPTriggerTarget.t()
+          required(:simple_trigger_config) => SimpleTriggerConfig.t(),
+          required(:trigger_target) => AMQPTriggerTarget.t()
         }
 
   @type changes :: %{
@@ -46,46 +43,78 @@ defmodule Astarte.DataAccess.Adapters.Triggers.SimpleTrigger do
     @source source()
     @returns changes()
 
-    pre_process &pre_process/1
-
-    keep :simple_trigger, :simple_trigger_reference
+    field :simple_trigger, &simple_trigger_change/1
+    field :simple_trigger_reference, &simple_trigger_reference_change/1
   end
 
-  defp pre_process(%{
-         parent_trigger_id: parent_trigger_id,
+  transformp simple_trigger_config_change do
+    pre_process &simple_trigger_config_change_pre_process/1
+
+    keep :object_id, :object_type
+
+    field :trigger_data <- :simple_trigger_container, &SimpleTriggerContainer.encode/1
+  end
+
+  transformp trigger_target_change do
+    keep :parent_trigger_id, :simple_trigger_id
+
+    field :trigger_target, &encoded_trigger_target/1
+  end
+
+  transformp simple_trigger_config_reference_change do
+    pre_process &simple_trigger_config_reference_change_pre_process/1
+
+    keep :group
+
+    field :value, &encoded_reference/1
+  end
+
+  transformp trigger_target_reference_change do
+    field :key <- :simple_trigger_id, &UUID.binary_to_string!/1
+  end
+
+  defp simple_trigger_change(%{
          simple_trigger_config: simple_trigger_config,
-         simple_trigger_id: simple_trigger_id,
-         trigger_target: %AMQPTriggerTarget{} = trigger_target
-       }) do
-    %TaggedSimpleTrigger{
-      object_id: object_id,
-      object_type: object_type,
-      simple_trigger_container: simple_trigger_container
-    } = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+         trigger_target: trigger_target
+       }),
+       do:
+         simple_trigger_config
+         |> simple_trigger_config_change()
+         |> Map.merge(trigger_target_change(trigger_target))
 
-    trigger_target_container = %TriggerTargetContainer{
-      trigger_target: {:amqp_trigger_target, trigger_target}
-    }
+  defp simple_trigger_reference_change(%{
+         simple_trigger_config: simple_trigger_config,
+         trigger_target: trigger_target
+       }),
+       do:
+         simple_trigger_config
+         |> simple_trigger_config_reference_change()
+         |> Map.merge(trigger_target_reference_change(trigger_target))
 
-    simple_trigger_reference = %AstarteReference{
-      object_type: object_type,
-      object_uuid: object_id
-    }
+  defp simple_trigger_config_change_pre_process(%SimpleTriggerConfig{} = simple_trigger_config),
+    do: SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
 
-    %{
-      simple_trigger: %{
-        object_id: object_id,
-        object_type: object_type,
-        parent_trigger_id: parent_trigger_id,
-        simple_trigger_id: simple_trigger_id,
-        trigger_data: SimpleTriggerContainer.encode(simple_trigger_container),
-        trigger_target: TriggerTargetContainer.encode(trigger_target_container)
-      },
-      simple_trigger_reference: %{
-        group: "simple-triggers-by-uuid",
-        key: UUID.binary_to_string!(simple_trigger_id),
-        value: AstarteReference.encode(simple_trigger_reference)
-      }
-    }
-  end
+  defp simple_trigger_config_reference_change_pre_process(
+         %SimpleTriggerConfig{} = simple_trigger_config
+       ),
+       do:
+         simple_trigger_config
+         |> SimpleTriggerConfig.to_tagged_simple_trigger()
+         |> Map.put(:group, "simple-triggers-by-uuid")
+
+  defp encoded_trigger_target(%AMQPTriggerTarget{} = trigger_target),
+    do:
+      TriggerTargetContainer.encode(%TriggerTargetContainer{
+        trigger_target: {:amqp_trigger_target, trigger_target}
+      })
+
+  defp encoded_reference(%TaggedSimpleTrigger{
+         object_id: object_id,
+         object_type: object_type
+       }),
+       do:
+         AstarteReference.encode(%AstarteReference{
+           object_type: object_type,
+           object_uuid: object_id
+         })
 end
