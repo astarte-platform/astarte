@@ -29,10 +29,15 @@ defmodule Astarte.DataAccess.Adapters.Triggers.Policy do
     @source Policy.t()
     @returns map()
 
-    field :group, fn _policy -> "trigger_policy" end
+    pre_process &pre_process/1
+
+    keep :group
+
     field :key <- :name
     field :value, &encoded_policy/1
   end
+
+  defp pre_process(%Policy{} = policy), do: Map.put(policy, :group, "trigger_policy")
 
   defp encoded_policy(policy), do: policy |> Policy.to_policy_proto() |> PolicyProtobuf.encode()
 end
