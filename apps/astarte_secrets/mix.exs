@@ -50,7 +50,7 @@ defmodule AstarteSecrets.MixProject do
   defp deps do
     [
       {:astarte_config, in_umbrella: true},
-      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       {:castore, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
@@ -58,7 +58,7 @@ defmodule AstarteSecrets.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mimic, "~> 2.3", only: :test},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
       {:x509, "~> 0.8"},

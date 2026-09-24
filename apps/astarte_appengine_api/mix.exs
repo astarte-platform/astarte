@@ -99,7 +99,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:recon, "2.5.6", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_data_access, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
       {:astarte_secrets, in_umbrella: true},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
@@ -111,7 +111,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.3", only: :test},
-      {:mimic, "~> 2.3", only: [:test, :dev]},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:ecto, "~> 3.13", override: true},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},

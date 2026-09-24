@@ -68,7 +68,7 @@ defmodule Astarte.Events.Mixfile do
       {:skogsra, "~> 2.2"},
       {:mimic, "~> 2.3", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:astarte_data_access, in_umbrella: true},
       {:astarte_core, path: "../../libs/astarte_core"},
       {:elixir_uuid, "~> 1.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

@@ -25,6 +25,10 @@ defmodule Astarte.DataAccess.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -63,23 +67,24 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
-      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:astarte_core, path: "../../libs/astarte_core"},
+      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
       {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:astarte_fdo_core, path: "../astarte_fdo_core"},
+      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:cose, github: "secomind/cose-elixir"},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 2.3", only: :test},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, "~> 4.0", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:pretty_log, "~> 0.1"}
     ]
   end
 
@@ -99,5 +104,10 @@ defmodule Astarte.DataAccess.Mixfile do
         "GitHub" => "https://github.com/astarte-platform/astarte_data_access"
       }
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

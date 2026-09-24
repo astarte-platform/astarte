@@ -97,3 +97,8 @@ jobs:
     with:
       app: "astarte_config"
     secrets: inherit
+  astarte_data_access:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_access"
+    secrets: inherit

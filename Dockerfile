@@ -29,11 +29,10 @@ COPY apps/astarte_rpc/mix.exs ./apps/astarte_rpc/mix.exs
 COPY apps/astarte_secrets/mix.exs ./apps/astarte_secrets/mix.exs
 COPY apps/astarte_events/mix.exs ./apps/astarte_events/mix.exs
 COPY apps/astarte_config/mix.exs ./apps/astarte_config/mix.exs
+COPY apps/astarte_data_access/mix.exs ./apps/astarte_data_access/mix.exs
 
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
 COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
-COPY libs/astarte_data_access/mix.exs libs/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libs/astarte_data_access/mix.lock
 COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
 COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
 COPY libs/astarte_generators/mix.exs libs/astarte_generators/mix.exs
@@ -47,6 +46,7 @@ COPY apps/astarte_rpc apps/astarte_rpc
 COPY apps/astarte_secrets apps/astarte_secrets
 COPY apps/astarte_events apps/astarte_events
 COPY apps/astarte_config apps/astarte_config
+COPY apps/astarte_data_access apps/astarte_data_access
 
 RUN mix deps.compile
 

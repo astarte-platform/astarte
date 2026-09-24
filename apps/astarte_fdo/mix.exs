@@ -65,15 +65,15 @@ defmodule Astarte.FDO.MixProject do
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},
       {:astarte_config, in_umbrella: true},
-      {:astarte_data_access, path: "../../libs/astarte_data_access"},
-      {:astarte_fdo_core, path: "../../libs/astarte_fdo_core"},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, in_umbrella: true},
       {:astarte_secrets, in_umbrella: true},
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:castore, "~> 1.0"},
-      {:mimic, "~> 2.3", only: [:test, :dev]},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:stream_data, "~> 1.1", only: [:test, :dev]},
       {:astarte_generators, path: "../../libs/astarte_generators", only: [:test, :dev]},
       {:typedstruct, github: "saleyn/typedstruct"},
@@ -85,5 +85,10 @@ defmodule Astarte.FDO.MixProject do
       {:tzdata, github: "lau/tzdata", override: true},
       {:pretty_log, "~> 0.1"}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
