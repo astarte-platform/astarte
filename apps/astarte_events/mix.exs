@@ -72,7 +72,7 @@ defmodule Astarte.Events.Mixfile do
       {:astarte_core, path: "../../libs/astarte_core"},
       {:elixir_uuid, "~> 1.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:typedstruct, github: "saleyn/typedstruct"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},

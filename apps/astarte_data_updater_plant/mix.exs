@@ -69,7 +69,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:astarte_events, in_umbrella: true},
       {:astarte_secrets, in_umbrella: true}

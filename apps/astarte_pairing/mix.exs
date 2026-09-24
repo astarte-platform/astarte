@@ -96,7 +96,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "secomind/cfxxl", branch: "main"},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_secrets, in_umbrella: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:exandra, github: "vinniefranco/exandra"},

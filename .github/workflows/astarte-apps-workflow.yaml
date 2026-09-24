@@ -102,3 +102,8 @@ jobs:
     with:
       app: "astarte_data_access"
     secrets: inherit
+  astarte_generators:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_generators"
+    secrets: inherit

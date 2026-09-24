@@ -68,7 +68,7 @@ defmodule Astarte.DataAccess.Mixfile do
   defp deps do
     [
       {:astarte_core, path: "../../libs/astarte_core"},
-      {:astarte_generators, path: "../../libs/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
