@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataAccess.Adapters.Group do
   @moduledoc """
-  Mappings to Astarte.DataAccess.Groups.Group and Astarte.DataAccess.Groups.GroupedDevice.
+  Mappings from an Astarte group to its database fields.
   """
   use Astarte.Adapters
 
@@ -26,8 +26,9 @@ defmodule Astarte.DataAccess.Adapters.Group do
   alias Astarte.DataAccess.UUID
 
   @type source :: %{
-          group: map(),
-          insertion_uuids: [UUID.t()]
+          required(:device_ids) => [Device.device_id()],
+          required(:insertion_uuids) => [UUID.t()],
+          required(:name) => String.t()
         }
 
   transform from_core_group_to_change do
@@ -37,42 +38,34 @@ defmodule Astarte.DataAccess.Adapters.Group do
       grouped_devices: [map()]
     }
 
-    pre_process &pre_process/1
-
-    field :group_name <- :name
-    field :devices <- :device_ids, &encoded_device_ids/1
-    field :grouped_devices, &grouped_devices/1
-
-    post_process &post_process/1
+    field :group, &group_change/1
+    field :grouped_devices, &grouped_device_changes/1
   end
 
-  defp pre_process(%{group: group, insertion_uuids: insertion_uuids}),
-    do: Map.put(group, :insertion_uuids, insertion_uuids)
+  transformp group_change do
+    field :group_name <- :name
+    field :devices <- :device_ids, &encoded_device_ids/1
+  end
+
+  transformp grouped_device_change do
+    keep :device_id, :group_name, :insertion_uuid
+  end
 
   defp encoded_device_ids(device_ids), do: Enum.map(device_ids, &Device.encode_device_id/1)
 
-  defp grouped_devices(%{
+  defp grouped_device_changes(%{
          device_ids: device_ids,
          insertion_uuids: insertion_uuids,
          name: group_name
        }),
-       do: grouped_devices(device_ids, insertion_uuids, group_name)
-
-  defp grouped_devices([], [], _group_name), do: []
-
-  defp grouped_devices([device_id | device_ids], [insertion_uuid | insertion_uuids], group_name) do
-    [
-      %{
-        device_id: device_id,
-        group_name: group_name,
-        insertion_uuid: insertion_uuid
-      }
-      | grouped_devices(device_ids, insertion_uuids, group_name)
-    ]
-  end
-
-  defp post_process(source) do
-    {grouped_devices, group} = Map.pop(source, :grouped_devices)
-    %{group: group, grouped_devices: grouped_devices}
-  end
+       do:
+         Enum.zip_with(
+           device_ids,
+           insertion_uuids,
+           &grouped_device_change(%{
+             device_id: &1,
+             group_name: group_name,
+             insertion_uuid: &2
+           })
+         )
 end

@@ -29,12 +29,12 @@ defmodule Astarte.DataAccess.Adapters.GroupTest do
 
   describe "from core group to data access changes" do
     property "maps a group and its devices" do
-      check all %{
-                  group: group,
-                  grouped_devices: grouped_devices,
-                  insertion_uuids: insertion_uuids,
-                  source: %{device_ids: device_ids, name: group_name}
-                } <- adapted_group() do
+      check all %{device_ids: device_ids, name: group_name} = group <- group(),
+                insertion_uuids <-
+                  binary(length: 16) |> list_of(length: length(device_ids)) do
+        source = Map.put(group, :insertion_uuids, insertion_uuids)
+        %{group: group, grouped_devices: grouped_devices} = from_core_group_to_change(source)
+
         expected_grouped_devices =
           for {device_id, insertion_uuid} <- Enum.zip(device_ids, insertion_uuids) do
             %{
@@ -57,22 +57,6 @@ defmodule Astarte.DataAccess.Adapters.GroupTest do
 
         assert grouped_devices == expected_grouped_devices
       end
-    end
-  end
-
-  defp adapted_group do
-    gen all %{device_ids: device_ids} = source <- group(),
-            insertion_uuids <-
-              binary(length: 16) |> list_of(length: length(device_ids)) do
-      %{group: group, grouped_devices: grouped_devices} =
-        from_core_group_to_change(%{group: source, insertion_uuids: insertion_uuids})
-
-      %{
-        group: group,
-        grouped_devices: grouped_devices,
-        insertion_uuids: insertion_uuids,
-        source: source
-      }
     end
   end
 end
