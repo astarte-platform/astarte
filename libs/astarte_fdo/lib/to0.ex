@@ -32,6 +32,12 @@ defmodule Astarte.FDO.TO0 do
 
   @default_wait_seconds 3600
 
+  @doc """
+  Claims an ownership voucher on the rendezvous server.
+
+  Returns the instant at which the registration the server accepted stops being
+  served, which may be earlier than the requested one.
+  """
   def claim_ownership_voucher(
         decoded_ownership_voucher,
         owner_private_key,
@@ -55,7 +61,19 @@ defmodule Astarte.FDO.TO0 do
   rendezvous server.
   """
   def revoke_ownership_voucher(decoded_ownership_voucher, owner_private_key) do
-    claim_ownership_voucher(decoded_ownership_voucher, owner_private_key, wait_seconds: 0)
+    opts = [wait_seconds: 0]
+
+    with {:ok, _expiry} <-
+           claim_ownership_voucher(decoded_ownership_voucher, owner_private_key, opts) do
+      :ok
+    end
+  end
+
+  @spec expiry(non_neg_integer()) :: DateTime.t()
+  defp expiry(wait_seconds) do
+    DateTime.utc_now()
+    |> DateTime.add(wait_seconds, :second)
+    |> DateTime.truncate(:second)
   end
 
   @doc """
@@ -70,7 +88,8 @@ defmodule Astarte.FDO.TO0 do
   @doc """
   TO0.OwnerSign - Type 22 message to register ownership.
   Sends ownership voucher and waits for response from rendezvous server.
-  Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time.
+  Returns the expiry of the registration, computed from the wait time
+  negotiated in TO0.AcceptOwner (message 23).
   """
   def owner_sign(
         nonce,
@@ -99,8 +118,8 @@ defmodule Astarte.FDO.TO0 do
              rv_to2_addr,
              wait_seconds
            ),
-         {:ok, _rendezvous_wait_second} <- Rendezvous.register_ownership(request_body, headers) do
-      :ok
+         {:ok, accepted_wait_seconds} <- Rendezvous.register_ownership(request_body, headers) do
+      {:ok, expiry(accepted_wait_seconds)}
     end
   end
 end

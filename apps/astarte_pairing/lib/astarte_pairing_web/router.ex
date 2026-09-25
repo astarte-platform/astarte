@@ -93,6 +93,7 @@ defmodule Astarte.PairingWeb.Router do
       get "/ownership_vouchers", OwnershipVoucherController, :list_ownership_vouchers
       post "/ownership_vouchers", OwnershipVoucherController, :register
       delete "/ownership_vouchers/:guid", OwnershipVoucherController, :delete_ownership_voucher
+      post "/ownership_vouchers/:guid/to0", OwnershipVoucherController, :run_to0
     end
   end
 

@@ -35,7 +35,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   alias COSE.Messages.Sign1
 
   setup context do
-    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
+    %{astarte_instance_id: astarte_instance_id} = context
 
     RealmManagement
     |> stub(:delete_device, fn _, _ -> :ok end)
@@ -189,6 +189,111 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       unknown_guid = :crypto.strong_rand_bytes(16)
 
       assert {:error, :not_found} = OwnershipVoucher.delete(realm_name, unknown_guid)
+    end
+  end
+
+  describe "run_to0/2" do
+    test "registers the voucher again and stores the new expiry", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      new_expiry = DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:second)
+
+      TO0
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
+        {:ok, new_expiry}
+      end)
+
+      assert {:ok, ^new_expiry} = OwnershipVoucher.run_to0(realm_name, guid)
+
+      assert {:ok, %{expiry: stored_expiry}} = Queries.fetch_ownership_voucher(guid)
+      assert DateTime.compare(stored_expiry, new_expiry) == :eq
+    end
+
+    test "refuses a voucher whose device completed Device Onboard", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        status: :claimed,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      assert {:error, :device_already_onboarded} = OwnershipVoucher.run_to0(realm_name, guid)
+    end
+
+    test "returns {:error, :not_found} for a voucher belonging to another realm", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: "another_realm",
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      assert {:error, :not_found} = OwnershipVoucher.run_to0(realm_name, guid)
+    end
+
+    test "returns {:error, :not_found} for an unknown guid", ctx do
+      %{realm_name: realm_name} = ctx
+      unknown_guid = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :not_found} = OwnershipVoucher.run_to0(realm_name, unknown_guid)
+    end
+
+    test "does not touch the expiry if the rendezvous registration fails", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      expiry = DateTime.utc_now() |> DateTime.add(60, :second) |> DateTime.truncate(:millisecond)
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher(),
+        expiry: expiry
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      TO0
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
+        :error
+      end)
+
+      assert {:error, :rendezvous_registration_failed} =
+               OwnershipVoucher.run_to0(realm_name, guid)
+
+      assert {:ok, %{expiry: ^expiry}} = Queries.fetch_ownership_voucher(guid)
     end
   end
 

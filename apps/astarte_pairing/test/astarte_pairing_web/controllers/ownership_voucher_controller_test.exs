@@ -28,6 +28,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.TO0
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -242,6 +243,28 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> response(422)
     end
 
+    test "returns 500 when the voucher cannot be registered on the rendezvous server", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      TO0 |> expect(:claim_ownership_voucher, fn _voucher, _key -> :error end)
+
+      conn
+      |> post(path, params)
+      |> response(500)
+    end
+
     test "returns 422 when the key does not exist in the secrets store", context do
       %{auth_conn: conn, register_path: path, realm_name: realm_name} = context
 
@@ -377,6 +400,109 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert UUID.string_to_binary!(ownership_voucher_result["guid"])
       assert ownership_voucher_result["status"] == "created"
       assert ownership_voucher_result["input_voucher"] == @sample_ownership_voucher_pem
+    end
+
+    test "returns the expiry negotiated with the rendezvous during registration", context do
+      %{auth_conn: conn, path: path} = context
+
+      body =
+        conn
+        |> get(path)
+        |> json_response(200)
+
+      assert [%{"expiry" => expiry}] = body["data"]
+      assert {:ok, expiry, 0} = DateTime.from_iso8601(expiry)
+      assert DateTime.after?(expiry, DateTime.utc_now())
+    end
+  end
+
+  describe "run_to0/2" do
+    test "returns 200 with the new expiry", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn ^realm_name, ^guid -> {:ok, expiry} end)
+
+      body =
+        conn
+        |> post(path)
+        |> json_response(200)
+
+      assert get_in(body, ["data", "expiry"]) == DateTime.to_iso8601(expiry)
+    end
+
+    test "returns 404 when the voucher does not exist", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :not_found} end)
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 404 when the guid is malformed", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      path = ownership_voucher_path(conn, :run_to0, realm_name, "not-a-guid")
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 404 when the voucher exists but does not belong to the realm for which the user is authenticated",
+         context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+
+      path =
+        ownership_voucher_path(conn, :run_to0, realm_name, @sample_ownership_voucher_guid)
+
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:ok, %{realm: "another_realm"}} end)
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 409 when Device Onboard already completed for the voucher", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :device_already_onboarded} end)
+
+      body =
+        conn
+        |> post(path)
+        |> json_response(409)
+
+      assert get_in(body, ["errors", "detail"]) =~ guid_str
+    end
+
+    test "returns 500 when the rendezvous registration fails", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :rendezvous_registration_failed} end)
+
+      conn
+      |> post(path)
+      |> response(500)
     end
   end
 

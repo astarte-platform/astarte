@@ -103,7 +103,37 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
                 type: :string,
                 nullable: true,
                 description: "The PEM-encoded output ownership voucher, if any."
+              },
+              expiry: %Schema{
+                type: :string,
+                format: :"date-time",
+                nullable: true,
+                description:
+                  "The instant at which the rendezvous server stops serving the registration " <>
+                    "made during TO0, if the voucher was ever registered."
               }
+            }
+          }
+        }
+      }
+    })
+  end
+
+  defmodule TO0Response do
+    @moduledoc false
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :object,
+          properties: %{
+            expiry: %Schema{
+              type: :string,
+              format: :"date-time",
+              description:
+                "The instant at which the rendezvous server stops serving the new registration."
             }
           }
         }

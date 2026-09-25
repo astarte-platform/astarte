@@ -208,6 +208,7 @@ class AstarteClient {
     this.getFdoOwnerKey = this.getFdoOwnerKey.bind(this);
     this.listFdoVouchers = this.listFdoVouchers.bind(this);
     this.deleteFdoVoucher = this.deleteFdoVoucher.bind(this);
+    this.runFdoVoucherTo0 = this.runFdoVoucherTo0.bind(this);
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
@@ -255,6 +256,7 @@ class AstarteClient {
       fdoOwnerKeysForVoucher: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys_for_voucher`,
       fdoOwnershipVouchers: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers`,
       fdoOwnershipVoucherDetail: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers/${'guid'}`,
+      fdoOwnershipVoucherTo0: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers/${'guid'}/to0`,
     };
   }
 
@@ -955,6 +957,7 @@ class AstarteClient {
       input_voucher: string | null;
       output_voucher: string | null;
       output_guid: string | null;
+      expiry: string | null;
     }[]
   > {
     return axios({
@@ -970,6 +973,16 @@ class AstarteClient {
       url: this.apiConfig.fdoOwnershipVoucherDetail({ ...this.config, guid }),
       headers: { Authorization: `Bearer ${this.token}` },
     });
+  }
+
+  // Registers the voucher on the FDO rendezvous server again, returning the new expiry.
+  // Only vouchers whose device has not completed Device Onboard yet can be re-registered.
+  async runFdoVoucherTo0(guid: string): Promise<{ expiry: string }> {
+    return axios({
+      method: 'post',
+      url: this.apiConfig.fdoOwnershipVoucherTo0({ ...this.config, guid }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    }).then((response) => response.data.data);
   }
 
   private async $get(url: string) {

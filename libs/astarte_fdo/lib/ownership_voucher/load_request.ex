@@ -450,8 +450,14 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     end
   end
 
-  @spec store_voucher(t()) :: :ok | {:error, term()}
-  def store_voucher(load_request) do
+  @doc """
+  Persists the ownership voucher described by `load_request`.
+
+  `expiry` is the instant at which the rendezvous server stops serving the
+  registration made during TO0.
+  """
+  @spec store_voucher(t(), DateTime.t()) :: :ok | {:error, term()}
+  def store_voucher(load_request, expiry) do
     %LoadRequest{
       realm_name: realm_name,
       device_guid: guid,
@@ -474,7 +480,8 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       key_algorithm: key_algorithm,
       replacement_guid: replacement_guid,
       replacement_rendezvous_info: decoded_replacement_rendezvous_info,
-      replacement_public_key: decoded_replacement_public_key
+      replacement_public_key: decoded_replacement_public_key,
+      expiry: expiry
     }
 
     Queries.create_ownership_voucher(ownership_voucher)

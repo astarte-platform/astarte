@@ -11,6 +11,7 @@ export const useFdo = () => {
   const { client } = useAstarte();
   const [state, setState] = useState<UploadState>({ status: 'idle', error: null });
   const [deleteState, setDeleteState] = useState<UploadState>({ status: 'idle', error: null });
+  const [to0State, setTo0State] = useState<UploadState>({ status: 'idle', error: null });
 
   const uploadVoucher = useCallback(
     async (
@@ -54,6 +55,22 @@ export const useFdo = () => {
     [client],
   );
 
+  const runTo0 = useCallback(
+    async (guid: string) => {
+      setTo0State({ status: 'loading', error: null });
+
+      try {
+        const { expiry } = await client.runFdoVoucherTo0(guid);
+        setTo0State({ status: 'success', error: null });
+        return expiry;
+      } catch (err: any) {
+        setTo0State({ status: 'error', error: err });
+        throw err;
+      }
+    },
+    [client],
+  );
+
   return {
     uploadVoucher,
     status: state.status,
@@ -61,5 +78,8 @@ export const useFdo = () => {
     deleteVoucher,
     deleteStatus: deleteState.status,
     deleteError: deleteState.error,
+    runTo0,
+    to0Status: to0State.status,
+    to0Error: to0State.error,
   };
 };

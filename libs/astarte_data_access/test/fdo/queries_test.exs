@@ -239,6 +239,34 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       assert :ok == Queries.mark_voucher_as_claimed(guid)
       assert %{status: :claimed} = Repo.get(OwnershipVoucher, guid, opts)
     end
+
+    test "clears the expiry of the ownership voucher", %{guid: guid} do
+      opts = [prefix: Realm.astarte_keyspace_name()]
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
+
+      assert :ok == Queries.update_voucher_expiry(guid, expiry)
+      assert %{expiry: ^expiry} = Repo.get(OwnershipVoucher, guid, opts)
+
+      assert :ok == Queries.mark_voucher_as_claimed(guid)
+      assert %{expiry: nil} = Repo.get(OwnershipVoucher, guid, opts)
+    end
+  end
+
+  describe "update_voucher_expiry/2" do
+    setup :setup_voucher
+
+    test "updates the expiry of the ownership voucher", %{guid: guid} do
+      opts = [prefix: Realm.astarte_keyspace_name()]
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
+
+      assert %{expiry: nil} = Repo.get(OwnershipVoucher, guid, opts)
+      assert :ok == Queries.update_voucher_expiry(guid, expiry)
+      assert %{expiry: ^expiry} = Repo.get(OwnershipVoucher, guid, opts)
+    end
   end
 
   describe "get_owner_key_params/1" do

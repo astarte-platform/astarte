@@ -104,7 +104,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
   describe "build_owner_service_info/3 when device has more data" do
     test "stores partial device service info and returns empty owner service info", %{
-      realm: realm_name,
       session: session
     } do
       service_info = %{{"devmode", "active"} => true}
@@ -129,7 +128,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
     end
 
     test "appends partial device service info and returns empty owner service info", %{
-      realm: realm_name,
       session: session
     } do
       first_service_info = %{{"devmode", "active"} => true}
@@ -164,7 +162,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
   describe "build_and_send_owner_service_info/3 when device has sent all data" do
     test "registers device and returns owner service info", %{
-      realm: realm_name,
       session: session
     } do
       service_info = %{{"devmod", "sn"} => "serial_number_1234"}
@@ -183,7 +180,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
     end
 
     test "returns done owner service info when all chunks are sent", %{
-      realm: realm_name,
       session: session
     } do
       service_info = %{{"devmode", "active"} => true}

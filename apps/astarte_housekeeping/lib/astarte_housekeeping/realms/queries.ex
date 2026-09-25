@@ -1444,6 +1444,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       replacement_guid blob,
       replacement_rendezvous_info blob,
       replacement_public_key blob,
+      expiry timestamp,
       PRIMARY KEY (guid)
     );
     """

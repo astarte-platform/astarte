@@ -49,7 +49,7 @@ defmodule Astarte.FDO.To0Test do
   end
 
   describe "owner_sign/4" do
-    test "returns :ok when Rendezvous.register_ownership/2 returns {:ok, _}" do
+    test "returns the expiry of the registration accepted by the rendezvous server" do
       nonce = :crypto.strong_rand_bytes(16)
       ownership_voucher = sample_voucher()
       # TO1D signing hardcodes alg :es256, so we must use an EC256 key
@@ -59,7 +59,12 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.owner_sign(nonce, ownership_voucher, owner_key, headers)
+      before = DateTime.utc_now()
+
+      assert {:ok, %DateTime{} = expiry} =
+               TO0.owner_sign(nonce, ownership_voucher, owner_key, headers)
+
+      assert_expires_in(expiry, before, 3600)
     end
 
     test "returns :error when Rendezvous.register_ownership/2 returns :error" do
@@ -75,8 +80,8 @@ defmodule Astarte.FDO.To0Test do
     end
   end
 
-  describe "claim_ownership_voucher/2" do
-    test "returns :ok on successful hello and owner_sign" do
+  describe "claim_ownership_voucher/3" do
+    test "returns the expiry on successful hello and owner_sign" do
       nonce = :crypto.strong_rand_bytes(16)
       ownership_voucher = sample_voucher()
       owner_key = Keys.generate(:es256)
@@ -85,7 +90,35 @@ defmodule Astarte.FDO.To0Test do
       |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
+      before = DateTime.utc_now()
+
+      assert {:ok, expiry} = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
+
+      assert_expires_in(expiry, before, 3600)
+    end
+
+    test "expires according to the wait time the rendezvous server capped the request to" do
+      nonce = :crypto.strong_rand_bytes(16)
+      ownership_voucher = sample_voucher()
+      owner_key = Keys.generate(:es256)
+
+      Rendezvous
+      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
+
+      RendezvousCore
+      |> expect(:build_owner_sign_message, fn _ov, _key, _nonce, _addrs, 7200 ->
+        {:ok, "request-body"}
+      end)
+
+      Rendezvous
+      |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
+
+      before = DateTime.utc_now()
+      opts = [wait_seconds: 7200]
+
+      assert {:ok, expiry} = TO0.claim_ownership_voucher(ownership_voucher, owner_key, opts)
+
+      assert_expires_in(expiry, before, 3600)
     end
 
     test "returns early with :error if hello fails" do
@@ -114,27 +147,7 @@ defmodule Astarte.FDO.To0Test do
       Rendezvous
       |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
-      assert :ok = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
-    end
-
-    test "threads a custom :wait_seconds option through to the rendezvous server" do
-      nonce = :crypto.strong_rand_bytes(16)
-      ownership_voucher = sample_voucher()
-      owner_key = Keys.generate(:es256)
-
-      Rendezvous
-      |> expect(:send_hello, fn -> {:ok, %{nonce: nonce, headers: []}} end)
-
-      RendezvousCore
-      |> expect(:build_owner_sign_message, fn _ov, _key, _nonce, _addrs, 0 ->
-        {:ok, "request-body"}
-      end)
-
-      Rendezvous
-      |> expect(:register_ownership, fn _body, _headers -> {:ok, 0} end)
-
-      assert :ok =
-               TO0.claim_ownership_voucher(ownership_voucher, owner_key, wait_seconds: 0)
+      assert {:ok, _expiry} = TO0.claim_ownership_voucher(ownership_voucher, owner_key)
     end
   end
 
@@ -169,5 +182,9 @@ defmodule Astarte.FDO.To0Test do
 
       assert :error = TO0.revoke_ownership_voucher(ownership_voucher, owner_key)
     end
+  end
+
+  defp assert_expires_in(expiry, before, wait_seconds) do
+    assert DateTime.diff(expiry, before) in (wait_seconds - 1)..wait_seconds
   end
 end

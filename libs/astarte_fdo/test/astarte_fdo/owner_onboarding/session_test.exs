@@ -221,7 +221,6 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   describe "derive_key/1" do
     setup context do
       %{
-        realm: realm_name,
         xb: xb,
         session: session,
         owner_key: owner_key
@@ -234,7 +233,6 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
 
     test "returns the derived key", context do
       %{
-        realm: realm_name,
         session: session
       } = context
 
@@ -270,7 +268,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       %{session: session_with_secret}
     end
 
-    test "successfully derives keys using SHA-384 logic", %{session: session, realm: realm_name} do
+    test "successfully derives keys using SHA-384 logic", %{session: session} do
       assert {:ok, derived_session} = Session.derive_key(session)
       assert %Symmetric{k: key_bytes, alg: :aes_256_gcm} = derived_session.sevk
       assert byte_size(key_bytes) == 32
@@ -306,7 +304,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
 
     test "returns the first chunk the first time", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
 
       first_chunk = Enum.at(chunks, 0)
 
@@ -317,7 +315,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
 
     test "returns later chunks with subsequent calls", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
       second_chunk = Enum.at(chunks, 1)
 
       {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session)
@@ -329,7 +327,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
 
     test "returns done after it's sent all messages", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
       done_chunk = OwnerServiceInfo.done()
       chunks_len = Enum.count(chunks)
 
