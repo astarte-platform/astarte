@@ -48,7 +48,7 @@ defmodule Astarte.FDO.Rendezvous.RvTO2AddrTest do
 
       assert realm_config.port == port
       assert realm_config.protocol == protocol
-      assert realm_config.dns == "#{domain}"
+      assert realm_config.dns == domain
       assert realm_config.ip == nil
     end
   end
