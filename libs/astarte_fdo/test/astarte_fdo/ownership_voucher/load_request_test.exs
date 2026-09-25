@@ -248,7 +248,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     end
 
     test "a guid which already has an associated ownership voucher" do
-      realm = @sample_realm
       guid = sample_device_guid()
       voucher = %OwnershipVoucher{guid: guid}
       Queries |> expect(:fetch_ownership_voucher, fn ^guid -> {:ok, voucher} end)

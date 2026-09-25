@@ -28,8 +28,7 @@ defmodule Astarte.FDO.Rendezvous.RvTO2AddrTest do
     host = Config.base_url_host!()
 
     addr =
-      RvTO2Addr.for_realm(
-        realm,
+      RvTO2Addr.build(
         host.type,
         host.value,
         Config.base_url_port!(),
@@ -39,17 +38,17 @@ defmodule Astarte.FDO.Rendezvous.RvTO2AddrTest do
     %{rv_to2_addr: addr, realm_name: realm}
   end
 
-  describe "for_realm/5" do
+  describe "build/4" do
     test "returns the default configuration for the realm", %{realm_name: realm_name} do
       %{type: :domain, value: domain} = Config.base_url_host!()
       port = Config.base_url_port!()
       protocol = Config.base_url_protocol!()
 
-      realm_config = RvTO2Addr.for_realm(realm_name, :domain, domain, port, protocol)
+      realm_config = RvTO2Addr.build(:domain, domain, port, protocol)
 
       assert realm_config.port == port
       assert realm_config.protocol == protocol
-      assert realm_config.dns == "#{realm_name}.#{domain}"
+      assert realm_config.dns == domain
       assert realm_config.ip == nil
     end
   end

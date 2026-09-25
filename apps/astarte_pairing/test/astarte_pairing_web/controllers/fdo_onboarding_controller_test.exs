@@ -45,14 +45,14 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   defp setup_authenticated(context) do
-    %{conn: conn, realm_name: realm, token: token, action: action, message_id: message_id} =
+    %{conn: conn, token: token, action: action, message_id: message_id} =
       context
 
     conn = put_req_header(conn, "authorization", token)
 
     %{
       conn: conn,
-      create_path: fdo_onboarding_path(conn, action, realm),
+      create_path: fdo_onboarding_path(conn, action),
       message_id: message_id
     }
   end

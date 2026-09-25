@@ -39,7 +39,6 @@ defmodule Astarte.FDO.TO0 do
   served, which may be earlier than the requested one.
   """
   def claim_ownership_voucher(
-        realm_name,
         decoded_ownership_voucher,
         owner_private_key,
         opts \\ []
@@ -48,7 +47,6 @@ defmodule Astarte.FDO.TO0 do
 
     with {:ok, %{nonce: nonce, headers: headers}} <- hello() do
       owner_sign(
-        realm_name,
         nonce,
         decoded_ownership_voucher,
         owner_private_key,
@@ -62,11 +60,11 @@ defmodule Astarte.FDO.TO0 do
   Revokes a previously claimed ownership voucher's registration on the
   rendezvous server.
   """
-  def revoke_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key) do
+  def revoke_ownership_voucher(decoded_ownership_voucher, owner_private_key) do
+    opts = [wait_seconds: 0]
+
     with {:ok, _expiry} <-
-           claim_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key,
-             wait_seconds: 0
-           ) do
+           claim_ownership_voucher(decoded_ownership_voucher, owner_private_key, opts) do
       :ok
     end
   end
@@ -94,7 +92,6 @@ defmodule Astarte.FDO.TO0 do
   negotiated in TO0.AcceptOwner (message 23).
   """
   def owner_sign(
-        realm_name,
         nonce,
         ownership_voucher,
         owner_private_key,
@@ -104,8 +101,7 @@ defmodule Astarte.FDO.TO0 do
     host = Config.base_url_host!()
 
     realm_rv_to2_addr_entry =
-      RvTO2Addr.for_realm(
-        realm_name,
+      RvTO2Addr.build(
         host.type,
         host.value,
         Config.base_url_port!(),

@@ -85,10 +85,10 @@ defmodule Astarte.FDO.OwnershipVoucher do
   Registers an ownership voucher on the FDO rendezvous server, returning the
   expiry of the registration the server accepted.
   """
-  @spec claim_on_rendezvous(String.t(), binary(), term(), Key.t()) ::
+  @spec claim_on_rendezvous(binary(), term(), Key.t()) ::
           {:ok, DateTime.t()} | {:error, :rendezvous_registration_failed}
-  def claim_on_rendezvous(realm_name, guid, decoded_voucher, owner_key) do
-    case TO0.claim_ownership_voucher(realm_name, decoded_voucher, owner_key) do
+  def claim_on_rendezvous(guid, decoded_voucher, owner_key) do
+    case TO0.claim_ownership_voucher(decoded_voucher, owner_key) do
       {:ok, expiry} ->
         {:ok, expiry}
 
@@ -103,7 +103,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   defp register_on_rendezvous(realm_name, guid, voucher_cbor) do
     with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid) do
-      claim_on_rendezvous(realm_name, guid, decoded_voucher, owner_key)
+      claim_on_rendezvous(guid, decoded_voucher, owner_key)
     else
       error -> log_registration_failure(guid, error)
     end
@@ -139,7 +139,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   defp revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
     with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
-         :ok <- TO0.revoke_ownership_voucher(realm_name, decoded_voucher, owner_key) do
+         :ok <- TO0.revoke_ownership_voucher(decoded_voucher, owner_key) do
       :ok
     else
       error ->

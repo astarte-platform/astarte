@@ -21,25 +21,27 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2AddrTest do
 
   alias Astarte.FDO.Core.Rendezvous.RvTO2Addr
 
-  describe "for_realm/5" do
-    test "prefixes the realm name to a domain host" do
-      addr = RvTO2Addr.for_realm("myrealm", :domain, "example.com", 443, :https)
+  describe "build/4" do
+    test "returns the correct domain host" do
+      addr = RvTO2Addr.build(:domain, "example.com", 443, :https)
 
-      assert addr.dns == "myrealm.example.com"
+      assert addr.dns == "example.com"
       assert addr.ip == nil
       assert addr.port == 443
       assert addr.protocol == :https
     end
 
-    test "encodes an IPv4 host, without a realm prefix" do
-      addr = RvTO2Addr.for_realm("myrealm", :ip, {192, 168, 1, 10}, 8080, :http)
+    test "encodes an IPv4 host and returns it" do
+      addr = RvTO2Addr.build(:ip, {192, 168, 1, 10}, 8080, :http)
 
       assert addr.dns == nil
       assert addr.ip == <<192, 168, 1, 10>>
+      assert addr.port == 8080
+      assert addr.protocol == :http
     end
 
     test "encodes an IPv6 host to its 16-byte representation" do
-      addr = RvTO2Addr.for_realm("myrealm", :ip, {0, 0, 0, 0, 0, 0, 0, 1}, 8080, :http)
+      addr = RvTO2Addr.build(:ip, {0, 0, 0, 0, 0, 0, 0, 1}, 8080, :http)
 
       assert addr.dns == nil
       assert addr.ip == <<0::16, 0::16, 0::16, 0::16, 0::16, 0::16, 0::16, 1::16>>
@@ -47,7 +49,7 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2AddrTest do
 
     test "raises for an unknown host type" do
       assert_raise FunctionClauseError, fn ->
-        RvTO2Addr.for_realm("myrealm", :mystery, "example.com", 443, :https)
+        RvTO2Addr.build(:mystery, "example.com", 443, :https)
       end
     end
   end

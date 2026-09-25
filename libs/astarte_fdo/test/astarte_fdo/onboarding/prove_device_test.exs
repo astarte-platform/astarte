@@ -114,7 +114,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
   @tag owner_key: "EC256"
   test "verify ES256 signature success and returns Msg 65", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -153,7 +152,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails if Nonce does not match", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -185,7 +183,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails if Device ID (GUID) does not match", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -215,7 +212,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails with wrong public key", context do
     %{
-      realm_name: realm_name,
       session: session,
       xb: xb,
       owner_key_struct: owner_key_struct
@@ -275,7 +271,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with EC384 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg
@@ -302,7 +297,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with RSA2048 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg
@@ -329,7 +323,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with RSA3072 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg

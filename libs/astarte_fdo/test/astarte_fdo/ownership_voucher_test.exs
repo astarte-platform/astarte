@@ -35,7 +35,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   alias COSE.Messages.Sign1
 
   setup context do
-    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
+    %{astarte_instance_id: astarte_instance_id} = context
 
     RealmManagement
     |> stub(:delete_device, fn _, _ -> :ok end)
@@ -80,9 +80,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
       TO0
-      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
-        :ok
-      end)
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key -> :ok end)
 
       RealmManagement
       |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
@@ -114,7 +112,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
       TO0
-      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
         :ok
       end)
 
@@ -173,7 +171,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
       TO0
-      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
         :ok
       end)
 
@@ -215,7 +213,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       new_expiry = DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:second)
 
       TO0
-      |> expect(:claim_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
         {:ok, new_expiry}
       end)
 
@@ -288,7 +286,7 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
       TO0
-      |> expect(:claim_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
         :error
       end)
 

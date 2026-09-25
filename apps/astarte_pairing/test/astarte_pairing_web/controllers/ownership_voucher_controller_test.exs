@@ -258,7 +258,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         }
       }
 
-      TO0 |> expect(:claim_ownership_voucher, fn _realm, _voucher, _key -> :error end)
+      TO0 |> expect(:claim_ownership_voucher, fn _voucher, _key -> :error end)
 
       conn
       |> post(path, params)

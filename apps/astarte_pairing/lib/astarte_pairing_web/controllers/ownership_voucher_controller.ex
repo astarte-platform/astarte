@@ -219,7 +219,6 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
            |> Ecto.Changeset.apply_action(:insert),
          {:ok, expiry} <-
            OwnershipVoucher.claim_on_rendezvous(
-             realm_name,
              req.device_guid,
              req.decoded_ownership_voucher,
              req.extracted_owner_key
