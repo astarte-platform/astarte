@@ -157,8 +157,9 @@ _Transfer Ownership_ protocols detail specific subsequent phases enabling the ef
 of the device onto its reference platform. Astarte implements the TO0 and TO2 protocols.
 
 TO0 and TO2 communications are carried out only over HTTP/HTTPS transport in the current implementation.
-The URL which the device must use to initiate the TO2 protocol is in the form
-api._<ASTARTE_BASE_URL>/<FDO_URL>_ or _<ASTARTE_BASE_URL>/<FDO_URL>_;
+The URL which the device must use to initiate the TO2 protocol is in the form _<ASTARTE_BASE_URL>/<FDO_URL>_
+(with _<ASTARTE_BASE_URL>_ allowed to be both an IP address and an hostname) and will be communicated
+to the device during TO1 protocol.
 
 #### TO0 Protocol
 

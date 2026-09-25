@@ -101,7 +101,7 @@ defmodule Astarte.FDO.TO0 do
     host = Config.base_url_host!()
 
     realm_rv_to2_addr_entry =
-      RvTO2Addr.for_host(
+      RvTO2Addr.build(
         host.type,
         host.value,
         Config.base_url_port!(),
