@@ -29,6 +29,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
   alias Astarte.FDO.TO0
   alias Astarte.RPC.RealmManagement
   alias Astarte.Secrets
+  alias Astarte.Secrets.Key
 
   require Logger
 
@@ -56,6 +57,65 @@ defmodule Astarte.FDO.OwnershipVoucher do
            ensure_device_voucher_deletion(ownership_voucher.realm, ownership_voucher.device_id) do
       Queries.delete_ownership_voucher(guid)
     end
+  end
+
+  @doc """
+  Re-runs TO0 with the rendezvous server for an ownership voucher whose device
+  has not completed Device Onboard yet, refreshing its expiry.
+
+  Returns the new expiry on success.
+  """
+  @spec run_to0(String.t(), binary()) :: {:ok, DateTime.t()} | {:error, term()}
+  def run_to0(realm, guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         :ok <- ensure_voucher_in_realm(ownership_voucher.realm, realm),
+         :ok <- ensure_device_not_onboarded(ownership_voucher.status),
+         {:ok, expiry} <-
+           register_on_rendezvous(
+             ownership_voucher.realm,
+             guid,
+             ownership_voucher.voucher_data
+           ),
+         :ok <- Queries.update_voucher_expiry(guid, expiry) do
+      {:ok, expiry}
+    end
+  end
+
+  @doc """
+  Registers an ownership voucher on the FDO rendezvous server, returning the
+  expiry of the registration the server accepted.
+  """
+  @spec claim_on_rendezvous(String.t(), binary(), term(), Key.t()) ::
+          {:ok, DateTime.t()} | {:error, :rendezvous_registration_failed}
+  def claim_on_rendezvous(realm_name, guid, decoded_voucher, owner_key) do
+    case TO0.claim_ownership_voucher(realm_name, decoded_voucher, owner_key) do
+      {:ok, expiry} ->
+        {:ok, expiry}
+
+      error ->
+        log_registration_failure(guid, error)
+    end
+  end
+
+  defp ensure_device_not_onboarded(:created), do: :ok
+  defp ensure_device_not_onboarded(_status), do: {:error, :device_already_onboarded}
+
+  defp register_on_rendezvous(realm_name, guid, voucher_cbor) do
+    with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid) do
+      claim_on_rendezvous(realm_name, guid, decoded_voucher, owner_key)
+    else
+      error -> log_registration_failure(guid, error)
+    end
+  end
+
+  defp log_registration_failure(guid, error) do
+    Logger.warning(
+      "Failed to register ownership voucher guid=#{inspect(guid)} " <>
+        "on the rendezvous server: #{inspect(error)}."
+    )
+
+    {:error, :rendezvous_registration_failed}
   end
 
   # security check: is the voucher belonging to the realm for which the deletion request is made?

@@ -140,6 +140,12 @@ defmodule Astarte.DataAccess.FDO.Queries do
     end
   end
 
+  @doc """
+  Marks an ownership voucher as claimed by its device.
+
+  The registration made on the rendezvous server during TO0 is consumed by TO2,
+  so the expiry is cleared along with the status change.
+  """
   def mark_voucher_as_claimed(guid) do
     keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.device_info(:write)
@@ -148,6 +154,22 @@ defmodule Astarte.DataAccess.FDO.Queries do
     result =
       %OwnershipVoucher{guid: guid}
       |> Ecto.Changeset.change(status: :claimed)
+      # `change/2` skips values that already match the (empty) struct, so the
+      # expiry has to be forced in to actually be written as null
+      |> Ecto.Changeset.force_change(:expiry, nil)
+      |> Repo.update(opts)
+
+    with {:ok, _} <- result, do: :ok
+  end
+
+  def update_voucher_expiry(guid, expiry) do
+    keyspace = Realm.astarte_keyspace_name()
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    result =
+      %OwnershipVoucher{guid: guid}
+      |> Ecto.Changeset.change(expiry: expiry)
       |> Repo.update(opts)
 
     with {:ok, _} <- result, do: :ok

@@ -49,6 +49,7 @@ const iconToClassName = {
   triggers: 'fas fa-bolt',
   policy: 'fas fa-file-invoice',
   key: 'fas fa-key',
+  reload: 'fas fa-sync-alt',
 };
 
 type Icon = keyof typeof iconToClassName;
