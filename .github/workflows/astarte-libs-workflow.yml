@@ -32,8 +32,3 @@ jobs:
     with:
       lib: "astarte_core"
     secrets: inherit
-  astarte_fdo_core:
-    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
-    with:
-      lib: "astarte_fdo_core"
-    secrets: inherit

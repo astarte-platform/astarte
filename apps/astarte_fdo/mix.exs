@@ -66,7 +66,7 @@ defmodule Astarte.FDO.MixProject do
       {:cbor, "~> 1.0"},
       {:astarte_config, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
+      {:astarte_fdo_core, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
       {:astarte_secrets, in_umbrella: true},
       {:cose, github: "secomind/cose-elixir"},
@@ -85,10 +85,5 @@ defmodule Astarte.FDO.MixProject do
       {:tzdata, github: "lau/tzdata", override: true},
       {:pretty_log, "~> 0.1"}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

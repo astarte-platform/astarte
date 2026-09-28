@@ -24,6 +24,10 @@ defmodule Astarte.FDO.Core.MixProject do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -57,7 +61,7 @@ defmodule Astarte.FDO.Core.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: "../astarte_core"},
+      {:astarte_core, path: "../../libs/astarte_core"},
       {:ecto, "~> 3.10"},
       {:typed_ecto_schema, "~> 0.4"},
       {:cbor, "~> 1.0"},

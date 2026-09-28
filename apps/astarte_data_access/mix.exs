@@ -71,7 +71,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
+      {:astarte_fdo_core, in_umbrella: true},
       {:cose, github: "secomind/cose-elixir"},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},
@@ -104,10 +104,5 @@ defmodule Astarte.DataAccess.Mixfile do
         "GitHub" => "https://github.com/astarte-platform/astarte_data_access"
       }
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

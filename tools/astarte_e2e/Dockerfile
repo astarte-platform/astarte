@@ -30,11 +30,10 @@ COPY apps/astarte_rpc/mix.exs astarte_apps/apps/astarte_rpc/mix.exs
 COPY apps/astarte_events/mix.exs astarte_apps/apps/astarte_events/mix.exs
 COPY apps/astarte_data_access/mix.exs astarte_apps/astarte_data_access/mix.exs
 COPY apps/astarte_generators/mix.exs astarte_apps/apps/astarte_generators/mix.exs
+COPY apps/astarte_fdo_core/mix.exs astarte_apps/apps/astarte_fdo_core/mix.exs
 
 COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
 COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libs/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libs/astarte_fdo_core/mix.lock
 
 COPY tools/astarte_e2e ./
 COPY apps ./astarte_apps/apps
