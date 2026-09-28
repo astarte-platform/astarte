@@ -25,6 +25,10 @@ defmodule Astarte.Core.Mixfile do
       # x-release-please-start-version
       version: "1.5.0-dev",
       # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixir: "~> 1.15",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -66,7 +70,7 @@ defmodule Astarte.Core.Mixfile do
       {:elixir_uuid, "~> 1.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test, :ci], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]

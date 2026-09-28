@@ -83,7 +83,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:amqp, "~> 4.1"},
       {:vernemq_dev, github: "vernemq/vernemq_dev"},
       {:excoveralls, "~> 0.15", only: :test},
@@ -93,7 +93,7 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:flatlog, github: "annopaolo/flatlog"},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:xandra, "~> 0.20"},
@@ -102,10 +102,5 @@ defmodule Astarte.VMQ.Plugin.Mixfile do
       {:mimic, "~> 2.0", only: [:test, :dev]},
       {:mox, "~> 1.3", only: :test}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

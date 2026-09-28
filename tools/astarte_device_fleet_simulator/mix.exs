@@ -42,7 +42,7 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core"), override: true},
+      {:astarte_core, path: astarte_app("astarte_core"), override: true},
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:skogsra, "~> 2.3"},
       {:logfmt, "~> 3.3"},
@@ -52,8 +52,8 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
     ]
   end
 
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
+  defp astarte_app(app_name) do
+    base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
+    Path.join(base_directory, app_name)
   end
 end

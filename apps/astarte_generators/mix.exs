@@ -54,7 +54,7 @@ defmodule Astarte.Core.Generators.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, path: "../../libs/astarte_core"}
+      {:astarte_core, in_umbrella: true}
     ]
   end
 

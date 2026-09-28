@@ -19,7 +19,6 @@ ARG BUILD_ENV=prod
 ARG SERVICE
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=../../libs
 
 # Cache elixir deps
 COPY mix.exs mix.lock ./
@@ -32,12 +31,9 @@ COPY apps/astarte_config/mix.exs ./apps/astarte_config/mix.exs
 COPY apps/astarte_data_access/mix.exs ./apps/astarte_data_access/mix.exs
 COPY apps/astarte_generators/mix.exs ./apps/astarte_generators/mix.exs
 COPY apps/astarte_fdo_core/mix.exs ./apps/astarte_fdo_core/mix.exs
-
-COPY libs/astarte_core/mix.exs libs/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libs/astarte_core/mix.lock
+COPY apps/astarte_core/mix.exs ./apps/astarte_core/mix.exs
 RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs ./libs
 COPY apps/astarte_fdo apps/astarte_fdo
 COPY apps/astarte_adapters apps/astarte_adapters
 COPY apps/astarte_rpc apps/astarte_rpc
@@ -46,6 +42,7 @@ COPY apps/astarte_events apps/astarte_events
 COPY apps/astarte_config apps/astarte_config
 COPY apps/astarte_data_access apps/astarte_data_access
 COPY apps/astarte_fdo_core apps/astarte_fdo_core
+COPY apps/astarte_core apps/astarte_core
 
 RUN mix deps.compile
 
@@ -53,8 +50,6 @@ RUN mix deps.compile
 COPY apps/$SERVICE apps/$SERVICE
 COPY rel ./rel
 COPY config ./config
-# TODO: remove when ported to root level config/
-RUN if [ -d "apps/$SERVICE/config" ]; then cp -rf "apps/$SERVICE/config/." config/; fi
 
 # Build and release
 RUN mix compile

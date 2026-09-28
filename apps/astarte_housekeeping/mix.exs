@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
@@ -87,7 +87,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mimic, "~> 2.4", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_data_access, in_umbrella: true},
@@ -102,10 +102,5 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

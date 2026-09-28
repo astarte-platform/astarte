@@ -29,16 +29,17 @@ ENV MIX_ENV=prod
 ARG BUILD_ENV=prod
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=../../libraries
 
 # Cache elixir deps
 ADD mix.exs mix.lock .
 ADD apps/astarte_vmq_plugin/mix.exs apps/astarte_vmq_plugin/
-COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
+COPY apps/astarte_core/mix.exs apps/astarte_core/mix.exs
+COPY apps/astarte_generators/mix.exs apps/astarte_generators/mix.exs
+
 RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs/astarte_core libraries/astarte_core
+COPY apps/astarte_core apps/astarte_core
+COPY apps/astarte_generators apps/astarte_generators
 RUN mix deps.compile
 
 # Add all the rest

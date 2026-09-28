@@ -68,7 +68,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:amqp, "~> 4.1"},
       {:phoenix, "~> 1.7"},
@@ -97,7 +97,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:castore, "~> 1.0.0"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
@@ -118,10 +118,5 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

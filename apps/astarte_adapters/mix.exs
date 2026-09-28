@@ -46,7 +46,7 @@ defmodule Astarte.Adapters.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]}
     ]
@@ -80,10 +80,5 @@ defmodule Astarte.Adapters.MixProject do
         "GitHub" => "https://github.com/astarte-platform/astarte"
       }
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end
