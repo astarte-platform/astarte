@@ -62,7 +62,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
@@ -83,7 +83,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.3", only: :test},
       {:mimic, "~> 2.4", only: [:test, :dev]},
@@ -93,10 +93,5 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

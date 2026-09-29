@@ -66,7 +66,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:phoenix, "~> 1.7"},
       {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},
@@ -89,7 +89,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_adapters, in_umbrella: true, only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:astarte_events, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
       {:mimic, "~> 2.4", only: [:test, :dev]},
@@ -105,10 +105,5 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

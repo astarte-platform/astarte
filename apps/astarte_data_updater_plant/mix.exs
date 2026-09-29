@@ -78,7 +78,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
@@ -106,7 +106,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, github: "saleyn/typedstruct", override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -116,10 +116,5 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

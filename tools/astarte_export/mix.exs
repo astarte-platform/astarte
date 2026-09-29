@@ -34,7 +34,7 @@ defmodule AstarteExport.MixProject do
 
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core"), override: true},
+      {:astarte_core, path: astarte_app("astarte_core"), override: true},
       {:exandra, github: "vinniefranco/exandra"},
       {:distillery, "~> 2.1.1"},
       {:pretty_log, "~> 0.1.0"},
@@ -48,10 +48,5 @@ defmodule AstarteExport.MixProject do
   defp astarte_app(app_name) do
     base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
     Path.join(base_directory, app_name)
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

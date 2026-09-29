@@ -63,14 +63,14 @@ defmodule Astarte.RPC.MixProject do
 
   defp deps do
     [
-      {:astarte_core, path: "../../libs/astarte_core"},
+      {:astarte_core, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_events, in_umbrella: true, runtime: false},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},
       {:mneme, "~> 0.10", only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:mimic, "~> 2.4", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},

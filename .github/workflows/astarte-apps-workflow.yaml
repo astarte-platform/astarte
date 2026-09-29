@@ -112,3 +112,8 @@ jobs:
     with:
       app: "astarte_fdo_core"
     secrets: inherit
+  astarte_core:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_core"
+    secrets: inherit

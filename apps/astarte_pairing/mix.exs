@@ -69,7 +69,7 @@ defmodule Astarte.Pairing.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:astarte_core, path: astarte_lib("astarte_core")},
+      {:astarte_core, in_umbrella: true},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},
@@ -86,7 +86,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:mox, "~> 1.3", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:skogsra, "~> 2.2"},
       {:cors_plug, "~> 2.0"},
       {:telemetry, "~> 1.3", override: true},
@@ -114,10 +114,5 @@ defmodule Astarte.Pairing.Mixfile do
       {:hackney, "~> 4.0", override: true},
       {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end
