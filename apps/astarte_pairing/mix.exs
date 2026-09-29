@@ -105,7 +105,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:con_cache, "~> 1.1"},
       {:astarte_events, in_umbrella: true},
       {:astarte_fdo, in_umbrella: true},
-      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
+      {:astarte_fdo_core, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
