@@ -36,7 +36,11 @@ defmodule Astarte.DataAccess.Database do
     {3, Migrations.Astarte.DropAstarteSchema},
     {4, Migrations.Astarte.RemoveReplicationFactor},
     {5, Migrations.Astarte.AddDeviceRegistrationLimit},
-    {6, Migrations.Astarte.CreateKVStore}
+    {6, Migrations.Astarte.CreateKVStore},
+    {7, Migrations.Astarte.CreateSessionKeyType},
+    {8, Migrations.Astarte.CreateDeviceSessions},
+    {9, Migrations.Astarte.CreateOwnershipVouchers},
+    {10, Migrations.Astarte.AddExpiryToOwnershipVouchers}
   ]
 
   @realm_migrations [
@@ -61,10 +65,16 @@ defmodule Astarte.DataAccess.Database do
     {19, Migrations.Realm.AddReplacementDataAndRemoteKey},
     {20, Migrations.Realm.AddStatus},
     {21, Migrations.Realm.CreateUnconfirmedDevices},
-    {22, Migrations.Realm.AddEncryptedToIndividualProperties},
-    {23, Migrations.Realm.AddEncryptedToIndividualDatastreams},
-    {24, Migrations.Realm.AddEncryptedToEndpoints},
-    {25, Migrations.Realm.AddSharedSecretToDevice}
+    {22, Migrations.Realm.DropUnconfirmedDevices},
+    {23, Migrations.Realm.AddDeviceIDToOwnershipVouchers},
+    {24, Migrations.Realm.TruncateOwnershipVouchers},
+    {25, Migrations.Realm.DropOwnershipVouchers},
+    {26, Migrations.Realm.DropTO2Session},
+    {27, Migrations.Realm.AddFDOGuidToDevices},
+    {28, Migrations.Realm.AddEncryptedToIndividualProperties},
+    {29, Migrations.Realm.AddEncryptedToIndividualDatastreams},
+    {30, Migrations.Realm.AddEncryptedToEndpoints},
+    {31, Migrations.Realm.AddSharedSecretToDevice}
   ]
 
   @doc """

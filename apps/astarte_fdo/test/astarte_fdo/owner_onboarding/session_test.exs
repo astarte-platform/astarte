@@ -21,12 +21,12 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.FDO.Cases.FDOSession
   use Mimic
 
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.OwnerOnboarding.Session
-  alias Astarte.RPC.RealmManagement
   alias COSE.Keys
   alias COSE.Keys.ECC
   alias COSE.Keys.Symmetric
@@ -37,6 +37,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     test "returns required session information", context do
       %{
         realm: realm_name,
+        device_id: device_id,
         hello_device: hello_device,
         ownership_voucher: ownership_voucher
       } = context
@@ -44,6 +45,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, _token, session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
@@ -53,28 +55,27 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert session.owner_random
       assert session.xa
       assert {:es256, %ECC{}} = session.device_signature
+      assert session.device_id == device_id
     end
 
-    test "cleans up previously registered devices", context do
+    test "cleans up previously unconfirmed device credentials", context do
       %{
         realm: realm_name,
         hello_device: hello_device,
         device_id: device_id,
-        encoded_device_id: encoded_device_id,
         ownership_voucher: ownership_voucher
       } = context
 
-      create_session_with_device_id(realm_name, hello_device, ownership_voucher, device_id)
+      :ok = DeviceQueries.add_unconfirmed_credentials(realm_name, device_id, "secret")
 
-      RealmManagement
-      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
-
-      assert {:ok, _, _} = Session.new(realm_name, hello_device, ownership_voucher)
+      assert {:ok, _, _} = Session.new(realm_name, device_id, hello_device, ownership_voucher)
+      assert {:ok, %{credentials_secret: nil}} = DeviceQueries.fetch(realm_name, device_id)
     end
 
     test "cleans up previous device session", context do
       %{
         realm: realm_name,
+        device_id: device_id,
         hello_device: hello_device,
         ownership_voucher: ownership_voucher
       } = context
@@ -84,16 +85,18 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       assert {:ok, token_1, _session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
 
       Queries
-      |> expect(:delete_session, fn ^realm_name, ^guid -> :ok end)
+      |> expect(:delete_session, fn ^guid -> :ok end)
 
       assert {:ok, token_2, _session} =
                Session.new(
                  realm_name,
+                 device_id,
                  hello_device,
                  ownership_voucher
                )
@@ -215,27 +218,25 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
   end
 
-  describe "derive_key/2" do
+  describe "derive_key/1" do
     setup context do
       %{
-        realm: realm_name,
         xb: xb,
         session: session,
         owner_key: owner_key
       } = context
 
-      {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
+      {:ok, session} = Session.build_session_secret(session, owner_key, xb)
 
       %{session: session}
     end
 
     test "returns the derived key", context do
       %{
-        realm: realm_name,
         session: session
       } = context
 
-      assert {:ok, session} = Session.derive_key(session, realm_name)
+      assert {:ok, session} = Session.derive_key(session)
       assert %Symmetric{k: binary_key, alg: alg} = session.sevk
       assert is_binary(binary_key)
       assert alg == :aes_256_gcm
@@ -243,15 +244,15 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   end
 
   describe "derive_key/2 with P-384 (ECDH384)" do
-    setup %{realm: realm_name} do
+    setup %{realm: realm_name, device_id: device_id} do
       {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
       {:ok, p384_owner_key} = Keys.from_pem(owner_key_pem)
 
-      device_id = p384_voucher.header.guid
+      guid = p384_voucher.header.guid
 
       hello_device =
         HelloDevice.generate(
-          device_id: device_id,
+          guid: guid,
           kex_name: "ECDH384",
           easig_info: :es384
         )
@@ -259,31 +260,31 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher)
+        Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session_with_secret} =
-        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+        Session.build_session_secret(session, p384_owner_key, xb)
 
       %{session: session_with_secret}
     end
 
-    test "successfully derives keys using SHA-384 logic", %{session: session, realm: realm_name} do
-      assert {:ok, derived_session} = Session.derive_key(session, realm_name)
+    test "successfully derives keys using SHA-384 logic", %{session: session} do
+      assert {:ok, derived_session} = Session.derive_key(session)
       assert %Symmetric{k: key_bytes, alg: :aes_256_gcm} = derived_session.sevk
       assert byte_size(key_bytes) == 32
     end
   end
 
   describe "next_owner_service_info_chunk/2" do
-    setup %{realm: realm_name} do
+    setup %{realm: realm_name, device_id: device_id} do
       {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
       {:ok, p384_owner_key} = Keys.from_pem(owner_key_pem)
 
-      device_id = p384_voucher.header.guid
+      guid = p384_voucher.header.guid
 
       hello_device =
         HelloDevice.generate(
-          device_id: device_id,
+          guid: guid,
           kex_name: "ECDH384",
           easig_info: :es384
         )
@@ -291,42 +292,42 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher)
+        Session.new(realm_name, device_id, hello_device, p384_voucher)
 
       {:ok, session} =
-        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+        Session.build_session_secret(session, p384_owner_key, xb)
 
       chunks = [<<1>>, <<2>>]
-      {:ok, session} = Session.add_owner_service_info(session, realm_name, chunks)
+      {:ok, session} = Session.add_owner_service_info(session, chunks)
 
       %{session: session, chunks: chunks}
     end
 
     test "returns the first chunk the first time", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
 
       first_chunk = Enum.at(chunks, 0)
 
       assert {:ok, new_session, ^first_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert new_session.last_chunk_sent == 0
     end
 
     test "returns later chunks with subsequent calls", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
       second_chunk = Enum.at(chunks, 1)
 
-      {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session, realm_name)
+      {:ok, session, _first_chunk} = Session.next_owner_service_info_chunk(session)
 
       assert {:ok, new_session, ^second_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert new_session.last_chunk_sent == 1
     end
 
     test "returns done after it's sent all messages", context do
-      %{realm_name: realm_name, session: session, chunks: chunks} = context
+      %{session: session, chunks: chunks} = context
       done_chunk = OwnerServiceInfo.done()
       chunks_len = Enum.count(chunks)
 
@@ -338,16 +339,16 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         for _ <- 1..chunks_len, reduce: session do
           session ->
             {:ok, session, _next_chunk} =
-              Session.next_owner_service_info_chunk(session, realm_name)
+              Session.next_owner_service_info_chunk(session)
 
             session
         end
 
       assert {:ok, session_1, ^done_chunk} =
-               Session.next_owner_service_info_chunk(session, realm_name)
+               Session.next_owner_service_info_chunk(session)
 
       assert {:ok, session_2, ^done_chunk} =
-               Session.next_owner_service_info_chunk(session_1, realm_name)
+               Session.next_owner_service_info_chunk(session_1)
 
       assert session_1.last_chunk_sent == last_chunk
       assert session_2.last_chunk_sent == last_chunk
@@ -356,9 +357,9 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
 
   defp parse_key_from_xa(xa) do
     <<blen_x::integer-unsigned-size(16), rest::binary>> = xa
-    <<x::binary-size(blen_x), rest::binary>> = rest
+    <<x::binary-size(^blen_x), rest::binary>> = rest
     <<blen_y::integer-unsigned-size(16), rest::binary>> = rest
-    <<y::binary-size(blen_y), _rest::binary>> = rest
+    <<y::binary-size(^blen_y), _rest::binary>> = rest
 
     <<4, x::binary, y::binary>>
   end

@@ -29,8 +29,8 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       nonce_with_invalid_size = <<1, 2, 3, 4, 5, 6, 7, 8>>
 
-      cbor =
-        CBOR.encode([
+      not_hello_ack_body =
+        [
           %CBOR.Tag{
             tag: :bytes,
             value: <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
@@ -39,9 +39,16 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
             tag: :bytes,
             value: <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
           }
-        ])
+        ]
 
-      %{nonce: nonce, nonce_with_invalid_size: nonce_with_invalid_size, not_hello_ack_cbor: cbor}
+      not_hello_ack_cbor = CBOR.encode(not_hello_ack_body)
+
+      %{
+        nonce: nonce,
+        nonce_with_invalid_size: nonce_with_invalid_size,
+        not_hello_ack_cbor: not_hello_ack_cbor,
+        not_hello_ack_body: not_hello_ack_body
+      }
     end
 
     test "returns nonce for actual FDO HelloAck CBOR payload (binary nonce)", %{nonce: nonce} do
@@ -51,15 +58,18 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
 
     test "fails with wrong length CBOR body", %{nonce_with_invalid_size: nonce_with_invalid_size} do
       invalid_ack = hello_ack(nonce_with_invalid_size)
-      assert {:error, :unexpected_nonce_size} == Core.get_body_nonce(invalid_ack)
+
+      assert {:error, {:unexpected_nonce_size, nonce_with_invalid_size}} ==
+               Core.get_body_nonce(invalid_ack)
     end
 
     test "only decodes valid cbor binaries" do
-      assert {:error, :cbor_decode_error} == Core.get_body_nonce(<<>>)
+      assert {:error, {:cbor_decode_error, <<>>}} == Core.get_body_nonce(<<>>)
     end
 
-    test "fails for cbors with unexpected format", %{not_hello_ack_cbor: cbor} do
-      assert {:error, :unexpected_body_format} == Core.get_body_nonce(cbor)
+    test "fails for cbors with unexpected format", context do
+      %{not_hello_ack_cbor: cbor, not_hello_ack_body: body} = context
+      assert {:error, {:unexpected_body_format, body}} == Core.get_body_nonce(cbor)
     end
   end
 
@@ -68,7 +78,7 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       owner_key = sample_extracted_rsa_private_key()
       ownership_voucher = sample_voucher()
-      addr_entries = [RvTO2Addr.for_realm("test1", "test.example.com", 443, :https)]
+      addr_entries = [RvTO2Addr.build(:domain, "test.example.com", 443, :https)]
 
       %{
         nonce: nonce,

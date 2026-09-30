@@ -75,12 +75,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
 
         :ok
 
-      {:error, {:already_started, _pid}} = ok ->
-        "RPC server: already running: #{inspect(ok)}"
-        |> Logger.debug(tag: "rpc_started")
-
-        :ok
-
       :ignore ->
         "RPC server: start ignored"
         |> Logger.warning(tag: "rpc_not_started")

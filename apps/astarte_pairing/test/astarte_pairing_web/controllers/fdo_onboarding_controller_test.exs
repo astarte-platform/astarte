@@ -19,18 +19,16 @@
 defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.PairingWeb.CBORConnCase, async: true
   use Astarte.Pairing.Cases.Data
+  use Astarte.Pairing.Cases.Device
   use Astarte.Pairing.Cases.FDOSession
   use Mimic
 
-  alias Astarte.Core.Device
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.OwnerOnboarding
   alias Astarte.FDO.OwnerOnboarding.Session
   alias Astarte.FDO.ServiceInfo
   alias Astarte.Pairing.Engine
-
-  setup :verify_on_exit!
 
   defp assert_cbor_error(conn) do
     assert get_resp_header(conn, "message-type") == ["255"]
@@ -46,24 +44,26 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     decoded
   end
 
-  defp setup_authenticated(context, action, message_id) do
-    %{conn: conn, realm_name: realm, token: token} = context
+  defp setup_authenticated(context) do
+    %{conn: conn, token: token, action: action, message_id: message_id} =
+      context
+
     conn = put_req_header(conn, "authorization", token)
 
     %{
       conn: conn,
-      create_path: fdo_onboarding_path(conn, action, realm),
-      realm_name: realm,
+      create_path: fdo_onboarding_path(conn, action),
       message_id: message_id
     }
   end
 
   describe "HelloDevice" do
-    setup context do
-      setup_authenticated(context, :hello_device, 60)
-    end
+    @describetag action: :hello_device
+    @describetag message_id: 60
 
-    test "calls `OwnerOnboarding.hello_device/2`", %{
+    setup :setup_authenticated
+
+    test "calls `OwnerOnboarding.hello_device/1`", %{
       conn: conn,
       create_path: path,
       message_id: id
@@ -71,7 +71,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       payload = CBOR.encode(%{hello: "device"})
       expected_response = %{"response" => true}
 
-      expect(OwnerOnboarding, :hello_device, fn _, _ ->
+      expect(OwnerOnboarding, :hello_device, fn _ ->
         {:ok, "session_key", CBOR.encode(expected_response)}
       end)
 
@@ -93,9 +93,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   describe "OVNextEntry" do
-    setup context do
-      setup_authenticated(context, :ov_next_entry, 62)
-    end
+    @describetag action: :ov_next_entry
+    @describetag message_id: 62
+
+    setup :setup_authenticated
 
     test "calls `OwnerOnboarding.ov_next_entry/3`", %{
       conn: conn,
@@ -104,7 +105,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :ov_next_entry, fn _, _, _ ->
+      expect(OwnerOnboarding, :ov_next_entry, fn _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -125,9 +126,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   describe "ProveDevice" do
-    setup context do
-      setup_authenticated(context, :prove_device, 64)
-    end
+    @describetag action: :prove_device
+    @describetag message_id: 64
+
+    setup :setup_authenticated
 
     test "calls `OwnerOnboarding.prove_device/3`", %{
       conn: conn,
@@ -137,7 +139,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     } do
       expected_response = %{"result" => true}
 
-      expect(OwnerOnboarding, :prove_device, fn _, _, _ ->
+      expect(OwnerOnboarding, :prove_device, fn _, _ ->
         {:ok, session, expected_response}
       end)
 
@@ -166,11 +168,12 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   describe "DeviceServiceInfoReady" do
-    setup context do
-      setup_authenticated(context, :service_info_start, 66)
-    end
+    @describetag action: :service_info_start
+    @describetag message_id: 66
 
-    test "calls OwnerOnboarding.build_owner_service_info_ready/3", %{
+    setup :setup_authenticated
+
+    test "calls OwnerOnboarding.build_owner_service_info_ready/2", %{
       conn: conn,
       create_path: path,
       message_id: id,
@@ -180,7 +183,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "ok"}
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
+      expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _ ->
         {:ok, session, expected_response}
       end)
 
@@ -204,10 +207,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   describe "DeviceServiceInfo" do
-    setup context do
-      context = setup_authenticated(context, :service_info_end, 68)
-      context
-    end
+    @describetag action: :service_info_end
+    @describetag message_id: 68
+
+    setup :setup_authenticated
 
     test "calls ServiceInfo.build_owner_service_info/3 when device has more chunks", %{
       conn: conn,
@@ -224,7 +227,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, ^decoded ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -242,7 +245,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       assert conn.assigns.message_id == id
     end
 
-    test "calls ServiceInfo.build_owner_service_info/3 when device yields with empty service info",
+    test "calls ServiceInfo.build_owner_service_info/2 when device yields with empty service info",
          %{
            conn: conn,
            create_path: path,
@@ -254,7 +257,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, ^decoded ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, ^decoded ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -272,12 +275,16 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       assert conn.assigns.message_id == id
     end
 
-    test "registers device and calls ServiceInfo.build_owner_service_info/4 on final chunk", %{
-      conn: conn,
-      create_path: path,
-      message_id: id,
-      session: session
-    } do
+    test "creates device credentials and calls ServiceInfo.build_and_send_owner_service_info/3 on final chunk",
+         context do
+      %{
+        conn: conn,
+        device_id: device_id,
+        create_path: path,
+        message_id: id,
+        session: session
+      } = context
+
       decoded =
         %DeviceServiceInfo{
           is_more_service_info: false,
@@ -287,30 +294,13 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "ok"}
       credentials_secret = "test-credentials-secret"
 
-      expected_encoded_device_id =
-        Device.encode_device_id(UUID.uuid5(:oid, "serial_number_1234", :raw))
-
-      test_pid = self()
-
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(Session, :add_device_id, fn session_in, _, device_id ->
-        send(test_pid, {:device_id_used, device_id})
-        {:ok, %{session_in | device_id: device_id}}
-      end)
-
-      expect(Engine, :register_device, fn _, encoded_device_id, [unconfirmed: true] ->
-        assert is_binary(encoded_device_id)
-        assert encoded_device_id == expected_encoded_device_id
+      expect(Engine, :add_unconfirmed_credentials, fn _, ^device_id ->
         {:ok, credentials_secret}
       end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _,
-                                                        session_after_add,
-                                                        encoded_device_id,
-                                                        ^credentials_secret ->
-        assert session_after_add.device_id != nil
-        assert encoded_device_id == expected_encoded_device_id
+      expect(ServiceInfo, :build_and_send_owner_service_info, fn _session, ^credentials_secret ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -337,9 +327,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   describe "Done" do
-    setup context do
-      setup_authenticated(context, :done, 70)
-    end
+    @describetag action: :done
+    @describetag message_id: 70
+
+    setup :setup_authenticated
 
     test "calls OwnerOnboarding.done/3", %{
       conn: conn,
@@ -350,7 +341,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "finished"}
       expected_cbor_response = CBOR.encode(expected_response)
 
-      expect(OwnerOnboarding, :done, fn _, _, _ -> {:ok, expected_cbor_response} end)
+      expect(OwnerOnboarding, :done, fn _, _ -> {:ok, expected_cbor_response} end)
 
       request_body = Session.encrypt_and_sign(session, CBOR.encode(%{done: 1}))
 

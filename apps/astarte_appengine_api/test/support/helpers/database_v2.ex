@@ -97,6 +97,7 @@ defmodule Astarte.AppEngine.API.Helpers.DatabaseV2 do
     capabilities capabilities,
     shared_secret session_key,
     groups map<text, timeuuid>,
+    fdo_guid blob,
 
     PRIMARY KEY (device_id)
   )

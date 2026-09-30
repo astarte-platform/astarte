@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Alert,
   Container,
@@ -12,10 +12,14 @@ import {
   Spinner,
 } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
+import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 import { useFdo } from './hooks/useFdo';
 import { AlertsBanner, useAlerts } from './AlertManager';
 import Icon from './components/Icon';
+import IntrospectionTable from './components/IntrospectionTable';
 import { useAstarte } from './AstarteManager';
+import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
 
 const parseApiError = (err: any): string => {
   let data = err?.response?.data;
@@ -54,6 +58,13 @@ const FdoVoucherPage: React.FC = () => {
   );
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
+  // States for the Astarte device the voucher gets bound to
+  const [deviceId, setDeviceId] = useState<AstarteDevice['id']>('');
+  const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);
+  const [introspectionInterfaces, setIntrospectionInterfaces] = useState<
+    Map<AstarteInterfaceDescriptor['name'], AstarteInterfaceDescriptor>
+  >(new Map());
+
   // States for new replacement fields (FDO TO2 settings)
   const [replacementGuid, setReplacementGuid] = useState('');
   const [replacementRvInfo, setReplacementRvInfo] = useState('');
@@ -70,6 +81,27 @@ const FdoVoucherPage: React.FC = () => {
   const isVoucherLoaded =
     (uploadMethod === 'file' && file !== null) ||
     (uploadMethod === 'text' && voucherText.trim() !== '');
+
+  const deviceIdByteArray = urlSafeBase64ToByteArray(deviceId);
+  const isValidDeviceId = deviceIdByteArray.length === 17 && deviceIdByteArray[16] === 0;
+
+  const generateRandomUUID = useCallback(() => {
+    const newUUID = uuidv4().replace(/-/g, '');
+    const bytes = (newUUID.match(/.{2}/g) as RegExpMatchArray).map((b) => parseInt(b, 16));
+    setDeviceId(byteArrayToUrlSafeBase64(bytes));
+  }, []);
+
+  const addInterfaceToIntrospection = (interfaceDescriptor: AstarteInterfaceDescriptor) => {
+    const introspection = new Map(introspectionInterfaces);
+    introspection.set(interfaceDescriptor.name, interfaceDescriptor);
+    setIntrospectionInterfaces(introspection);
+  };
+
+  const removeIntrospectionInterface = (interfaceDescriptor: AstarteInterfaceDescriptor) => {
+    const introspection = new Map(introspectionInterfaces);
+    introspection.delete(interfaceDescriptor.name);
+    setIntrospectionInterfaces(introspection);
+  };
 
   // Effect: Fetch COMPATIBLE keys when the voucher is loaded
   useEffect(() => {
@@ -131,7 +163,7 @@ const FdoVoucherPage: React.FC = () => {
     setValidated(true);
     setOvGuid(null);
 
-    if (!isVoucherLoaded || !keyName) {
+    if (!isVoucherLoaded || !keyName || !isValidDeviceId) {
       return;
     }
 
@@ -158,7 +190,10 @@ const FdoVoucherPage: React.FC = () => {
 
     try {
       // Pass the updated parameters to the hook
-      const response = await uploadVoucher(keyName, finalVoucherText, {
+      const response = await uploadVoucher(deviceId, keyName, finalVoucherText, {
+        initialIntrospection: shouldSendIntrospection
+          ? Object.fromEntries(introspectionInterfaces)
+          : undefined,
         keyAlgorithm: selectedAlgorithm || undefined,
         replacementGuid,
         replacementRvInfo,
@@ -174,6 +209,9 @@ const FdoVoucherPage: React.FC = () => {
       setSelectedAlgorithm('');
       setFile(null);
       setVoucherText('');
+      setDeviceId('');
+      setShouldSendIntrospection(false);
+      setIntrospectionInterfaces(new Map());
       setReplacementGuid('');
       setReplacementRvInfo('');
       setReplacementPubKey('');
@@ -185,7 +223,7 @@ const FdoVoucherPage: React.FC = () => {
   };
 
   // Logic to disable the submit button if required fields are missing
-  const isSubmitDisabled = status === 'loading' || !isVoucherLoaded || !keyName;
+  const isSubmitDisabled = status === 'loading' || !isVoucherLoaded || !keyName || !isValidDeviceId;
 
   return (
     <Container fluid className="p-4">
@@ -365,6 +403,62 @@ const FdoVoucherPage: React.FC = () => {
 
                 <hr className="my-4" />
 
+                <h5 className="mb-3">3. Register Device</h5>
+                <Form.Group className="mb-3" controlId="fdoDeviceIdInput">
+                  <Form.Label>Device ID</Form.Label>
+                  <div className="d-flex flex-column flex-md-row align-items-start gap-2">
+                    <div className="flex-grow-1 w-100">
+                      <Form.Control
+                        type="text"
+                        className="font-monospace"
+                        placeholder="Your device ID"
+                        value={deviceId}
+                        onChange={(e) => setDeviceId(e.target.value)}
+                        autoComplete="off"
+                        required
+                        isValid={deviceId !== '' && isValidDeviceId}
+                        isInvalid={deviceId !== '' && !isValidDeviceId}
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        Device ID must be a unique 128 bit URL-encoded base64 (without padding)
+                        string.
+                      </Form.Control.Feedback>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="text-nowrap"
+                      onClick={generateRandomUUID}
+                    >
+                      Generate random ID
+                    </Button>
+                  </div>
+                  <Form.Text className="text-muted">
+                    The Astarte device this voucher is bound to. It is registered in the realm when
+                    the voucher is uploaded, so it must not exist yet.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group
+                  controlId="fdoSendIntrospectionInput"
+                  className={shouldSendIntrospection ? 'mb-0' : 'mb-4'}
+                >
+                  <Form.Check
+                    type="checkbox"
+                    label="Declare initial introspection"
+                    checked={shouldSendIntrospection}
+                    onChange={(e) => setShouldSendIntrospection(e.target.checked)}
+                  />
+                </Form.Group>
+                {shouldSendIntrospection && (
+                  <IntrospectionTable
+                    interfaces={introspectionInterfaces}
+                    onAddInterface={addInterfaceToIntrospection}
+                    onRemoveInterface={removeIntrospectionInterface}
+                  />
+                )}
+
+                <hr className="my-4" />
+
                 {/* --- ADVANCED FDO SETTINGS --- */}
                 <Accordion className="mb-4">
                   <Accordion.Item eventKey="0">
@@ -449,6 +543,9 @@ const FdoVoucherPage: React.FC = () => {
                           setVoucherText('');
                           setKeyName('');
                           setSelectedAlgorithm('');
+                          setDeviceId('');
+                          setShouldSendIntrospection(false);
+                          setIntrospectionInterfaces(new Map());
                           setAvailableKeys([]);
                         }}
                       >

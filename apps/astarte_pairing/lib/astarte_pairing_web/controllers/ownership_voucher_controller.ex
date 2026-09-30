@@ -22,13 +22,20 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
-  alias Astarte.FDO.TO0
+  alias Astarte.Pairing.Engine
+  alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher, as: OVApiSpec
   alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets.Core, as: SecretsCore
+  alias OpenApiSpex.MediaType
+  alias OpenApiSpex.Response
   alias OpenApiSpex.Schema
 
   action_fallback Astarte.PairingWeb.FallbackController
+
+  # `action_fallback` renders from the conn as it entered the action, so this
+  # has to be a plug for the error view to see the GUID
+  plug :assign_fdo_guid when action in [:run_to0]
 
   tags ["fdo"]
 
@@ -51,6 +58,19 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
       ok: {"Ownership voucher registered successfully", nil, nil},
       bad_request: {"Invalid request body", nil, nil},
       unauthorized: {"Unauthorized", nil, nil},
+      forbidden: %Response{
+        description: "Forbidden or Authorization path not matched",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              oneOf: [
+                Errors.ForbiddenResponse,
+                Errors.AuthorizationPathNotMatchedResponse
+              ]
+            }
+          }
+        }
+      },
       not_found: {"Realm not found", nil, nil},
       internal_server_error: {"Internal server error", nil, nil}
     ]
@@ -100,6 +120,36 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
       no_content: {"Ownership voucher deleted successfully", nil, nil},
       unauthorized: {"Unauthorized", nil, nil},
       not_found: {"Ownership voucher not found", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
+
+  operation :run_to0,
+    summary: "Re-run TO0 for an ownership voucher",
+    description:
+      "Registers the ownership voucher on the FDO rendezvous server again and refreshes its " <>
+        "expiry. Only vouchers whose device has not completed Device Onboard yet can be " <>
+        "re-registered.",
+    operation_id: "runOwnershipVoucherTO0",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ],
+      guid: [
+        in: :path,
+        description: "GUID of the ownership voucher to re-register.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok: {"TO0 completed successfully", "application/json", OVApiSpec.TO0Response},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Ownership voucher not found", nil, nil},
+      conflict: {"Device Onboard has already completed for the ownership voucher", nil, nil},
       internal_server_error: {"Internal server error", nil, nil}
     ]
 
@@ -167,22 +217,19 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
     with {:ok, req} <-
            LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
            |> Ecto.Changeset.apply_action(:insert),
-         :ok <-
-           OwnershipVoucher.save_voucher(realm_name, %{
-             voucher_data: req.cbor_ownership_voucher,
-             guid: req.device_guid,
-             key_name: req.key_name,
-             key_algorithm: req.key_algorithm,
-             replacement_guid: req.replacement_guid,
-             replacement_rendezvous_info: req.decoded_replacement_rendezvous_info,
-             replacement_public_key: req.decoded_replacement_public_key
-           }),
-         :ok <-
-           TO0.claim_ownership_voucher(
-             realm_name,
+         {:ok, expiry} <-
+           OwnershipVoucher.claim_on_rendezvous(
+             req.device_guid,
              req.decoded_ownership_voucher,
              req.extracted_owner_key
-           ) do
+           ),
+         :ok <- LoadRequest.store_voucher(req, expiry),
+         opts = [
+           initial_introspection: req.initial_introspection,
+           with_credentials?: false,
+           fdo_guid: req.device_guid
+         ],
+         {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
       json(conn, %{
         data: %{
           public_key: req.extracted_owner_key.public_pem,
@@ -206,12 +253,26 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   @doc """
   Deletes an ownership voucher.
 
-  Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown.
+  Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown (in the realm).
   """
   def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
     with {:ok, guid} <- decode_guid(guid_str),
-         {:ok, _} <- OwnershipVoucher.delete(realm_name, guid) do
+         :ok <- OwnershipVoucher.delete(realm_name, guid) do
       send_resp(conn, :no_content, "")
+    end
+  end
+
+  @doc """
+  Re-runs TO0 with the rendezvous server for an ownership voucher, refreshing
+  its expiry.
+
+  Returns `200 OK` with the new expiry, `404 Not Found` if the GUID is unknown
+  (in the realm), `409 Conflict` if Device Onboard already completed for it.
+  """
+  def run_to0(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
+    with {:ok, guid} <- decode_guid(guid_str),
+         {:ok, expiry} <- OwnershipVoucher.run_to0(realm_name, guid) do
+      json(conn, %{data: %{expiry: expiry}})
     end
   end
 
@@ -236,6 +297,10 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   defp ensure_ownership_voucher_parameter(_params),
     do: {:error, :missing_ownership_voucher}
+
+  defp assign_fdo_guid(conn, _opts) do
+    assign(conn, :fdo_guid, conn.params["guid"])
+  end
 
   defp decode_guid(guid_str) do
     case Ecto.UUID.dump(guid_str) do

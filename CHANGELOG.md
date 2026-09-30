@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Generate `device_empty_cache_received` trigger events when a device sends `/emptyCache`
 
+## [1.4.0-rc.6] - 2026-09-28
+
+Includes changes from v1.3.4
+
+### Added
+
+- [fdo] Add `POST /v1/:realm_name/fdo/ownership_vouchers/:guid/to0` to run TO0 again for an
+  ownership voucher, refreshing how long the rendezvous server keeps serving its registration.
+  The resulting expiry is reported when listing the ownership vouchers of a realm.
+- [fdo] Add ownership voucher deletion
+
+### Changed
+
+- [fdo] Rename `ASTARTE_BASE_URL_DOMAIN` to `ASTARTE_BASE_URL_HOST`. Its value may now be
+  either a domain name or an IP address
+- [fdo] Deleting a device also deletes its ownership voucher.
+- [fdo] Allow specifying device_id on ownership voucher upload
+- [fdo] The device is now immediately registered on ownership voucher upload
+- [astarte_data_updater_plant] Improve RPC server reliability
+
+### Fixed
+
+- [dashboard] Add unknown status when device messages aren't properly consumed
+- [fdo] Accept single entry x5chain certificates on voucher upload
+- [fdo] Invalid vouchers are no longer stored on the database
+- [fdo] Ensure users cannot delete ownership vouchers belonging to other realms
+
 ## [1.4.0-rc.5] - 2026-08-20
 
 ### Fixed
@@ -99,6 +126,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
+
+## [1.3.4] - 2026-09-17
+
+### Fixed
+
+- [astarte_data_updater_plant] Prevent AMQPDataConsumer processes from accumulating
+  uncollected binaries over time by forcing more frequent full sweep garbage collections
+  on them.
+- [astarte_data_updater_plant] Ensure the RPC server is always available to clients.
 
 ## [1.3.3] - 2026-08-07
 

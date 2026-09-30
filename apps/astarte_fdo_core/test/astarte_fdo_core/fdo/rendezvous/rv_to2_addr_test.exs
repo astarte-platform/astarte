@@ -21,18 +21,44 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2AddrTest do
 
   alias Astarte.FDO.Core.Rendezvous.RvTO2Addr
 
-  describe "encode_protocol/1" do
-    test "encodes all supported protocols" do
-      assert RvTO2Addr.encode_protocol(:tcp) == 1
-      assert RvTO2Addr.encode_protocol(:tls) == 2
-      assert RvTO2Addr.encode_protocol(:http) == 3
-      assert RvTO2Addr.encode_protocol(:coap) == 4
-      assert RvTO2Addr.encode_protocol(:https) == 5
-      assert RvTO2Addr.encode_protocol(:coaps) == 6
+  describe "build/4" do
+    test "returns the correct domain host" do
+      addr = RvTO2Addr.build(:domain, "example.com", 443, :https)
+
+      assert addr.dns == "example.com"
+      assert addr.ip == nil
+      assert addr.port == 443
+      assert addr.protocol == :https
     end
 
-    test "raises for unknown protocol" do
-      assert_raise KeyError, fn -> RvTO2Addr.encode_protocol(:ftp) end
+    test "encodes an IPv4 host and returns it" do
+      addr = RvTO2Addr.build(:ip, {192, 168, 1, 10}, 8080, :http)
+
+      assert addr.dns == nil
+      assert addr.ip == <<192, 168, 1, 10>>
+      assert addr.port == 8080
+      assert addr.protocol == :http
+    end
+
+    test "encodes an IPv6 host to its 16-byte representation" do
+      addr = RvTO2Addr.build(:ip, {0, 0, 0, 0, 0, 0, 0, 1}, 8080, :http)
+
+      assert addr.dns == nil
+      assert addr.ip == <<0::16, 0::16, 0::16, 0::16, 0::16, 0::16, 0::16, 1::16>>
+    end
+
+    test "raises for an unknown host type" do
+      assert_raise FunctionClauseError, fn ->
+        RvTO2Addr.build(:mystery, "example.com", 443, :https)
+      end
+    end
+  end
+
+  describe "encode_protocol/1" do
+    test "maps every known protocol to its numeric id" do
+      for {protocol, id} <- [tcp: 1, tls: 2, http: 3, coap: 4, https: 5, coaps: 6] do
+        assert RvTO2Addr.encode_protocol(protocol) == id
+      end
     end
   end
 end

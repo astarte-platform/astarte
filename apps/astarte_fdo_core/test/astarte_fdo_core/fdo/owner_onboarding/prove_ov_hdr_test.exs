@@ -21,84 +21,88 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.ProveOVHdrTest do
 
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.ProveOVHdr
-  alias COSE.Keys.ECC
-
-  defp build_sample_proveovhdr do
-    # Pre-encoded CBOR-compatible value for OV header (raw binary as CBOR-bstr source)
-    cbor_ov_header = CBOR.encode("ov-header-placeholder")
-    # Hash.encode returns a list [type_id, bstr] compatible to embed in a CBOR list
-    cbor_hmac = Hash.encode(Hash.new(:sha256, "test-ov-header"))
-
-    %ProveOVHdr{
-      cbor_ov_header: cbor_ov_header,
-      ov_header: nil,
-      num_ov_entries: 2,
-      hmac: nil,
-      cbor_hmac: cbor_hmac,
-      nonce_to2_prove_ov: :crypto.strong_rand_bytes(16),
-      eb_sig_info: :es256,
-      xa_key_exchange: :crypto.strong_rand_bytes(32),
-      hello_device_hash: Hash.new(:sha256, "hello-device-msg"),
-      max_owner_message_size: 65_536
-    }
-  end
+  alias Astarte.FDO.Core.PublicKey
+  alias COSE.Keys.ECC, as: Keys
+  alias COSE.Messages.Sign1
 
   describe "encode/1" do
-    test "returns a list with 8 elements" do
-      result = ProveOVHdr.encode(build_sample_proveovhdr())
-      assert length(result) == 8
-    end
+    test "encodes payload in expected order and format" do
+      prove_ov_hdr = prove_ov_hdr_fixture()
 
-    test "second element is num_ov_entries" do
-      p = build_sample_proveovhdr()
-      result = ProveOVHdr.encode(p)
-      assert Enum.at(result, 1) == p.num_ov_entries
-    end
+      encoded = ProveOVHdr.encode(prove_ov_hdr)
 
-    test "last element is max_owner_message_size" do
-      p = build_sample_proveovhdr()
-      result = ProveOVHdr.encode(p)
-      assert List.last(result) == p.max_owner_message_size
-    end
+      assert [
+               %CBOR.Tag{tag: :bytes, value: <<1, 2, 3>>},
+               2,
+               hmac,
+               %CBOR.Tag{tag: :bytes, value: nonce},
+               [-7, %CBOR.Tag{tag: :bytes, value: <<>>}],
+               %CBOR.Tag{tag: :bytes, value: <<4, 5, 6, 7>>},
+               hello_hash,
+               4096
+             ] = encoded
 
-    test "raises when both cbor_ov_header and ov_header are nil" do
-      p = %{build_sample_proveovhdr() | cbor_ov_header: nil, ov_header: nil}
-      assert_raise RuntimeError, fn -> ProveOVHdr.encode(p) end
-    end
-
-    test "raises when both cbor_hmac and hmac are nil" do
-      p = %{build_sample_proveovhdr() | cbor_hmac: nil, hmac: nil}
-      assert_raise RuntimeError, fn -> ProveOVHdr.encode(p) end
+      assert hmac == prove_ov_hdr.cbor_hmac
+      assert nonce == prove_ov_hdr.nonce_to2_prove_ov
+      assert hello_hash == Hash.encode(prove_ov_hdr.hello_device_hash)
     end
   end
 
   describe "encode_cbor/1" do
-    test "returns a binary" do
-      result = ProveOVHdr.encode_cbor(build_sample_proveovhdr())
-      assert is_binary(result)
-    end
+    test "returns CBOR binary for encoded payload" do
+      prove_ov_hdr = prove_ov_hdr_fixture()
 
-    test "decodes back to an 8-element list" do
-      cbor = ProveOVHdr.encode_cbor(build_sample_proveovhdr())
-      {:ok, list, ""} = CBOR.decode(cbor)
-      assert length(list) == 8
+      encoded_cbor = ProveOVHdr.encode_cbor(prove_ov_hdr)
+
+      assert is_binary(encoded_cbor)
+      assert {:ok, decoded, ""} = CBOR.decode(encoded_cbor)
+      assert decoded == ProveOVHdr.encode(prove_ov_hdr)
     end
   end
 
   describe "encode_sign/4" do
-    setup do
-      owner_key = ECC.generate(:es256)
-      # owner_pub_key is embedded as-is in the COSE unprotected header
-      owner_pub_key = :crypto.strong_rand_bytes(32)
+    test "signs CBOR payload with expected protected and unprotected headers" do
+      prove_ov_hdr = prove_ov_hdr_fixture()
+      owner_private_key = Keys.generate(:es256)
+
+      owner_public_key =
+        %PublicKey{
+          type: :secp256r1,
+          encoding: :cosekey,
+          body: Keys.public_key(owner_private_key)
+        }
+        |> PublicKey.encode()
+
       dv_nonce = :crypto.strong_rand_bytes(16)
-      p = build_sample_proveovhdr()
 
-      %{owner_key: owner_key, owner_pub_key: owner_pub_key, dv_nonce: dv_nonce, p: p}
-    end
+      assert {:ok, signed_cbor} =
+               ProveOVHdr.encode_sign(prove_ov_hdr, dv_nonce, owner_public_key, owner_private_key)
 
-    test "returns a binary", %{owner_key: k, owner_pub_key: pub, dv_nonce: nonce, p: p} do
-      assert {:ok, result} = ProveOVHdr.encode_sign(p, nonce, pub, k)
-      assert is_binary(result)
+      assert {:ok, sign1} = Sign1.decode_cbor(signed_cbor)
+      assert :ok = Sign1.verify(sign1, owner_private_key)
+
+      assert sign1.phdr[:alg] == :es256
+      assert sign1.uhdr[256] == COSE.tag_as_byte(dv_nonce)
+      assert sign1.uhdr[257] == owner_public_key
+
+      assert %CBOR.Tag{tag: :bytes, value: payload_cbor} = sign1.payload
+      assert {:ok, payload_decoded, ""} = CBOR.decode(payload_cbor)
+      assert payload_decoded == ProveOVHdr.encode(prove_ov_hdr)
     end
+  end
+
+  defp prove_ov_hdr_fixture do
+    %ProveOVHdr{
+      cbor_ov_header: <<1, 2, 3>>,
+      ov_header: nil,
+      num_ov_entries: 2,
+      cbor_hmac: Hash.new(:sha256, "ovhdr") |> Hash.encode(),
+      hmac: nil,
+      nonce_to2_prove_ov: :crypto.strong_rand_bytes(16),
+      eb_sig_info: :es256,
+      xa_key_exchange: <<4, 5, 6, 7>>,
+      hello_device_hash: Hash.new(:sha256, "hello_device"),
+      max_owner_message_size: 4096
+    }
   end
 end

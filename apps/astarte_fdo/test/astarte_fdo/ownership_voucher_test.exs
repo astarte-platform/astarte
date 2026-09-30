@@ -20,6 +20,8 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   use Astarte.FDO.Cases.Data, async: true
   use Mimic
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucherStruct
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher, as: OwnershipVoucherCore
@@ -28,81 +30,158 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
   alias Astarte.FDO.Helpers
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.TO0
+  alias Astarte.RPC.RealmManagement
   alias Astarte.Secrets
   alias COSE.Messages.Sign1
 
-  setup do
-    %{device_id: :crypto.strong_rand_bytes(16)}
-  end
+  setup context do
+    %{astarte_instance_id: astarte_instance_id} = context
 
-  describe "handle ownership voucher," do
-    test "save voucher data ", ctx do
-      %{
-        realm_name: realm_name,
-        device_id: device_id
-      } = ctx
+    RealmManagement
+    |> stub(:delete_device, fn _, _ -> :ok end)
 
-      key_name = "some_key"
-      key_alg = :es256
+    guid = :crypto.strong_rand_bytes(16)
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
 
-      attrs = %{
-        guid: device_id,
-        key_name: key_name,
-        key_algorithm: key_alg,
-        voucher_data: Helpers.sample_cbor_voucher()
-      }
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      Queries.delete_ownership_voucher(guid)
+    end)
 
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
-
-      assert {:ok, key_data} = Queries.get_owner_key_params(realm_name, device_id)
-      assert %{name: key_name, algorithm: key_alg} == key_data
-    end
+    %{
+      guid: guid,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    }
   end
 
   describe "delete/2" do
     test "revokes the rendezvous registration and removes the voucher", ctx do
-      %{realm_name: realm_name, device_id: device_id} = ctx
+      %{
+        realm_name: realm_name,
+        guid: guid,
+        device_id: device_id,
+        encoded_device_id: encoded_device_id
+      } = ctx
 
-      attrs = %{
-        guid: device_id,
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
         key_name: "some_key",
         key_algorithm: :es256,
         voucher_data: Helpers.sample_cbor_voucher()
       }
 
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
 
       Secrets
-      |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> {:ok, :fake_owner_key} end)
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
       TO0
-      |> expect(:revoke_ownership_voucher, fn ^realm_name, _decoded_voucher, :fake_owner_key ->
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key -> :ok end)
+
+      RealmManagement
+      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)
+
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
+    end
+
+    test "deletes the voucher even if the device does not exist", context do
+      %{
+        realm_name: realm_name,
+        guid: guid,
+        device_id: device_id,
+        encoded_device_id: encoded_device_id
+      } = context
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        device_id: device_id,
+        realm: realm_name,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      TO0
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
         :ok
       end)
 
-      assert {:ok, _} = OwnershipVoucher.delete(realm_name, device_id)
-      assert {:error, :not_found} = Queries.get_ownership_voucher(realm_name, device_id)
+      RealmManagement
+      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id ->
+        {:error, :device_not_found}
+      end)
+
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
     end
 
     test "does not delete the voucher if the rendezvous revocation fails", ctx do
-      %{realm_name: realm_name, device_id: device_id} = ctx
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
 
-      attrs = %{
-        guid: device_id,
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        realm: realm_name,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> :error end)
+
+      assert {:error, :rendezvous_revocation_failed} =
+               OwnershipVoucher.delete(realm_name, guid)
+
+      assert {:ok, _voucher} = Queries.fetch_ownership_voucher(guid)
+    end
+
+    test "succeeds when the device deletion already removed the voucher", ctx do
+      %{
+        realm_name: realm_name,
+        guid: guid,
+        device_id: device_id,
+        encoded_device_id: encoded_device_id
+      } = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
         key_name: "some_key",
         key_algorithm: :es256,
         voucher_data: Helpers.sample_cbor_voucher()
       }
 
-      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
 
       Secrets
-      |> expect(:get_key_for_guid, fn ^realm_name, ^device_id -> :error end)
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
 
-      assert {:error, :rendezvous_revocation_failed} =
-               OwnershipVoucher.delete(realm_name, device_id)
+      TO0
+      |> expect(:revoke_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
+        :ok
+      end)
 
-      assert {:ok, _voucher_cbor} = Queries.get_ownership_voucher(realm_name, device_id)
+      RealmManagement
+      |> expect(:delete_device, fn ^realm_name, ^encoded_device_id ->
+        Queries.delete_ownership_voucher(guid)
+      end)
+
+      assert :ok = OwnershipVoucher.delete(realm_name, guid)
+      assert {:error, :not_found} = Queries.fetch_ownership_voucher(guid)
     end
 
     test "returns {:error, :not_found} for an unknown guid", ctx do
@@ -110,6 +189,111 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
       unknown_guid = :crypto.strong_rand_bytes(16)
 
       assert {:error, :not_found} = OwnershipVoucher.delete(realm_name, unknown_guid)
+    end
+  end
+
+  describe "run_to0/2" do
+    test "registers the voucher again and stores the new expiry", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      new_expiry = DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:second)
+
+      TO0
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
+        {:ok, new_expiry}
+      end)
+
+      assert {:ok, ^new_expiry} = OwnershipVoucher.run_to0(realm_name, guid)
+
+      assert {:ok, %{expiry: stored_expiry}} = Queries.fetch_ownership_voucher(guid)
+      assert DateTime.compare(stored_expiry, new_expiry) == :eq
+    end
+
+    test "refuses a voucher whose device completed Device Onboard", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        status: :claimed,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      assert {:error, :device_already_onboarded} = OwnershipVoucher.run_to0(realm_name, guid)
+    end
+
+    test "returns {:error, :not_found} for a voucher belonging to another realm", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: "another_realm",
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      assert {:error, :not_found} = OwnershipVoucher.run_to0(realm_name, guid)
+    end
+
+    test "returns {:error, :not_found} for an unknown guid", ctx do
+      %{realm_name: realm_name} = ctx
+      unknown_guid = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :not_found} = OwnershipVoucher.run_to0(realm_name, unknown_guid)
+    end
+
+    test "does not touch the expiry if the rendezvous registration fails", ctx do
+      %{realm_name: realm_name, guid: guid, device_id: device_id} = ctx
+
+      expiry = DateTime.utc_now() |> DateTime.add(60, :second) |> DateTime.truncate(:millisecond)
+
+      ownership_voucher = %OwnershipVoucherStruct{
+        guid: guid,
+        realm: realm_name,
+        device_id: device_id,
+        key_name: "some_key",
+        key_algorithm: :es256,
+        voucher_data: Helpers.sample_cbor_voucher(),
+        expiry: expiry
+      }
+
+      :ok = Queries.create_ownership_voucher(ownership_voucher)
+
+      Secrets
+      |> expect(:get_key_for_guid, fn ^realm_name, ^guid -> {:ok, :fake_owner_key} end)
+
+      TO0
+      |> expect(:claim_ownership_voucher, fn _decoded_voucher, :fake_owner_key ->
+        :error
+      end)
+
+      assert {:error, :rendezvous_registration_failed} =
+               OwnershipVoucher.run_to0(realm_name, guid)
+
+      assert {:ok, %{expiry: ^expiry}} = Queries.fetch_ownership_voucher(guid)
     end
   end
 

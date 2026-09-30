@@ -323,8 +323,6 @@ defmodule Astarte.DataAccess.Helpers.Database do
       stringarray_value list<varchar>,
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
-      encryptedblob_value blob,
-      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id), endpoint_id, path)
     );

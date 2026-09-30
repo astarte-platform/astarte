@@ -31,6 +31,11 @@ services:
       - "traefik.http.routers.astarte-housekeeping.entrypoints=web"
       - "traefik.http.routers.astarte-housekeeping.middlewares=astarte-housekeeping"
       - "traefik.http.routers.astarte-housekeeping.service=astarte-housekeeping"
+      - "traefik.http.routers.https-astarte-housekeeping.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/housekeeping`)"
+      - "traefik.http.routers.https-astarte-housekeeping.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-housekeeping.tls=true"
+      - "traefik.http.routers.https-astarte-housekeeping.middlewares=astarte-housekeeping"
+      - "traefik.http.routers.https-astarte-housekeeping.service=astarte-housekeeping"
       - "traefik.http.middlewares.astarte-housekeeping.stripprefix.prefixes=/housekeeping"
       - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
@@ -58,6 +63,11 @@ services:
       - "traefik.http.routers.astarte-realm-management.entrypoints=web"
       - "traefik.http.routers.astarte-realm-management.middlewares=astarte-realm-management"
       - "traefik.http.routers.astarte-realm-management.service=astarte-realm-management"
+      - "traefik.http.routers.https-astarte-realm-management.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/realmmanagement`)"
+      - "traefik.http.routers.https-astarte-realm-management.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-realm-management.tls"
+      - "traefik.http.routers.https-astarte-realm-management.middlewares=astarte-realm-management"
+      - "traefik.http.routers.https-astarte-realm-management.service=astarte-realm-management"
       - "traefik.http.middlewares.astarte-realm-management.stripprefix.prefixes=/realmmanagement"
       - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
@@ -72,7 +82,7 @@ services:
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
       ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
-      ASTARTE_BASE_URL_DOMAIN: "api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}"
+      ASTARTE_BASE_URL_HOST: "api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}"
       ASTARTE_BASE_URL_PORT: 80
       ASTARTE_BASE_URL_PROTOCOL: "http"
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
@@ -93,14 +103,21 @@ services:
       - "traefik.http.routers.astarte-pairing.entrypoints=web"
       - "traefik.http.routers.astarte-pairing.middlewares=astarte-pairing"
       - "traefik.http.routers.astarte-pairing.service=astarte-pairing"
+      - "traefik.http.routers.https-astarte-pairing.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/pairing`)"
+      - "traefik.http.routers.https-astarte-pairing.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-pairing.tls=true"
+      - "traefik.http.routers.https-astarte-pairing.middlewares=astarte-pairing"
+      - "traefik.http.routers.https-astarte-pairing.service=astarte-pairing"
       - "traefik.http.middlewares.astarte-pairing.stripprefix.prefixes=/pairing"
       - "traefik.http.services.astarte-pairing.loadbalancer.server.port=4003"
       # Route for fdo
-      - "traefik.http.routers.fdo-rewrite-router.rule=Host(`${FDO_REALM:-test}.api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.fdo-rewrite-router.rule=(Host(`${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) || Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)) && PathPrefix(`/fdo`)"
       - "traefik.http.routers.fdo-rewrite-router.entrypoints=web"
-      - "traefik.http.routers.fdo-rewrite-router.middlewares=fdo-rewrite-mid"
       - "traefik.http.routers.fdo-rewrite-router.service=astarte-pairing"
-      - "traefik.http.middlewares.fdo-rewrite-mid.addprefix.prefix=/v1/${FDO_REALM:-test}"
+      - "traefik.http.routers.https-fdo-rewrite-router.rule=(Host(`${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) || Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)) && PathPrefix(`/fdo`)"
+      - "traefik.http.routers.https-fdo-rewrite-router.entrypoints=websecure"
+      - "traefik.http.routers.https-fdo-rewrite-router.tls=true"
+      - "traefik.http.routers.https-fdo-rewrite-router.service=astarte-pairing"
 
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:snapshot
@@ -126,6 +143,11 @@ services:
       - "traefik.http.routers.astarte-appengine-api.entrypoints=web"
       - "traefik.http.routers.astarte-appengine-api.middlewares=astarte-appengine-api"
       - "traefik.http.routers.astarte-appengine-api.service=astarte-appengine-api"
+      - "traefik.http.routers.https-astarte-appengine-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/appengine`)"
+      - "traefik.http.routers.https-astarte-appengine-api.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-appengine-api.tls=true"
+      - "traefik.http.routers.https-astarte-appengine-api.middlewares=astarte-appengine-api"
+      - "traefik.http.routers.https-astarte-appengine-api.service=astarte-appengine-api"
       - "traefik.http.middlewares.astarte-appengine-api.stripprefix.prefixes=/appengine"
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
@@ -184,10 +206,14 @@ services:
       - "traefik.http.routers.astarte-dashboard.rule=Host(`dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-dashboard.entrypoints=web"
       - "traefik.http.routers.astarte-dashboard.service=astarte-dashboard"
+      - "traefik.http.routers.https-astarte-dashboard.rule=Host(`dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.https-astarte-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-dashboard.tls=true"
+      - "traefik.http.routers.https-astarte-dashboard.service=astarte-dashboard"
       - "traefik.http.services.astarte-dashboard.loadbalancer.server.port=80"
 
   astarte-grafana:
-    image: astarte/grafana:1.2.0
+    image: docker.io/astarte/grafana:1.2.0
     depends_on:
       - "astarte-appengine-api"
       - "traefik"
@@ -196,6 +222,10 @@ services:
       - "traefik.http.routers.astarte-grafana.rule=Host(`grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-grafana.entrypoints=web"
       - "traefik.http.routers.astarte-grafana.service=astarte-grafana"
+      - "traefik.http.routers.https-astarte-grafana.rule=Host(`grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.https-astarte-grafana.entrypoints=websecure"
+      - "traefik.http.routers.https-astarte-grafana.tls=true"
+      - "traefik.http.routers.https-astarte-grafana.service=astarte-grafana"
       - "traefik.http.services.astarte-grafana.loadbalancer.server.port=3000"
 
   traefik:
@@ -211,6 +241,8 @@ services:
       - "--providers.docker.exposedbydefault=false"
       # Expose Astarte API/Dahsboard/Grafana
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.filename=/etc/traefik/dynamic-conf.yml"
       # Expose Astarte broker
       - "--entryPoints.vernemq.address=:8883"
       # Logging
@@ -219,6 +251,7 @@ services:
     ports:
       # The HTTP port
       - "80:80"
+      - "443:443"
       # Uncomment this if you want to display Traefik's web UI (enabled by --api.insecure=true)
       # - "8080:8080"
       # VerneMQ's SSL Listener
@@ -226,6 +259,8 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - ${DOCKER_HOST:-/var/run/docker.sock}:/var/run/docker.sock:z
+      - ./compose/certificates:/certs:ro,z
+      - ./compose/traefik/traefik.yaml:/etc/traefik/dynamic-conf.yml:ro,z
     security_opt:
       - label=type:container_runtime_t
     networks:
@@ -243,8 +278,6 @@ services:
     image: openbao/openbao:2
     environment:
       - BAO_ADDR=http://0.0.0.0:8200
-    ports:
-      - 8200:8200
     command: server -dev -dev-listen-address="0.0.0.0:8200" -dev-root-token-id="${ASTARTE_VAULT_TOKEN}"
     healthcheck:
       test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
@@ -254,7 +287,7 @@ services:
       start_period: 1s
 
   rendezvous:
-    image: astarte/go-fdo-server:ade68cda47-20251128
+    image: docker.io/astarte/go-fdo-server:ade68cda47-20251128
     restart: on-failure
     command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
     volumes:
@@ -264,6 +297,10 @@ services:
       - "traefik.http.routers.fdo-rendezvous.rule=Host(`fdo.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.fdo-rendezvous.entrypoints=web"
       - "traefik.http.routers.fdo-rendezvous.service=fdo-rendezvous"
+      - "traefik.http.routers.https-fdo-rendezvous.rule=Host(`fdo.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.https-fdo-rendezvous.entrypoints=websecure"
+      - "traefik.http.routers.https-fdo-rendezvous.tls=true"
+      - "traefik.http.routers.https-fdo-rendezvous.service=fdo-rendezvous"
       - "traefik.http.services.fdo-rendezvous.loadbalancer.server.port=8041"
 
   # RabbitMQ
@@ -271,9 +308,6 @@ services:
     image: rabbitmq:4.3.1-management
     hostname: rabbitmq
     restart: on-failure
-    ports:
-      - 5672:5672
-      - 15672:15672
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -285,7 +319,7 @@ services:
 
   # CFSSL
   cfssl:
-    image: astarte/cfssl:1.5.0-astarte.4
+    image: docker.io/astarte/cfssl:1.5.0-astarte.4
     hostname: cfssl
     volumes:
       - ./compose/cfssl-config:/config:z

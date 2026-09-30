@@ -82,6 +82,8 @@ defmodule Astarte.Pairing.Cases.Device do
         credentials_secret: confirmed_credentials_secret
     }
 
+    device_without_credentials = %{base_device(interfaces) | credentials_secret: nil}
+
     for interface <- interfaces, do: insert_interface_cleanly(realm_name, interface)
 
     interface_descriptors = get_interface_descriptors(realm_name, interfaces)
@@ -110,6 +112,7 @@ defmodule Astarte.Pairing.Cases.Device do
 
     insert_device_cleanly(realm_name, confirmed_device, interfaces, confirmed_credentials_secret)
     insert_device_cleanly(realm_name, inhibited_device, interfaces, inhibited_credentials_secret)
+    insert_device_cleanly(realm_name, device_without_credentials, interfaces, nil)
 
     %{
       interfaces: interfaces,
@@ -118,6 +121,7 @@ defmodule Astarte.Pairing.Cases.Device do
       unconfirmed_device2: unconfirmed_device2,
       confirmed_device: confirmed_device,
       inhibited_device: inhibited_device,
+      device_without_credentials: device_without_credentials,
       unregistered_device: unregistered_device,
       interface_descriptors: interface_descriptors,
       endpoints: endpoints

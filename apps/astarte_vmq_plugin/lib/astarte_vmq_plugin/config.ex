@@ -161,7 +161,8 @@ defmodule Astarte.VMQ.Plugin.Config do
           events_exchange_name: "",
           total_count: data_queue_count(),
           prefix: data_queue_prefix()
-        ]
+        ],
+        cluster_distribution_strategy: :uniform
       ]
     ]
   end

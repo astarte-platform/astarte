@@ -99,7 +99,6 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_secrets, in_umbrella: true},
       {:bcrypt_elixir, "~> 2.2"},
-      {:exandra, github: "vinniefranco/exandra"},
       {:mimic, "~> 2.4", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},

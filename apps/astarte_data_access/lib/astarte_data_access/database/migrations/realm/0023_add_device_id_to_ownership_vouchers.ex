@@ -16,17 +16,14 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.Device.UnconfirmedDevice do
-  @moduledoc """
-  This module defines the Ecto schema for the `deletion_in_progress` table.
-  """
-  use TypedEctoSchema
+defmodule Astarte.DataAccess.Database.Migrations.Realm.AddDeviceIDToOwnershipVouchers do
+  @moduledoc false
 
-  alias Astarte.DataAccess.DateTime, as: DateTimeMs
-  alias Astarte.DataAccess.UUID
+  use Ecto.Migration
 
-  @primary_key {:device_id, UUID, autogenerate: false}
-  typed_schema "unconfirmed_devices" do
-    field :created_at, DateTimeMs
+  def change do
+    alter table(:ownership_vouchers) do
+      add :device_id, :uuid
+    end
   end
 end

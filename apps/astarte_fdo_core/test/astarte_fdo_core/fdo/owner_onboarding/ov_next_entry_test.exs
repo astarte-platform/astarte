@@ -21,47 +21,31 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OVNextEntryTest do
 
   alias Astarte.FDO.Core.OwnerOnboarding.OVNextEntry
 
-  @ov_entry_binary :crypto.strong_rand_bytes(32)
-
-  @sample %OVNextEntry{
-    entry_num: 0,
-    ov_entry: @ov_entry_binary
-  }
-
   describe "to_cbor_list/1" do
-    test "returns a 2-element list with entry_num and ov_entry" do
-      result = OVNextEntry.to_cbor_list(@sample)
-      assert result == [0, @ov_entry_binary]
-    end
+    test "returns [entry_num, ov_entry]" do
+      ov_entry = :crypto.strong_rand_bytes(64)
 
-    test "preserves entry_num" do
-      entry = %OVNextEntry{entry_num: 3, ov_entry: <<1, 2, 3>>}
-      [num, _] = OVNextEntry.to_cbor_list(entry)
-      assert num == 3
+      msg = %OVNextEntry{
+        entry_num: 3,
+        ov_entry: ov_entry
+      }
+
+      assert [3, ^ov_entry] = OVNextEntry.to_cbor_list(msg)
     end
   end
 
   describe "encode/1" do
-    test "returns a binary" do
-      result = OVNextEntry.encode(@sample)
-      assert is_binary(result)
-    end
+    test "encodes OVNextEntry as CBOR binary" do
+      ov_entry = :crypto.strong_rand_bytes(64)
 
-    test "roundtrips through CBOR decoding" do
-      binary = OVNextEntry.encode(@sample)
-      {:ok, [entry_num, ov_entry], ""} = CBOR.decode(binary)
+      msg = %OVNextEntry{
+        entry_num: 0,
+        ov_entry: ov_entry
+      }
 
-      assert entry_num == @sample.entry_num
-      assert ov_entry == @sample.ov_entry
-    end
-
-    test "encodes different entry_num values correctly" do
-      for num <- [0, 1, 5, 255] do
-        entry = %OVNextEntry{entry_num: num, ov_entry: <<0>>}
-        binary = OVNextEntry.encode(entry)
-        {:ok, [decoded_num, _], ""} = CBOR.decode(binary)
-        assert decoded_num == num
-      end
+      cbor = OVNextEntry.encode(msg)
+      assert is_binary(cbor)
+      assert {:ok, [0, ^ov_entry], ""} = CBOR.decode(cbor)
     end
   end
 end

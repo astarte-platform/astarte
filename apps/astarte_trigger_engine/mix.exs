@@ -77,7 +77,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:typedstruct, github: "saleyn/typedstruct"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
-      {:exandra, github: "vinniefranco/exandra"},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:skogsra, "~> 2.2"},

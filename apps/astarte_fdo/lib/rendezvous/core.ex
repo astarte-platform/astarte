@@ -53,13 +53,13 @@ defmodule Astarte.FDO.Rendezvous.Core do
 
       {:ok, [%CBOR.Tag{tag: :bytes, value: nonce}], _rest}
       when is_binary(nonce) and byte_size(nonce) != 16 ->
-        {:error, :unexpected_nonce_size}
+        {:error, {:unexpected_nonce_size, nonce}}
 
-      {:ok, _decoded, _rest} ->
-        {:error, :unexpected_body_format}
+      {:ok, decoded, _rest} ->
+        {:error, {:unexpected_body_format, decoded}}
 
       {:error, _} ->
-        {:error, :cbor_decode_error}
+        {:error, {:cbor_decode_error, body}}
     end
   end
 end

@@ -35,7 +35,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -61,24 +61,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_generators, in_umbrella: true, only: [:dev, :test]}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
-      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
-      {:astarte_events, in_umbrella: true},
-      {:astarte_secrets, in_umbrella: true}
-    ]
-  end
-
   defp deps do
     [
       {:astarte_core, in_umbrella: true},
+      {:astarte_events, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
+      {:astarte_secrets, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:amqp, "~> 4.1"},
       {:castore, "~> 1.0.0"},
@@ -90,7 +79,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.3", only: :test},
       {:mimic, "~> 2.3", only: [:dev, :test]},
-      {:exandra, github: "vinniefranco/exandra"},
       {:libcluster, "~> 3.3"},
       # https://github.com/elixir-horde/horde/pull/291
       {:horde, github: "noaccOS/horde", branch: "push-ozyqtonylvpv"},

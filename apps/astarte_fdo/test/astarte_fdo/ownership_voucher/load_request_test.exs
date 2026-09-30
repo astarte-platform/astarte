@@ -20,6 +20,11 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
@@ -36,12 +41,15 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   yfLzYWUTgxViGMfJkvql4W3zrtRaVPU9I06TOHFC2Mwy+9S3A7UWv/EWtg==
   -----END PUBLIC KEY-----
   """
+  @sample_device_id Device.random_device_id()
+  @sample_hw_id Device.encode_device_id(@sample_device_id)
 
   @sample_key_name "owner_key"
   @sample_key_algorithm "ecdsa-p256"
-  @sample_realm "test_realm"
+  @sample_realm "testrealm"
 
   @sample_params %{
+    "hw_id" => @sample_hw_id,
     "ownership_voucher" => sample_voucher(),
     "key_name" => @sample_key_name,
     "key_algorithm" => @sample_key_algorithm,
@@ -56,7 +64,56 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     public_pem: @sample_owner_public_key_pem
   }
 
-  setup :verify_on_exit!
+  setup do
+    Queries |> stub(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
+    DeviceQueries |> stub(:fetch, fn _, _ -> {:error, :device_not_found} end)
+
+    :ok
+  end
+
+  describe "store_voucher/2" do
+    setup do
+      Secrets
+      |> stub(:create_fdo_namespace, fn _realm, _alg ->
+        {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
+      end)
+      |> stub(:get_key, fn _name, _opts -> {:ok, @sample_secrets_key} end)
+
+      load_request = from_changeset!(@sample_params)
+
+      %{load_request: load_request}
+    end
+
+    test "calls the query to create the ownership voucher", context do
+      %{load_request: load_request} = context
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
+
+      Queries
+      |> expect(:create_ownership_voucher, fn ownership_voucher ->
+        assert ownership_voucher.guid == load_request.device_guid
+        assert ownership_voucher.device_id == load_request.device_id
+        assert ownership_voucher.status == :created
+        assert ownership_voucher.voucher_data == load_request.cbor_ownership_voucher
+        assert ownership_voucher.key_name == load_request.key_name
+        assert ownership_voucher.key_algorithm == load_request.key_algorithm
+        assert ownership_voucher.replacement_guid == load_request.replacement_guid
+
+        assert ownership_voucher.replacement_rendezvous_info ==
+                 load_request.decoded_replacement_rendezvous_info
+
+        assert ownership_voucher.replacement_public_key ==
+                 load_request.decoded_replacement_public_key
+
+        assert ownership_voucher.expiry == expiry
+
+        :ok
+      end)
+
+      assert :ok = LoadRequest.store_voucher(load_request, expiry)
+    end
+  end
 
   describe "changeset/2 with valid params" do
     setup do
@@ -188,6 +245,38 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       assert %{key_name: ["does not match the public key in the ownership voucher's last entry"]} =
                errors_on(changeset)
+    end
+
+    test "a guid which already has an associated ownership voucher" do
+      guid = sample_device_guid()
+      voucher = %OwnershipVoucher{guid: guid}
+      Queries |> expect(:fetch_ownership_voucher, fn ^guid -> {:ok, voucher} end)
+
+      assert {:error, changeset} = from_changeset(@sample_params)
+      assert %{ownership_voucher: ["guid has already been claimed"]} = errors_on(changeset)
+    end
+
+    test "a device_id of an already existing device" do
+      realm = @sample_realm
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
+      DeviceQueries |> expect(:fetch, fn ^realm, @sample_device_id -> {:ok, %DeviceStruct{}} end)
+
+      assert {:error, changeset} = from_changeset(@sample_params)
+      assert %{device_id: ["already exists"]} = errors_on(changeset)
+    end
+
+    test "an invalid initial introspection" do
+      params =
+        Map.put(@sample_params, "initial_introspection", %{
+          "interface.With.Invalid.Version" => %{"major" => -1, "minor" => 0},
+          "interface.With.Invalid.Format" => "2.0"
+        })
+
+      assert {:error, changeset} = from_changeset(params)
+      assert %{initial_introspection: errors} = errors_on(changeset)
+      assert length(errors) == 2
+      assert "has negative versions in interface interface.With.Invalid.Version" in errors
+      assert "has invalid format for interface interface.With.Invalid.Format" in errors
     end
   end
 
@@ -344,7 +433,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   end
 
   describe "changeset/2 public_keys_match? :x5chain path" do
-    test "accepts a key whose EC point is embedded in the x5chain certificate" do
+    test "accepts a key whose EC point is embedded in the x5chain certificate chain" do
       # generate_p256_x509_data_and_pem returns a voucher whose cert_chain holds
       # a real self-signed DER cert for the device key.
       {voucher, private_pem} = generate_p256_x509_data_and_pem()
@@ -353,6 +442,33 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(OVCore, :entry_public_key, fn _entry ->
         {:ok, %PublicKey{encoding: :x5chain, body: [cert_der], type: :secp256r1}}
+      end)
+
+      matching_key = %Key{
+        name: @sample_key_name,
+        namespace: "fdo_owner_keys/#{@sample_realm}/ecdsa-p256",
+        alg: :es256,
+        public_pem: public_pem
+      }
+
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es256 ->
+        {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p256"}
+      end)
+
+      stub(Secrets, :get_key, fn _name, _opts -> {:ok, matching_key} end)
+
+      assert %LoadRequest{key_algorithm: :es256} = from_changeset!(@sample_params)
+    end
+
+    test "accepts a key whose EC point is embedded in the single x5chain certificate" do
+      # generate_p256_x509_data_and_pem returns a voucher whose cert_chain holds
+      # a real self-signed DER cert for the device key.
+      {voucher, private_pem} = generate_p256_x509_data_and_pem()
+      [cert_der | _] = voucher.cert_chain
+      public_pem = ec_private_pem_to_public_pem(private_pem)
+
+      stub(OVCore, :entry_public_key, fn _entry ->
+        {:ok, %PublicKey{encoding: :x5chain, body: cert_der, type: :secp256r1}}
       end)
 
       matching_key = %Key{

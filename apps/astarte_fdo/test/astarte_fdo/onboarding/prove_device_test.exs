@@ -114,7 +114,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
   @tag owner_key: "EC256"
   test "verify ES256 signature success and returns Msg 65", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -135,7 +134,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                prove_device_msg,
                creds
@@ -154,7 +152,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails if Nonce does not match", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -178,7 +175,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -187,7 +183,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails if Device ID (GUID) does not match", context do
     %{
-      realm_name: realm_name,
       session: session,
       device_key: device_key,
       xb: xb,
@@ -209,7 +204,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :message_body_error} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -218,7 +212,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   test "verify ES256 fails with wrong public key", context do
     %{
-      realm_name: realm_name,
       session: session,
       xb: xb,
       owner_key_struct: owner_key_struct
@@ -241,7 +234,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
-               realm_name,
                session,
                body,
                creds
@@ -279,7 +271,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with EC384 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg
@@ -288,7 +279,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds
@@ -307,7 +297,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with RSA2048 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg
@@ -316,7 +305,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds
@@ -335,7 +323,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     test "with RSA3072 owner key",
          context do
       %{
-        realm_name: realm_name,
         session: session,
         creds: creds,
         prove_device_msg: prove_device_msg
@@ -344,7 +331,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       assert {:ok, %{resp: setup_device_msg}} =
                OwnerOnboarding.verify_and_build_response(
-                 realm_name,
                  session,
                  prove_device_msg,
                  creds
@@ -382,7 +368,6 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       guid: @test_guid,
       rendezvous_info: sample_rv_info(),
       owner_pub_key: owner_pub_key,
-      device_info: "test",
       owner_private_key: owner_key
     }
   end

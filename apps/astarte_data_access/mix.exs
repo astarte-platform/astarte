@@ -69,7 +69,8 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:astarte_core, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
-      {:exandra, github: "vinniefranco/exandra"},
+      {:exandra, github: "noaccOS/exandra", branch: "push-umzomonkrlnl"},
+      {:xandra, "== 0.20.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, in_umbrella: true},
       {:cose, github: "secomind/cose-elixir"},

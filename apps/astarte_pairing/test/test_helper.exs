@@ -17,6 +17,7 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.FDO.Queries)
 Mimic.copy(Astarte.DataAccess.Health)
 Mimic.copy(Astarte.Events.TriggersHandler)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo)

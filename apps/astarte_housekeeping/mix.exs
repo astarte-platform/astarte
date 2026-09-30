@@ -79,7 +79,6 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:bandit, "~> 1.11"},
       {:guardian, "~> 2.4"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:exandra, github: "vinniefranco/exandra"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},
       {:observer_cli, "~> 1.5"},

@@ -21,11 +21,26 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Pairing.Cases.Data
   use Mimic
 
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.TO0
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
   import Astarte.Pairing.Helpers.FDO
+
+  @sample_device_id Device.random_device_id()
+  @sample_hw_id Device.encode_device_id(@sample_device_id)
+
+  @sample_initial_introspection %{
+    "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
+    "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
+  }
 
   @sample_key_name "owner_key"
 
@@ -58,8 +73,11 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   -----END OWNERSHIP VOUCHER-----
   """
 
+  @sample_ownership_voucher_guid "b1f1d8f0-3a9f-4cf8-b46b-23a94cfc66e7"
+
   @sample_load_params %{
     data: %{
+      "hw_id" => @sample_hw_id,
       "ownership_voucher" => sample_voucher(),
       "key_name" => @sample_key_name,
       "key_algorithm" => "es256"
@@ -75,7 +93,18 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     %{namespace: namespace}
   end
 
-  setup :verify_on_exit!
+  setup context do
+    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+
+      %DeviceStruct{device_id: @sample_device_id}
+      |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
+
+      Queries.delete_ownership_voucher(@sample_ownership_voucher_guid)
+    end)
+  end
 
   describe "/fdo/ownership_vouchers" do
     setup :register_setup
@@ -91,6 +120,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
       params = %{
         data: %{
+          "hw_id" => @sample_hw_id,
           "ownership_voucher" => @sample_ownership_voucher_pem,
           "key_name" => @sample_key_name,
           "key_algorithm" => "es256"
@@ -103,6 +133,94 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         |> json_response(200)
 
       assert get_in(body, ["data", "public_key"]) == expected_public_key
+    end
+
+    test "registers the device without a credentials secret", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      assert {:ok, %{credentials_secret: nil}} =
+               DeviceQueries.fetch(realm_name, @sample_device_id)
+    end
+
+    test "registers the device with the voucher's guid", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      body =
+        conn
+        |> post(path, params)
+        |> json_response(200)
+
+      guid = get_in(body, ["data", "guid"])
+      assert guid == @sample_ownership_voucher_guid
+
+      voucher_guid = UUID.string_to_binary!(guid)
+
+      assert {:ok, %{fdo_guid: ^voucher_guid}} =
+               DeviceQueries.fetch(realm_name, @sample_device_id)
+    end
+
+    test "registers the device with the specified initial introspection", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace, realm_name: realm_name} =
+        context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "initial_introspection" => @sample_initial_introspection,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      assert {:ok, device} = DeviceQueries.fetch(realm_name, @sample_device_id)
+
+      assert device.introspection == %{
+               "org.astarteplatform.OtherValues" => 1,
+               "org.astarteplatform.Values" => 0
+             }
+
+      assert device.introspection_minor == %{
+               "org.astarteplatform.OtherValues" => 0,
+               "org.astarteplatform.Values" => 4
+             }
     end
 
     test "returns 422 when the ownership_voucher field is missing", context do
@@ -123,6 +241,28 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, params)
       |> response(422)
+    end
+
+    test "returns 500 when the voucher cannot be registered on the rendezvous server", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
+
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      TO0 |> expect(:claim_ownership_voucher, fn _voucher, _key -> :error end)
+
+      conn
+      |> post(path, params)
+      |> response(500)
     end
 
     test "returns 422 when the key does not exist in the secrets store", context do
@@ -163,6 +303,30 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, @sample_load_params)
       |> response(422)
+    end
+
+    test "returns 422 when trying to upload a voucher for an already existing GUID", context do
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+      params = %{
+        data: %{
+          "hw_id" => @sample_hw_id,
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
+
+      conn
+      |> post(path, params)
+      |> json_response(200)
+
+      # retry loading the same voucher => GUID conflict
+      conn
+      |> post(path, params)
+      |> json_response(422)
     end
   end
 
@@ -237,6 +401,109 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert ownership_voucher_result["status"] == "created"
       assert ownership_voucher_result["input_voucher"] == @sample_ownership_voucher_pem
     end
+
+    test "returns the expiry negotiated with the rendezvous during registration", context do
+      %{auth_conn: conn, path: path} = context
+
+      body =
+        conn
+        |> get(path)
+        |> json_response(200)
+
+      assert [%{"expiry" => expiry}] = body["data"]
+      assert {:ok, expiry, 0} = DateTime.from_iso8601(expiry)
+      assert DateTime.after?(expiry, DateTime.utc_now())
+    end
+  end
+
+  describe "run_to0/2" do
+    test "returns 200 with the new expiry", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      expiry =
+        DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:millisecond)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn ^realm_name, ^guid -> {:ok, expiry} end)
+
+      body =
+        conn
+        |> post(path)
+        |> json_response(200)
+
+      assert get_in(body, ["data", "expiry"]) == DateTime.to_iso8601(expiry)
+    end
+
+    test "returns 404 when the voucher does not exist", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :not_found} end)
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 404 when the guid is malformed", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      path = ownership_voucher_path(conn, :run_to0, realm_name, "not-a-guid")
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 404 when the voucher exists but does not belong to the realm for which the user is authenticated",
+         context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+
+      path =
+        ownership_voucher_path(conn, :run_to0, realm_name, @sample_ownership_voucher_guid)
+
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:ok, %{realm: "another_realm"}} end)
+
+      conn
+      |> post(path)
+      |> response(404)
+    end
+
+    test "returns 409 when Device Onboard already completed for the voucher", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :device_already_onboarded} end)
+
+      body =
+        conn
+        |> post(path)
+        |> json_response(409)
+
+      assert get_in(body, ["errors", "detail"]) =~ guid_str
+    end
+
+    test "returns 500 when the rendezvous registration fails", context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+      guid = :crypto.strong_rand_bytes(16)
+      guid_str = UUID.binary_to_string!(guid)
+      path = ownership_voucher_path(conn, :run_to0, realm_name, guid_str)
+
+      OwnershipVoucher
+      |> expect(:run_to0, fn _, ^guid -> {:error, :rendezvous_registration_failed} end)
+
+      conn
+      |> post(path)
+      |> response(500)
+    end
   end
 
   describe "delete_ownership_voucher/2" do
@@ -247,7 +514,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
 
       OwnershipVoucher
-      |> expect(:delete, fn ^realm_name, ^guid -> {:ok, :deleted} end)
+      |> expect(:delete, fn _, ^guid -> :ok end)
 
       conn
       |> delete(path)
@@ -261,7 +528,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
 
       OwnershipVoucher
-      |> expect(:delete, fn ^realm_name, ^guid -> {:error, :not_found} end)
+      |> expect(:delete, fn _, ^guid -> {:error, :not_found} end)
 
       conn
       |> delete(path)
@@ -277,6 +544,25 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> response(404)
     end
 
+    test "returns 404 when the voucher exists but does not belong to the realm for which the user is authenticated",
+         context do
+      %{auth_conn: conn, realm_name: realm_name} = context
+
+      path =
+        ownership_voucher_path(
+          conn,
+          :delete_ownership_voucher,
+          realm_name,
+          @sample_ownership_voucher_guid
+        )
+
+      Queries |> expect(:fetch_ownership_voucher, fn _ -> {:ok, %{realm: "another_realm"}} end)
+
+      conn
+      |> delete(path)
+      |> response(404)
+    end
+
     test "returns 500 when the rendezvous revocation fails", context do
       %{auth_conn: conn, realm_name: realm_name} = context
       guid = :crypto.strong_rand_bytes(16)
@@ -284,7 +570,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       path = ownership_voucher_path(conn, :delete_ownership_voucher, realm_name, guid_str)
 
       OwnershipVoucher
-      |> expect(:delete, fn ^realm_name, ^guid -> {:error, :rendezvous_revocation_failed} end)
+      |> expect(:delete, fn _, ^guid -> {:error, :rendezvous_revocation_failed} end)
 
       conn
       |> delete(path)
@@ -306,6 +592,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
     params = %{
       data: %{
+        "hw_id" => @sample_hw_id,
         "ownership_voucher" => @sample_ownership_voucher_pem,
         "key_name" => @sample_key_name,
         "key_algorithm" => "es256"

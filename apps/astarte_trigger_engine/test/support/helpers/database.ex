@@ -98,6 +98,7 @@ defmodule Astarte.TriggerEngine.Helpers.Database do
     capabilities capabilities,
     groups map<text, timeuuid>,
     shared_secret session_key,
+    fdo_guid blob,
 
     PRIMARY KEY (device_id)
   )

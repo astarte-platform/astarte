@@ -177,6 +177,7 @@ defmodule Astarte.TestSuite.Helpers.Realm do
       last_seen_ip inet,
       attributes map<varchar, varchar>,
       groups map<text, timeuuid>,
+      fdo_guid blob,
       PRIMARY KEY (device_id)
     );
     """

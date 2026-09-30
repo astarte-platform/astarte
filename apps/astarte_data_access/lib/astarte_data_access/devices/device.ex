@@ -49,6 +49,7 @@ defmodule Astarte.DataAccess.Devices.Device do
     field :first_credentials_request, DateTimeMs
     field :first_registration, DateTimeMs
     field :groups, Exandra.Map, key: :string, value: UUID
+    field :fdo_guid, :binary
     field :inhibit_credentials_request, :boolean
     field :introspection, Exandra.Map, key: :string, value: :integer
     field :introspection_minor, Exandra.Map, key: :string, value: :integer
@@ -70,5 +71,7 @@ defmodule Astarte.DataAccess.Devices.Device do
     field :total_received_bytes, :integer
     field :total_received_msgs, :integer
     field :shared_secret, Exandra.EmbeddedType, using: Symmetric
+
+    field :confirmation_status, Ecto.Enum, values: [:confirmed, :unconfirmed], virtual: true
   end
 end
