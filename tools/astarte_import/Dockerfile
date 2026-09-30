@@ -17,18 +17,18 @@ RUN mix local.hex --force && \
 # Pass --build-arg BUILD_ENV=dev to build a dev image
 ARG BUILD_ENV=prod
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
+ENV ASTARTE_APPS_PATH=apps
 
 # Cache elixir deps
 COPY tools/astarte_import/mix.exs ./
 COPY tools/astarte_import/mix.lock ./
-COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
-COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
-COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
+COPY apps/astarte_core/mix.exs apps/astarte_core/mix.exs
+COPY apps/astarte_data_access/mix.exs apps/astarte_data_access/mix.exs
 RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs ./libraries
+COPY apps/astarte_core ./apps/astarte_core
+COPY apps/astarte_data_access ./apps/astarte_data_access
+COPY apps/astarte_fdo_core ./apps/astarte_fdo_core
 RUN mix deps.compile
 
 # Add all the rest
