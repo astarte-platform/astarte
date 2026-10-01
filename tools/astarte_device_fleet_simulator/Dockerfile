@@ -15,12 +15,12 @@ RUN mix local.hex --force && \
 # Pass --build-arg BUILD_ENV=dev to build a dev image
 ARG BUILD_ENV=prod
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
+ENV ASTARTE_APPS_PATH=apps
 
 # Cache elixir deps
 COPY tools/astarte_device_fleet_simulator/mix.exs ./
 COPY tools/astarte_device_fleet_simulator/mix.lock ./
-COPY libs/astarte_core libraries/astarte_core
+COPY apps/astarte_core apps/astarte_core
 RUN mix do deps.get + deps.compile
 
 # Add all the rest
