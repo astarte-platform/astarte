@@ -32,8 +32,6 @@ defmodule Astarte.Core.Adapters.InterfaceTest do
   @moduletag :core
   @moduletag :interface
   describe "integration tests" do
-    @describetag :it
-
     property "validate interface using Changeset" do
       check all interface <- interface() do
         changeset = Interface.changeset(%Interface{}, from_core_interface_to_change(interface))
