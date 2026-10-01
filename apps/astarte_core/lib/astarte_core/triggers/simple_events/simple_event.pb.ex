@@ -91,4 +91,9 @@ defmodule Astarte.Core.Triggers.SimpleEvents.SimpleEvent do
     type: Astarte.Core.Triggers.SimpleEvents.DeviceDeletionFinishedEvent,
     json_name: "deviceDeletionFinishedEvent",
     oneof: 0
+
+  field :device_empty_cache_received_event, 23,
+    type: Astarte.Core.Triggers.SimpleEvents.DeviceEmptyCacheReceivedEvent,
+    json_name: "deviceEmptyCacheReceivedEvent",
+    oneof: 0
 end

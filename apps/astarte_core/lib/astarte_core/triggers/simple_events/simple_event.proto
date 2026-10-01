@@ -20,6 +20,7 @@ syntax = "proto3";
 
 import "lib/astarte_core/triggers/simple_events/device_connected_event.proto";
 import "lib/astarte_core/triggers/simple_events/device_disconnected_event.proto";
+import "lib/astarte_core/triggers/simple_events/device_empty_cache_received_event.proto";
 import "lib/astarte_core/triggers/simple_events/device_registered_event.proto";
 import "lib/astarte_core/triggers/simple_events/device_deletion_started_event.proto";
 import "lib/astarte_core/triggers/simple_events/device_deletion_finished_event.proto";
@@ -62,5 +63,6 @@ message SimpleEvent {
         DeviceRegisteredEvent device_registered_event = 20;
         DeviceDeletionStartedEvent device_deletion_started_event = 21;
         DeviceDeletionFinishedEvent device_deletion_finished_event = 22;
+        DeviceEmptyCacheReceivedEvent device_empty_cache_received_event = 23;
     }
 }

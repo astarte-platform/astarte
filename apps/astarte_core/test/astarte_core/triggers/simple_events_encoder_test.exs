@@ -18,6 +18,18 @@ defmodule Astarte.Core.SimpleEventsEncoderTest do
       assert roundtrip == %{"type" => "device_connected", "device_ip_address" => ip}
     end
 
+    test "works for DeviceEmptyCacheReceivedEvent" do
+      alias Astarte.Core.Triggers.SimpleEvents.DeviceEmptyCacheReceivedEvent
+
+      event = %DeviceEmptyCacheReceivedEvent{}
+
+      roundtrip =
+        Jason.encode!(event)
+        |> Jason.decode!()
+
+      assert roundtrip == %{"type" => "device_empty_cache_received"}
+    end
+
     test "works for DeviceErrorEvent" do
       alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
 
