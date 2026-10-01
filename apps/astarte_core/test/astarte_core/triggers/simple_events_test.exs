@@ -27,6 +27,16 @@ defmodule Astarte.Core.SimpleEventsTest do
       assert DeviceDisconnectedEvent.decode(serialized_event) == event
     end
 
+    test "still works for DeviceEmptyCacheReceivedEvent" do
+      alias Astarte.Core.Triggers.SimpleEvents.DeviceEmptyCacheReceivedEvent
+
+      serialized_event = <<>>
+      event = %DeviceEmptyCacheReceivedEvent{}
+
+      assert DeviceEmptyCacheReceivedEvent.encode(event) == serialized_event
+      assert DeviceEmptyCacheReceivedEvent.decode(serialized_event) == event
+    end
+
     test "still works for DeviceErrorEvent" do
       alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
 

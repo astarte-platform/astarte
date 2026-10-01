@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
     DeviceDisconnectedEvent,
+    DeviceEmptyCacheReceivedEvent,
     DeviceErrorEvent,
     IncomingDataEvent,
     IncomingIntrospectionEvent,
@@ -266,6 +267,49 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, "x_astarte_realm") == @realm
       assert Map.get(headers_map, "x_astarte_device_id") == @device_id
       assert Map.get(headers_map, "x_astarte_event_type") == "device_disconnected_event"
+      assert Map.get(headers_map, static_header_key) == static_header_value
+    end
+
+    test "device_empty_cache_received AMQPTarget handling" do
+      simple_trigger_id = :uuid.get_v4()
+      parent_trigger_id = :uuid.get_v4()
+      static_header_key = "important_metadata_empty_cache"
+      static_header_value = "test_meta_empty_cache"
+      static_headers = %{static_header_key => static_header_value}
+      timestamp = get_timestamp()
+
+      target = %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+      register_target(:on_empty_cache_received, target)
+
+      TriggersHandler.device_empty_cache_received(@realm, @decoded_device_id, [], timestamp)
+
+      assert_receive {:event, payload, meta}
+
+      assert %SimpleEvent{
+               device_id: @device_id,
+               parent_trigger_id: ^parent_trigger_id,
+               simple_trigger_id: ^simple_trigger_id,
+               realm: @realm,
+               timestamp: ^timestamp,
+               event: {:device_empty_cache_received_event, device_empty_cache_received_event}
+             } = SimpleEvent.decode(payload)
+
+      assert %DeviceEmptyCacheReceivedEvent{} = device_empty_cache_received_event
+
+      headers_map = amqp_headers_to_map(meta.headers)
+
+      assert Map.get(headers_map, "x_astarte_realm") == @realm
+      assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+
+      assert Map.get(headers_map, "x_astarte_event_type") ==
+               "device_empty_cache_received_event"
+
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 

@@ -47,7 +47,7 @@
   "ham": {:hex, :ham, "0.3.2", "02ae195f49970ef667faf9d01bc454fb80909a83d6c775bcac724ca567aeb7b3", [:mix], [], "hexpm", "b71cc684c0e5a3d32b5f94b186770551509e93a9ae44ca1c1a313700f2f6a69a"},
   "hkdf": {:hex, :hkdf, "0.3.0", "48020dbe221bb28cc4c6398d61e283ad23af13e26990090ea6a8bb71ba1ed747", [:mix], [], "hexpm", "b96dbab0ae04269e7df870a3c2ae6c7cfd44e06c2a067780ea502316f5baad00"},
   "hkdf_erlang": {:hex, :hkdf_erlang, "0.1.1", "b35538edfffefc44d6855b2bfe2dc00909c2a4365f41e47d2fe493811006955e", [:rebar3], [], "hexpm", "eb784bda0df4e964fd69f622310752198fb0218543e1a7393912abc7a5ce926e"},
-  "horde": {:git, "https://github.com/noaccOS/horde.git", "759d10eeee57c68c61987b46b12bcabe86454453", [branch: "push-ozyqtonylvpv"]},
+  "horde": {:git, "https://github.com/noaccOS/horde.git", "384287bca5627df97f46a439868da06d90f94678", [branch: "push-ozyqtonylvpv"]},
   "hpax": {:hex, :hpax, "1.0.4", "777de5d433b0fbdc7c418159c8055910faa8047ffdb3d6b31098d2a46cd7685c", [:mix], [], "hexpm", "afc7cb142ebcc2d01ce7816190b98ce5dd49e799111b24249f3443d730f377ca"},
   "httpoison": {:hex, :httpoison, "3.0.0", "8566a933bb9175236d1ec335978445b67cd1f5b5d3ead6ca4b80be469d41f5d9", [:mix], [{:hackney, "~> 4.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm", "9130197b7658901c493d6fcfb842fb9676300fa8a6c8ed058c8889cf1a77f3c2"},
   "idna": {:hex, :idna, "7.1.0", "1067a13043538129602d2f2ce6899d8713125c7d19734aa557ce2e3ea55bd4f1", [:rebar3], [], "hexpm", "6ae959a025bf36df61a8cab8508d9654891b5426a84c44d82deaffd6ddf8c71f"},

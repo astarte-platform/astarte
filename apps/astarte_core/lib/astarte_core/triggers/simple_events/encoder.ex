@@ -51,6 +51,17 @@ defmodule Astarte.Core.Triggers.SimpleEvents.Encoder do
     end
   end
 
+  defimpl Jason.Encoder, for: SimpleEvents.DeviceEmptyCacheReceivedEvent do
+    alias Astarte.Core.Triggers.SimpleEvents.DeviceEmptyCacheReceivedEvent
+
+    def encode(%DeviceEmptyCacheReceivedEvent{}, opts) do
+      %{
+        "type" => "device_empty_cache_received"
+      }
+      |> Jason.Encoder.encode(opts)
+    end
+  end
+
   defimpl Jason.Encoder, for: SimpleEvents.DeviceErrorEvent do
     alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
 
