@@ -42,6 +42,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias COSE.Keys.Symmetric
 
   setup do
@@ -194,6 +195,57 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       end)
 
       assert {:ack, _result, _new_state} =
+               ControlHandler.handle_control(state, "/emptyCache", "", 0)
+    end
+
+    test "executes the empty cache received triggers", context do
+      %{state: state} = context
+      realm = state.realm
+      device_id = state.device_id
+      timestamp = 42 * 10_000
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      expect(TriggersHandler, :device_empty_cache_received, fn ^realm, ^device_id, _groups, 42 ->
+        :ok
+      end)
+
+      assert {:ack, _result, _new_state} =
+               ControlHandler.handle_control(state, "/emptyCache", "", timestamp)
+    end
+
+    test "does not execute the empty cache received triggers on failure", context do
+      %{state: state} = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:error, :reason}
+      end)
+
+      expect(Core.Device, :ask_clean_session, fn _state, _timestamp -> {:ok, state} end)
+      reject(&TriggersHandler.device_empty_cache_received/4)
+
+      assert {:discard, _result, _new_state, {:continue, _continue_arg}} =
+               ControlHandler.handle_control(state, "/emptyCache", "", 0)
+    end
+
+    test "does not execute the empty cache received triggers if the pending flag update fails",
+         context do
+      %{state: state} = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      expect(Queries, :set_pending_empty_cache, fn _realm, _device_id, false ->
+        {:error, :database_error}
+      end)
+
+      expect(Core.Device, :ask_clean_session, fn _state, _timestamp -> {:ok, state} end)
+      reject(&TriggersHandler.device_empty_cache_received/4)
+
+      assert {:discard, _result, _new_state, {:continue, _continue_arg}} =
                ControlHandler.handle_control(state, "/emptyCache", "", 0)
     end
 

@@ -187,7 +187,6 @@ defmodule Astarte.Events.Triggers.Core do
     end
   end
 
-  # TODO: implement on_empty_cache_received
   def load_trigger(realm_name, {:device_trigger, proto_buf_device_trigger}, trigger_target, state) do
     device_triggers = state.device_triggers
 

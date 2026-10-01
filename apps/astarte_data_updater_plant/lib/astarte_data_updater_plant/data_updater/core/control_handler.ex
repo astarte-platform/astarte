@@ -158,6 +158,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     with :ok <- send_control_consumer_properties(state, timestamp),
          {:ok, state} <- resend_all_properties(state, timestamp),
          :ok <- set_pending_empty_cache(state, timestamp) do
+      :ok = Core.Trigger.execute_empty_cache_received_triggers(state, timestamp)
+
       :telemetry.execute(
         [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
         %{},

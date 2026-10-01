@@ -62,6 +62,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     end
   end
 
+  def execute_empty_cache_received_triggers(state, timestamp) do
+    timestamp_ms = div(timestamp, 10_000)
+
+    TriggersHandler.device_empty_cache_received(
+      state.realm,
+      state.device_id,
+      state.groups,
+      timestamp_ms
+    )
+
+    :ok
+  end
+
   def execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
