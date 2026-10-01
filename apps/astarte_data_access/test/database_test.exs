@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ defmodule Astarte.DataAccess.DatabaseTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
   use Mimic
+
+  @moduletag :integration
 
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Realms.Realm
@@ -45,32 +47,55 @@ defmodule Astarte.DataAccess.DatabaseTest do
     end)
   end
 
-  describe "migrate/0" do
-    test "calls astarte and realm migrations" do
+  describe "migrate/0 and migrate/1" do
+    test "calls astarte and realm migrations", %{astarte_instance_id: astarte_instance_id} do
       realms =
         list_of(repeatedly(fn -> "realm#{System.unique_integer([:positive])}" end), min_length: 5)
         |> Enum.at(0)
 
       Database
-      |> expect(:migrate_astarte, fn -> :ok end)
+      |> expect(:migrate_astarte, fn ^astarte_instance_id -> :ok end)
 
       Realm
-      |> expect(:list_realm_names, fn -> realms end)
+      |> expect(:list_realm_names, fn ^astarte_instance_id -> realms end)
 
       for realm <- realms do
         Database
-        |> expect(:migrate_realm, fn ^realm -> :ok end)
+        |> expect(:migrate_realm, fn ^realm, ^astarte_instance_id -> :ok end)
       end
 
       assert Database.migrate() == :ok
     end
+
+    test "calls astarte and realm migrations for an explicit instance" do
+      astarte_instance_id = "instance#{System.unique_integer([:positive])}"
+
+      realms =
+        list_of(repeatedly(fn -> "realm#{System.unique_integer([:positive])}" end), min_length: 5)
+        |> Enum.at(0)
+
+      Database
+      |> expect(:migrate_astarte, fn ^astarte_instance_id -> :ok end)
+
+      Realm
+      |> expect(:list_realm_names, fn ^astarte_instance_id -> realms end)
+
+      for realm <- realms do
+        Database
+        |> expect(:migrate_realm, fn ^realm, ^astarte_instance_id -> :ok end)
+      end
+
+      assert Database.migrate(astarte_instance_id) == :ok
+    end
   end
 
-  describe "migrate_astarte/0" do
-    test "correctly initializes the astarte keyspace" do
+  describe "migrate_astarte/0 and migrate_astarte/1" do
+    test "correctly initializes the astarte keyspace", %{
+      astarte_instance_id: astarte_instance_id
+    } do
       create_astarte_keyspace()
-      assert Database.migrate_astarte() == :ok
-      assert Database.astarte_initialized?()
+      assert Database.migrate_astarte(astarte_instance_id) == :ok
+      assert Database.astarte_initialized?(astarte_instance_id)
     end
 
     test "can be run multiple times" do
@@ -93,11 +118,14 @@ defmodule Astarte.DataAccess.DatabaseTest do
     end
   end
 
-  describe "migrate_realm/1" do
-    test "correctly initializes the realm keyspace", %{realm_name: realm_name} do
+  describe "migrate_realm/1 and migrate_realm/2" do
+    test "correctly initializes the realm keyspace", %{
+      astarte_instance_id: astarte_instance_id,
+      realm_name: realm_name
+    } do
       create_realm_keyspace(realm_name)
-      assert Database.migrate_realm(realm_name)
-      assert Database.realm_initialized?(realm_name)
+      assert Database.migrate_realm(realm_name, astarte_instance_id) == :ok
+      assert Database.realm_initialized?(realm_name, astarte_instance_id)
     end
 
     test "can be run multiple times", %{realm_name: realm_name} do
