@@ -1305,7 +1305,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                path,
                value,
                par
-             ) == {:error, :unexpected_object_key}
+             ) == {:error, :unexpected_object_key, keys: ["invalidKey"]}
     end
 
     test "fails with invalid path" do

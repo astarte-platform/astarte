@@ -565,6 +565,13 @@ defmodule Astarte.AppEngine.API.Device do
         Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
+      {:error, :unexpected_object_key, keys: keys} ->
+        Logger.warning("Unexpected object keys #{inspect(keys)} in object interface update.",
+          tag: "unexpected_object_key"
+        )
+
+        {:error, :unexpected_object_key, keys: keys}
+
       {:error, :invalid_object_aggregation_path} ->
         Logger.warning("Error while trying to publish on path for object aggregated interface.",
           tag: "invalid_object_aggregation_path"
@@ -875,7 +882,8 @@ defmodule Astarte.AppEngine.API.Device do
           {:halt, {:error, reason}}
 
         :error ->
-          {:halt, {:error, :unexpected_object_key}}
+          keys = InterfaceValue.unexpected_keys(mappings_by_key, object)
+          {:halt, {:error, :unexpected_object_key, keys: keys}}
       end
     end)
   end
