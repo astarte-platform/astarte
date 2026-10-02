@@ -36,7 +36,8 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
     children = [
       {Task.Supervisor, name: Astarte.HousekeepingWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
-      {TelemetryMetricsPrometheus.Core, metrics: metrics()}
+      {TelemetryMetricsPrometheus.Core,
+       [name: :astarte_housekeeping_prometheus, metrics: metrics()]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
