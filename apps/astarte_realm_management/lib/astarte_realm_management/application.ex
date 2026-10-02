@@ -57,22 +57,41 @@ defmodule Astarte.RealmManagement.Application do
 
     children =
       [
+        maybe_child(
+          {Horde.Registry,
+           [keys: :unique, name: Astarte.RPC.RealmManagement.Registry, members: :auto]}
+        ),
+        maybe_child(
+          {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]}
+        ),
+
+        # 2. Serveri i komponente idu ISPOD registara
         Astarte.RealmManagement.RPC.Server,
         {Astarte.RPC.Triggers.Client, types: trigger_types},
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
-        {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
         Scheduler,
         pending_deletions_scheduler,
         {Astarte.Events.AMQPEvents.Supervisor, []},
         {Astarte.Events.AMQPTriggers.Supervisor, []},
         {Astarte.Events.Triggers.Supervisor, []}
       ]
+      |> Enum.reject(&is_nil/1)
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Astarte.RealmManagement.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp maybe_child({module, opts} = spec) do
+    name = Keyword.get(opts, :name)
+
+    if name && GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
   end
 end
