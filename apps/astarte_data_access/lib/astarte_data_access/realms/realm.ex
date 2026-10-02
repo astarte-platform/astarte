@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,22 +35,34 @@ defmodule Astarte.DataAccess.Realms.Realm do
   end
 
   @spec keyspace_name(String.t()) :: String.t()
-  def keyspace_name(realm_name) do
+  def keyspace_name(realm_name), do: keyspace_name(realm_name, Config.astarte_instance_id!())
+
+  @spec keyspace_name(String.t(), String.t()) :: String.t()
+  def keyspace_name(realm_name, astarte_instance_id) do
     case Realm.valid_name?(realm_name) do
-      true -> CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+      true -> CQLUtils.realm_name_to_keyspace_name(realm_name, astarte_instance_id)
       _ -> raise ArgumentError, "invalid realm name"
     end
   end
 
   @spec astarte_keyspace_name() :: String.t()
-  def astarte_keyspace_name do
-    CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
-  end
+  def astarte_keyspace_name, do: astarte_keyspace_name(Config.astarte_instance_id!())
+
+  @spec astarte_keyspace_name(String.t()) :: String.t()
+  def astarte_keyspace_name(astarte_instance_id),
+    do: CQLUtils.realm_name_to_keyspace_name("astarte", astarte_instance_id)
 
   @spec list_realm_names() :: [String.t()]
-  def list_realm_names do
+  def list_realm_names, do: list_realm_names(Config.astarte_instance_id!())
+
+  @spec list_realm_names(String.t()) :: [String.t()]
+  def list_realm_names(astarte_instance_id) do
     query = from r in __MODULE__, select: r.realm_name
-    opts = [prefix: astarte_keyspace_name(), consistency: Consistency.domain_model(:read)]
+
+    opts = [
+      prefix: astarte_keyspace_name(astarte_instance_id),
+      consistency: Consistency.domain_model(:read)
+    ]
 
     Repo.all(query, opts)
   end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ defmodule Astarte.DataAccess.Database do
   Functions to migrate the astarte database.
   """
 
+  alias Astarte.DataAccess.Config
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Database.Migrations
   alias Astarte.DataAccess.Realms.Realm
@@ -80,32 +81,49 @@ defmodule Astarte.DataAccess.Database do
   @doc """
   Migrates the astarte database and all realm databases.
   """
-  def migrate do
-    Database.migrate_astarte()
-    Database.migrate_realms()
+  @spec migrate() :: :ok
+  def migrate, do: migrate(Config.astarte_instance_id!())
+
+  @doc """
+  Migrates the astarte database and all realm databases for an instance.
+  """
+  @spec migrate(String.t()) :: :ok
+  def migrate(astarte_instance_id) do
+    Database.migrate_astarte(astarte_instance_id)
+    Database.migrate_realms(astarte_instance_id)
 
     :ok
   end
 
   @doc false
-  def migrate_realms do
+  @spec migrate_realms() :: :ok
+  def migrate_realms, do: migrate_realms(Config.astarte_instance_id!())
+
+  @doc false
+  @spec migrate_realms(String.t()) :: :ok
+  def migrate_realms(astarte_instance_id) do
     "Starting to migrate Realms."
     |> Logger.info(tag: "realms_migration_started")
 
-    for realm <- Realm.list_realm_names() do
-      Database.migrate_realm(realm)
-    end
+    astarte_instance_id
+    |> Realm.list_realm_names()
+    |> Enum.each(&Database.migrate_realm(&1, astarte_instance_id))
 
     "Finished migrating Realms."
     |> Logger.info(tag: "realms_migration_finished")
   end
 
   @doc false
-  def migrate_astarte do
+  @spec migrate_astarte() :: :ok
+  def migrate_astarte, do: migrate_astarte(Config.astarte_instance_id!())
+
+  @doc false
+  @spec migrate_astarte(String.t()) :: :ok
+  def migrate_astarte(astarte_instance_id) do
     "Starting to migrate Astarte keyspace."
     |> Logger.info(tag: "astarte_migration_started")
 
-    keyspace = Realm.astarte_keyspace_name()
+    keyspace = Realm.astarte_keyspace_name(astarte_instance_id)
 
     migrate_database(keyspace, @astarte_migrations)
 
@@ -116,11 +134,19 @@ defmodule Astarte.DataAccess.Database do
   @doc """
   Migrates the realm database
   """
-  def migrate_realm(realm_name) do
+  @spec migrate_realm(String.t()) :: :ok
+  def migrate_realm(realm_name),
+    do: migrate_realm(realm_name, Config.astarte_instance_id!())
+
+  @doc """
+  Migrates the realm database for an instance.
+  """
+  @spec migrate_realm(String.t(), String.t()) :: :ok
+  def migrate_realm(realm_name, astarte_instance_id) do
     "Starting to migrate realm."
     |> Logger.info(tag: "realm_migration_started", realm: realm_name)
 
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name, astarte_instance_id)
 
     migrate_database(keyspace, @realm_migrations)
 
@@ -136,8 +162,13 @@ defmodule Astarte.DataAccess.Database do
   end
 
   @doc false
-  def astarte_initialized? do
-    keyspace = Realm.astarte_keyspace_name()
+  @spec astarte_initialized?() :: boolean()
+  def astarte_initialized?, do: astarte_initialized?(Config.astarte_instance_id!())
+
+  @doc false
+  @spec astarte_initialized?(String.t()) :: boolean()
+  def astarte_initialized?(astarte_instance_id) do
+    keyspace = Realm.astarte_keyspace_name(astarte_instance_id)
 
     migrations = migrations_for(keyspace)
     has_all_migrations? = Enum.count(migrations) >= 6
@@ -153,8 +184,14 @@ defmodule Astarte.DataAccess.Database do
   end
 
   @doc false
-  def realm_initialized?(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
+  @spec realm_initialized?(String.t()) :: boolean()
+  def realm_initialized?(realm_name),
+    do: realm_initialized?(realm_name, Config.astarte_instance_id!())
+
+  @doc false
+  @spec realm_initialized?(String.t(), String.t()) :: boolean()
+  def realm_initialized?(realm_name, astarte_instance_id) do
+    keyspace = Realm.keyspace_name(realm_name, astarte_instance_id)
 
     migrations = migrations_for(keyspace)
     has_all_migrations? = Enum.count(migrations) >= 23
@@ -171,8 +208,7 @@ defmodule Astarte.DataAccess.Database do
   defp columns_of(keyspace, table) do
     from(c in "system_schema.columns",
       select: c.column_name,
-      where: [keyspace_name: ^keyspace, table_name: ^table]
-    )
+      where: [keyspace_name: ^keyspace, table_name: ^table])
     |> Repo.all()
   end
 
