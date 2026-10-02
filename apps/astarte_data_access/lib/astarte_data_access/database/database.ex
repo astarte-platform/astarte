@@ -40,7 +40,8 @@ defmodule Astarte.DataAccess.Database do
     {7, Migrations.Astarte.CreateSessionKeyType},
     {8, Migrations.Astarte.CreateDeviceSessions},
     {9, Migrations.Astarte.CreateOwnershipVouchers},
-    {10, Migrations.Astarte.AddExpiryToOwnershipVouchers}
+    {10, Migrations.Astarte.AddExpiryToOwnershipVouchers},
+    {11, Migrations.Astarte.RemoveReplacementData}
   ]
 
   @realm_migrations [
