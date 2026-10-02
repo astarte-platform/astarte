@@ -127,12 +127,20 @@ The API endpoint for uploading ownership vouchers into Astarte is `/fdo/ownershi
 exposed by the _Pairing_ service. The supported voucher format is a Base64-encoded string
 containing its CBOR representation.
 
+A _hw_id_ (hardware ID) is mandatory when uploading a voucher, this is also set as the Device ID.
+
 As soon as an ownership voucher is uploaded into Astarte, a _TO0_ procedure starts. This allows the
 _Rendezvous Server_ to register the voucher and the FDO routing information toward the Astarte instance.
+The device is also pre-registered in the realm upon voucher upload, and its credentials are sent
+during the _TO2_ exchange. Despite this, the device can only connect after its credential are generated
+by _TO2 OwnerServiceInfo_ message.
 
 Any uploaded voucher must correlate with a pre-existing owner key stored in the vault,
 with Astarte validating that the owner public key of the voucher matches with the selected key
 stored in the vault.
+
+A voucher cannot be created with the same GUID as an already existing voucher in the entire astarte
+instance.
 
 The upload API also allows to explicitly define replacement parameters to be sent to the device
 during _TO2_ exchanges (namely `replacement GUID`, `replacement owner public key` and
@@ -147,6 +155,10 @@ expired, the device can no longer find its owner through the _Rendezvous Server_
 whose device has not completed _Device Onboard_ yet (i.e. with a `created` status) can be
 re-registered this way: _TO2_ consumes the registration, so the expiry is cleared along with the
 status change.
+
+Ownership vouchers can be deleted using the `DELETE /fdo/ownership_vouchers/:guid` endpoint.
+Deleting a device also deletes its associated ownership voucher, and vice versa.
+Users cannot delete ownership vouchers belonging to other realms.
 
 ## Credentials Secret Lifecycle
 

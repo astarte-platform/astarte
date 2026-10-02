@@ -166,7 +166,9 @@ to the device during TO1 protocol.
 TO0 messaging is started as soon as a new _Ownership Voucher_ is uploaded onto the platform by the
 final user. In this phase Astarte notifies the configured _Rendezvous Server_ that it is the expected
 platform to handle the onboarding of the device corresponding to the GUID contained in the voucher.
-This allows the device to discover its reference onboarding platform.
+This allows the device to discover its reference onboarding platform. The device destination realm is
+determined by the realm in which the voucher is saved.
+The device ID is derived from the hardware ID (_hw_id_) specified during voucher upload.
 
 #### TO2 protocol
 
@@ -194,10 +196,7 @@ The supported replacement parameters are:
   future ownership transfers
 
 The _TO2.DeviceServiceInfo_ message(s) shall be used by the device to send variables and commands
-to Astarte. Notably, this mechanism can be used to determine how the device will be identified
-upon registration. If the device provides its serial number using the _devmod:sn_ field,
-Astarte will use that value to generate the _device ID_. If this key is omitted, Astarte will
-automatically generate an ID using its standard generator.
+to Astarte.
 
 The _TO2.OwnerServiceInfo_ message(s) shall be used to send a list of variables or commands
 from Astarte to the device. In the current implementation the following variables are sent
@@ -220,7 +219,7 @@ Astarte internally correlates each uploaded voucher with an owner key pre-loaded
 
 In order to import owner keys into the vault, it is possible to
 
-- upload a private key to Astarte, which is then imported ino the vault and immediately forgotten, or
+- upload a private key to Astarte, which is then imported into the vault and immediately forgotten, or
 - have the vault generate a keypair and return the related public key, which can then be used
   to extend the Ownership Voucher to account for the final owner
 
