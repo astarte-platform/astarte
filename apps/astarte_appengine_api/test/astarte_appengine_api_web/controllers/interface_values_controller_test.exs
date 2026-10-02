@@ -176,7 +176,10 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
           }
         )
 
-      assert json_response(conn, 400)["errors"] == %{"detail" => "Unexpected object key"}
+      assert json_response(conn, 400)["errors"] == %{
+               "detail" => "Unexpected object key",
+               "unexpected_keys" => ["invalidKey"]
+             }
     end
   end
 end
