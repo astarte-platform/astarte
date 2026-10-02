@@ -44,15 +44,17 @@ defmodule Astarte.Pairing.Application do
     Config.init!()
 
     # Define workers and child supervisors to be supervised
-    children = [
-      Astarte.PairingWeb.Telemetry,
-      {Astarte.Pairing.CredentialsSecret.Cache, []},
-      {Astarte.RPC.Triggers.Client, types: [:DEVICE_REGISTERED]},
-      Astarte.PairingWeb.Endpoint,
-      {Astarte.Events.AMQPEvents.Supervisor, []},
-      {Astarte.Events.AMQPTriggers.Supervisor, []},
-      {Astarte.Events.Triggers.Supervisor, []}
-    ]
+    children =
+      [
+        Astarte.PairingWeb.Telemetry,
+        maybe_child({Astarte.Pairing.CredentialsSecret.Cache, []}),
+        maybe_child({Astarte.RPC.Triggers.Client, types: [:DEVICE_REGISTERED]}),
+        Astarte.PairingWeb.Endpoint,
+        maybe_child({Astarte.Events.AMQPEvents.Supervisor, []}),
+        maybe_child({Astarte.Events.AMQPTriggers.Supervisor, []}),
+        maybe_child({Astarte.Events.Triggers.Supervisor, []})
+      ]
+      |> Enum.reject(&is_nil/1)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -66,4 +68,65 @@ defmodule Astarte.Pairing.Application do
     Endpoint.config_change(changed, removed)
     :ok
   end
+
+  defp maybe_child({Astarte.RPC.Triggers.Client, _opts} = spec) do
+    if GenServer.whereis(Astarte.RPC.Triggers.Client) ||
+         GenServer.whereis(:astarte_rpc_triggers_client) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.AMQPEvents.Supervisor, _} = spec) do
+    if GenServer.whereis(Astarte.Events.AMQPEvents.Producer) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.AMQPTriggers.Supervisor, _} = spec) do
+    if GenServer.whereis(Astarte.Events.AMQPTriggers.Registry) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.Triggers.Supervisor, _} = spec) do
+    if GenServer.whereis(:event_targets) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({_module, opts} = spec) when is_list(opts) do
+    name = Keyword.get(opts, :name)
+
+    if name && GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({module, _opts} = spec) when is_atom(module) do
+    if GenServer.whereis(module) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child(module) when is_atom(module) do
+    if GenServer.whereis(module) do
+      nil
+    else
+      module
+    end
+  end
+
+  defp maybe_child(spec), do: spec
 end

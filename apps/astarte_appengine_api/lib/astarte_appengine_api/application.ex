@@ -51,16 +51,22 @@ defmodule Astarte.AppEngine.API.Application do
     SecretsConfig.init()
 
     # Define workers and child supervisors to be supervised
-    children = [
-      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-      {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
-      Astarte.AppEngine.APIWeb.Telemetry,
-      {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
-      Astarte.AppEngine.API.Rooms.MasterSupervisor,
-      Astarte.AppEngine.API.Rooms.AMQPClient,
-      {ConCache, DEKCache.init_options()},
-      Astarte.AppEngine.APIWeb.Endpoint
-    ]
+    children =
+      [
+        maybe_child(
+          {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]}
+        ),
+        maybe_child(
+          {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]}
+        ),
+        Astarte.AppEngine.APIWeb.Telemetry,
+        {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
+        Astarte.AppEngine.API.Rooms.MasterSupervisor,
+        Astarte.AppEngine.API.Rooms.AMQPClient,
+        {ConCache, DEKCache.init_options()},
+        Astarte.AppEngine.APIWeb.Endpoint
+      ]
+      |> Enum.reject(&is_nil/1)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -74,4 +80,16 @@ defmodule Astarte.AppEngine.API.Application do
     Endpoint.config_change(changed, removed)
     :ok
   end
+
+  defp maybe_child({_module, opts} = spec) do
+    name = Keyword.get(opts, :name)
+
+    if name && GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child(spec), do: spec
 end

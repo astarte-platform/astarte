@@ -32,7 +32,8 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
     children = [
       {Task.Supervisor, name: Astarte.TriggerEngineWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
-      {TelemetryMetricsPrometheus.Core, metrics: metrics()},
+      {TelemetryMetricsPrometheus.Core,
+       [name: :astarte_trigger_engine_prometheus, metrics: metrics()]},
       {Bandit, scheme: :http, plug: Astarte.TriggerEngineWeb.Router, port: Config.port!()}
     ]
 

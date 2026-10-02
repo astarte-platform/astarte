@@ -53,15 +53,58 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
 
     trigger_types = Enum.concat(dup_device_triggers, dup_data_triggers)
 
-    children = [
-      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-      {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
-      {Astarte.RPC.Triggers.Client, types: trigger_types},
-      Astarte.RPC.VolatileTriggers.Client,
-      DeletionScheduler,
-      Astarte.DataUpdaterPlant.RPC.Supervisor
-    ]
+    children =
+      [
+        maybe_child(
+          {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]}
+        ),
+        maybe_child(
+          {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]}
+        ),
+        maybe_child({Astarte.RPC.Triggers.Client, types: trigger_types}),
+        maybe_child(Astarte.RPC.VolatileTriggers.Client),
+        DeletionScheduler,
+        Astarte.DataUpdaterPlant.RPC.Supervisor
+      ]
+      |> Enum.reject(&is_nil/1)
 
     Supervisor.init(children, strategy: :rest_for_one)
   end
+
+  defp maybe_child({Astarte.RPC.Triggers.Client, _opts} = spec) do
+    if GenServer.whereis(Astarte.RPC.Triggers.Client) ||
+         GenServer.whereis(:astarte_rpc_triggers_client) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({_module, opts} = spec) when is_list(opts) do
+    name = Keyword.get(opts, :name)
+
+    if name && GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({module, _opts} = spec) when is_atom(module) do
+    if GenServer.whereis(module) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child(module) when is_atom(module) do
+    if GenServer.whereis(module) do
+      nil
+    else
+      module
+    end
+  end
+
+  defp maybe_child(spec), do: spec
 end

@@ -135,7 +135,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
   app_env :port, :astarte_data_updater_plant, :port,
     os_env: "DATA_UPDATER_PLANT_PORT",
     type: :integer,
-    default: 4000
+    default: 4001
 
   @envdoc "The interval between two heartbeats sent from the VernqMQ device process."
   app_env :device_heartbeat_interval_ms,

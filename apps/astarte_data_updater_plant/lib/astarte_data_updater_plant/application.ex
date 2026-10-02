@@ -46,15 +46,17 @@ defmodule Astarte.DataUpdaterPlant.Application do
     DataAccessConfig.validate!()
     SecretsConfig.init()
 
-    children = [
-      Astarte.DataUpdaterPlantWeb.Telemetry,
-      {Astarte.Events.AMQPEvents.Supervisor, []},
-      {Astarte.Events.AMQPTriggers.Supervisor, []},
-      {Astarte.Events.Triggers.Supervisor, []},
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
-      {Mississippi.Consumer, mississippi_consumer_opts!()},
-      {ConCache, DEKCache.init_options()}
-    ]
+    children =
+      [
+        Astarte.DataUpdaterPlantWeb.Telemetry,
+        maybe_child({Astarte.Events.AMQPEvents.Supervisor, []}),
+        maybe_child({Astarte.Events.AMQPTriggers.Supervisor, []}),
+        maybe_child({Astarte.Events.Triggers.Supervisor, []}),
+        Astarte.DataUpdaterPlant.DataPipelineSupervisor,
+        {Mississippi.Consumer, mississippi_consumer_opts!()},
+        maybe_child({ConCache, DEKCache.init_options()})
+      ]
+      |> Enum.reject(&is_nil/1)
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
     Supervisor.start_link(children, opts)
@@ -76,4 +78,50 @@ defmodule Astarte.DataUpdaterPlant.Application do
       ]
     ]
   end
+
+  defp maybe_child({ConCache, opts} = spec) do
+    name = Keyword.get(opts, :name) || :dek_cache
+
+    if GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.AMQPEvents.Supervisor, _} = spec) do
+    if GenServer.whereis(Astarte.Events.AMQPEvents.Producer) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.AMQPTriggers.Supervisor, _} = spec) do
+    if GenServer.whereis(Astarte.Events.AMQPTriggers.Registry) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({Astarte.Events.Triggers.Supervisor, _} = spec) do
+    if GenServer.whereis(:event_targets) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child({module, opts} = spec) when is_list(opts) do
+    name = Keyword.get(opts, :name, module)
+
+    if GenServer.whereis(name) do
+      nil
+    else
+      spec
+    end
+  end
+
+  defp maybe_child(spec), do: spec
 end
