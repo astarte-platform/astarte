@@ -44,7 +44,7 @@ defmodule Astarte.Adapters.MixProject do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules() do
+  defp astarte_required_modules do
     [
       {:astarte_core, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},

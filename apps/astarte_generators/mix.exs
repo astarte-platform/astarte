@@ -52,7 +52,7 @@ defmodule Astarte.Core.Generators.MixProject do
     ]
   end
 
-  defp astarte_required_modules() do
+  defp astarte_required_modules do
     [
       {:astarte_core, in_umbrella: true}
     ]
