@@ -17,17 +17,29 @@
 
 defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
   use ExUnitProperties
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.AppEngine.API.Cases.Data, async: true
+  use Astarte.AppEngine.API.Cases.Device
 
-  import Astarte.Helpers.Device
+  import Astarte.Generators.InterfaceUpdate
+  import Astarte.AppEngine.API.Helpers.Device
 
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
+  alias COSE.Keys.Symmetric
+
+  alias Astarte.Secrets
+  alias Astarte.Secrets.EncryptedMessages
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
+  alias Astarte.AppEngine.API.Device.Queries, as: AppEngineDeviceQueries
+
+  alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.Core.Generators.Mapping.Value
+  alias Astarte.Core.InterfaceDescriptor
+
+  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   describe "get_interface_value" do
     setup context do
@@ -49,8 +61,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
         %{
           interface_to_update: interface_to_update,
           read_path: read_path,
@@ -80,8 +91,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
         %{
           interface_to_update: interface_to_update,
           expected_read_value: expected_read_value,
@@ -98,6 +108,87 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
           )
 
         assert valid_result?(result, interface_to_update, expected_read_value)
+      end
+    end
+
+    property "returns the value for encrypted interfaces", context do
+      %{
+        realm_name: realm_name,
+        interfaces: interfaces,
+        device: device
+      } = context
+
+      shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+      {:ok, device_id} = CoreDevice.decode_device_id(device.encoded_id)
+
+      Mimic.stub(Astarte.Secrets, :encrypt_with_kek, fn _realm_name, plaintext ->
+        {:ok, "vault:v1:" <> Base.encode64(plaintext)}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :decrypt_with_kek, fn _realm_name, ciphertext ->
+        with "vault:v1:" <> encoded <- ciphertext,
+             {:ok, plaintext} <- Base.decode64(encoded) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+      end)
+
+      with {:ok, encrypted_secret} <- encrypt_shared_secret(realm_name, shared_secret) do
+        :ok = AppEngineDeviceQueries.save_shared_secret(realm_name, device_id, encrypted_secret)
+      end
+
+      encrypted_server_interfaces =
+        interfaces
+        |> Enum.filter(fn interface ->
+          interface.ownership == :device and
+            Enum.any?(interface.mappings, & &1.encrypted)
+        end)
+
+      Mimic.stub(Astarte.Secrets, :generate_dek, fn _type, _namespace ->
+        {:ok, %{plaintext: :binary.copy(<<1>>, 32), ciphertext: :binary.copy(<<1>>, 32)}}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :fetch_realm_kek, fn _ ->
+        {:ok,
+         %{
+           name: "fake-kek",
+           namespace: "fake-namespace",
+           alg: :aes256_gcm
+         }}
+      end)
+
+      Mimic.stub(Astarte.Secrets, :unwrap_dek, fn _k, _ct, _ns ->
+        {:ok, :binary.copy(<<1>>, 32)}
+      end)
+
+      check all interface_to_update <- member_of(encrypted_server_interfaces),
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
+        if mapping_update.value_type != %{} do
+          %{
+            interface_to_update: interface_to_update,
+            expected_read_value: expected_read_value,
+            mapping_update: mapping_update
+          } =
+            populate_interface(
+              realm_name,
+              device,
+              interface_to_update,
+              mapping_update,
+              shared_secret
+            )
+
+          {:ok, %InterfaceValues{data: result}} =
+            Device.get_interface_values!(
+              realm_name,
+              device.encoded_id,
+              interface_to_update.name,
+              mapping_update.path,
+              %{limit: 1}
+            )
+
+          assert valid_result?(result, interface_to_update, expected_read_value)
+        end
       end
     end
   end
@@ -144,8 +235,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <-
-                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update),
+                mapping_update <- valid_mapping_update_for(interface_to_update),
                 limit_n <- integer(1..400) do
         %{
           interface_to_update: interface_to_update,
@@ -184,10 +274,19 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     Repo.query!("TRUNCATE #{Realm.keyspace_name(realm_name)}.individual_datastreams")
   end
 
-  defp populate_interface(realm_name, device, interface_to_update, mapping_update) do
+  defp populate_interface(
+         realm_name,
+         device,
+         interface_to_update,
+         mapping_update,
+         shared_key \\ nil
+       ) do
     update_value = mapping_update.value
     path_tokens = String.split(mapping_update.path, "/")
     expected_token = [realm_name, device.encoded_id, interface_to_update.name | path_tokens]
+
+    encrypted_path? =
+      encrypted_mapping_path?(interface_to_update, mapping_update.path)
 
     expected_published_value =
       expected_published_value!(mapping_update.value_type, update_value)
@@ -202,18 +301,45 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       assert %{payload: payload, topic_tokens: topic_tokens, qos: qos} = args
       assert topic_tokens == expected_token
       assert qos == expected_qos
-      assert {:ok, %{"v" => ^expected_published_value}} = Cyanide.decode(payload)
+
+      assert {:ok, %{"v" => published_value}} = Cyanide.decode(payload)
+
+      if encrypted_path? do
+        assert decrypt_value(published_value, shared_key) == expected_published_value
+      else
+        assert published_value == expected_published_value
+      end
     end)
 
-    {:ok, _} =
-      Device.update_interface_values(
-        realm_name,
-        device.encoded_id,
-        interface_to_update.name,
-        mapping_update.path,
-        update_value,
-        []
-      )
+    with {:ok, device_id} <- CoreDevice.decode_device_id(device.encoded_id),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface_to_update.name),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(
+             realm_name,
+             interface_to_update.name,
+             major_version
+           ),
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         path <- "/" <> mapping_update.path do
+      if interface_descriptor.aggregation == :individual do
+        Device.update_individual_interface_values(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          update_value
+        )
+      else
+        Device.update_object_interface_values(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          update_value
+        )
+      end
+    end
 
     %{
       interface_to_update: interface_to_update,
@@ -221,5 +347,39 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       expected_read_value: expected_read_value,
       mapping_update: mapping_update
     }
+  end
+
+  defp encrypted_mapping_path?(interface_to_update, path) do
+    Enum.any?(interface_to_update.mappings, fn mapping ->
+      mapping.encrypted and
+        Value.path_matches_endpoint?(
+          interface_to_update.aggregation,
+          mapping.endpoint,
+          path
+        )
+    end)
+  end
+
+  defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do
+    with {:ok, encrypted_key} <-
+           Secrets.encrypt_with_kek(realm, symmetric_key.k) do
+      {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
+    end
+  end
+
+  defp decrypt_value(encrypted_value, shared_secret) do
+    case EncryptedMessages.decrypt(encrypted_value, shared_secret) do
+      {:ok, decrypted_value} ->
+        case Cyanide.decode(decrypted_value) do
+          {:ok, %{"v" => value}} ->
+            value
+
+          _ ->
+            :erlang.binary_to_term(decrypted_value)
+        end
+
+      {:error, reason} ->
+        flunk("Unable to decrypt published value: #{inspect(reason)}")
+    end
   end
 end

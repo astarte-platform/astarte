@@ -26,8 +26,6 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyHeader do
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
   alias JOSE.JWK
 
-  require Logger
-
   def init(opts) do
     GuardianVerifyHeader.init(opts)
   end

@@ -4,16 +4,12 @@ defmodule AstarteExport.MixProject do
   def project do
     [
       app: :astarte_export,
-      version: "1.4.0-rc.6",
-      elixir: "~> 1.15",
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
     ]
@@ -25,22 +21,32 @@ defmodule AstarteExport.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   defp deps do
     [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.6", override: true},
-      {:decimal, "~> 3.0", override: true},
+      {:astarte_core, path: astarte_app("astarte_core"), override: true},
+      {:exandra, github: "vinniefranco/exandra"},
       {:distillery, "~> 2.1.1"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},
       {:excoveralls, "~> 0.12", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")}
+      {:astarte_data_access, path: astarte_app("astarte_data_access")}
     ]
   end
 
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
+  defp astarte_app(app_name) do
+    base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
+    Path.join(base_directory, app_name)
   end
 end

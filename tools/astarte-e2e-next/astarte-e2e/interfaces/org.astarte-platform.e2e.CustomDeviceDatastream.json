@@ -1,0 +1,51 @@
+{
+  "interface_name": "org.astarte-platform.e2e.CustomDeviceDatastream",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "device",
+  "description": "Test datastream interface.",
+  "doc": "Test interface used to test datastream.",
+  "mappings": [
+    {
+      "endpoint": "/volatileUnreliable",
+      "type": "longinteger",
+      "explicit_timestamp": true,
+      "retention": "volatile"
+    },
+    {
+      "endpoint": "/volatileGuaranteed",
+      "type": "boolean",
+      "explicit_timestamp": true,
+      "retention": "volatile",
+      "reliability": "guaranteed"
+    },
+    {
+      "endpoint": "/volatileUnique",
+      "type": "double",
+      "explicit_timestamp": true,
+      "retention": "volatile",
+      "reliability": "guaranteed"
+    },
+    {
+      "endpoint": "/storedUnreliable",
+      "type": "longinteger",
+      "explicit_timestamp": true,
+      "retention": "stored"
+    },
+    {
+      "endpoint": "/storedGuaranteed",
+      "type": "boolean",
+      "explicit_timestamp": true,
+      "retention": "stored",
+      "reliability": "guaranteed"
+    },
+    {
+      "endpoint": "/storedUnique",
+      "type": "double",
+      "explicit_timestamp": true,
+      "retention": "stored",
+      "reliability": "guaranteed"
+    }
+  ]
+}

@@ -3,8 +3,11 @@
 !Dockerfile
 !.dockerignore
 
+!mix.exs
+!mix.lock
+!config/
+!/rel/
 !/apps/
-!/libs/
 !/tools/
 !/astarte-dashboard/
 
@@ -22,6 +25,7 @@
 **/config/*.secret.exs
 **/.elixir_ls/
 **/.lexical/
+**/.expert/
 
 # Standard Erlang gitignore to be applied to all apps
 **/.eunit
@@ -30,6 +34,9 @@
 **/*.plt
 **/.concrete/DEV_MODE
 **/erl_crash.dump
+
+# Standard Rust gitignore to be applied to all apps
+**/target/
 
 # rebar 2.x
 **/.rebar

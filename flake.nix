@@ -29,8 +29,13 @@
           devShells.default = pkgs.callPackage elixir-utils.lib.asdfDevShell {
             toolVersions = ./.tool-versions;
             wxSupport = false;
+            packages = [
+              pkgs.committed
+              pkgs.dprint
+              pkgs.typos
+            ];
           };
-          formatter = pkgs.nixfmt-rfc-style;
+          formatter = pkgs.nixfmt-tree;
         };
     };
 }

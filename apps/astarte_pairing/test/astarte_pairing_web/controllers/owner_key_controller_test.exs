@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
-  use Astarte.Cases.Conn, async: true
-  use Astarte.Cases.Data
+  use Astarte.Pairing.Cases.Conn, async: true
+  use Astarte.Pairing.Cases.Data
   use Mimic
 
   alias Astarte.Secrets
@@ -247,7 +247,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       }
     }
 
-    {:ok, namespace_es256} = Secrets.create_namespace(realm_name, :es256)
+    {:ok, namespace_es256} = Secrets.create_fdo_namespace(realm_name, :es256)
 
     %{
       owner_key_path: owner_key_path,
@@ -261,7 +261,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     %{auth_conn: conn, realm_name: realm_name} = context
     list_path = owner_key_path(conn, :list_keys, realm_name)
 
-    {:ok, namespace_es256} = Secrets.create_namespace(realm_name, :es256)
+    {:ok, namespace_es256} = Secrets.create_fdo_namespace(realm_name, :es256)
 
     [
       %{

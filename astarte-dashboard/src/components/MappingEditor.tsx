@@ -144,6 +144,23 @@ export default ({
               </Form.Group>
             </Col>
           )}
+          <Col sm={4}>
+            <Form.Group controlId="mappingEncrypted">
+              <Form.Check
+                type="checkbox"
+                label="encrypted endpoint"
+                checked={!!mapping.encrypted}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const encrypted = !!e.target.checked;
+                  onChange({ ...mapping, encrypted: encrypted || undefined });
+                }}
+                isInvalid={mappingValidationErrors.encrypted != null}
+              />
+              <Form.Control.Feedback type="invalid">
+                {mappingValidationErrors.encrypted}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Col>
           {isObjectAggregated && (
             <Col sm={4}>
               <Form.Group controlId="mappingRequired">

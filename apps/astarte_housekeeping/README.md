@@ -31,6 +31,8 @@ database, (we suggest scylla)
 
 ```shell
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
+docker run --rm  -d -p 5672:5672 -p 15672:15672 --name rabbit rabbitmq:3.12.0-management
+docker run --rm -d -p 8200:8200 --name openbao openbao/openbao:latest server -dev -dev-root-token-id=astarte_token
 ```
 
 by default `CASSANDRA_NODES` environment variable map to `localhost`, so that

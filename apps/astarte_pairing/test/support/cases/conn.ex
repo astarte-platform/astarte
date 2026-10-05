@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Conn do
+defmodule Astarte.Pairing.Cases.Conn do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.

@@ -20,8 +20,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
   @moduledoc """
   This module implements a GenServer that acts as a helper for AMQP tests.
   """
+
   use GenServer
-  require Logger
 
   alias Astarte.DataUpdaterPlant.AMQPTestEventsConsumer
 

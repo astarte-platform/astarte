@@ -17,10 +17,10 @@
 #
 
 defmodule Astarte.Pairing.CredentialsTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
+  use Astarte.Pairing.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Device
 
-  import Astarte.Helpers.Device
+  import Astarte.Pairing.Helpers.Device
 
   alias Astarte.Pairing.Credentials
 

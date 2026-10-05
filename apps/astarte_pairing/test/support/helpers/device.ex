@@ -15,11 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.Pairing.Helpers.Device do
   @moduledoc false
   import ExUnit.CaptureLog
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
 
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
@@ -110,7 +110,7 @@ defmodule Astarte.Helpers.Device do
   @doc false
   @spec sample_device(list(Astarte.Core.Interface.t())) :: map()
   def sample_device(interfaces) do
-    DeviceGenerator.device(interfaces: interfaces)
+    device(interfaces: interfaces)
     |> StreamData.resize(10)
     |> Enum.at(0)
   end

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.AMQPMessageConsumer do
+defmodule Astarte.TriggerEngine.Helpers.AMQPMessageConsumer do
   @moduledoc """
   Helper module for AMQP message consumer testing.
   """

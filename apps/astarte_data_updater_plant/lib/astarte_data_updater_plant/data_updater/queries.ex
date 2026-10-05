@@ -29,12 +29,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
+
   import Ecto.Query
   require Logger
 
@@ -82,228 +83,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def insert_value_into_db(
-        %{
-          interface_descriptor: %InterfaceDescriptor{
-            storage_type: :multi_interface_individual_properties_dbtable
-          },
-          mapping: %Mapping{allow_unset: true},
-          value: nil
-        } = context
-      ) do
-    %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      opts: opts
-    } = context
-
-    %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
-    %Mapping{endpoint_id: endpoint_id} = mapping
-    keyspace = Realm.keyspace_name(realm)
-
-    _ =
-      remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
-
-    :ok
-  end
-
-  def insert_value_into_db(
-        %{
-          interface_descriptor: %InterfaceDescriptor{
-            storage_type: :multi_interface_individual_properties_dbtable
-          },
-          value: nil
-        } = context
-      ) do
-    %InsertContext{
-      realm: realm,
-      device_id: device_id
-    } = context
-
-    _ =
-      Logger.warning(
-        "Device #{inspect(device_id)} in realm #{realm} tried to unset an unsettable property.",
-        tag: :unset_not_allowed
-      )
-
-    {:error, :unset_not_allowed}
-  end
-
-  def insert_value_into_db(
-        %{
-          interface_descriptor: %InterfaceDescriptor{
-            storage_type: :multi_interface_individual_properties_dbtable
-          }
-        } = context
-      ) do
-    %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      value: value,
-      reception_timestamp: reception_timestamp
-    } = context
-
-    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
-    keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10_000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
-    column_name = CQLUtils.type_to_db_column_name(value_type)
-    db_value = to_db_friendly_type(value)
-
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_value = %{
-      "device_id" => device_id,
-      "interface_id" => interface_id,
-      "endpoint_id" => endpoint_id,
-      "path" => path,
-      "reception_timestamp" => timestamp,
-      "reception_timestamp_submillis" => reception_timestamp_submillis,
-      column_name => db_value
-    }
-
-    insert_opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.device_info(:write)
-    ]
-
-    _ = Repo.insert_all(storage, [insert_value], insert_opts)
-    :ok
-  end
-
-  def insert_value_into_db(
-        %{
-          interface_descriptor: %InterfaceDescriptor{
-            storage_type: :multi_interface_individual_datastream_dbtable
-          }
-        } = context
-      ) do
-    %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      value: value,
-      value_timestamp: value_timestamp,
-      reception_timestamp: reception_timestamp,
-      opts: opts
-    } = context
-
-    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
-    keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10_000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
-    column_name = CQLUtils.type_to_db_column_name(value_type)
-    db_value = to_db_friendly_type(value)
-
-    # TODO: use received value_timestamp when needed
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_value = %{
-      "device_id" => device_id,
-      "interface_id" => interface_id,
-      "endpoint_id" => endpoint_id,
-      "path" => path,
-      "value_timestamp" => value_timestamp,
-      "reception_timestamp" => timestamp,
-      "reception_timestamp_submillis" => reception_timestamp_submillis,
-      column_name => db_value
-    }
-
-    insert_opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.time_series(:write, mapping)
-    ]
-
-    _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
-
-    :ok
-  end
-
-  def insert_value_into_db(
-        %{
-          interface_descriptor: %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable}
-        } = context
-      ) do
-    %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      value: value,
-      value_timestamp: value_timestamp,
-      reception_timestamp: reception_timestamp,
-      opts: opts
-    } = context
-
-    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-
-    keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10_000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
-
-    # TODO: we should cache endpoints by interface_id
-    column_info =
-      Endpoint
-      |> select([:endpoint, :value_type])
-      |> where(interface_id: ^interface_id)
-      |> put_query_prefix(keyspace_name)
-      |> Repo.all(consistency: Consistency.domain_model(:read))
-      |> Map.new(fn endpoint ->
-        value_name = endpoint.endpoint |> String.split("/") |> List.last()
-        column_name = CQLUtils.endpoint_to_db_column_name(value_name)
-        {value_name, column_name}
-      end)
-
-    # TODO: we should also cache explicit_timestamp
-    explicit_timestamp_query =
-      from e in Endpoint,
-        prefix: ^keyspace_name,
-        where: e.interface_id == ^interface_id,
-        select: e.explicit_timestamp,
-        limit: 1
-
-    [explicit_timestamp?] =
-      Repo.all(explicit_timestamp_query, consistency: Consistency.domain_model(:read))
-
-    # TODO: use received value_timestamp when needed
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_params = %{
-      "device_id" => device_id,
-      "path" => path,
-      "reception_timestamp" => timestamp,
-      "reception_timestamp_submillis" => reception_timestamp_submillis
-    }
-
-    object_value = compute_db_object_entries(column_info, value)
-
-    insert_value = Map.merge(insert_params, object_value)
-
-    insert_value =
-      if explicit_timestamp? do
-        Map.put(insert_value, "value_timestamp", value_timestamp)
-      else
-        insert_value
-      end
-
-    insert_opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.time_series(:write, mapping)
-    ]
-
-    _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
-
-    :ok
-  end
-
   defp remove_property_row(
          keyspace,
          table,
@@ -326,24 +105,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     opts = Keyword.merge(opts, consistency: Consistency.device_info(:write))
 
     _ = Repo.delete_all(query, opts)
-  end
-
-  defp compute_db_object_entries(column_info, object) do
-    Enum.reduce(object, %{}, fn {object_key, object_value}, acc ->
-      case Map.fetch(column_info, object_key) do
-        {:ok, column_name} ->
-          db_value = to_db_friendly_type(object_value)
-          Map.put(acc, column_name, db_value)
-
-        :error ->
-          _ =
-            Logger.warning(
-              "Unexpected object key #{object_key} with value #{inspect(object_value)}."
-            )
-
-          acc
-      end
-    end)
   end
 
   def insert_path_into_db(
@@ -458,7 +219,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         :total_received_bytes,
         :introspection,
         :exchanged_bytes_by_interface,
-        :exchanged_msgs_by_interface
+        :exchanged_msgs_by_interface,
+        :shared_secret
       ])
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
@@ -468,13 +230,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # for unset capabilities
     capabilities = normalize_capabilities(stats.capabilities)
 
+    {:ok, shared_secret} = maybe_decrypt_shared_secret(realm, stats.shared_secret)
+
+    # register the shared key status in DUP state, assuming that if the key is found in db
+    # it has been established correctly
+    encrypted_endpoints_key_status =
+      case shared_secret do
+        %Symmetric{} -> :established
+        _ -> :uninitialized
+      end
+
     %{
       capabilities: capabilities,
       introspection: stats.introspection,
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
-      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface
+      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
+      shared_secret: shared_secret,
+      encrypted_endpoints_key: encrypted_endpoints_key_status
     }
   end
 
@@ -773,24 +547,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  defp to_db_friendly_type(array) when is_list(array) do
-    # If we have an array, we convert its elements to a db friendly type
-    Enum.map(array, &to_db_friendly_type/1)
-  end
-
-  defp to_db_friendly_type(%DateTime{} = datetime) do
-    DateTime.to_unix(datetime, :millisecond)
-  end
-
-  # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
-  defp to_db_friendly_type(%Cyanide.Binary{subtype: _subtype, data: bin}) do
-    bin
-  end
-
-  defp to_db_friendly_type(value) do
-    value
-  end
-
   def retrieve_property_values(realm, device_id, interface_descriptor, mapping) do
     %InterfaceDescriptor{
       storage_type: :multi_interface_individual_properties_dbtable,
@@ -990,5 +746,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> Map.take(nil_keys)
 
     Map.merge(capabilities, defaults)
+  end
+
+  defp maybe_decrypt_shared_secret(_realm, nil), do: {:ok, nil}
+
+  defp maybe_decrypt_shared_secret(realm, %Symmetric{} = shared_secret) do
+    decrypt_shared_secret(realm, shared_secret)
+  end
+
+  defp decrypt_shared_secret(realm, %Symmetric{k: key_material} = shared_secret)
+       when is_binary(key_material) do
+    with {:ok, decrypted_key} <-
+           Secrets.decrypt_with_kek(realm, key_material) do
+      {:ok, %Symmetric{shared_secret | k: decrypted_key}}
+    end
+  end
+
+  def save_shared_secret(realm, device_id, shared_secret) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{shared_secret: shared_secret})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    case Repo.safe_update(changeset, opts) do
+      {:ok, _device} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot save shared secret for device #{CoreDevice.encode_device_id(device_id)}: #{inspect(reason)}",
+          realm: realm,
+          tag: "save_shared_secret_fail"
+        )
+
+        {:error, reason}
+    end
   end
 end

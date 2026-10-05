@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.RealmManagement.Helpers.Database do
   @moduledoc false
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
@@ -68,6 +68,13 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_session_key_type """
+  CREATE TYPE IF NOT EXISTS :keyspace.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE IF NOT EXISTS :keyspace.devices (
     device_id uuid,
@@ -95,6 +102,7 @@ defmodule Astarte.Helpers.Database do
     attributes map<varchar, varchar>,
     capabilities capabilities,
     groups map<text, timeuuid>,
+    shared_secret session_key,
     fdo_guid blob,
 
     PRIMARY KEY (device_id)
@@ -141,6 +149,7 @@ defmodule Astarte.Helpers.Database do
     description text,
     doc text,
     required boolean,
+    encrypted boolean,
 
     PRIMARY KEY ((interface_id), endpoint_id)
   )
@@ -181,6 +190,8 @@ defmodule Astarte.Helpers.Database do
     stringarray_value list<text>,
     binaryblobarray_value list<blob>,
     datetimearray_value list<timestamp>,
+    encryptedblob_value blob,
+    encrypted_dek blob,
 
     PRIMARY KEY((device_id, interface_id), endpoint_id, path)
   );
@@ -209,6 +220,9 @@ defmodule Astarte.Helpers.Database do
       longintegerarray_value list<bigint>,
       string_value text,
       stringarray_value list<text>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
+
       PRIMARY KEY ((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
   )
   """
@@ -284,6 +298,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

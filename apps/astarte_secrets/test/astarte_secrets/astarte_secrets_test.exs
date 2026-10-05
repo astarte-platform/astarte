@@ -1,0 +1,744 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2026 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.SecretsTest do
+  use ExUnit.Case, async: true
+  use Mimic
+
+  alias Astarte.Core.Mapping
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Config
+  alias Astarte.Secrets.Core
+  alias Astarte.Secrets.DataEncryptionKeyCache
+  alias Astarte.Secrets.Key
+  alias COSE.Keys.ECC
+
+  import Astarte.Secrets.Helpers.Namespace
+  import Astarte.Secrets.Helpers.Key
+
+  describe "create_fdo_namespace/3" do
+    setup :namespace_tokens_setup
+
+    test "calls core functions", context do
+      %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
+      {:ok, key_algorithm_str} = Core.key_type_to_string(key_algorithm)
+
+      ref = System.unique_integer()
+
+      Core
+      |> expect(:fdo_keys_namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm_str ->
+        ref
+      end)
+      |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
+
+      assert {:ok, _} = Secrets.create_fdo_namespace(realm_name, user_id, key_algorithm)
+    end
+  end
+
+  describe "maybe_encrypt_value/5" do
+    setup do
+      _pid =
+        start_supervised!({
+          ConCache,
+          DataEncryptionKeyCache.init_options()
+        })
+
+      dek_entry = %{plaintext: :crypto.strong_rand_bytes(32), ciphertext: "vault:v1:test"}
+      realm_name = "realm_#{System.unique_integer([:positive])}"
+
+      Secrets
+      |> stub(:generate_dek, fn "realm_kek", _namespace -> {:ok, dek_entry} end)
+      |> stub(:generate_dek, fn "realm_kek", _namespace, _opts -> {:ok, dek_entry} end)
+
+      %{realm_name: realm_name, dek_entry: dek_entry}
+    end
+
+    test "encrypts only matching individual endpoint", %{
+      realm_name: realm_name,
+      dek_entry: dek_entry
+    } do
+      interface_descriptor = %{aggregation: :individual}
+
+      selected_mapping = %Mapping{endpoint: "/a", encrypted: true}
+      mappings = [selected_mapping, %Mapping{endpoint: "/b", encrypted: true}]
+
+      assert {encrypted_value, "vault:v1:test"} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 selected_mapping,
+                 "hello",
+                 mappings,
+                 realm_name
+               )
+
+      assert {:ok, encoded_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_value, dek_entry.plaintext)
+
+      assert "hello" = :erlang.binary_to_term(encoded_plaintext)
+
+      assert {"hello", nil} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 %Mapping{endpoint: "/c", encrypted: false},
+                 "hello",
+                 mappings,
+                 realm_name
+               )
+    end
+
+    test "encrypts only selected object mappings", %{realm_name: realm_name, dek_entry: dek_entry} do
+      interface_descriptor = %{aggregation: :object}
+
+      object = %{
+        "endpoint0" => "encrypt-me",
+        "endpoint1" => "encrypt-too",
+        "endpoint2" => "keep-plaintext"
+      }
+
+      selected_mapping = %Mapping{endpoint: "/endpoint0", encrypted: true}
+
+      mappings = [
+        selected_mapping,
+        %Mapping{endpoint: "/endpoint1", encrypted: true},
+        %Mapping{endpoint: "/endpoint2", encrypted: false}
+      ]
+
+      assert {encrypted_object, "vault:v1:test"} =
+               Secrets.maybe_encrypt_value(
+                 interface_descriptor,
+                 selected_mapping,
+                 object,
+                 mappings,
+                 realm_name
+               )
+
+      assert is_binary(encrypted_object["endpoint0"])
+      assert is_binary(encrypted_object["endpoint1"])
+      assert "keep-plaintext" == encrypted_object["endpoint2"]
+
+      assert {:ok, endpoint0_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_object["endpoint0"], dek_entry.plaintext)
+
+      assert {:ok, endpoint1_plaintext} =
+               Secrets.decrypt_with_dek(encrypted_object["endpoint1"], dek_entry.plaintext)
+
+      assert "encrypt-me" = :erlang.binary_to_term(endpoint0_plaintext)
+      assert "encrypt-too" = :erlang.binary_to_term(endpoint1_plaintext)
+    end
+  end
+
+  describe "successfully create and delete a key pair in Secrets" do
+    setup context do
+      key_type = Map.get(context, :key_type)
+      {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
+      realm_name = "realm#{System.unique_integer([:positive])}"
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
+      key_name = "some_key_#{key_type_to_string}"
+      allow_key_export_and_backup = true
+
+      opts = [
+        {:token, Config.vault_token!()},
+        {:namespace, namespace},
+        {:allow_key_export_and_backup, allow_key_export_and_backup}
+      ]
+
+      %{
+        key_name: key_name,
+        key_type: key_type,
+        key_type_to_string: key_type_to_string,
+        allow_key_export_and_backup: allow_key_export_and_backup,
+        opts: opts
+      }
+    end
+
+    @tag key_type: :es256
+    test "of type EC256", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :es384
+    test "of type EC384", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :rs256
+    test "of type RSA2048", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :rs384
+    test "of type RSA3072", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+  end
+
+  describe "sign/5" do
+    setup do
+      # Read credentials and URL from config
+      {:ok, {:token, token}} = Config.vault_authentication()
+
+      unique_id = System.unique_integer([:positive])
+      realm_name = "test_realm_#{unique_id}"
+
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, nil, :es256)
+
+      ecdsa_key = "ecdsa_#{unique_id}"
+      ecdsa384_key = "ecdsa384_#{unique_id}"
+      rsa_key = "rsa_#{unique_id}"
+
+      {:ok, _} = Secrets.create_keypair(ecdsa_key, :es256, namespace: namespace)
+      {:ok, _} = Secrets.create_keypair(ecdsa384_key, :es384, namespace: namespace)
+      {:ok, _} = Secrets.create_keypair(rsa_key, :rs256, namespace: namespace)
+
+      %{
+        ecdsa_key: ecdsa_key,
+        ecdsa384_key: ecdsa384_key,
+        rsa_key: rsa_key,
+        opts: [token: token, namespace: namespace]
+      }
+    end
+
+    test "successfully signs with ECDSA (:es256)", %{ecdsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :es256, :sha256, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 64
+    end
+
+    test "successfully signs with ECDSA (:es384)", %{ecdsa384_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :es384, :sha384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 96
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs256)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :rs256, :sha256, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs384)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :rs384, :sha384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "handles missing signature in Vault JSON response", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        wrong_body = ~s[{"data": {"wrong_key": "value"}}]
+        {:ok, %HTTPoison.Response{status_code: 200, body: wrong_body}}
+      end)
+
+      assert :error = Secrets.sign(key_name, payload, :rs256, :sha3_256, opts)
+    end
+
+    test "returns :error for a non-existent key", %{opts: opts} do
+      payload = "test_payload"
+
+      assert :error = Secrets.sign("random_missing_key", payload, :es256, :sha3_512, opts)
+    end
+  end
+
+  describe "create_realm_kek/3" do
+    setup :realm_kek_setup
+
+    test "returns an `%Astarte.Secrets.Key{}`", context do
+      %{realm_name: realm_name, key_name: key_name, key_algorithm: key_algorithm} = context
+      assert {:ok, %Key{name: ^key_name}} = Secrets.create_realm_kek(realm_name, key_algorithm)
+    end
+
+    test "is idepmotent when called multiple times", context do
+      %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+      opts = [allow_key_export_and_backup: true]
+
+      assert {:ok, key} = Secrets.create_realm_kek(realm_name, key_algorithm, opts)
+
+      # key has more than one revision
+      assert [_ | _] = key.revisions
+
+      assert {:ok, ^key} = Secrets.create_realm_kek(realm_name, key_algorithm, opts)
+    end
+
+    test "returns :error in case of error", context do
+      %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+
+      Core
+      |> expect(:create_keypair, fn _key_name, _key_type, _allow_export, _namespace -> :error end)
+
+      assert :error = Secrets.create_realm_kek(realm_name, key_algorithm)
+    end
+  end
+
+  describe "fetch_realm_kek/1" do
+    setup :realm_kek_setup
+    setup :create_realm_kek
+
+    test "returns the realm kek", context do
+      %{realm_name: realm_name, key: key} = context
+      assert {:ok, ^key} = Secrets.fetch_realm_kek(realm_name)
+    end
+
+    @tag base_namespace: "admin"
+    test "returns the realm kek when using a base namespace", context do
+      %{realm_name: realm_name, key: key} = context
+      assert {:ok, ^key} = Secrets.fetch_realm_kek(realm_name)
+    end
+  end
+
+  describe "successfully create and fetch a key pair in Secrets" do
+    setup context do
+      key_type = Map.get(context, :key_type)
+      {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
+      realm_name = "realm#{System.unique_integer([:positive])}"
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
+      key_name = "some_key_#{key_type_to_string}"
+      allow_key_export_and_backup = true
+
+      opts = [
+        {:token, Config.vault_token!()},
+        {:namespace, namespace},
+        {:allow_key_export_and_backup, allow_key_export_and_backup}
+      ]
+
+      %{
+        key_name: key_name,
+        key_type: key_type,
+        key_type_to_string: key_type_to_string,
+        allow_key_export_and_backup: allow_key_export_and_backup,
+        namespace: namespace,
+        opts: opts
+      }
+    end
+
+    @tag key_type: :es256
+    test "of type EC256", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      namespace: namespace,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               Secrets.get_key(key_name, opts)
+    end
+
+    @tag key_type: :es384
+    test "of type EC384", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      namespace: namespace,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               Secrets.get_key(key_name, opts)
+    end
+
+    @tag key_type: :rs256
+    test "of type RSA2048", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      namespace: namespace,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               Secrets.get_key(key_name, opts)
+    end
+
+    @tag key_type: :rs384
+    test "of type RSA3072", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      namespace: namespace,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               Secrets.get_key(key_name, opts)
+    end
+  end
+
+  describe "successfully create multiple keys and fetch their names" do
+    setup context do
+      key_type = Map.get(context, :key_type)
+      {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
+      realm_name = "realm#{System.unique_integer([:positive])}"
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
+      key_name = "some_key_#{key_type_to_string}"
+      key_name1 = "some_key_#{key_type_to_string}1"
+      key_name2 = "some_key_#{key_type_to_string}2"
+      allow_key_export_and_backup = true
+
+      opts = [
+        {:token, Config.vault_token!()},
+        {:namespace, namespace},
+        {:allow_key_export_and_backup, allow_key_export_and_backup}
+      ]
+
+      %{
+        key_name: key_name,
+        key_name1: key_name1,
+        key_name2: key_name2,
+        key_type: key_type,
+        key_type_to_string: key_type_to_string,
+        allow_key_export_and_backup: allow_key_export_and_backup,
+        opts: opts
+      }
+    end
+
+    @tag key_type: :es256
+    test "of type EC256", %{
+      key_name: key_name,
+      key_name1: key_name1,
+      key_name2: key_name2,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert %{
+               "name" => ^key_name1,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data1
+
+      assert %{
+               "name" => ^key_name2,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data2
+
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
+    end
+
+    @tag key_type: :es384
+    test "of type EC384", %{
+      key_name: key_name,
+      key_name1: key_name1,
+      key_name2: key_name2,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert %{
+               "name" => ^key_name1,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data1
+
+      assert %{
+               "name" => ^key_name2,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data2
+
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
+    end
+
+    @tag key_type: :rs256
+    test "of type RSA2048", %{
+      key_name: key_name,
+      key_name1: key_name1,
+      key_name2: key_name2,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert %{
+               "name" => ^key_name1,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data1
+
+      assert %{
+               "name" => ^key_name2,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data2
+
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
+    end
+
+    @tag key_type: :rs384
+    test "of type RSA3072", %{
+      key_name: key_name,
+      key_name1: key_name1,
+      key_name2: key_name2,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert %{
+               "name" => ^key_name1,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data1
+
+      assert %{
+               "name" => ^key_name2,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data2
+
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
+    end
+  end
+
+  defp cleanup_key(key_name, opts) do
+    Secrets.enable_key_deletion(key_name, opts)
+    Secrets.delete_key(key_name, opts)
+  end
+
+  describe "import_key/4" do
+    setup do
+      ec_key = ECC.generate(:es256)
+      stub(Core, :get_wrapping_key, fn _opts -> {:ok, "wrapping_pem"} end)
+      stub(Core, :encode_key_to_pkcs8, fn _key -> <<1, 2, 3>> end)
+      stub(Core, :prepare_import_ciphertext, fn _material, _pem -> {:ok, "ciphertext"} end)
+      stub(Core, :import_key, fn _name, _type, _ct, _opts -> :ok end)
+      %{ec_key: ec_key}
+    end
+
+    test "returns :error for unknown key type without calling Core", %{ec_key: ec_key} do
+      assert :error = Secrets.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
+    end
+
+    test "passes only :namespace and :token to get_wrapping_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
+
+      expect(Core, :get_wrapping_key, fn client_opts ->
+        assert client_opts == [namespace: "my-ns", token: "tok"]
+        {:ok, "wrapping_pem"}
+      end)
+
+      assert :ok = Secrets.import_key("k", :es256, ec_key, opts)
+    end
+
+    test "passes full opts to Core.import_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
+
+      expect(Core, :import_key, fn "k", "ecdsa-p256", "ciphertext", ^opts -> :ok end)
+
+      assert :ok = Secrets.import_key("k", :es256, ec_key, opts)
+    end
+
+    test "returns :error when get_wrapping_key fails", %{ec_key: ec_key} do
+      expect(Core, :get_wrapping_key, fn _opts -> {:error, :wrapping_key_parse_failed} end)
+
+      assert {:error, :wrapping_key_parse_failed} =
+               Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
+    end
+
+    test "returns :error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
+      expect(Core, :prepare_import_ciphertext, fn _material, _pem ->
+        {:error, :pem_decode_failed}
+      end)
+
+      assert {:error, :pem_decode_failed} =
+               Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
+    end
+  end
+
+  describe "rotate/2" do
+    setup :key_setup
+
+    test "rotates the key", %{key: key} do
+      assert {:ok, new_key} = Secrets.rotate(key.name, key.namespace)
+      assert Enum.count(new_key.revisions) > Enum.count(key.revisions)
+    end
+
+    test "updates the public pem", %{key: key} do
+      assert {:ok, new_key} = Secrets.rotate(key.name, key.namespace)
+      assert new_key.public_pem != key.public_pem
+    end
+
+    test "returns :error in case of error" do
+      assert :error == Secrets.rotate("invalid-key", "invalid-namespace")
+    end
+  end
+end

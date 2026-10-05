@@ -128,6 +128,13 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:device_already_onboarded)
   end
 
+  # Catch unhandled errors
+  def call(conn, :error) do
+    conn
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn

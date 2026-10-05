@@ -26,7 +26,7 @@ defmodule Astarte.Housekeeping.DataCase do
     astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
     realm_name = "realm#{System.unique_integer([:positive])}"
     Database.setup_database_access(astarte_instance_id)
-    Database.setup(realm_name)
+    Database.setup_database(realm_name)
 
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)

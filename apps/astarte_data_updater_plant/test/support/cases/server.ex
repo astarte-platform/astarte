@@ -18,13 +18,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Cases.Server do
+defmodule Astarte.DataUpdaterPlant.Cases.Server do
   @moduledoc """
-  This module defines test cases for GenServer behavior.
+  This module defines test DataUpdaterPlant.cases for GenServer behavior.
   """
   use ExUnit.CaseTemplate
 
-  defmodule Astarte.Cases.Server.PingPong do
+  defmodule Astarte.DataUpdaterPlant.Cases.Server.PingPong do
     @moduledoc false
     use GenServer
 
@@ -51,7 +51,7 @@ defmodule Astarte.Cases.Server do
     end
   end
 
-  defmodule Astarte.Cases.Server.Ignore do
+  defmodule Astarte.DataUpdaterPlant.Cases.Server.Ignore do
     @moduledoc false
     use GenServer
 
@@ -70,8 +70,8 @@ defmodule Astarte.Cases.Server do
     end
   end
 
-  alias Astarte.Cases.Server.Ignore
-  alias Astarte.Cases.Server.PingPong
+  alias Astarte.DataUpdaterPlant.Cases.Server.Ignore
+  alias Astarte.DataUpdaterPlant.Cases.Server.PingPong
 
   setup do
     ping_pong = start_link_supervised!({PingPong, parent: self()})

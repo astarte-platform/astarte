@@ -1,0 +1,242 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.FDO.OwnershipVoucher do
+  @moduledoc """
+  This module provides functions to manage ownership vouchers, including saving them to the database,
+  fetching them, and generating replacement vouchers.
+  """
+
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.Core
+  alias Astarte.FDO.TO0
+  alias Astarte.RPC.RealmManagement
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Key
+
+  require Logger
+
+  def list(realm_name) do
+    Queries.list_ownership_vouchers(realm_name)
+  end
+
+  @doc """
+  Deletes an ownership voucher.
+
+  The corresponding registration on the FDO rendezvous server is revoked first;
+  if that fails, the voucher is not deleted.
+  """
+  @spec delete(String.t(), binary()) :: :ok | {:error, term()}
+  def delete(realm, guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         :ok <- ensure_voucher_in_realm(ownership_voucher.realm, realm),
+         :ok <-
+           revoke_rendezvous_registration(
+             ownership_voucher.realm,
+             guid,
+             ownership_voucher.voucher_data
+           ),
+         :ok <-
+           ensure_device_voucher_deletion(ownership_voucher.realm, ownership_voucher.device_id) do
+      Queries.delete_ownership_voucher(guid)
+    end
+  end
+
+  @doc """
+  Re-runs TO0 with the rendezvous server for an ownership voucher whose device
+  has not completed Device Onboard yet, refreshing its expiry.
+
+  Returns the new expiry on success.
+  """
+  @spec run_to0(String.t(), binary()) :: {:ok, DateTime.t()} | {:error, term()}
+  def run_to0(realm, guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         :ok <- ensure_voucher_in_realm(ownership_voucher.realm, realm),
+         :ok <- ensure_device_not_onboarded(ownership_voucher.status),
+         {:ok, expiry} <-
+           register_on_rendezvous(
+             ownership_voucher.realm,
+             guid,
+             ownership_voucher.voucher_data
+           ),
+         :ok <- Queries.update_voucher_expiry(guid, expiry) do
+      {:ok, expiry}
+    end
+  end
+
+  @doc """
+  Registers an ownership voucher on the FDO rendezvous server, returning the
+  expiry of the registration the server accepted.
+  """
+  @spec claim_on_rendezvous(binary(), term(), Key.t()) ::
+          {:ok, DateTime.t()} | {:error, :rendezvous_registration_failed}
+  def claim_on_rendezvous(guid, decoded_voucher, owner_key) do
+    case TO0.claim_ownership_voucher(decoded_voucher, owner_key) do
+      {:ok, expiry} ->
+        {:ok, expiry}
+
+      error ->
+        log_registration_failure(guid, error)
+    end
+  end
+
+  defp ensure_device_not_onboarded(:created), do: :ok
+  defp ensure_device_not_onboarded(_status), do: {:error, :device_already_onboarded}
+
+  defp register_on_rendezvous(realm_name, guid, voucher_cbor) do
+    with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid) do
+      claim_on_rendezvous(guid, decoded_voucher, owner_key)
+    else
+      error -> log_registration_failure(guid, error)
+    end
+  end
+
+  defp log_registration_failure(guid, error) do
+    Logger.warning(
+      "Failed to register ownership voucher guid=#{inspect(guid)} " <>
+        "on the rendezvous server: #{inspect(error)}."
+    )
+
+    {:error, :rendezvous_registration_failed}
+  end
+
+  # security check: is the voucher belonging to the realm for which the deletion request is made?
+  defp ensure_voucher_in_realm(voucher_realm, request_realm) do
+    case voucher_realm == request_realm do
+      true -> :ok
+      false -> {:error, :not_found}
+    end
+  end
+
+  defp ensure_device_voucher_deletion(realm_name, device_id) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    case RealmManagement.delete_device(realm_name, encoded_device_id) do
+      :ok -> :ok
+      {:error, :device_not_found} -> :ok
+      error -> error
+    end
+  end
+
+  defp revoke_rendezvous_registration(realm_name, guid, voucher_cbor) do
+    with {:ok, decoded_voucher, _rest} <- CBOR.decode(voucher_cbor),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
+         :ok <- TO0.revoke_ownership_voucher(decoded_voucher, owner_key) do
+      :ok
+    else
+      error ->
+        Logger.warning(
+          "Failed to revoke rendezvous registration for ownership voucher " <>
+            "guid=#{inspect(guid)}: #{inspect(error)}. The voucher was not deleted."
+        )
+
+        {:error, :rendezvous_revocation_failed}
+    end
+  end
+
+  def fetch(guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid) do
+      OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data)
+    end
+  end
+
+  def fetch_with_realm(guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         {:ok, decoded_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher.voucher_data) do
+      {:ok, {ownership_voucher.realm, decoded_voucher}}
+    end
+  end
+
+  def fetch_with_realm_and_device_id(guid) do
+    with {:ok, ownership_voucher} <- Queries.fetch_ownership_voucher(guid),
+         %{voucher_data: ownership_voucher_cbor, realm: realm_name, device_id: device_id} =
+           ownership_voucher,
+         {:ok, ownership_voucher} <- OwnershipVoucher.decode_cbor(ownership_voucher_cbor) do
+      {:ok, {realm_name, device_id, ownership_voucher}}
+    end
+  end
+
+  def owner_public_key(ownership_voucher) do
+    # N.B.: Checking if there are entries is not necessary,
+    # as by spec the ownership voucher will always have at least one entry
+    List.last(ownership_voucher.entries)
+    |> Core.entry_public_key()
+  end
+
+  def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
+    case Enum.fetch(entries, entry_num) do
+      {:ok, entry} ->
+        {:ok, CBOR.encode([entry_num, entry])}
+
+      :error ->
+        {:error, :invalid_message}
+    end
+  end
+
+  def generate_replacement_voucher(ownership_voucher, ov_entry, session) do
+    guid = ov_entry.replacement_guid || ownership_voucher.header.guid
+
+    rendezvous_info =
+      ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+
+    public_key = ov_entry.replacement_public_key || ownership_voucher.header.public_key
+
+    new_header =
+      ownership_voucher.header
+      |> Map.put(:guid, guid)
+      |> Map.put(:rendezvous_info, rendezvous_info)
+      |> Map.put(:public_key, public_key)
+
+    new_voucher =
+      ownership_voucher
+      |> Map.put(:hmac, session.replacement_hmac)
+      |> Map.put(:header, new_header)
+      |> Map.put(:entries, [])
+
+    {:ok, new_voucher}
+  end
+
+  def credential_reuse?(ov_entry) do
+    is_nil(ov_entry.replacement_public_key) and
+      is_nil(ov_entry.replacement_rendezvous_info) and
+      is_nil(ov_entry.replacement_guid)
+  end
+
+  @doc """
+  Decodes a PEM-encoded ownership voucher into a `CoreOwnershipVoucher` struct.
+  """
+  @spec decode_binary_voucher(String.t()) :: {:ok, OwnershipVoucher.t()} | {:error, atom()}
+  def decode_binary_voucher(pem) do
+    with {:ok, binary} <- OwnershipVoucher.binary_voucher(pem) do
+      OwnershipVoucher.decode_cbor(binary)
+    end
+  end
+
+  @doc """
+  Returns the list of key algorithm atoms compatible with the given ownership voucher.
+  Returns an empty list if the key type is unsupported.
+  """
+  @spec key_algorithm(OwnershipVoucher.t()) :: [atom()]
+  def key_algorithm(voucher) do
+    {:ok, algorithms} = OwnershipVoucher.key_algorithm_from_type(voucher.header.public_key.type)
+    algorithms
+  end
+end

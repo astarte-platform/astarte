@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
-  use Astarte.Cases.Conn, async: true
-  use Astarte.Cases.Data
+  use Astarte.Pairing.Cases.Conn, async: true
+  use Astarte.Pairing.Cases.Data
   use Mimic
 
   alias Astarte.Core.Device
@@ -32,7 +32,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
-  import Astarte.Helpers.FDO
+  import Astarte.Pairing.Helpers.FDO
 
   @sample_device_id Device.random_device_id()
   @sample_hw_id Device.encode_device_id(@sample_device_id)
@@ -87,8 +87,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   setup context do
     realm_name = Map.fetch!(context, :realm_name)
     alg = Map.get(context, :key_algorithm, :es256)
-    {:ok, namespace} = Secrets.create_namespace(realm_name, alg)
-    on_exit(fn -> cleanup_namespace(namespace) end)
+    {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, alg)
+    on_exit(fn -> cleanup_fdo_namespace(namespace) end)
 
     %{namespace: namespace}
   end
@@ -268,7 +268,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     test "returns 422 when the key does not exist in the secrets store", context do
       %{auth_conn: conn, register_path: path, realm_name: realm_name} = context
 
-      stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn ^realm_name, :es256 ->
         {:ok, "fdo_owner_keys/#{realm_name}/ecdsa-p256"}
       end)
 
@@ -294,7 +294,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         """
       }
 
-      stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn ^realm_name, :es256 ->
         {:ok, "fdo_owner_keys/#{realm_name}/ecdsa-p256"}
       end)
 
@@ -342,7 +342,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     test "returns 200 with a map of algorithm to key names", context do
       %{auth_conn: conn, path: path, realm_name: realm_name} = context
 
-      stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn ^realm_name, :es256 ->
         {:ok, "fdo_owner_keys/#{realm_name}/ecdsa-p256"}
       end)
 
@@ -361,7 +361,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     test "returns 200 with an empty key list when no keys are registered", context do
       %{auth_conn: conn, path: path, realm_name: realm_name} = context
 
-      stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn ^realm_name, :es256 ->
         {:ok, "fdo_owner_keys/#{realm_name}/ecdsa-p256"}
       end)
 
@@ -612,7 +612,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     %{path: path}
   end
 
-  defp cleanup_namespace(namespace) do
+  defp cleanup_fdo_namespace(namespace) do
     {:ok, keys_to_delete} = Secrets.list_keys_names(namespace: namespace)
 
     Enum.each(keys_to_delete, fn key ->

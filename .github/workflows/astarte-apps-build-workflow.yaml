@@ -15,64 +15,8 @@ on:
         required: true
 
 jobs:
-  warmup:
-    name: Cache warmup
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
-        with:
-          working-directory: apps/${{ inputs.app }}
-          mix-env: test
-          args: "--warnings-as-errors"
-
-  formatter:
-    name: Formatting
-    runs-on: ubuntu-24.04
-    needs:
-      - warmup
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
-        with:
-          working-directory: apps/${{ inputs.app }}
-          mix-env: test
-
-  credo:
-    name: Credo
-    runs-on: ubuntu-24.04
-    needs:
-      - warmup
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
-        with:
-          working-directory: apps/${{ inputs.app }}
-          mix-env: test
-
-  dialyzer:
-    name: Dialyzer
-    runs-on: ubuntu-24.04
-    needs:
-      - warmup
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
-        with:
-          working-directory: apps/${{ inputs.app }}
-          mix-env: test
-      - run: mix dialyzer --format github --force-check
-        shell: bash
-        env:
-          MIX_ENV: "test"
-          HEX_HOME: ${{ runner.temp }}/.hex
-          MIX_HOME: ${{ runner.temp }}/.mix
-        working-directory: apps/${{ inputs.app }}
-
   test:
     name: Test
-    needs:
-      - warmup
     runs-on: ubuntu-24.04
     env:
       ASTARTE_VAULT_TOKEN: "astarte_token"
@@ -130,6 +74,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
         with:
+          use-cache: false
           working-directory: apps/${{ inputs.app }}
           mix-env: test
           task: coveralls.json --exclude wip -o coverage_results

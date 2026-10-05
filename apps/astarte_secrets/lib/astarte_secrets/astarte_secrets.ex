@@ -1,0 +1,374 @@
+defmodule Astarte.Secrets do
+  @moduledoc """
+  Functionality to interface with OpenBao APIs.
+  """
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Core
+  alias Astarte.Secrets.DataEncryptionKeyCache
+  alias Astarte.Secrets.Key
+  alias COSE.Keys.ECC
+  alias COSE.Keys.RSA
+  alias HTTPoison.Response
+
+  require Logger
+
+  @realm_kek_key_name "realm_kek"
+
+  @doc """
+  Creates the KEK for the given realm.
+  This function is idempotent when called multiple times with the same arguments.
+  """
+  @spec create_realm_kek(String.t(), Core.key_algorithm(), keyword()) :: {:ok, term()} | :error
+  def create_realm_kek(realm_name, key_type \\ :aes256, options \\ []) do
+    allow_key_export_and_backup = Keyword.get(options, :allow_key_export_and_backup, false)
+    namespace_tokens = Core.realm_kek_namespace_tokens(realm_name)
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
+         :ok <- Core.mount_transit_engine(namespace),
+         {:ok, response} <-
+           Core.create_keypair(
+             @realm_kek_key_name,
+             key_type_string,
+             allow_key_export_and_backup,
+             namespace
+           ),
+         {:ok, key} <- Key.parse(@realm_kek_key_name, namespace, response) do
+      {:ok, key}
+    else
+      result ->
+        "Error creating realm kek for #{realm_name}: #{inspect(result)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  @doc """
+  Returns the KEK for the given realm
+  """
+  @spec fetch_realm_kek(String.t()) :: {:ok, Key.t()} | :error
+  def fetch_realm_kek(realm_name) do
+    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Core.tokens_to_namespace()
+    get_key(@realm_kek_key_name, namespace: namespace)
+  end
+
+  @spec get_key(String.t()) :: {:ok, Key.t()} | :error
+  def get_key(key_name, opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+
+    with {:ok, resp} <- Core.get_key(key_name, namespace),
+         {:ok, data} <- Core.parse_json_data(resp) do
+      Key.parse(key_name, namespace, data)
+    end
+  end
+
+  def get_key_for_guid(realm_name, user_id \\ nil, guid) do
+    with {:ok, params} <- Queries.get_owner_key_params(guid),
+         {:ok, namespace} <- create_fdo_namespace(realm_name, user_id, params.algorithm) do
+      get_key(params.name, namespace: namespace)
+    end
+  end
+
+  @spec list_keys_names() :: {:ok, [String.t()]} | :error
+  def list_keys_names(opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+
+    Core.list_keys(namespace)
+  end
+
+  def create_fdo_namespace(realm_name, user_id \\ nil, key_algorithm) do
+    with {:ok, algorithm} <- Core.key_type_to_string(key_algorithm),
+         namespace_tokens = Core.fdo_keys_namespace_tokens(realm_name, user_id, algorithm),
+         {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
+         :ok <- Core.mount_transit_engine(namespace) do
+      {:ok, namespace}
+    end
+  end
+
+  def list_namespaces do
+    with {:ok, namespaces} <- Core.list_namespaces() do
+      {:ok, Enum.to_list(namespaces)}
+    end
+  end
+
+  @spec create_keypair(String.t(), Core.key_algorithm(), list()) ::
+          {:ok, map()} | {:error, Jason.DecodeError.t()} | :error
+  def create_keypair(key_name, key_type, options \\ []) do
+    namespace = Keyword.fetch!(options, :namespace)
+    allow_key_export_and_backup = Keyword.get(options, :allow_key_export_and_backup, false)
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type) do
+      Core.create_keypair(key_name, key_type_string, allow_key_export_and_backup, namespace)
+    end
+  end
+
+  @spec enable_key_deletion(String.t(), list()) :: :ok | :error
+  def enable_key_deletion(key_name, options \\ []) do
+    req_body = %{deletion_allowed: true} |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/v1/transit/keys/#{key_name}/config", req_body, headers, options) do
+      {:ok, %Response{status_code: 200}} ->
+        :ok
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while enabling key deletion for key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @spec delete_key(String.t(), list()) :: :ok | :error
+  def delete_key(key_name, options \\ []) do
+    headers = []
+
+    case Client.delete("/v1/transit/keys/#{key_name}", headers, options) do
+      {:ok, %Response{status_code: 204}} ->
+        :ok
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while deleting key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @spec sign(String.t(), binary(), Core.key_algorithm(), Core.digest_type(), keyword()) ::
+          {:ok, binary()} | :error
+  def sign(key_name, payload, key_alg, digest_type, opts) do
+    opts = Keyword.take(opts, [:namespace, :token])
+
+    with {:ok, digest_type} <- Core.digest_type(digest_type) do
+      Core.sign(key_name, payload, key_alg, digest_type, opts)
+    end
+  end
+
+  @type cose_key :: %ECC{} | %RSA{}
+
+  @spec import_key(String.t(), Core.key_algorithm(), cose_key(), list()) :: :ok | :error
+  def import_key(key_name, key_type, key, opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, wrapping_key_pem} <- Core.get_wrapping_key(client_opts),
+         {:ok, ciphertext} <-
+           Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(key), wrapping_key_pem) do
+      Core.import_key(key_name, key_type_string, ciphertext, opts)
+    end
+  end
+
+  @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key (KEK).
+  Optional `:bits` (128 or 256, default 256).
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(kek_key_name, namespace, opts \\ []) do
+    Core.generate_dek(kek_key_name, namespace, opts)
+  end
+
+  @doc """
+  Unwraps a DEK ciphertext using the named transit key.
+  """
+  @spec unwrap_dek(String.t(), String.t(), String.t(), keyword()) :: {:ok, binary()} | :error
+  def unwrap_dek(key_name, ciphertext, namespace, opts \\ []) do
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+    headers = [{"Content-Type", "application/json"}]
+
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           Client.post(
+             "/v1/transit/decrypt/#{key_name}",
+             Jason.encode!(%{ciphertext: ciphertext}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- Core.parse_json_data(body),
+         plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+         {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+      {:ok, plaintext}
+    else
+      reason ->
+        Logger.error(
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Encrypts `payload` using AES-256-GCM with the provided plaintext DEK.
+  Returns `{:ok, blob}` where `blob` is an opaque binary containing the IV,
+  authentication tag, and ciphertext. Pass the blob and DEK to `decrypt_with_dek/2`
+  to recover the original payload.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(payload, dek) do
+    Core.encrypt_with_dek(payload, dek)
+  end
+
+  @doc """
+  Conditionally encrypts a value according to interface aggregation and encrypted endpoints.
+
+  The DEK entry is expected to already be fetched by the caller (for example via an app-level cache).
+  This keeps the secrets library independent from app-specific DEK retrieval strategies.
+  """
+  @spec maybe_encrypt_value(
+          InterfaceDescriptor.t(),
+          Mapping.t(),
+          term(),
+          [Mapping.t()],
+          String.t()
+        ) :: {term(), String.t() | nil}
+
+  # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
+  def maybe_encrypt_value(_, _, nil, _, _) do
+    {nil, nil}
+  end
+
+  def maybe_encrypt_value(interface_descriptor, mapping, value, mappings, realm_name) do
+    should_encrypt =
+      case interface_descriptor.aggregation do
+        :object -> any_mapping_encrypted?(mappings)
+        _other -> mapping.encrypted
+      end
+
+    case should_encrypt do
+      true ->
+        with {:ok, dek_entry} <- DataEncryptionKeyCache.fetch_data_encryption_key(realm_name) do
+          %{plaintext: plaintext_dek, ciphertext: ciphertext_dek} = dek_entry
+
+          encrypted_value =
+            do_encrypt_value(
+              interface_descriptor.aggregation,
+              mapping.endpoint,
+              value,
+              mappings,
+              plaintext_dek
+            )
+
+          {encrypted_value, ciphertext_dek}
+        end
+
+      false ->
+        {value, nil}
+    end
+  end
+
+  defp do_encrypt_value(:individual, _path, value, _mappings, dek) do
+    do_encrypt_individual_value(value, dek)
+  end
+
+  defp do_encrypt_value(:object, _path, obj_value, mappings, dek) do
+    do_encrypt_object_mappings(mappings, obj_value, dek)
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
+  Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(blob, dek) do
+    Core.decrypt_with_dek(blob, dek)
+  end
+
+  @doc """
+  Decrypts the provided ciphertext using OpenBao Transit Engine.
+  Useful for ASYMKEX where the device encrypts a secret with the owner's RSA public key.
+  """
+  @spec decrypt(String.t(), binary(), list()) :: {:ok, binary()} | :error
+  def decrypt(key_name, ciphertext, options) do
+    ciphertext = "vault:v1:" <> Base.encode64(ciphertext)
+    Core.decrypt(key_name, ciphertext, options)
+  end
+
+  @doc """
+  Encrypts the provided plaintext using OpenBao Transit Engine with the given key.
+  Returns the vault ciphertext.
+  """
+  @spec encrypt_with_kek(String.t(), binary(), list()) :: {:ok, String.t()} | :error
+  def encrypt_with_kek(realm_name, plaintext, options \\ []) do
+    with {:ok, key} <- fetch_realm_kek(realm_name) do
+      client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
+      Core.encrypt(key.name, plaintext, client_opts)
+    end
+  end
+
+  @doc """
+  Decrypts the provided vault ciphertext using OpenBao Transit Engine.
+  """
+  @spec decrypt_with_kek(String.t(), String.t(), list()) :: {:ok, binary()} | :error
+  def decrypt_with_kek(realm_name, ciphertext, options \\ []) do
+    case fetch_realm_kek(realm_name) do
+      {:ok, key} ->
+        client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
+        Core.decrypt(key.name, ciphertext, client_opts)
+
+      :error ->
+        Logger.error("Encountered error while fetching realm KEK for realm #{realm_name}")
+        :error
+    end
+  end
+
+  @doc """
+  Rotate the given key
+  """
+  def rotate(key_name, namespace) do
+    path = "/v1/transit/keys/#{key_name}/rotate"
+    opts = [namespace: namespace]
+
+    with {:ok, %Response{status_code: 200, body: resp}} <- Client.post(path, "", [], opts),
+         {:ok, data} <- Core.parse_json_data(resp),
+         {:ok, key} <- Key.parse(key_name, namespace, data) do
+      {:ok, key}
+    else
+      error ->
+        "Error while rotating key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  defp do_encrypt_individual_value(value, dek) do
+    value_binary = :erlang.term_to_binary(value)
+    {:ok, encrypted_value} = encrypt_with_dek(value_binary, dek)
+    encrypted_value
+  end
+
+  defp encrypted_endpoints_from_mappings(mappings) do
+    mappings
+    |> Enum.filter(& &1.encrypted)
+    |> Enum.map(& &1.endpoint)
+  end
+
+  defp any_mapping_encrypted?(mappings) do
+    mappings
+    |> Enum.any?(& &1.encrypted)
+  end
+
+  # Leave untouched object values that do not need encryption, encrypt all others in-place.
+  defp do_encrypt_object_mappings(mappings, obj_value, dek) do
+    encrypted_endpoints = encrypted_endpoints_from_mappings(mappings)
+
+    Enum.reduce(encrypted_endpoints, obj_value, fn endpoint, acc_obj ->
+      endpoint = Path.basename(endpoint)
+
+      Map.put(
+        acc_obj,
+        endpoint,
+        do_encrypt_individual_value(Map.get(acc_obj, endpoint), dek)
+      )
+    end)
+  end
+end

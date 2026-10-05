@@ -47,9 +47,9 @@ export function byteArrayToUrlSafeBase64(bytes: number[]): string {
 
   const padding = '0'.padEnd(6 - ((bytes.length * 8) % 6), '0');
   const binaryString = binaryArray.map((b) => b.padStart(8, '0')).join('') + padding;
-  const octects = binaryString.match(/.{6}/g) || [];
+  const octets = binaryString.match(/.{6}/g) || [];
 
-  return octects.map((b) => charset[parseInt(b, 2)]).join('');
+  return octets.map((b) => charset[parseInt(b, 2)]).join('');
 }
 
 export function urlSafeBase64ToByteArray(base64string: string): number[] {
@@ -58,9 +58,9 @@ export function urlSafeBase64ToByteArray(base64string: string): number[] {
     binaryString += charset.indexOf(base64string[i]).toString(2).padStart(6, '0');
   }
 
-  const octects = binaryString.match(/.{1,8}/g);
-  if (octects) {
-    return octects.map((b) => parseInt(b, 2));
+  const octets = binaryString.match(/.{1,8}/g);
+  if (octets) {
+    return octets.map((b) => parseInt(b, 2));
   }
   return [];
 }

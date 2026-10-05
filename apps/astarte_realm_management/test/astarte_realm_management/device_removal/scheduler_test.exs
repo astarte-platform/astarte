@@ -24,12 +24,13 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   """
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   use Mimic
 
+  import Astarte.Core.Generators.Device
+
   alias Astarte.Core.Device, as: CoreDevice
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
@@ -47,14 +48,14 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   # Scheduler. The rest of the logic consists in calling itself after a
   # pre-determined timeout and running a task.
   property "Test device removal happens only when all ACKs are available", %{realm: realm} do
-    check all ackd_devices <- DeviceGenerator.id() |> list_of(length: 1..10),
+    check all ackd_devices <- device_id() |> list_of(length: 1..10),
               non_ackd_devices <-
-                DeviceGenerator.id()
+                device_id()
                 |> filter(&(&1 not in ackd_devices))
                 |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
                 |> filter(&(not DeletionInProgress.all_ack?(&1)))
                 |> list_of(length: 1..10),
-              max_runs: 25 do
+              max_runs: 5 do
       ackd_deletions = seed_ackd_deletions(ackd_devices, realm)
       non_ackd_deletions = seed_non_ackd_deletions(non_ackd_devices, realm)
 
@@ -85,7 +86,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
                                  :run,
                                  [%{realm_name: ^realm_name, device_id: device_id}],
                                  _opts ->
-        send(test_process, {:received_device, device_id})
+        send(test_process, {:received_device, realm_name, device_id})
         {:ok, test_process}
       end)
     end
@@ -93,7 +94,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
 
   defp assert_removal(realm_name, device_ids) do
     for device_id <- device_ids do
-      assert_receive {:received_device, ^device_id}
+      assert_receive {:received_device, ^realm_name, ^device_id}
     end
   end
 

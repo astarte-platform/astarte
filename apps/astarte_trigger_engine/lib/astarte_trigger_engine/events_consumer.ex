@@ -263,10 +263,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         )
 
         {:error, :connection_error}
-
-      error ->
-        Logger.warning("Error while processing event: #{inspect(error)}")
-        error
     end
   end
 

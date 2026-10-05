@@ -12,14 +12,15 @@ A protocol reference implementation is provided with an Astarte SDK, however dev
 
 Astarte MQTT v1 Protocol relies on few well known reserved topics.
 
-| Topic                                                  | Purpose          | Published By | QoS     | Payload Format                          |
-| ------------------------------------------------------ | ---------------- | ------------ | ------- | --------------------------------------- |
-| `<realm name>/<device id>`                             | Introspection    | Device       | 2       | ASCII plain text, ':' and ';' delimited |
-| `<realm name>/<device id>/capabilities`                | Capabilities     | Device       | 2       | BSON                                    |
-| `<realm name>/<device id>/control/emptyCache`          | Empty Cache      | Device       | 2       | ASCII plain text (always "1")           |
-| `<realm name>/<device id>/control/consumer/properties` | Purge Properties | Astarte      | 2       | deflated plain text                     |
-| `<realm name>/<device id>/control/producer/properties` | Purge Properties | Device       | 2       | deflated plain text                     |
-| `<realm name>/<device id>/<interface name>/<path>`     | Publish Data     | Both         | 0, 1, 2 | BSON (or empty)                         |
+| Topic                                                        | Purpose          | Published By | QoS     | Payload Format                          |
+| ------------------------------------------------------------ | ---------------- | ------------ | ------- | --------------------------------------- |
+| `<realm name>/<device id>`                                   | Introspection    | Device       | 2       | ASCII plain text, ':' and ';' delimited |
+| `<realm name>/<device id>/capabilities`                      | Capabilities     | Device       | 2       | BSON                                    |
+| `<realm name>/<device id>/control/emptyCache`                | Empty Cache      | Device       | 2       | ASCII plain text (always "1")           |
+| `<realm name>/<device id>/control/consumer/properties`       | Purge Properties | Astarte      | 2       | deflated plain text                     |
+| `<realm name>/<device id>/control/producer/properties`       | Purge Properties | Device       | 2       | deflated plain text                     |
+| `<realm name>/<device id>/control/keyAgreement/<message id>` | Key Agreement    | Both         | 2       | CBOR                                    |
+| `<realm name>/<device id>/<interface name>/<path>`           | Publish Data     | Both         | 0, 1, 2 | BSON (or empty)                         |
 
 For clarity reasons all `<realm name>/<device id>` prefixes will be omitted on the following paragraphs, those topics will be called device topics.
 Topics are not bidirectional, devices must not publish data for server owned topics and viceversa, ownership is explicitly stated in interfaces files.
@@ -167,6 +168,19 @@ com.example.MyInterface/some/path;org.example.DraftInterface/otherPath
 ```
 
 This protocol feature is fundamental when a device has any interface with an _allow_unset_ mapping, _purge properties_ allows to correct any error due to unhandled unset messages.
+
+## Key Agreement
+
+Key Agreement allows a device and Astarte to establish a shared symmetric key, so that data
+published on "encrypted" endpoints never travels or gets stored in plaintext. The handshake uses the
+`control/keyAgreement` topic and a set of numbered sub-topics (`control/keyAgreement/0` through
+`control/keyAgreement/4`), summarized above as `control/keyAgreement/<message id>`; see the
+[MQTT topics](082-key_agreement_protocol.html#mqtt-topics) section of Key Agreement and Encrypted
+Endpoints for the full list of sub-topics.
+
+The full handshake protocol, its CBOR/COSE message formats and the cryptographic primitives
+involved are described in
+[Key Agreement and Encrypted Endpoints](082-key_agreement_protocol.html).
 
 ## Publishing Data
 

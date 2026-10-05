@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Cases.Channel do
+defmodule Astarte.AppEngine.API.Cases.Channel do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.

@@ -15,10 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.AppEngine.API.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 
+  alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
@@ -30,9 +31,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.UUID
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
-
-  require Logger
 
   @devices_list [
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
@@ -136,6 +134,7 @@ defmodule Astarte.Helpers.Database do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities capabilities,
+        shared_secret session_key,
         fdo_guid blob,
 
         PRIMARY KEY (device_id)
@@ -194,6 +193,7 @@ defmodule Astarte.Helpers.Database do
         description varchar,
         doc varchar,
         required boolean,
+        encrypted boolean,
 
         PRIMARY KEY ((interface_id), endpoint_id)
     );
@@ -284,6 +284,8 @@ defmodule Astarte.Helpers.Database do
       stringarray_value list<varchar>,
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id), endpoint_id, path)
     );
@@ -312,6 +314,8 @@ defmodule Astarte.Helpers.Database do
       longintegerarray_value list<bigint>,
       string_value text,
       stringarray_value list<text>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
     );
@@ -404,6 +408,13 @@ defmodule Astarte.Helpers.Database do
     """
   ]
 
+  @create_session_key_type """
+  CREATE TYPE #{Realm.keyspace_name(@test_realm)}.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   def insert_empty_device(device_id) do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
@@ -436,6 +447,8 @@ defmodule Astarte.Helpers.Database do
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
         Repo.query!(@create_capabilities_type)
+
+        Repo.query!(@create_session_key_type)
 
         Repo.query!(@create_devices_table)
 

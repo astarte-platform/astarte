@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.AppEngine.API.Helpers.Device do
   @moduledoc false
+  use ExUnitProperties
+
+  import ExUnit.CaptureLog
+
+  import Astarte.Common.Generators.Timestamp
+
   alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Devices.Device
@@ -29,9 +34,6 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
-
-  import ExUnit.CaptureLog
-  import StreamData
 
   @fallible_value_type [
     :integer,
@@ -93,7 +95,7 @@ defmodule Astarte.Helpers.Device do
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
-      initial_time = TimestampGenerator.timestamp() |> Enum.at(0) |> DateTime.from_unix!()
+      initial_time = timestamp() |> Enum.at(0) |> DateTime.from_unix!()
 
       update_function =
         case interface_descriptor.aggregation do
@@ -221,10 +223,10 @@ defmodule Astarte.Helpers.Device do
   end
 
   defp similar?(nil = _result, [] = _value), do: true
-  defp similar?(%{} = _result, nil = _value), do: true
-  defp similar?("" = _result, nil = _value), do: true
   defp similar?(%{"" => nil}, nil), do: true
   defp similar?(%{"" => nil}, []), do: true
+  defp similar?(%{} = result, nil = _value), do: result == %{}
+  defp similar?("" = _result, nil = _value), do: true
 
   defp similar?(%DateTime{} = datetime, timestamp)
        when is_integer(timestamp),

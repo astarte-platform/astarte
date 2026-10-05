@@ -23,8 +23,6 @@ defmodule AstarteE2EWeb.TriggerController do
   alias AstarteE2E.DataTrigger
   alias AstarteE2E.DeviceTrigger
 
-  require Logger
-
   def handle_data_trigger(conn) do
     with {:ok, body, conn} <- read_body(conn),
          {:ok, trigger_data} <- Jason.decode(body),

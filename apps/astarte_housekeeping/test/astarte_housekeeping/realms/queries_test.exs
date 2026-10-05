@@ -20,14 +20,16 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   use Astarte.Housekeeping.DataCase, async: true
   use Mimic
 
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
+  import Astarte.Housekeeping.Helpers.Database
   import Ecto.Query
 
   @public_key_pem """
@@ -48,11 +50,11 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "database initialization" do
     setup do
       astarte_instance_id = "another#{System.unique_integer([:positive])}"
-      Database.setup_database_access(astarte_instance_id)
+      setup_database_access(astarte_instance_id)
 
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
-        Database.teardown_astarte_keyspace()
+        setup_database_access(astarte_instance_id)
+        teardown_astarte_keyspace()
       end)
     end
 
@@ -90,7 +92,8 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
       astarte_keyspace = Realm.astarte_keyspace_name()
 
       assert :ok = Queries.initialize_database()
-      assert {:ok, _} = Database.lightweight_transaction_check(astarte_keyspace)
+      :ok = Database.migrate_astarte()
+      assert {:ok, _} = lightweight_transaction_check(astarte_keyspace)
     end
 
     test "returns database error" do
@@ -109,23 +112,25 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
   end
 
-  describe "create a realm," do
+  describe "create_realm/6" do
     setup %{astarte_instance_id: astarte_instance_id} do
       realm_name = "another#{System.unique_integer([:positive])}"
 
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
-        Database.teardown_realm_keyspace(realm_name)
+        setup_database_access(astarte_instance_id)
+        teardown_realm_keyspace(realm_name)
       end)
 
-      Database.save_default_replication(%{strategy: :simple, factor: 1})
+      Queries.save_keyspace_replication({:simple_strategy, 1})
 
       %{realm_name: realm_name}
     end
 
-    test "creations returns ok", %{realm_name: realm_name} do
+    test "sets up a new realm", %{realm_name: realm_name} do
       assert :ok =
                Queries.create_realm(realm_name, "test1publickey", {:simple_strategy, 1}, 1, 1, [])
+
+      assert Database.realm_initialized?(realm_name)
     end
 
     test "creations returns ok with nil replication factor", %{realm_name: realm_name} do
@@ -163,12 +168,12 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "list/get realm(s)," do
     setup %{astarte_instance_id: astarte_instance_id} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
-        Database.teardown_realm_keyspace("testrealm")
-        Database.teardown_realm_keyspace("anotherrealm")
+        setup_database_access(astarte_instance_id)
+        teardown_realm_keyspace("testrealm")
+        teardown_realm_keyspace("anotherrealm")
       end)
 
-      Database.setup_realm_keyspace("testrealm")
+      setup_realm_keyspace("testrealm")
       :ok
     end
 
@@ -230,7 +235,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "get returns error due to inconsistent db data" do
-      # testrealm does not have a public key saved
+      delete_public_key("testrealm")
 
       assert {:error, :public_key_not_found} = Queries.get_realm("testrealm")
     end
@@ -272,10 +277,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "set device registration limit" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.insert_public_key(realm_name)
+        insert_public_key(realm_name)
       end)
 
       other_realm_name = "realm#{System.unique_integer([:positive])}"
@@ -306,10 +311,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "delete device registration limit" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.insert_public_key(realm_name)
+        insert_public_key(realm_name)
       end)
 
       other_realm_name = "realm#{System.unique_integer([:positive])}"
@@ -348,10 +353,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "set storage retention" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.insert_public_key(realm_name)
+        insert_public_key(realm_name)
       end)
 
       other_realm_name = "realm#{System.unique_integer([:positive])}"
@@ -398,10 +403,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "delete storage retention" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.insert_public_key(realm_name)
+        insert_public_key(realm_name)
       end)
 
       other_realm_name = "realm#{System.unique_integer([:positive])}"
@@ -443,10 +448,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   describe "update public key" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.insert_public_key(realm_name)
+        insert_public_key(realm_name)
       end)
 
       other_realm_name = "realm#{System.unique_integer([:positive])}"
@@ -485,14 +490,14 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
       other_realm_name = "realm#{System.unique_integer([:positive])}"
 
       {:ok, live_topology} = Queries.fetch_network_topology()
-      Database.save_default_replication(%{strategy: :network_topology, dc_factors: live_topology})
+      Queries.save_keyspace_replication({:network_topology_strategy, live_topology})
 
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
+        setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
-        Database.teardown_realm_keyspace(other_realm_name)
-        Database.insert_public_key(realm_name)
+        teardown_realm_keyspace(other_realm_name)
+        insert_public_key(realm_name)
       end)
 
       %{other_realm_name: other_realm_name}
@@ -627,15 +632,17 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
 
   describe "save_keyspace_replication/1" do
     test "saves and retrieves simple strategy replication" do
-      replication = %{strategy: :simple, factor: 2}
+      replication = {:simple_strategy, 2}
+      replication_map = %{strategy: :simple, factor: 2}
       assert :ok = Queries.save_keyspace_replication(replication)
-      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+      assert {:ok, ^replication_map} = Queries.fetch_keyspace_replication()
     end
 
     test "saves and retrieves network topology strategy replication" do
-      replication = %{strategy: :network_topology, dc_factors: %{"datacenter1" => 1}}
+      replication = {:network_topology_strategy, %{"datacenter1" => 1}}
+      replication_map = %{strategy: :network_topology, dc_factors: %{"datacenter1" => 1}}
       assert :ok = Queries.save_keyspace_replication(replication)
-      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+      assert {:ok, ^replication_map} = Queries.fetch_keyspace_replication()
     end
   end
 
@@ -657,9 +664,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "returns successfully stored replication after save" do
-      replication = %{strategy: :simple, factor: 1}
+      replication = {:simple_strategy, 1}
+      replication_map = %{strategy: :simple, factor: 1}
       :ok = Queries.save_keyspace_replication(replication)
-      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+      assert {:ok, ^replication_map} = Queries.fetch_keyspace_replication()
     end
   end
 
@@ -669,5 +677,10 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
       assert is_map(topology)
       assert Map.has_key?(topology, "datacenter1")
     end
+  end
+
+  defp delete_public_key(realm_name) do
+    %KvStore{group: "auth", key: "jwt_public_key_pem"}
+    |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
   end
 end

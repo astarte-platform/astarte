@@ -1,0 +1,81 @@
+{
+  "interface_name": "org.astarte-platform.e2e.DeviceProperty",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "properties",
+  "ownership": "device",
+  "description": "Test properties interface.",
+  "doc": "Test interface used to test properties.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/double_endpoint",
+      "type": "double",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/integer_endpoint",
+      "type": "integer",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/boolean_endpoint",
+      "type": "boolean",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/longinteger_endpoint",
+      "type": "longinteger",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/string_endpoint",
+      "type": "string",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/binaryblob_endpoint",
+      "type": "binaryblob",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/datetime_endpoint",
+      "type": "datetime",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/doublearray_endpoint",
+      "type": "doublearray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/integerarray_endpoint",
+      "type": "integerarray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/booleanarray_endpoint",
+      "type": "booleanarray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/longintegerarray_endpoint",
+      "type": "longintegerarray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/stringarray_endpoint",
+      "type": "stringarray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/binaryblobarray_endpoint",
+      "type": "binaryblobarray",
+      "allow_unset": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/datetimearray_endpoint",
+      "type": "datetimearray",
+      "allow_unset": true
+    }
+  ]
+}

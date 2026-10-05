@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.AuthTest do
-  use Astarte.Cases.Data
+  use Astarte.RealmManagement.Cases.Data
   use Astarte.RealmManagementWeb.ConnCase
 
   alias Astarte.RealmManagement.Helpers.JWTTestHelper
@@ -28,8 +28,6 @@ defmodule Astarte.RealmManagementWeb.AuthTest do
   @non_matching_auth_path "^stats.*$"
 
   @expected_data []
-
-  require Logger
 
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}

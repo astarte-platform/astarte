@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
     DeviceDisconnectedEvent,
+    DeviceEmptyCacheReceivedEvent,
     DeviceErrorEvent,
     IncomingDataEvent,
     IncomingIntrospectionEvent,
@@ -44,8 +45,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Events.Triggers
   alias Astarte.Events.Triggers.DataTriggerContext
   alias Astarte.Events.TriggersHandler
-
-  require Logger
 
   defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
@@ -76,6 +75,24 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       dispatch_event_with_telemetry(
         event,
         :device_disconnected_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
+  end
+
+  def device_empty_cache_received(realm, device_id, groups, timestamp) do
+    event = %DeviceEmptyCacheReceivedEvent{}
+    hw_id = Device.encode_device_id(device_id)
+
+    Triggers.find_device_trigger_targets(realm, device_id, groups, :on_empty_cache_received)
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :device_empty_cache_received_event,
         target,
         realm,
         hw_id,

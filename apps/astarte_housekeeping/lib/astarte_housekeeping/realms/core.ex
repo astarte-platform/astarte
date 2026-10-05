@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
+  alias Astarte.Secrets
 
   require Logger
 
@@ -134,7 +135,8 @@ defmodule Astarte.Housekeeping.Realms.Core do
          datastream_maximum_storage_retention,
          opts
        ) do
-    with :ok <- create_vhost(realm_name) do
+    with :ok <- create_vhost(realm_name),
+         :ok <- ensure_realm_kek(realm_name) do
       Queries.create_realm(
         realm_name,
         pem,
@@ -143,6 +145,20 @@ defmodule Astarte.Housekeeping.Realms.Core do
         datastream_maximum_storage_retention,
         opts
       )
+    end
+  end
+
+  defp ensure_realm_kek(realm_name) do
+    case Secrets.create_realm_kek(realm_name) do
+      {:ok, _key} ->
+        :ok
+
+      :error ->
+        Logger.error("Failed to create realm KEK for realm #{realm_name}",
+          tag: "realm_kek_creation_failed"
+        )
+
+        {:error, :realm_kek_creation_failed}
     end
   end
 

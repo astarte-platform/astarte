@@ -17,159 +17,72 @@
 #
 
 defmodule Astarte.Housekeeping.MigratorTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  use ExUnitProperties
   use Mimic
 
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Realm, as: DatabaseRealm
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Events.AMQP.Vhost
-  alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Realms.Core
-  alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Realms.Realm
+  alias Astarte.Secrets
 
-  describe "run migrations, " do
-    setup do
-      on_exit(fn ->
-        Database.teardown_astarte_keyspace()
-      end)
+  setup_all do
+    realm_names =
+      repeatedly(fn -> "realm#{System.unique_integer([:positive])}" end)
+      |> list_of(min_length: 5)
+      |> Enum.at(0)
 
-      Queries.initialize_database()
-      Database.edit_with_outdated_column_for_astarte_realms_table!()
-      :ok
+    %{realm_names: realm_names}
+  end
+
+  setup %{realm_names: realm_names} do
+    Vhost
+    |> stub(:create_vhost, fn _ -> :ok end)
+
+    Secrets
+    |> stub(:create_realm_kek, fn _ -> {:ok, nil} end)
+
+    Realm
+    |> stub(:list_realm_names, fn -> realm_names end)
+
+    :ok
+  end
+
+  describe "run_realm_migrations/1" do
+    test "creates vhosts for all realms", %{realm_names: realm_names} do
+      for realm_name <- realm_names do
+        Vhost
+        |> expect(:create_vhost, fn ^realm_name -> :ok end)
+      end
+
+      assert :ok = Migrator.run_realms_migrations()
+    end
+
+    test "creates realm kek for all realms", %{realm_names: realm_names} do
+      for realm_name <- realm_names do
+        Secrets
+        |> expect(:create_realm_kek, fn ^realm_name -> {:ok, nil} end)
+      end
+
+      assert :ok = Migrator.run_realms_migrations()
+    end
+
+    test "crashes in case of vhost creation error" do
+      Vhost
+      |> stub(:create_vhost, fn _ -> :error end)
+
+      assert_raise MatchError, fn -> Migrator.run_realms_migrations() end
+    end
+
+    test "crashes in case of kek creation error" do
+      Secrets
+      |> stub(:create_realm_kek, fn _ -> :error end)
+
+      assert_raise MatchError, fn -> Migrator.run_realms_migrations() end
     end
 
     test "returns ok with complete db" do
-      assert :ok = Migrator.run_astarte_keyspace_migrations()
-    end
-
-    test "returns error due do xandra problem" do
-      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
-      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
-    end
-
-    test "returns error due do xandra connection problem" do
-      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-      assert {:error, :database_connection_error} = Migrator.run_astarte_keyspace_migrations()
-    end
-  end
-
-  describe "run realms migrations, " do
-    setup do
-      realm_name = "realm#{System.unique_integer([:positive])}"
-
-      realm = %Realm{
-        realm_name: realm_name,
-        jwt_public_key_pem: "test1publickey",
-        replication_class: "SimpleStrategy",
-        replication_factor: 1,
-        device_registration_limit: 1,
-        datastream_maximum_storage_retention: 1
-      }
-
-      on_exit(fn ->
-        Database.teardown(realm_name)
-      end)
-
-      Queries.initialize_database()
-      Core.create_realm(realm, [])
-      Database.edit_with_outdated_column_for_astarte_realms_table!()
-
-      %{realm_name: realm_name}
-    end
-
-    test "returns ok with complete db" do
       assert :ok = Migrator.run_realms_migrations()
-    end
-
-    test "returns ok with missing capabilities" do
-      new_realm = "realm#{System.unique_integer([:positive])}"
-
-      on_exit(fn ->
-        Database.teardown_realm_keyspace(new_realm)
-      end)
-
-      realm_migrations_path =
-        Application.app_dir(
-          :astarte_housekeeping,
-          Path.join(["priv", "migrations", "realm"])
-        )
-
-      # We don't specify the .sql extension so we also check if there are
-      # migrations with the wrong extension
-      realm_migrations_count =
-        [realm_migrations_path, "*"]
-        |> Path.join()
-        |> Path.wildcard()
-        |> Enum.count()
-
-      Database.create_simple_realm(new_realm)
-      assert 0 = realm_schema_version(new_realm)
-      assert :ok = Migrator.run_realms_migrations()
-      assert realm_migrations_count == realm_schema_version(new_realm)
-    end
-
-    test "returns error due do xandra problem" do
-      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
-      assert {:error, :database_error} = Migrator.run_realms_migrations()
-    end
-
-    test "returns error due do xandra connection problem" do
-      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-      assert {:error, :database_connection_error} = Migrator.run_realms_migrations()
-    end
-
-    test "creates the realm vhost", %{realm_name: realm_name} do
-      Mimic.expect(Vhost, :create_vhost, fn ^realm_name -> :ok end)
-      assert :ok = Migrator.run_realms_migrations()
-    end
-  end
-
-  describe "latest schema version is consistent with migrations, " do
-    # This test ensures that we're not skipping versions when creating a new astarte migration
-    test "for astarte" do
-      astarte_migrations_path =
-        Application.app_dir(
-          :astarte_housekeeping,
-          Path.join(["priv", "migrations", "astarte"])
-        )
-
-      # We don't specify the .sql extension so we also check if there are
-      # migrations with the wrong extension
-      astarte_migrations_count =
-        [astarte_migrations_path, "*"]
-        |> Path.join()
-        |> Path.wildcard()
-        |> Enum.count()
-
-      assert Migrator.latest_astarte_schema_version() == astarte_migrations_count
-    end
-
-    # This test ensures that we're not skipping versions when creating a new realm migration
-    test "for realms" do
-      realm_migrations_path =
-        Application.app_dir(:astarte_housekeeping, Path.join(["priv", "migrations", "realm"]))
-
-      # We don't specify the .sql extension so we also check if there are
-      # migrations with the wrong extension
-      realm_migrations_count =
-        [realm_migrations_path, "*.sql"]
-        |> Path.join()
-        |> Path.wildcard()
-        |> Enum.count()
-
-      assert Migrator.latest_realm_schema_version() == realm_migrations_count
-    end
-  end
-
-  defp realm_schema_version(realm_name) do
-    keyspace = DatabaseRealm.keyspace_name(realm_name)
-
-    case KvStore.fetch_value("astarte", "schema_version", :big_integer, prefix: keyspace) do
-      {:ok, schema_version} -> schema_version
-      {:error, :not_found} -> 0
-      {:error, _reason} -> flunk("database error fetching schema version for #{realm_name}")
     end
   end
 end

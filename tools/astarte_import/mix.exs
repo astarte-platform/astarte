@@ -4,8 +4,10 @@ defmodule Astarte.Import.MixProject do
   def project do
     [
       app: :astarte_import,
-      version: "1.4.0-rc.6",
-      elixir: "~> 1.15",
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -21,17 +23,18 @@ defmodule Astarte.Import.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:exandra, github: "vinniefranco/exandra"},
+      {:ecto, "~>3.13"},
       {:logfmt, "~> 3.3"},
-      {:decimal, "~> 3.0", override: true},
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.6", override: true},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_core, path: astarte_app("astarte_core"), override: true},
+      {:astarte_data_access, path: astarte_app("astarte_data_access")},
       {:jason, "~> 1.4"},
       {:distillery, "~> 2.0"}
     ]
   end
 
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
+  defp astarte_app(app_name) do
+    base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
+    Path.join(base_directory, app_name)
   end
 end

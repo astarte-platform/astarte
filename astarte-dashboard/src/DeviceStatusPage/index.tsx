@@ -158,7 +158,7 @@ const DeviceStatusPage = (): React.ReactElement => {
   const navigate = useNavigate();
   const deviceFetcher = useFetch(() => astarte.client.getDeviceInfo(deviceId));
   const groupsFetcher = useFetch(() => astarte.client.getGroupList());
-  const [devicePageAlers, devicePageAlersController] = useAlerts();
+  const [devicePageAlerts, devicePageAlertsController] = useAlerts();
   const [activeModal, setActiveModal] = useState<PageModal | null>(null);
   const [confirmString, setConfirmString] = useState('');
   const canDelete = confirmString === deviceId;
@@ -187,12 +187,12 @@ const DeviceStatusPage = (): React.ReactElement => {
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlersController.showError(
+          devicePageAlertsController.showError(
             `Couldn't ${inhibit ? 'inhibit' : 'enable'} device credentials requests`,
           );
         });
     },
-    [astarte.client, deviceId, devicePageAlersController],
+    [astarte.client, deviceId, devicePageAlertsController],
   );
 
   const wipeDeviceCredentials = useCallback(() => {
@@ -202,10 +202,10 @@ const DeviceStatusPage = (): React.ReactElement => {
         setActiveModal({ kind: 'reregister_device_modal' });
       })
       .catch(() => {
-        devicePageAlersController.showError(`Couldn't wipe the device credential secret`);
+        devicePageAlertsController.showError(`Couldn't wipe the device credential secret`);
         dismissModal();
       });
-  }, [astarte.client, deviceId, dismissModal, devicePageAlersController]);
+  }, [astarte.client, deviceId, dismissModal, devicePageAlertsController]);
 
   const handleDeleteDevice = useCallback(() => {
     astarte.client
@@ -215,10 +215,10 @@ const DeviceStatusPage = (): React.ReactElement => {
         navigate('/devices');
       })
       .catch(() => {
-        devicePageAlersController.showError(`Couldn't delete the device`);
+        devicePageAlertsController.showError(`Couldn't delete the device`);
         dismissModal();
       });
-  }, [astarte.client, deviceId, dismissModal, devicePageAlersController, navigate]);
+  }, [astarte.client, deviceId, dismissModal, devicePageAlertsController, navigate]);
 
   const addDeviceToGroup = useCallback(
     (groupName: string) => {
@@ -232,11 +232,11 @@ const DeviceStatusPage = (): React.ReactElement => {
           dismissModal();
         })
         .catch(() => {
-          devicePageAlersController.showError(`Couldn't add the device to the group`);
+          devicePageAlertsController.showError(`Couldn't add the device to the group`);
           dismissModal();
         });
     },
-    [astarte.client, deviceId, devicePageAlersController, dismissModal],
+    [astarte.client, deviceId, devicePageAlertsController, dismissModal],
   );
 
   const handleAliasUpdate = useCallback(
@@ -248,11 +248,11 @@ const DeviceStatusPage = (): React.ReactElement => {
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlersController.showError(`Couldn't update the device alias`);
+          devicePageAlertsController.showError(`Couldn't update the device alias`);
           dismissModal();
         });
     },
-    [astarte.client, deviceId, devicePageAlersController, dismissModal],
+    [astarte.client, deviceId, devicePageAlertsController, dismissModal],
   );
 
   const handleAliasDeletion = useCallback(
@@ -264,11 +264,11 @@ const DeviceStatusPage = (): React.ReactElement => {
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlersController.showError(`Couldn't delete the device alias`);
+          devicePageAlertsController.showError(`Couldn't delete the device alias`);
           dismissModal();
         });
     },
-    [astarte.client, deviceId, devicePageAlersController, dismissModal],
+    [astarte.client, deviceId, devicePageAlertsController, dismissModal],
   );
 
   const handleAttributeUpdate = useCallback(
@@ -280,11 +280,11 @@ const DeviceStatusPage = (): React.ReactElement => {
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlersController.showError(`Couldn't update the device attribute`);
+          devicePageAlertsController.showError(`Couldn't update the device attribute`);
           dismissModal();
         });
     },
-    [astarte.client, deviceId, devicePageAlersController, dismissModal],
+    [astarte.client, deviceId, devicePageAlertsController, dismissModal],
   );
 
   const handleAttributeDeletion = useCallback(
@@ -296,11 +296,11 @@ const DeviceStatusPage = (): React.ReactElement => {
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlersController.showError(`Couldn't delete the device attribute`);
+          devicePageAlertsController.showError(`Couldn't delete the device attribute`);
           dismissModal();
         });
     },
-    [astarte.client, deviceId, devicePageAlersController, dismissModal],
+    [astarte.client, deviceId, devicePageAlertsController, dismissModal],
   );
 
   return (
@@ -313,7 +313,7 @@ const DeviceStatusPage = (): React.ReactElement => {
           </h2>
         </Col>
       </Row>
-      <AlertsBanner alerts={devicePageAlers} />
+      <AlertsBanner alerts={devicePageAlerts} />
       <WaitForData
         data={deviceFetcher.value}
         status={deviceFetcher.status}
@@ -400,7 +400,7 @@ const DeviceStatusPage = (): React.ReactElement => {
               />
               <GroupsCard
                 device={device}
-                showAddToGropButton={canAddDeviceToGroups}
+                showAddToGroupButton={canAddDeviceToGroups}
                 onAddToGroupClick={() =>
                   setActiveModal({
                     kind: 'add_to_group_modal',

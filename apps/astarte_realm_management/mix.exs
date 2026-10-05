@@ -22,23 +22,19 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "1.4.0-rc.6",
-      build_path: "_build",
-      config_path: "config/config.exs",
-      deps_path: "deps",
-      lockfile: "mix.lock",
-      elixir: "~> 1.15",
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       description: "Astarte Realm Management API"
     ]
   end
@@ -53,26 +49,26 @@ defmodule Astarte.RealmManagement.Mixfile do
     ]
   end
 
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.6", override: true}
-    ]
-  end
-
   defp deps do
     [
+      {:astarte_core, in_umbrella: true},
       {:phoenix, "~> 1.7"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
@@ -90,25 +86,24 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
-      {:decimal, "~> 3.0", override: true},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
-      {:mimic, "~> 1.11", only: :test},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_adapters, in_umbrella: true, only: [:dev, :test]},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:astarte_events, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:ssl_verify_fun, "~> 1.1.7"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:libcluster, "~> 3.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:open_api_spex, "~> 3.22"},
       {:sched_ex, "~> 1.1"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, "~> 4.0", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

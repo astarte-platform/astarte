@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,17 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Trigger do
+defmodule Astarte.DataUpdaterPlant.Cases.Trigger do
   @moduledoc """
-  This module defines test cases for trigger handling in the Astarte Data Updater Plant.
+  This module defines test DataUpdaterPlant.cases for trigger handling in the Astarte Data Updater Plant.
   """
   use ExUnit.CaseTemplate
 
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Astarte.Core.Generators.Realm
+  import Astarte.Core.Generators.Triggers.Policy
+
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Events.Triggers
@@ -34,16 +36,16 @@ defmodule Astarte.Cases.Trigger do
 
   using do
     quote do
-      import Astarte.Cases.Trigger
+      import Astarte.DataUpdaterPlant.Cases.Trigger
     end
   end
 
   setup_all context do
-    realm_name = Map.get(context, :realm_name, RealmGenerator.realm_name() |> Enum.at(0))
+    realm_name = Map.get(context, :realm_name, realm_name() |> Enum.at(0))
     trigger_id = UUID.uuid4(:raw)
     tagged_simple_trigger = %TaggedSimpleTrigger{}
     trigger_target = %AMQPTriggerTarget{}
-    policy = PolicyGenerator.policy() |> Enum.at(0) |> Map.fetch!(:name)
+    policy = policy() |> Enum.at(0) |> Map.fetch!(:name)
     data = %State{} |> Map.from_struct()
     install_trigger_message = {realm_name, tagged_simple_trigger, trigger_target, policy, data}
     delete_trigger_message = {realm_name, trigger_id, tagged_simple_trigger, data}
@@ -75,17 +77,24 @@ defmodule Astarte.Cases.Trigger do
     }
   end
 
+  @spec install_volatile_trigger(State.t(), DataTrigger.t() | DeviceTrigger.t()) :: term()
+  @spec install_volatile_trigger(State.t(), DataTrigger.t() | DeviceTrigger.t(), nil | fun()) ::
+          term()
   def install_volatile_trigger(state, protobuf_trigger, validation_function \\ nil) do
     id = System.unique_integer()
     test_process = self()
     ref = {:event_dispatched, id}
     trigger_target = mock_trigger_target("target#{id}")
 
-    deserialized_simple_trigger =
+    simple_trigger =
       case protobuf_trigger do
-        %DeviceTrigger{} -> {{:device_trigger, protobuf_trigger}, trigger_target}
-        %DataTrigger{} -> {{:data_trigger, protobuf_trigger}, trigger_target}
+        %DeviceTrigger{} -> {:device_trigger, protobuf_trigger}
+        %DataTrigger{} -> {:data_trigger, protobuf_trigger}
       end
+
+    tagged_simple_trigger = %TaggedSimpleTrigger{
+      simple_trigger_container: %SimpleTriggerContainer{simple_trigger: simple_trigger}
+    }
 
     Astarte.Events.TriggersHandler
     |> Mimic.stub(:dispatch_event, fn
@@ -98,7 +107,8 @@ defmodule Astarte.Cases.Trigger do
 
     Triggers.install_volatile_trigger(
       state.realm,
-      deserialized_simple_trigger,
+      tagged_simple_trigger,
+      trigger_target,
       Map.from_struct(state)
     )
 

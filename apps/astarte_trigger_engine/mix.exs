@@ -22,40 +22,36 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      elixir: "~> 1.15",
-      version: "1.4.0-rc.6",
+      elixir: "~> 1.20",
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
+      dialyzer: [plt_add_apps: [:ex_unit]],
+      deps: deps()
+    ]
+  end
+
+  def cli do
+    [
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
-      ],
-      dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      ]
     ]
   end
 
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_generators, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.6", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
-    ]
-  end
 
   def application do
     [
@@ -66,37 +62,35 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:astarte_core, in_umbrella: true},
+      {:amqp, "~> 4.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
-      {:cyanide, "~> 2.0"},
-      {:httpoison, "~> 1.6"},
+      {:cyanide, github: "secomind/cyanide", override: true},
       {:jason, "~> 1.2"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:typedstruct, "~> 0.5"},
+      {:typedstruct, github: "saleyn/typedstruct"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
-      {:decimal, "~> 3.0", override: true},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.8"},
       {:recon, "2.5.6", override: true},
-      {:current_rabbit_pool, "~> 1.1"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.11", only: :test},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:mox, "~> 1.3", only: :test},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, "~> 4.0", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

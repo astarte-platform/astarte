@@ -28,8 +28,6 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  require Logger
-
   import Ecto.Query
 
   def for_realm(realm_name) do

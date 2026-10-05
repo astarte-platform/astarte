@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -31,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -349,7 +351,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   Sets a device as disconnected, this does not foce device disconnection, but
   rather informs other astarte components that a device has been disconnected.
   """
-  def set_device_disconnected(state, timestamp) do
+  def set_device_disconnected(%State{} = state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
@@ -365,6 +367,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     maybe_execute_device_disconnected_trigger(state, timestamp_ms)
 
     %{state | connected: false}
+    |> reset_encrypted_endpoints_key()
+  end
+
+  defp reset_encrypted_endpoints_key(state) do
+    {:ok, key_state} = HandshakeState.transition(state.encrypted_endpoints_key, :reset)
+    %{state | encrypted_endpoints_key: key_state}
   end
 
   defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok

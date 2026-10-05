@@ -298,21 +298,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
     end
   end
 
-  def amqp_consumer_pool_config! do
-    [
-      name: {:local, :amqp_consumer_pool},
-      worker_module: ExRabbitPool.Worker.RabbitConnection,
-      size: amqp_consumer_connection_number!(),
-      max_overflow: 0
-    ]
-  end
-
   def data_updater_deactivation_interval_ms! do
     device_heartbeat_interval_ms!() * 3
-  end
-
-  def amqp_adapter! do
-    Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
   end
 
   def paths_cache_size!, do: @paths_cache_size

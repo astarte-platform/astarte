@@ -91,9 +91,9 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
     ]
 
   operation :update,
-    summary: "Update a device writeable property",
+    summary: "Update a device writable property",
     description:
-      "Update any of the writeable device properties for a device that belongs to a group.",
+      "Update any of the writable device properties for a device that belongs to a group.",
     operation_id: "updateGroupDeviceStatus",
     parameters: [
       realm_name: [

@@ -1,6 +1,6 @@
 services:
   astarte-housekeeping:
-    image: docker.io/astarte/astarte_housekeeping:1.4.0-rc.6
+    image: astarte/astarte_housekeeping:snapshot
     build:
       context: .
       args:
@@ -12,6 +12,7 @@ services:
       ASTARTE_EVENTS_AMQP_MANAGEMENT_HOST: "rabbitmq"
       ASTARTE_EVENTS_AMQP_MANAGEMENT_USERNAME: "guest"
       ASTARTE_EVENTS_AMQP_MANAGEMENT_PASSWORD: "guest"
+      ASTARTE_VAULT_URL: "http://openbao:8200"
     volumes:
       - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure
@@ -39,7 +40,7 @@ services:
       - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: docker.io/astarte/astarte_realm_management:1.4.0-rc.6
+    image: astarte/astarte_realm_management:snapshot
     build:
       context: .
       args:
@@ -71,7 +72,7 @@ services:
       - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: docker.io/astarte/astarte_pairing:1.4.0-rc.6
+    image: astarte/astarte_pairing:snapshot
     build:
       context: .
       args:
@@ -119,7 +120,7 @@ services:
       - "traefik.http.routers.https-fdo-rewrite-router.service=astarte-pairing"
 
   astarte-appengine-api:
-    image: docker.io/astarte/astarte_appengine_api:1.4.0-rc.6
+    image: astarte/astarte_appengine_api:snapshot
     build:
       context: .
       args:
@@ -151,7 +152,7 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: docker.io/astarte/astarte_data_updater_plant:1.4.0-rc.6
+    image: astarte/astarte_data_updater_plant:snapshot
     build:
       context: .
       args:
@@ -174,7 +175,7 @@ services:
         condition: service_healthy
 
   astarte-trigger-engine:
-    image: docker.io/astarte/astarte_trigger_engine:1.4.0-rc.6
+    image: astarte/astarte_trigger_engine:snapshot
     build:
       context: .
       args:
@@ -191,7 +192,7 @@ services:
         condition: service_healthy
 
   astarte-dashboard:
-    image: docker.io/astarte/astarte-dashboard:1.4.0-rc.6
+    image: astarte/astarte-dashboard:snapshot
     build:
       context: ./astarte-dashboard
     volumes:
@@ -344,7 +345,10 @@ services:
 
   # VerneMQ
   vernemq:
-    image: docker.io/astarte/vernemq:1.4.0-rc.6
+    image: astarte/vernemq:snapshot
+    build:
+      context: .
+      dockerfile: apps/astarte_vmq_plugin/Dockerfile
     hostname: vernemq
     env_file:
       - ./.env

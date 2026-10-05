@@ -19,15 +19,15 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-
-  use Astarte.Cases.DataUpdater
-
   use ExUnitProperties
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
   use Mimic
+  use Astarte.DataUpdaterPlant.Cases.Device
 
-  alias Astarte.Common.Generators.Timestamp
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
+
+  import Astarte.Common.Generators.Timestamp
+
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
@@ -126,7 +126,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
 
       check all interfaces <- random_interfaces(interfaces),
                 introspection <- gen_introspection(interfaces),
-                time <- Timestamp.timestamp() do
+                time <- timestamp() do
         handle_introspection(
           realm_name,
           device.encoded_id,

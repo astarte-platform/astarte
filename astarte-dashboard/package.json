@@ -3,7 +3,11 @@
   "name": "astarte-dashboard",
   "version": "1.4.0-rc.6",
   "description": "Astarte dashboard",
-  "keywords": ["astarte", "dashboard", "iot"],
+  "keywords": [
+    "astarte",
+    "dashboard",
+    "iot"
+  ],
   "contributors": [
     {
       "name": "Mattia Pavinati",
@@ -109,7 +113,15 @@
     "yup": "^0.29.3"
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

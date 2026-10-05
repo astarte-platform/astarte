@@ -1,0 +1,41 @@
+[workspace]
+resolver = "3"
+members = [
+  "astarte-e2e",
+  "astarte-synthetic-monitoring",
+]
+
+[workspace.metadata]
+crane.name = "astarte-e2e"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.91.0"
+
+[workspace.dependencies]
+astarte-device-sdk = { version = "0.14.4", features = ["derive"] }
+astarte-e2e = { path = "./astarte-e2e" }
+async-channel = "2.5.0"
+base64 = "0.23.1"
+bson = "3.1.0"
+chrono = "0.4.43"
+clap = { version = "4.5.54", features = ["derive", "env"] }
+color-eyre = "0.6.5"
+eyre = "0.6.12"
+insta = "1.48.0"
+lapin = "4.10.0"
+phoenix-chan = "0.4.4"
+prost = "0.14.4"
+reqwest = { version = "0.13.1", features = ["json"] }
+rustls = "0.23.36"
+rustls-platform-verifier = "0.7.0"
+serde = "1.0.228"
+serde_json = "1.0.149"
+serde_with = "3.22.0"
+tempfile = "3.24.0"
+tokio = { version = "1.49.0", features = ["full"] }
+tokio-stream = "0.1.19"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"

@@ -21,7 +21,7 @@ defmodule Astarte.HousekeepingWeb.Telemetry.APIUsage do
 
   @api_prefix "v1"
 
-  def handle_event([:cowboy, :request, :stop], measurements, metadata, _config) do
+  def handle_event([:bandit, :request, :stop], measurements, metadata, _config) do
     %{req_body_length: req_body_length, resp_body_length: resp_body_length} = measurements
     %{req: %{path: path}} = metadata
 

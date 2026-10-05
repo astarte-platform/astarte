@@ -136,7 +136,7 @@ export default (): React.ReactElement => {
     astarte.client
       .updateInterface(new AstarteInterface(interfaceDraft))
       .then(() => {
-        actionAlertsController.showSuccess('Changes succesfully applied.');
+        actionAlertsController.showSuccess('Changes successfully applied.');
       })
       .catch((err) => {
         actionAlertsController.showError(`Could not update interface: ${err.message}`);

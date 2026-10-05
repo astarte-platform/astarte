@@ -19,9 +19,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
   use ExUnitProperties
   use Mimic
 
@@ -40,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
         |> Enum.at(0)
 
       expect(Core.HeartbeatHandler, :handle_heartbeat, fn ^state, ^timestamp ->
-        Core.HeartbeatHandler.handle_heartbeat(state, timestamp)
+        Mimic.call_original(Core.HeartbeatHandler, :handle_heartbeat, [state, timestamp])
       end)
 
       assert {:ack, :ok, _new_state} =

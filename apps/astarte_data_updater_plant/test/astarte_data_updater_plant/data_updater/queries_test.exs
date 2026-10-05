@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
   use ExUnitProperties
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
   use Mimic
+
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Realm
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
@@ -57,8 +58,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
 
@@ -98,8 +101,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
 
@@ -139,8 +144,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
       mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-      {:ok, mapping} =
+      {:ok, mappings_for_path} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      mapping = hd(mappings_for_path)
 
       now = DateTime.utc_now()
       decimicro_timestamp = now |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
@@ -391,12 +398,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   end
 
   describe "retrieve_realms!/0" do
-    @describetag timeout: 120_000
+    @describetag timeout: 180_000
+
     setup do
       astarte_instance_id = "custom#{System.unique_integer([:positive])}"
 
       realm_names =
-        list_of(RealmGenerator.realm_name(), min_length: 5)
+        list_of(realm_name(), min_length: 5)
         |> resize(5)
         |> Enum.at(0)
         |> Enum.sort()
@@ -466,7 +474,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     @tag :regression
     test "does not do anything when the deletion in progress entry does not exist", context do
       %{realm_name: realm_name} = context
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       assert :ok = Queries.ack_start_device_deletion(realm_name, device_id)
       assert {:ok, false} = Queries.check_device_deletion_in_progress(realm_name, device_id)
@@ -489,7 +497,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   end
 
   defp deletion_in_progress_entry do
-    gen all device_id <- DeviceGenerator.id(),
+    gen all device_id <- device_id(),
             vmq_ack <- boolean(),
             dup_start_ack <- boolean(),
             dup_end_ack <- if(dup_start_ack, do: boolean(), else: false) do

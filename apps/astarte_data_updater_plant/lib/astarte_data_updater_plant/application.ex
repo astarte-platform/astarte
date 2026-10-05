@@ -28,6 +28,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.Events.Config, as: EventsConfig
+  alias Astarte.Secrets.Config, as: SecretsConfig
+  alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
 
   @app_version Mix.Project.config()[:version]
 
@@ -42,6 +44,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
     Config.validate!()
     DataAccessConfig.validate!()
+    SecretsConfig.init()
 
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
@@ -49,7 +52,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
       {Astarte.Events.AMQPTriggers.Supervisor, []},
       {Astarte.Events.Triggers.Supervisor, []},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor,
-      {Mississippi.Consumer, mississippi_consumer_opts!()}
+      {Mississippi.Consumer, mississippi_consumer_opts!()},
+      {ConCache, DEKCache.init_options()}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]

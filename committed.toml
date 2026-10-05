@@ -39,7 +39,9 @@ allowed_scopes = [
   "housekeeping",
   "appengine",
   "te",
+  "vmq_plugin",
   # libraries
+  "core",
   "config",
   "data_access",
   "events",

@@ -124,11 +124,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
       # On success, put the connection and channel into the state
       {:ok, %{state | conn: conn, chan: chan}}
     else
-      {:error, _reason} ->
-        maybe_retry(retry)
-
-      :error ->
-        maybe_retry(retry)
+      _ -> maybe_retry(retry)
     end
   end
 

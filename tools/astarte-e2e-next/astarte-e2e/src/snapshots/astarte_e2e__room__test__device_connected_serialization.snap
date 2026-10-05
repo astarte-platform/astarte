@@ -1,0 +1,9 @@
+---
+source: astarte-e2e/src/room.rs
+expression: trigger
+---
+{
+  "type": "device_trigger",
+  "on": "device_connected",
+  "device_id": "0hwoPrYHQvqmZGQuEc6Wng"
+}

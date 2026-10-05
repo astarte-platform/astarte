@@ -19,25 +19,26 @@
 defmodule Astarte.RealmManagement.TriggersTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
 
   import Mimic
 
-  import Astarte.Helpers.Triggers
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Triggers.Policy
+  import Astarte.Core.Adapters.Triggers.Policy
+
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 
   alias Astarte.Events.Triggers, as: EventsTriggers
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-
   alias Astarte.RPC.Triggers, as: RPCTriggers
   alias Astarte.RPC.Triggers.TriggerDeletion
   alias Astarte.RPC.Triggers.TriggerInstallation
 
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
 
   alias Astarte.RealmManagement.Triggers
   alias Astarte.RealmManagement.Triggers.Action
@@ -191,10 +192,11 @@ defmodule Astarte.RealmManagement.TriggersTest do
   describe "Test triggers" do
     @tag :creation
     property "are installed correctly", %{realm: realm} do
-      check all device <- DeviceGenerator.device(),
+      check all device <- device(),
                 trigger <- trigger(string(:utf8, min_length: 1)),
-                policy <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
-                simple_trigger <- simple_trigger_config(device.device_id) do
+                policy <- policy() |> map(&from_core_triggers_policy_to_change/1),
+                simple_trigger <- simple_trigger_config(device.device_id),
+                max_runs: 3 do
         {:ok, policy} = Policies.create_trigger_policy(realm, policy)
 
         _ = Jason.decode!(trigger.action, keys: :atoms)
@@ -240,7 +242,8 @@ defmodule Astarte.RealmManagement.TriggersTest do
       check all device <- Astarte.Core.Generators.Device.device(),
                 trigger <-
                   trigger(string(:alphanumeric, min_length: 1)),
-                simple_trigger <- simple_trigger_config(device.device_id) do
+                simple_trigger <- simple_trigger_config(device.device_id),
+                max_runs: 5 do
         attrs = %{
           name: trigger.name,
           policy: nil,

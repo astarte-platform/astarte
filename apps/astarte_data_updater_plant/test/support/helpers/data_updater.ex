@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.DataUpdater do
+defmodule Astarte.DataUpdaterPlant.Helpers.DataUpdater do
   @moduledoc """
   Helper functions for testing the DataUpdater module.
   """
@@ -68,30 +68,6 @@ defmodule Astarte.Helpers.DataUpdater do
         ]
       ]
     ]
-  end
-
-  def install_volatile_trigger(
-        realm,
-        encoded_device_id,
-        parent_id,
-        trigger_id,
-        simple_trigger,
-        trigger_target
-      ) do
-    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
-
-    signal =
-      {:install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target}
-
-    get_data_updater_process!(realm, device_id)
-    |> DataUpdater.handle_signal(signal)
-  end
-
-  def delete_volatile_trigger(realm, encoded_device_id, trigger_id) do
-    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
-
-    get_data_updater_process!(realm, device_id)
-    |> DataUpdater.handle_signal({:delete_volatile_trigger, trigger_id})
   end
 
   def handle_connection(realm, encoded_device_id, ip, timestamp) do
@@ -246,7 +222,7 @@ defmodule Astarte.Helpers.DataUpdater do
     MessageTracker
     |> allow(self(), get_data_updater_process!(realm, device_id))
     |> expect(:ack_delivery, fn ^message_tracker, message ->
-      result = MessageTracker.ack_delivery(message_tracker, message)
+      result = Mimic.call_original(MessageTracker, :ack_delivery, [message_tracker, message])
       send(me, :ack_delivery)
       result
     end)

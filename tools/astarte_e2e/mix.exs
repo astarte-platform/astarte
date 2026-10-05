@@ -22,8 +22,10 @@ defmodule AstarteE2E.MixProject do
   def project do
     [
       app: :astarte_e2e,
-      version: "1.4.0-rc.6",
-      elixir: "~> 1.15",
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
@@ -42,9 +44,11 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.4.0-rc.6", override: true},
-      {:astarte_generators, path: astarte_lib("astarte_generators")},
+      {:astarte_core, path: astarte_app("astarte_core"), override: true},
+      {:astarte_adapters, path: astarte_app("astarte_adapters")},
+      {:astarte_generators, path: astarte_app("astarte_generators")},
       {:phoenix_gen_socket_client, "~> 4.0"},
+      {:castore, "~> 1.0.0"},
       {:amqp, "~> 4.0"},
       {:websocket_client, "~> 1.5"},
       {:jason, "~> 1.0"},
@@ -59,14 +63,17 @@ defmodule AstarteE2E.MixProject do
       {:observer_cli, "~> 1.5"},
       {:bamboo, "~> 1.6"},
       {:bamboo_config_adapter, "~> 1.0"},
-      {:httpoison, "~> 2.0"},
       {:hukai, "~> 0.3"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, "~> 4.0", override: true},
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
+  defp astarte_app(app_name) do
+    base_directory = System.get_env("ASTARTE_APPS_PATH", "../../apps")
+    Path.join(base_directory, app_name)
   end
 end

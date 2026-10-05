@@ -1,0 +1,53 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2026 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.DataAccess.Database.Migrations.Realm.AddEncryptedToIndividualDatastreams do
+  @moduledoc false
+
+  use Ecto.Migration
+  import Ecto.Query
+
+  def up do
+    if table_exists?("individual_datastreams") do
+      alter table(:individual_datastreams) do
+        add :encryptedblob_value, :binary
+        add :encrypted_dek, :binary
+      end
+    end
+  end
+
+  def down do
+    if table_exists?("individual_datastreams") do
+      alter table(:individual_datastreams) do
+        remove :encryptedblob_value
+        remove :encrypted_dek
+      end
+    end
+  end
+
+  defp table_exists?(table) do
+    prefix = prefix()
+    repo = repo()
+
+    query =
+      from "system_schema.tables",
+        select: [:table_name]
+
+    repo.get_by(query, keyspace_name: prefix, table_name: table) != nil
+  end
+end

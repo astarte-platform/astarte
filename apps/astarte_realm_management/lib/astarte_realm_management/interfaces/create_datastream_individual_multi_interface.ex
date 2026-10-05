@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface do
   @moduledoc """
   Migration to create individual datastreams table.
 
-  This table stores all individual datastream sample across all interfaces within a realm. 
+  This table stores all individual datastream sample across all interfaces within a realm.
   """
   use Ecto.Migration
 
@@ -50,6 +50,8 @@ defmodule Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface do
       add :stringarray_value, :"list<varchar>"
       add :binaryblobarray_value, :"list<blob>"
       add :datetimearray_value, :"list<timestamp>"
+      add :encryptedblob_value, :blob
+      add :encrypted_dek, :blob
     end
   end
 end

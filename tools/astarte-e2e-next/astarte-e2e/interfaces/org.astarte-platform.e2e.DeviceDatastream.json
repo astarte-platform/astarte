@@ -1,0 +1,81 @@
+{
+  "interface_name": "org.astarte-platform.e2e.DeviceDatastream",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "device",
+  "description": "Test datastream interface.",
+  "doc": "Test interface used to test datastream.",
+  "mappings": [
+    {
+      "endpoint": "/binaryblob_endpoint",
+      "type": "binaryblob",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/binaryblobarray_endpoint",
+      "type": "binaryblobarray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/boolean_endpoint",
+      "type": "boolean",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/booleanarray_endpoint",
+      "type": "booleanarray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/datetime_endpoint",
+      "type": "datetime",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/datetimearray_endpoint",
+      "type": "datetimearray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/double_endpoint",
+      "type": "double",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/doublearray_endpoint",
+      "type": "doublearray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/integer_endpoint",
+      "type": "integer",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/integerarray_endpoint",
+      "type": "integerarray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/longinteger_endpoint",
+      "type": "longinteger",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/longintegerarray_endpoint",
+      "type": "longintegerarray",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/string_endpoint",
+      "type": "string",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/stringarray_endpoint",
+      "type": "stringarray",
+      "explicit_timestamp": true
+    }
+  ]
+}

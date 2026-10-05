@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.FDOSession do
+defmodule Astarte.Pairing.Cases.FDOSession do
   @moduledoc """
   This module defines the setup for tests requiring an FDO session with
   a fully initialized session including derived keys.
@@ -45,12 +45,12 @@ defmodule Astarte.Cases.FDOSession do
   alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
-  import Astarte.Helpers.Database
-  import Astarte.Helpers.FDO
+  import Astarte.Pairing.Helpers.Database
+  import Astarte.Pairing.Helpers.FDO
 
   using do
     quote do
-      import Astarte.Helpers.FDO
+      import Astarte.Pairing.Helpers.FDO
     end
   end
 
@@ -86,7 +86,7 @@ defmodule Astarte.Cases.FDOSession do
         "RSA3072" -> :rs384
       end
 
-    {:ok, namespace} = Secrets.create_namespace(context.realm_name, key_alg)
+    {:ok, namespace} = Secrets.create_fdo_namespace(context.realm_name, key_alg)
 
     Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
 

@@ -66,7 +66,7 @@ type InterfaceOrInterfaceNameParams =
 // Wrap phoenix lib calls in promise for async handling
 async function openNewSocketConnection(
   connectionParams: { socketUrl: string; realm: string; token: string },
-  onErrorHanlder: () => void,
+  onErrorHandler: () => void,
   onCloseHandler: () => void,
 ): Promise<Socket> {
   const { socketUrl, realm, token } = connectionParams;
@@ -78,7 +78,7 @@ async function openNewSocketConnection(
         token,
       },
     });
-    phoenixSocket.onError(onErrorHanlder);
+    phoenixSocket.onError(onErrorHandler);
     phoenixSocket.onClose(onCloseHandler);
     phoenixSocket.onOpen(() => {
       resolve(phoenixSocket);

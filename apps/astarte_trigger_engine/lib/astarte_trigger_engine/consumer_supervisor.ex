@@ -24,7 +24,6 @@ defmodule Astarte.TriggerEngine.ConsumerSupervisor do
   # Automatically defines child_spec/1
   use Supervisor
   require Logger
-  alias Astarte.TriggerEngine.Config
 
   alias Astarte.TriggerEngine.AMQPConsumer.{AMQPConsumerSupervisor, AMQPConsumerTracker}
 
@@ -44,9 +43,6 @@ defmodule Astarte.TriggerEngine.ConsumerSupervisor do
     children = [
       AMQPConsumerSupervisor,
       {Registry, [keys: :unique, name: Registry.AMQPConsumerRegistry]},
-      {ExRabbitPool.PoolSupervisor,
-       rabbitmq_config: Config.amqp_consumer_options!(),
-       connection_pools: [Config.events_consumer_pool_config!()]},
       AMQPConsumerTracker
     ]
 

@@ -1,0 +1,14 @@
+---
+source: astarte-e2e/src/room.rs
+expression: trigger
+---
+{
+  "type": "data_trigger",
+  "on": "incoming_data",
+  "device_id": "0hwoPrYHQvqmZGQuEc6Wng",
+  "interface_name": "*",
+  "interface_major": 0,
+  "match_path": "/*",
+  "value_match_operator": "*",
+  "known_value": ""
+}

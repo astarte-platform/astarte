@@ -24,8 +24,6 @@ defmodule Astarte.Pairing.Info do
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Info.DeviceInfo
 
-  require Logger
-
   @doc """
   Retrieves device info.
   """

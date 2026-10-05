@@ -22,13 +22,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler do
   @moduledoc """
   This module handles the capabilities of the data updater, such as purge properties compression format.
   """
+
   alias Astarte.Core.Device.Capabilities
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TimeBasedActions
-
-  require Logger
 
   @doc """
   Handles the capabilities message from a device.

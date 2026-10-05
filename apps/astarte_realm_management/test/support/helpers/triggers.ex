@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Triggers do
+defmodule Astarte.RealmManagement.Helpers.Triggers do
   @moduledoc false
   alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.TriggersHandler

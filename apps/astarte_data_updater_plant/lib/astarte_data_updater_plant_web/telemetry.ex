@@ -34,8 +34,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       {Task.Supervisor, name: Astarte.DataUpdaterPlantWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()},
-      {Plug.Cowboy,
-       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: Config.port!()]}
+      {Bandit, scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, port: Config.port!()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -215,6 +214,29 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       counter("astarte.data_updater_plant.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
+      ),
+
+      # encrypted endpoints metrics
+      last_value("astarte.data_updater_plant.realm_dek.status",
+        measurement: fn measurements, _metadata ->
+          case measurements.status do
+            :not_set -> 0
+            :set -> 1
+            :failed -> 2
+          end
+        end,
+        tags: [:realm],
+        description:
+          "Status of the DEK for the realm: 0 if not set, 1 if set, 2 if in failure state"
+      ),
+      counter("astarte.data_updater_plant.device_key_agreement.succeeded.count",
+        tags: [:realm]
+      ),
+      counter("astarte.data_updater_plant.device_key_agreement.failed.count",
+        tags: [:realm, :reason]
+      ),
+      counter("astarte.data_updater_plant.encrypted_message_handling_failure.count",
+        tags: [:realm, :reason]
       )
     ]
   end

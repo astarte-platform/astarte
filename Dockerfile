@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim AS builder
+FROM hexpm/elixir:1.20.2-erlang-28.5.0.3-debian-trixie-20260623-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -19,44 +19,44 @@ ARG BUILD_ENV=prod
 ARG SERVICE
 
 ENV MIX_ENV=$BUILD_ENV
-ENV ASTARTE_LIBRARIES_PATH=libraries
 
 # Cache elixir deps
-COPY apps/$SERVICE/mix.exs ./
-COPY apps/$SERVICE/mix.lock ./
-COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
-COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
-COPY libs/astarte_config/mix.exs libraries/astarte_config/mix.exs
-COPY libs/astarte_config/mix.lock libraries/astarte_config/mix.lock
-COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
-COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
-COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
-COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-COPY libs/astarte_fdo/mix.exs libraries/astarte_fdo/mix.exs
-COPY libs/astarte_fdo/mix.lock libraries/astarte_fdo/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
-COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
-COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
-COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
-COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
-COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
-COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
-RUN mix do deps.get, deps.compile --skip-local-deps
+COPY mix.exs mix.lock ./
+COPY apps/$SERVICE/mix.exs ./apps/$SERVICE/mix.exs
+COPY apps/astarte_fdo/mix.exs ./apps/astarte_fdo/mix.exs
+COPY apps/astarte_rpc/mix.exs ./apps/astarte_rpc/mix.exs
+COPY apps/astarte_secrets/mix.exs ./apps/astarte_secrets/mix.exs
+COPY apps/astarte_events/mix.exs ./apps/astarte_events/mix.exs
+COPY apps/astarte_config/mix.exs ./apps/astarte_config/mix.exs
+COPY apps/astarte_data_access/mix.exs ./apps/astarte_data_access/mix.exs
+COPY apps/astarte_generators/mix.exs ./apps/astarte_generators/mix.exs
+COPY apps/astarte_fdo_core/mix.exs ./apps/astarte_fdo_core/mix.exs
+COPY apps/astarte_core/mix.exs ./apps/astarte_core/mix.exs
+RUN mix do deps.get + deps.compile --skip-local-deps
 
-COPY libs ./libraries
+COPY apps/astarte_fdo apps/astarte_fdo
+COPY apps/astarte_adapters apps/astarte_adapters
+COPY apps/astarte_rpc apps/astarte_rpc
+COPY apps/astarte_secrets apps/astarte_secrets
+COPY apps/astarte_events apps/astarte_events
+COPY apps/astarte_config apps/astarte_config
+COPY apps/astarte_data_access apps/astarte_data_access
+COPY apps/astarte_fdo_core apps/astarte_fdo_core
+COPY apps/astarte_core apps/astarte_core
+
 RUN mix deps.compile
 
 # Add all the rest
-COPY apps/$SERVICE .
+COPY apps/$SERVICE apps/$SERVICE
+COPY rel ./rel
+COPY config ./config
 
 # Build and release
-RUN mix do compile, release
+RUN mix compile
+RUN mix release $SERVICE
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:bookworm-20230612-slim
+FROM debian:trixie-20260623-slim
 
 WORKDIR /app
 
