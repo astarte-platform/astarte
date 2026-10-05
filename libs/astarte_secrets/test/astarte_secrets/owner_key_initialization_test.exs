@@ -322,4 +322,39 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
                OwnerKeyInitialization.create_or_upload(opts, @sample_realm)
     end
   end
+
+  describe "OwnerKeyInitializationOptions.changeset/2 key_name validation" do
+    test "accepts names allowed by OpenBao" do
+      for key_name <- ["k", "owner_key", "owner-key.v1", "_a", "a..b", "3f5d6e1f42984587"] do
+        params = %{"action" => "upload", "key_name" => key_name, "key_data" => "data"}
+
+        changeset =
+          OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, params)
+
+        assert changeset.valid?, "expected #{inspect(key_name)} to be valid"
+      end
+    end
+
+    test "rejects names not allowed by OpenBao" do
+      for key_name <- [
+            "has space",
+            "trailing -",
+            "-leading",
+            "trailing.",
+            "a/b",
+            "a?b",
+            "a%20b",
+            "a@b",
+            "a\n"
+          ] do
+        params = %{"action" => "upload", "key_name" => key_name, "key_data" => "data"}
+
+        changeset =
+          OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, params)
+
+        refute changeset.valid?, "expected #{inspect(key_name)} to be invalid"
+        assert Keyword.has_key?(changeset.errors, :key_name)
+      end
+    end
+  end
 end
