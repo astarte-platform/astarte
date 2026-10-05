@@ -1,6 +1,6 @@
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,6 +68,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
             rest <- string(@utf8_except_newline, max_length: 127) do
       first <> rest
     end
+    |> filter(&(String.trim(&1) != ""))
   end
 
   defp maximum_capacity, do: integer(1..1_000_000)
