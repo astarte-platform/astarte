@@ -1,6 +1,6 @@
 # This file is part of Astarte.
 #
-# Copyright 2025 - 2026 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ defmodule Astarte.Core.Generators.MappingTest do
 
   import Astarte.Core.Generators.Mapping
 
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
 
   @moduletag :core
@@ -31,9 +32,22 @@ defmodule Astarte.Core.Generators.MappingTest do
     @describetag :success
     @describetag :ut
 
-    property "validate generator makes Mapping" do
+    property "generates mappings accepted by the Core changeset" do
       check all mapping <- mapping() do
+        interface_name = "com.example.Interface"
+
+        opts = [
+          interface_name: interface_name,
+          interface_major: 1,
+          interface_id: CQLUtils.interface_id(interface_name, 1),
+          interface_type: nil,
+          interface_aggregation: nil
+        ]
+
+        params = mapping |> Jason.encode!() |> Jason.decode!()
+
         assert is_struct(mapping, Mapping)
+        assert %Ecto.Changeset{valid?: true} = Mapping.changeset(%Mapping{}, params, opts)
       end
     end
 
