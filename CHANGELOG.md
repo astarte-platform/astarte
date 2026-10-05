@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- [astarte_realm_management] Bump xandra to 0.19.4 to improve reconnection to
+  Cassandra/ScyllaDB after a node restart.
+
 ## [1.3.4] - 2026-09-17
 
 ### Fixed
