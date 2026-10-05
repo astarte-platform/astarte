@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,8 +36,11 @@ defmodule Astarte.Core.Generators.Triggers.Policy.HandlerTest do
     @describetag :success
     @describetag :ut
 
-    property "validate triggers policy handler error_set" do
+    property "generates handlers accepted by the Core changeset" do
       check all handler <- handler() do
+        params = handler |> Jason.encode!() |> Jason.decode!()
+
+        assert %Ecto.Changeset{valid?: true} = Handler.changeset(%Handler{}, params)
         refute MapSet.new([]) == handler |> Handler.error_set()
       end
     end
