@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 - 2026 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,6 +119,16 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       check all endpoint <- endpoint() do
         expected_endpoint = endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
         assert expected_endpoint == endpoint_by_aggregation(:object, endpoint)
+      end
+    end
+  end
+
+  describe "interface generator" do
+    property "generates interfaces accepted by the Core changeset" do
+      check all interface <- interface() do
+        params = interface |> Jason.encode!() |> Jason.decode!()
+
+        assert %Ecto.Changeset{valid?: true} = Interface.changeset(%Interface{}, params)
       end
     end
   end
