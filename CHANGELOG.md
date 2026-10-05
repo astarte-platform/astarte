@@ -123,6 +123,12 @@ Includes changes from v1.3.4
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
 
+## [1.3.5] - 2026-10-05
+
+### Fixed
+
+- [astarte_data_updater_plant] Increase RPC server reliability. A new corner case has been fixed which resulted in the RPC server not being available
+
 ## [1.3.4] - 2026-09-17
 
 ### Fixed
