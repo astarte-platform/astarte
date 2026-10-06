@@ -76,6 +76,32 @@ defmodule Astarte.TestSuiteRealInterfaceContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealDeviceContextTest do
+  use Astarte.TestSuite,
+    instance: true,
+    interface: [interface_number: 1],
+    device: [device_number: 1]
+
+  alias Astarte.DataAccess.Device, as: DeviceData
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
+
+  @moduletag :integration
+  test "persists the generated device", %{
+    devices: devices,
+    interfaces: interfaces,
+    realms: realms
+  } do
+    [{_device_key, {%{device_id: device_id}, interface_id}}] = Map.to_list(devices)
+    {_interface, realm_id} = Map.fetch!(interfaces, interface_id)
+    {%{id: realm_name}, _instance_id} = Map.fetch!(realms, realm_id)
+
+    device = Repo.get!(DeviceData, device_id, prefix: RealmData.keyspace_name(realm_name))
+
+    assert device.device_id == device_id
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,

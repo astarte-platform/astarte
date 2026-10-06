@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,24 +19,61 @@
 defmodule Astarte.TestSuite.Helpers.Device do
   @moduledoc false
 
-  import Astarte.TestSuite.CaseContext,
-    only: [put!: 5, put_fixture: 3, reduce: 4, require_keys!: 3]
+  import Astarte.Core.Generators.Device, only: [device: 1]
+  import Astarte.DataAccess.Adapters.Device, only: [from_core_device_to_change: 1]
 
-  def devices(context) do
+  import Astarte.TestSuite.CaseContext,
+    only: [get!: 3, put!: 5, put_fixture: 3, reduce: 4]
+
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device, as: DeviceData
+  alias Astarte.DataAccess.Realms.Name, as: NameData
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
+
+  def devices(%{device_number: device_number} = context) do
     reduce(context, :interfaces, context, fn interface_id, interface, _realm_id, acc ->
-      device = device_for_interface(interface)
-      put!(acc, :devices, device.name, device, interface_id)
+      interface
+      |> devices_for_interface(device_number)
+      |> Enum.reduce(acc, fn %{encoded_id: encoded_id} = device, inner_acc ->
+        put!(inner_acc, :devices, encoded_id, device, interface_id)
+      end)
     end)
   end
 
-  def data(context) do
-    context
-    |> require_keys!([:interfaces_registered?, :devices], :device_data)
-    |> put_fixture(:device_data, %{devices_registered?: true})
+  def data(%{interfaces: interfaces} = context) do
+    results =
+      reduce(context, :devices, [], fn _device_id, device, interface_id, results ->
+        [persist_device!(context, interfaces, device, interface_id) | results]
+      end)
+
+    put_fixture(context, :device_data, %{
+      device_database_results: results,
+      devices_registered?: true
+    })
   end
 
-  # TODO: replace this mock device materialization with the real pipeline once
-  # the corresponding generator/persistence flow exists.
-  defp device_for_interface(interface),
-    do: %{name: interface.name <> ".device", interface_name: interface.name}
+  defp devices_for_interface(interface, device_number),
+    do:
+      device(interfaces: [interface])
+      |> Stream.uniq_by(& &1.device_id)
+      |> Enum.take(device_number)
+
+  defp persist_device!(context, interfaces, device, interface_id) do
+    {interface, realm_id} = Map.fetch!(interfaces, interface_id)
+    %{id: realm_name} = get!(context, :realms, realm_id)
+    keyspace = RealmData.keyspace_name(realm_name)
+
+    %{device: device_changes, names: name_changes} =
+      device
+      |> Map.put(:grouped_devices, [])
+      |> Map.put(:interfaces, [interface])
+      |> from_core_device_to_change()
+
+    opts = [prefix: keyspace, consistency: Consistency.device_info(:write)]
+    device_result = Repo.insert!(struct(DeviceData, device_changes), opts)
+    name_results = Enum.map(name_changes, &Repo.insert!(struct(NameData, &1), opts))
+
+    %{device: device_result, names: name_results}
+  end
 end

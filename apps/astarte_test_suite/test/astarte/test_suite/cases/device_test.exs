@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,30 +25,43 @@ defmodule Astarte.TestSuite.Cases.DeviceTest do
 
   alias Astarte.TestSuite.Cases.Device, as: DeviceCase
 
-  test "normalizes device defaults" do
-    assert DeviceCase.normalize_config!([], interface_context()).devices
-           |> Map.fetch!("interface.device")
-           |> elem(0)
-           |> Map.fetch!(:name) ==
-             "interface.device"
-  end
+  describe "normalize_config!/2" do
+    test "normalizes device defaults" do
+      context = DeviceCase.normalize_config!([], interface_context())
 
-  test "normalizes device configuration" do
-    devices = %{"device-2" => {%{name: "device-2"}, "interface"}}
+      assert context.device_number == 1
+      assert map_size(context.devices) == 1
 
-    assert DeviceCase.normalize_config!(
-             [devices: devices, allow_missing_credentials: true],
-             interface_context()
-           ).devices
-           |> Map.fetch!("device-2")
-           |> elem(0)
-           |> Map.fetch!(:name) == "device-2"
+      for {encoded_id, {%{encoded_id: generated_id}, owner_id}} <- context.devices do
+        assert encoded_id == generated_id
+        assert owner_id == "interface"
+      end
+    end
+
+    test "normalizes device configuration" do
+      devices = %{"device-2" => {%{name: "device-2"}, "interface"}}
+
+      context =
+        DeviceCase.normalize_config!(
+          [device_number: 2, devices: devices, allow_missing_credentials: true],
+          interface_context()
+        )
+
+      assert context.device_number == 2
+      assert context.devices == devices
+      assert context.allow_missing_credentials
+    end
   end
 
   defp interface_context do
     %{}
     |> put!(:instances, "astarte1", "astarte1", nil)
     |> put!(:realms, "realm1", %{id: "realm1", instance_id: "astarte1"}, "astarte1")
-    |> put!(:interfaces, "interface", %Interface{name: "interface"}, "realm1")
+    |> put!(
+      :interfaces,
+      "interface",
+      %Interface{name: "interface", major_version: 1, minor_version: 0},
+      "realm1"
+    )
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ defmodule Astarte.TestSuite.Cases.Device do
   use Astarte.TestSuite.Case,
     name: :device,
     params: [
+      device_number: [default: 1, type: :positive_integer],
       devices: [default: {DeviceHelper, :devices}, type: :graph, graph_of: :map],
       allow_missing_credentials: [default: false, type: :boolean]
     ]
