@@ -94,6 +94,7 @@ defmodule Astarte.TestSuiteTest do
   test "planner exposes graph keys" do
     assert :group in Astarte.TestSuite.graph_keys()
     assert :policy in Astarte.TestSuite.graph_keys()
+    assert :trigger in Astarte.TestSuite.graph_keys()
   end
 
   test "planner deduces policy ancestors" do
@@ -102,6 +103,15 @@ defmodule Astarte.TestSuiteTest do
              :instance,
              :realm,
              :policy
+           ]
+  end
+
+  test "planner deduces trigger ancestors" do
+    assert Astarte.TestSuite.plan!(trigger: true).load_order == [
+             :common,
+             :instance,
+             :realm,
+             :trigger
            ]
   end
 

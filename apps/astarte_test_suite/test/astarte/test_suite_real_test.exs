@@ -172,6 +172,50 @@ defmodule Astarte.TestSuiteRealPolicyContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealTriggerContextTest do
+  use Astarte.TestSuite,
+    instance: true,
+    policy: true,
+    trigger: [trigger_number: 1]
+
+  alias Astarte.Core.Triggers.Trigger
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+
+  @moduletag :integration
+  test "persists the generated trigger and its indexes", %{
+    realms: realms,
+    triggers: triggers
+  } do
+    [{_trigger_id, {%Trigger{} = trigger, realm_id}}] = Map.to_list(triggers)
+    %{name: name, policy: policy, trigger_uuid: trigger_uuid} = trigger
+    {%{id: realm_name}, _instance_id} = Map.fetch!(realms, realm_id)
+    prefix = RealmData.keyspace_name(realm_name)
+    trigger_uuid_string = UUID.binary_to_string!(trigger_uuid)
+
+    assert {:ok, encoded_trigger} =
+             KvStore.fetch_value("triggers", trigger_uuid_string, :binary, prefix: prefix)
+
+    assert {:ok, ^trigger_uuid} =
+             KvStore.fetch_value("triggers-by-name", name, :uuid, prefix: prefix)
+
+    assert {:ok, ^trigger_uuid} =
+             KvStore.fetch_value(
+               "triggers-with-policy-#{policy}",
+               trigger_uuid_string,
+               :uuid,
+               prefix: prefix
+             )
+
+    assert {:ok, ^policy} =
+             KvStore.fetch_value("trigger_to_policy", trigger_uuid_string, :binary,
+               prefix: prefix
+             )
+
+    assert encoded_trigger == Trigger.encode(trigger)
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,

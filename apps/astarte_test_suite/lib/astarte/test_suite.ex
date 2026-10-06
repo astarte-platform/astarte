@@ -54,6 +54,7 @@ defmodule Astarte.TestSuite do
           -> device
             -> group
         -> policy
+        -> trigger
       -> conn
         -> auth_conn
     -> other
@@ -80,8 +81,8 @@ defmodule Astarte.TestSuite do
   The suite only forwards `[group_number: 4]`. `Astarte.TestSuite.Cases.Group`
   validates the value and writes the normalized fields into the ExUnit context.
 
-  Graph-backed collections such as `interfaces`, `devices`, `groups`, and
-  `policies` are stored as a single canonical map:
+  Graph-backed collections such as `interfaces`, `devices`, `groups`,
+  `policies`, and `triggers` are stored as a single canonical map:
 
       %{
         entity_id => {entity, owner_id}
@@ -135,6 +136,7 @@ defmodule Astarte.TestSuite do
   alias Astarte.TestSuite.Cases.Other, as: OtherCase
   alias Astarte.TestSuite.Cases.Policy, as: PolicyCase
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
+  alias Astarte.TestSuite.Cases.Trigger, as: TriggerCase
 
   @graph [
     common: [
@@ -163,6 +165,10 @@ defmodule Astarte.TestSuite do
     ],
     policy: [
       module: PolicyCase,
+      parents: [:realm]
+    ],
+    trigger: [
+      module: TriggerCase,
       parents: [:realm]
     ],
     conn: [
