@@ -22,7 +22,12 @@ defmodule Astarte.TestSuite.Cases.RealmTest do
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
 
   test "normalizes default realm count" do
-    assert RealmCase.normalize_config!([], instance_context()).realm_number == 1
+    context = RealmCase.normalize_config!([], instance_context())
+
+    assert context.realm_number == 1
+    assert context.realm_public_key_pem == nil
+    assert context.realm_device_registration_limit == nil
+    assert context.realm_datastream_maximum_storage_retention == nil
   end
 
   test "generates default realm names" do
@@ -47,6 +52,20 @@ defmodule Astarte.TestSuite.Cases.RealmTest do
              [realm_names: ["realm1"]],
              instance_context()
            ).realm_names == ["realm1"]
+  end
+
+  test "normalizes explicit persisted realm configuration" do
+    config = [
+      realm_public_key_pem: "public key",
+      realm_device_registration_limit: 10,
+      realm_datastream_maximum_storage_retention: 20
+    ]
+
+    context = RealmCase.normalize_config!(config, instance_context())
+
+    assert context.realm_public_key_pem == "public key"
+    assert context.realm_device_registration_limit == 10
+    assert context.realm_datastream_maximum_storage_retention == 20
   end
 
   test "rejects invalid realm count" do

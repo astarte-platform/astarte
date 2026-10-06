@@ -19,10 +19,13 @@
 defmodule Astarte.TestSuite.Helpers.RealmTest do
   use ExUnit.Case, async: true
 
+  import Ecto.Query
   import Astarte.Core.Realm, only: [valid_name?: 1]
 
   alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
 
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
   alias Astarte.TestSuite.Helpers.Realm, as: RealmHelper
@@ -37,6 +40,27 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
       assert length(context.realm_keyspaces) == 2
       assert Enum.all?(realm_names, &(&1 in RealmData.list_realm_names()))
       assert Enum.all?(realm_names, &Database.realm_initialized?/1)
+
+      for realm_name <- realm_names do
+        keyspace = RealmData.keyspace_name(realm_name)
+
+        realm =
+          RealmData
+          |> where([realm], realm.realm_name == ^realm_name)
+          |> Repo.one!(prefix: context.instance_keyspace)
+
+        assert realm.device_registration_limit == 10
+
+        assert KvStore.fetch_value("auth", "jwt_public_key_pem", :string, prefix: keyspace) ==
+                 {:ok, "public key"}
+
+        assert KvStore.fetch_value(
+                 "realm_config",
+                 "datastream_maximum_storage_retention",
+                 :integer,
+                 prefix: keyspace
+               ) == {:ok, 20}
+      end
     end
   end
 
@@ -72,6 +96,9 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
     context
     |> Map.merge(%{
       instance_database_ready?: true,
+      realm_public_key_pem: "public key",
+      realm_device_registration_limit: 10,
+      realm_datastream_maximum_storage_retention: 20,
       realms: %{
         first_realm => {%{id: first_realm, instance_id: instance_id}, instance_id},
         second_realm => {%{id: second_realm, instance_id: instance_id}, instance_id}

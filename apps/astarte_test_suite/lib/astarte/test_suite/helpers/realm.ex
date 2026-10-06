@@ -25,6 +25,7 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
   alias Astarte.DataAccess.Repo
 
@@ -69,6 +70,9 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
   def data(context) do
     instance_keyspace = Map.get(context, :instance_keyspace)
+    public_key_pem = Map.get(context, :realm_public_key_pem)
+    device_registration_limit = Map.get(context, :realm_device_registration_limit)
+    maximum_storage_retention = Map.get(context, :realm_datastream_maximum_storage_retention)
 
     realms =
       reduce(context, :realms, [], fn _realm_id, %{id: realm_name}, _instance_id, realms ->
@@ -76,7 +80,9 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
         create_keyspace!(keyspace)
         :ok = Database.migrate_realm(realm_name)
-        insert_realm!(realm_name)
+        insert_realm!(realm_name, instance_keyspace, device_registration_limit)
+        :ok = insert_public_key(keyspace, public_key_pem)
+        :ok = insert_maximum_storage_retention(keyspace, maximum_storage_retention)
 
         [{realm_name, keyspace, instance_keyspace} | realms]
       end)
@@ -120,10 +126,43 @@ defmodule Astarte.TestSuite.Helpers.Realm do
     |> Repo.query!()
   end
 
-  defp insert_realm!(realm_name) do
-    %RealmData{realm_name: realm_name}
+  defp insert_realm!(realm_name, instance_keyspace, device_registration_limit) do
+    %RealmData{
+      realm_name: realm_name,
+      device_registration_limit: device_registration_limit
+    }
     |> Repo.insert!(
-      prefix: RealmData.astarte_keyspace_name(),
+      prefix: instance_keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
+  end
+
+  defp insert_public_key(_keyspace, nil), do: :ok
+
+  defp insert_public_key(keyspace, public_key_pem) do
+    KvStore.insert(
+      %{
+        group: "auth",
+        key: "jwt_public_key_pem",
+        value: public_key_pem,
+        value_type: :string
+      },
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
+  end
+
+  defp insert_maximum_storage_retention(_keyspace, nil), do: :ok
+
+  defp insert_maximum_storage_retention(keyspace, maximum_storage_retention) do
+    KvStore.insert(
+      %{
+        group: "realm_config",
+        key: "datastream_maximum_storage_retention",
+        value: maximum_storage_retention,
+        value_type: :integer
+      },
+      prefix: keyspace,
       consistency: Consistency.domain_model(:write)
     )
   end

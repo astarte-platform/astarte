@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,10 @@ defmodule Astarte.TestSuite.Cases.Realm do
     params: [
       realm_number: [default: 1, type: :positive_integer],
       realm_names: [default: {RealmHelper, :realm_names}, list_of: :binary],
-      realms: [default: {RealmHelper, :realms}, type: :graph, graph_of: :map]
+      realms: [default: {RealmHelper, :realms}, type: :graph, graph_of: :map],
+      realm_public_key_pem: [default: nil, type: :binary],
+      realm_device_registration_limit: [default: nil, type: :integer],
+      realm_datastream_maximum_storage_retention: [default: nil, type: :integer]
     ]
 
   alias Astarte.TestSuite.Fixtures.Realm, as: RealmFixtures
