@@ -19,69 +19,42 @@
 defmodule Astarte.TestSuite.Helpers.RealmTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
   alias Astarte.TestSuite.Helpers.Realm, as: RealmHelper
 
-  @tag :integration
-  test "realm helper sets realms flag" do
-    assert context().realms_ready?
+  describe "data/1" do
+    @tag :integration
+    test "persists and migrates every realm" do
+      context = context()
+      realm_names = Map.keys(context.realms)
+
+      assert context.realms_ready?
+      assert length(context.realm_keyspaces) == 2
+      assert Enum.all?(realm_names, &(&1 in RealmData.list_realm_names()))
+      assert Enum.all?(realm_names, &Database.realm_initialized?/1)
+    end
   end
 
-  @tag :integration
-  test "realm helper creates one keyspace for each realm" do
-    assert context().realm_keyspaces |> length() == 2
+  describe "realms/1" do
+    test "creates canonical graph realms" do
+      assert RealmHelper.realms(realm_context()).realms == %{
+               "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"},
+               "realm2" => {%{id: "realm2", name: "realm2", instance_id: "astarte1"}, "astarte1"}
+             }
+    end
   end
 
-  @tag :integration
-  test "realm helper creates database statements for each realm" do
-    assert context().realm_database_statements |> length() == 20
-  end
-
-  @tag :integration
-  test "realm helper creates realm keyspace SQL" do
-    context = context()
-
-    assert context.realm_database_statements |> hd() =~
-             "CREATE KEYSPACE IF NOT EXISTS #{hd(context.realm_keyspaces)}"
-  end
-
-  @tag :integration
-  test "realm helper inserts realm into the instance keyspace" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 1) =~
-             "INSERT INTO #{context.instance_keyspace}.realms"
-  end
-
-  @tag :integration
-  test "realm helper creates devices table SQL" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 2) =~
-             "CREATE TABLE IF NOT EXISTS #{hd(context.realm_keyspaces)}.devices"
-  end
-
-  @tag :integration
-  test "realm helper creates interfaces table SQL" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 9) =~
-             "CREATE TABLE IF NOT EXISTS #{hd(context.realm_keyspaces)}.interfaces"
-  end
-
-  test "realm helper creates canonical graph realms" do
-    assert RealmHelper.realms(realm_context()).realms == %{
-             "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"},
-             "realm2" => {%{id: "realm2", name: "realm2", instance_id: "astarte1"}, "astarte1"}
-           }
-  end
-
-  test "realm helper creates the requested names" do
-    assert RealmHelper.realm_names(%{
-             realm_number: 2,
-             instances: %{"instance1" => {"instance1", nil}}
-           })
-           |> length() == 2
+  describe "realm_names/1" do
+    test "creates the requested names" do
+      assert RealmHelper.realm_names(%{
+               realm_number: 2,
+               instances: %{"instance1" => {"instance1", nil}}
+             })
+             |> length() == 2
+    end
   end
 
   defp context do
