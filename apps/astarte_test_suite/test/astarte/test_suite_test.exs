@@ -226,7 +226,10 @@ defmodule Astarte.TestSuiteTest do
   test "case-level validation succeeds for group parameters" do
     assert Map.take(
              GroupCase.normalize_config!([group_number: 4], %{
-               devices: %{"device" => {%{name: "device"}, "interface"}}
+               devices: %{
+                 "AAAAAAAAAAAAAAAAAAAAAA" =>
+                   {%{device_id: <<0::128>>, encoded_id: "AAAAAAAAAAAAAAAAAAAAAA"}, "interface"}
+               }
              }),
              [:group_name, :group_number]
            ) ==

@@ -102,6 +102,49 @@ defmodule Astarte.TestSuiteRealDeviceContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealGroupContextTest do
+  use Astarte.TestSuite,
+    instance: true,
+    interface: [interface_number: 1],
+    device: [device_number: 1],
+    group: [group_name: "test-group"]
+
+  import Ecto.Query
+
+  alias Astarte.DataAccess.Device, as: DeviceData
+  alias Astarte.DataAccess.Groups.GroupedDevice
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
+
+  @moduletag :integration
+  test "persists the generated group", %{
+    devices: devices,
+    groups: groups,
+    interfaces: interfaces,
+    realms: realms
+  } do
+    [{_group_key, {%{device_ids: [device_id], name: group_name}, device_key}}] =
+      Map.to_list(groups)
+
+    {_device, interface_id} = Map.fetch!(devices, device_key)
+    {_interface, realm_id} = Map.fetch!(interfaces, interface_id)
+    {%{id: realm_name}, _instance_id} = Map.fetch!(realms, realm_id)
+    keyspace = RealmData.keyspace_name(realm_name)
+
+    grouped_device =
+      from(grouped_device in GroupedDevice,
+        where: grouped_device.group_name == ^group_name
+      )
+      |> Repo.one!(prefix: keyspace)
+
+    device = Repo.get!(DeviceData, device_id, prefix: keyspace)
+
+    assert grouped_device.group_name == group_name
+    assert grouped_device.device_id == device_id
+    assert device.groups[group_name] == grouped_device.insertion_uuid
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,

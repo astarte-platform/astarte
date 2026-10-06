@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,20 +24,28 @@ defmodule Astarte.TestSuite.Helpers.GroupTest do
   alias Astarte.Core.Interface
   alias Astarte.TestSuite.Helpers.Group, as: GroupHelper
 
-  test "group helper sets group flag" do
-    assert context().groups_ready?
+  describe "groups/1" do
+    test "creates generated groups in the canonical graph" do
+      context = GroupHelper.groups(graph_context())
+
+      assert map_size(context.groups) == 1
+
+      [{group_id, {%{device_ids: [device_id], name: "group-4"}, owner_id}}] =
+        Map.to_list(context.groups)
+
+      assert group_id == owner_id <> ":group-4"
+      assert owner_id == "AAAAAAAAAAAAAAAAAAAAAA"
+      assert device_id == <<0::128>>
+    end
   end
 
-  test "group helper creates canonical graph groups" do
-    assert GroupHelper.groups(graph_context()).groups == %{
-             "device.group-4" =>
-               {%{id: "device.group-4", name: "group-4", device_id: "device"}, "device"}
-           }
-  end
+  describe "data/1" do
+    test "sets persistence state for an empty graph" do
+      context = GroupHelper.data(%{devices: %{}, groups: %{}, interfaces: %{}})
 
-  defp context do
-    %{devices_registered?: true, groups: %{"group1" => {%{id: "group1"}, "device"}}}
-    |> GroupHelper.data()
+      assert context.groups_ready?
+      assert context.group_database_results == []
+    end
   end
 
   defp graph_context do
@@ -45,7 +53,12 @@ defmodule Astarte.TestSuite.Helpers.GroupTest do
     |> put!(:instances, "astarte1", "astarte1", nil)
     |> put!(:realms, "realm1", %{id: "realm1", instance_id: "astarte1"}, "astarte1")
     |> put!(:interfaces, "interface", %Interface{name: "interface"}, "realm1")
-    |> put!(:devices, "device", %{name: "device"}, "interface")
+    |> put!(
+      :devices,
+      "AAAAAAAAAAAAAAAAAAAAAA",
+      %{device_id: <<0::128>>, encoded_id: "AAAAAAAAAAAAAAAAAAAAAA"},
+      "interface"
+    )
     |> Map.put(:group_name, "group-4")
   end
 end
