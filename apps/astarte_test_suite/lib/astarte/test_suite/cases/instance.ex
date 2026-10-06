@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,10 @@
 defmodule Astarte.TestSuite.Cases.Instance do
   @moduledoc false
 
-  alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
-
   use Astarte.TestSuite.Case,
     name: :instance,
     params: [
-      instance_cluster: [default: :xandra, type: :atom],
-      instance_number: [default: 1, type: :positive_integer],
-      instances: [default: {InstanceHelper, :instances}, type: :graph, graph_of: :binary]
+      instance_cluster: [default: :xandra, type: :atom]
     ]
 
   alias Astarte.TestSuite.Fixtures.Instance, as: InstanceFixtures
@@ -35,4 +31,6 @@ defmodule Astarte.TestSuite.Cases.Instance do
     {InstanceFixtures, :setup},
     {InstanceFixtures, :data}
   ]
+
+  setup {InstanceFixtures, :bind}
 end

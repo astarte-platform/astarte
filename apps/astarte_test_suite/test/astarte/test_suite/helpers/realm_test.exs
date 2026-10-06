@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
   end
 
   @tag :integration
-  test "realm helper creates keyspaces for each instance and realm" do
-    assert context().realm_keyspaces |> length() == 1
+  test "realm helper creates one keyspace for each realm" do
+    assert context().realm_keyspaces |> length() == 2
   end
 
   @tag :integration
@@ -50,7 +50,7 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
     context = context()
 
     assert Enum.at(context.realm_database_statements, 1) =~
-             "INSERT INTO #{hd(context.realm_keyspaces)}.realms"
+             "INSERT INTO #{context.instance_keyspace}.realms"
   end
 
   @tag :integration
@@ -76,37 +76,21 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
            }
   end
 
-  test "realm helper creates names for every instance" do
+  test "realm helper creates the requested names" do
     assert RealmHelper.realm_names(%{
              realm_number: 2,
-             instances: %{"a" => {"a", nil}, "b" => {"b", nil}}
+             instances: %{"instance1" => {"instance1", nil}}
            })
-           |> length() == 4
-  end
-
-  test "realm helper distributes realm names across instances" do
-    assert RealmHelper.realms(multi_instance_realm_context()).realms == %{
-             "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"},
-             "realm2" => {%{id: "realm2", name: "realm2", instance_id: "astarte2"}, "astarte2"}
-           }
-  end
-
-  test "realm helper ignores missing realm names for remaining instances" do
-    assert RealmHelper.realms(partial_realm_context()).realms == %{
-             "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"}
-           }
+           |> length() == 2
   end
 
   defp context do
-    instance_id = unique_instance_id()
     [first_realm, second_realm] = unique_realm_ids()
 
-    %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}}
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
+    context = %{} |> InstanceHelper.setup() |> InstanceHelper.data()
+    instance_id = context.instance_id
+
+    context
     |> Map.merge(%{
       instance_database_ready?: true,
       realms: %{
@@ -118,33 +102,10 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
   end
 
   defp realm_context do
-    %{instances: %{"astarte1" => {"astarte1", nil}}, realm_names: ["realm1", "realm2"]}
-  end
-
-  defp multi_instance_realm_context do
     %{
-      instances: %{
-        "astarte1" => {"astarte1", nil},
-        "astarte2" => {"astarte2", nil}
-      },
-      realm_names: ["realm1", "realm2"],
-      realm_number: 1
+      instances: %{"astarte1" => {"astarte1", nil}},
+      realm_names: ["realm1", "realm2"]
     }
-  end
-
-  defp partial_realm_context do
-    %{
-      instances: %{
-        "astarte1" => {"astarte1", nil},
-        "astarte2" => {"astarte2", nil}
-      },
-      realm_names: ["realm1"],
-      realm_number: 1
-    }
-  end
-
-  defp unique_instance_id do
-    "astarte" <> Integer.to_string(System.unique_integer([:positive]))
   end
 
   defp unique_realm_ids do

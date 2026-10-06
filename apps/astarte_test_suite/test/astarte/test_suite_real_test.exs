@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,10 @@
 #
 
 defmodule Astarte.TestSuiteRealRealmContextTest do
+  alias Astarte.DataAccess.Config
+
   use Astarte.TestSuite,
-    instance: [instances: %{"astarte_realm_test" => {"astarte_realm_test", nil}}],
+    instance: true,
     realm: [realm_names: ["realm1"]]
 
   @moduletag :integration
@@ -30,22 +32,30 @@ defmodule Astarte.TestSuiteRealRealmContextTest do
     assert context.common_booted?
   end
 
-  test "writes isolated instance into canonical graph context", context do
-    assert context.instances == %{"astarte_realm_test" => {"astarte_realm_test", nil}}
+  test "writes isolated instance into canonical graph context", %{
+    instance_id: instance_id,
+    instances: instances
+  } do
+    assert instances == %{instance_id => {instance_id, nil}}
   end
 
-  test "writes explicit realm into canonical graph context", context do
-    assert context.realms == %{
-             "realm1" =>
-               {%{id: "realm1", name: "realm1", instance_id: "astarte_realm_test"},
-                "astarte_realm_test"}
+  test "writes explicit realm into canonical graph context", %{
+    instance_id: instance_id,
+    realms: realms
+  } do
+    assert realms == %{
+             "realm1" => {%{id: "realm1", name: "realm1", instance_id: instance_id}, instance_id}
            }
+  end
+
+  test "binds the setup_all instance in the test process", %{instance_id: instance_id} do
+    assert Config.astarte_instance_id!() == instance_id
   end
 end
 
 defmodule Astarte.TestSuiteRealInterfaceContextTest do
   use Astarte.TestSuite,
-    instance: [instances: %{"astarte_iface_test" => {"astarte_iface_test", nil}}],
+    instance: true,
     interface: [interface_number: 1]
 
   @moduletag :integration
@@ -68,7 +78,7 @@ end
 
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
-    instance: [instances: %{"astarte_ext_test" => {"astarte_ext_test", nil}}],
+    instance: true,
     external_cases: [
       Astarte.TestSuiteTest.Cases.NoParamsCase,
       {Astarte.TestSuiteTest.Cases.ParamsCase, [value: 7]}

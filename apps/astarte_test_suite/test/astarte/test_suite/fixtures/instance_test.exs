@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,33 +19,38 @@
 defmodule Astarte.TestSuite.Fixtures.InstanceTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Database
   alias Astarte.TestSuite.Fixtures.Instance, as: InstanceFixtures
 
-  test "instance fixture sets setup flag" do
-    {:ok, context} = InstanceFixtures.setup(%{})
-    assert context.instance_setup?
-  end
+  describe "instance fixture" do
+    test "passes setup data through the instance helper" do
+      {:ok, %{instance_id: instance_id} = context} = InstanceFixtures.setup(%{})
 
-  test "instance fixture handles empty instances" do
-    {:ok, context} = InstanceFixtures.data(%{instances: %{}})
-    assert context.instance_database_ready?
-  end
+      assert context.instance_setup?
+      assert context.instances == %{instance_id => {instance_id, nil}}
+    end
 
-  @tag :integration
-  test "instance fixture sets database flag" do
-    assert context().instance_database_ready?
-  end
+    test "binds the setup process instance in another process" do
+      {:ok, %{instance_id: instance_id} = context} = InstanceFixtures.setup(%{})
 
-  defp context do
-    instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
+      configured_instance =
+        Task.async(fn ->
+          :ok = InstanceFixtures.bind(context)
+          Config.astarte_instance_id!()
+        end)
+        |> Task.await()
 
-    base = %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}}
-    }
+      assert configured_instance == instance_id
+    end
 
-    {:ok, context} = InstanceFixtures.setup(base)
-    {:ok, context} = InstanceFixtures.data(context)
-    context
+    @tag :integration
+    test "passes migrated database data through the instance helper" do
+      {:ok, context} = InstanceFixtures.setup(%{})
+      {:ok, context} = InstanceFixtures.data(context)
+
+      assert context.instance_database_ready?
+      assert Database.astarte_initialized?()
+    end
   end
 end

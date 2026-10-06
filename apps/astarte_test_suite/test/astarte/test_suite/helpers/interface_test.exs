@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
 
     assert context.interface_database_results
            |> hd()
-           |> Map.fetch!(:keyspace) == context.instances |> Map.keys() |> hd()
+           |> Map.fetch!(:keyspace) == context.realm_keyspaces |> hd()
   end
 
   @tag :integration
@@ -117,20 +117,13 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
   end
 
   defp persisted_context_multiple_interfaces do
-    instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
     realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
 
     interface1 = interface() |> Enum.at(0)
     interface2 = interface() |> Enum.at(1)
 
-    %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}},
-      realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
-    |> RealmHelper.data()
+    realm_id
+    |> instance_realm_context()
     |> put!(:interfaces, interface1.name, interface1, realm_id)
     |> put!(:interfaces, interface2.name, interface2, realm_id)
     |> InterfaceHelper.data()
@@ -151,7 +144,6 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
   end
 
   defp persisted_graph_context do
-    instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
     realm_id = "realm" <> Integer.to_string(System.unique_integer([:positive]))
 
     interface = core_interface()
@@ -159,15 +151,20 @@ defmodule Astarte.TestSuite.Helpers.InterfaceTest do
     interface_key =
       interface_name_to_table_name(interface.name, interface.major_version)
 
-    %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}},
-      realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
-    |> RealmHelper.data()
+    realm_id
+    |> instance_realm_context()
     |> put!(:interfaces, interface_key, interface, realm_id)
+  end
+
+  defp instance_realm_context(realm_id) do
+    context = %{} |> InstanceHelper.setup() |> InstanceHelper.data()
+    instance_id = context.instance_id
+
+    context
+    |> Map.put(:realms, %{
+      realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}
+    })
+    |> RealmHelper.data()
   end
 
   # TODO: use the procedure in `astarte_data_access` asap

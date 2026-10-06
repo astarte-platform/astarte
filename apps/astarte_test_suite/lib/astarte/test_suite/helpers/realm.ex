@@ -72,11 +72,12 @@ defmodule Astarte.TestSuite.Helpers.Realm do
                                                 realm,
                                                 _instance_id,
                                                 {realm_entries, keyspaces, statements} ->
-        keyspace = realm_keyspace(realm)
+        astarte_keyspace = RealmData.astarte_keyspace_name()
+        realm_keyspace = realm_keyspace(realm)
 
         {
-          realm_entries ++ [{keyspace, realm.id}],
-          append_keyspace(keyspaces, keyspace),
+          realm_entries ++ [{astarte_keyspace, realm.id}],
+          keyspaces ++ [realm_keyspace],
           statements ++ realm_database_statements_for(realm)
         }
       end)
@@ -85,6 +86,7 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
     on_exit(fn ->
       Enum.each(realm_entries, &delete_realm/1)
+      Enum.each(keyspaces, &cleanup_keyspace/1)
     end)
 
     context
@@ -108,16 +110,17 @@ defmodule Astarte.TestSuite.Helpers.Realm do
   defp realm_entry(instance_id, realm_name),
     do: %{id: realm_name, name: realm_name, instance_id: instance_id}
 
-  defp realm_database_statements_for(%{instance_id: instance_id, id: realm_id}) do
-    keyspace = instance_id
+  defp realm_database_statements_for(%{id: realm_id}) do
+    astarte_keyspace = RealmData.astarte_keyspace_name()
+    realm_keyspace = RealmData.keyspace_name(realm_id)
 
     [
-      create_keyspace_statement(keyspace),
-      insert_realm_statement(keyspace, realm_id)
-    ] ++ realm_table_statements(keyspace)
+      create_keyspace_statement(realm_keyspace),
+      insert_realm_statement(astarte_keyspace, realm_id)
+    ] ++ realm_table_statements(realm_keyspace)
   end
 
-  defp realm_keyspace(%{instance_id: instance_id}), do: instance_id
+  defp realm_keyspace(%{id: realm_id}), do: RealmData.keyspace_name(realm_id)
 
   defp realm_table_statements(keyspace) do
     [
@@ -331,16 +334,14 @@ defmodule Astarte.TestSuite.Helpers.Realm do
     |> String.trim()
   end
 
-  defp append_keyspace(keyspaces, keyspace) do
-    case keyspace in keyspaces do
-      true -> keyspaces
-      false -> keyspaces ++ [keyspace]
-    end
-  end
-
   defp delete_realm({keyspace, realm_name}) do
     RealmData
     |> where([realm], realm.realm_name == ^realm_name)
     |> Repo.safe_delete_all(prefix: keyspace)
+  end
+
+  defp cleanup_keyspace(keyspace) do
+    "DROP KEYSPACE IF EXISTS #{keyspace};"
+    |> Repo.query!()
   end
 end

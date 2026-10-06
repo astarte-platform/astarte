@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,50 +21,25 @@ defmodule Astarte.TestSuite.Cases.InstanceTest do
 
   alias Astarte.TestSuite.Cases.Instance, as: InstanceCase
 
-  test "normalizes default cluster" do
-    assert InstanceCase.normalize_config!([]).instance_cluster == :xandra
-  end
-
-  test "normalizes default instance count" do
-    assert InstanceCase.normalize_config!([]).instance_number == 1
-  end
-
-  test "generates default instances" do
-    assert InstanceCase.normalize_config!(instance_number: 2).instances
-           |> map_size() == 2
-  end
-
-  test "keeps explicit instances" do
-    instances = %{"astarte1" => {"astarte1", nil}}
-
-    assert InstanceCase.normalize_config!(instances: instances).instances == instances
-  end
-
-  test "rejects invalid cluster" do
-    assert_raise ArgumentError, ~r/:instance expects :instance_cluster to be an atom/, fn ->
-      InstanceCase.normalize_config!(instance_cluster: "xandra")
+  describe "instance configuration" do
+    test "normalizes the default cluster" do
+      assert InstanceCase.normalize_config!([]).instance_cluster == :xandra
     end
-  end
 
-  test "rejects invalid instance_number" do
-    assert_raise ArgumentError,
-                 ~r/:instance expects :instance_number to be a positive integer/,
-                 fn ->
-                   InstanceCase.normalize_config!(instance_number: "2")
-                 end
-  end
+    test "normalizes an explicit cluster" do
+      assert InstanceCase.normalize_config!(instance_cluster: :other).instance_cluster == :other
+    end
 
-  test "rejects invalid instances" do
-    assert_raise ArgumentError,
-                 ~r/:instance expects :instances to be a canonical graph map/,
-                 fn ->
-                   InstanceCase.normalize_config!(instances: [:not_a_map])
-                 end
-  end
+    test "rejects an invalid cluster" do
+      assert_raise ArgumentError, ~r/:instance expects :instance_cluster to be an atom/, fn ->
+        InstanceCase.normalize_config!(instance_cluster: "xandra")
+      end
+    end
 
-  test "rejects unknown configuration keys" do
-    assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
-      InstanceCase.normalize_config!(unknown_key: true)
+    test "rejects instance parameters" do
+      assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
+        InstanceCase.normalize_config!(instances: %{})
+      end
     end
   end
 end
