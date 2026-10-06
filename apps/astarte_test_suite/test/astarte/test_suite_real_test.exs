@@ -305,6 +305,31 @@ defmodule Astarte.TestSuiteRealSimpleTriggerContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealAuthConnContextTest do
+  alias Astarte.TestSuiteTest.AuthConfig
+
+  use Astarte.TestSuite,
+    conn: [conn: %Plug.Conn{}],
+    auth_conn: [
+      claim: %{scope: "realm"},
+      jwt: "token",
+      jwt_public_key_module: AuthConfig,
+      jwt_public_key_pem: "public key"
+    ]
+
+  @moduletag :integration
+  describe "authenticated connection context" do
+    test "preserves the connection and binds the JWT public key", %{
+      auth_conn: auth_conn,
+      conn: conn
+    } do
+      assert Plug.Conn.get_req_header(conn, "authorization") == []
+      assert Plug.Conn.get_req_header(auth_conn, "authorization") == ["bearer token"]
+      assert AuthConfig.jwt_public_key_pem() == {:ok, "public key"}
+    end
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,

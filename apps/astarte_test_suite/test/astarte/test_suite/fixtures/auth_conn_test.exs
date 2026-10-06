@@ -22,6 +22,7 @@ defmodule Astarte.TestSuite.Fixtures.AuthConnTest do
   alias Plug.Conn
 
   alias Astarte.TestSuite.Fixtures.AuthConn, as: AuthConnFixtures
+  alias Astarte.TestSuiteTest.AuthConfig
 
   describe "setup/1" do
     test "preserves conn and adds the authenticated connection" do
@@ -31,6 +32,18 @@ defmodule Astarte.TestSuite.Fixtures.AuthConnTest do
       assert context.conn == conn
       assert Plug.Conn.get_req_header(context.auth_conn, "authorization") == ["bearer token"]
       assert context.auth_conn_setup?
+    end
+  end
+
+  describe "bind/1" do
+    test "binds the configured public key in the test process" do
+      assert :ok =
+               AuthConnFixtures.bind(%{
+                 jwt_public_key_module: AuthConfig,
+                 jwt_public_key_pem: "public key"
+               })
+
+      assert AuthConfig.jwt_public_key_pem() == {:ok, "public key"}
     end
   end
 end

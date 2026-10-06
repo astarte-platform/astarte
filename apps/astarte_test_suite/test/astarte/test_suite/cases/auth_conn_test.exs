@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,47 +21,67 @@ defmodule Astarte.TestSuite.Cases.AuthConnTest do
 
   alias Astarte.TestSuite.Cases.AuthConn, as: AuthConnCase
 
-  test "requires auth_conn configuration" do
-    assert_raise ArgumentError, ~r/:auth_conn requires :jwt to be configured/, fn ->
-      AuthConnCase.normalize_config!([])
+  describe "normalize_config!/1" do
+    test "requires auth_conn configuration" do
+      assert_raise ArgumentError, ~r/:auth_conn requires :jwt to be configured/, fn ->
+        AuthConnCase.normalize_config!([])
+      end
     end
-  end
 
-  test "requires the auth_conn claim configuration" do
-    assert_raise ArgumentError, ~r/:auth_conn requires :claim to be configured/, fn ->
-      AuthConnCase.normalize_config!(jwt: "token")
+    test "requires the auth_conn claim configuration" do
+      assert_raise ArgumentError, ~r/:auth_conn requires :claim to be configured/, fn ->
+        AuthConnCase.normalize_config!(jwt: "token")
+      end
     end
-  end
 
-  test "normalizes auth_conn configuration" do
-    assert AuthConnCase.normalize_config!(jwt: "token", claim: %{scope: "realm"}) == %{
-             jwt: "token",
-             claim: %{scope: "realm"}
-           }
-  end
-
-  test "rejects an invalid auth_conn jwt" do
-    assert_raise ArgumentError, ~r/:auth_conn expects :jwt to be a binary/, fn ->
-      AuthConnCase.normalize_config!(jwt: 1, claim: %{})
+    test "normalizes auth_conn configuration" do
+      assert AuthConnCase.normalize_config!(jwt: "token", claim: %{scope: "realm"}) == %{
+               claim: %{scope: "realm"},
+               jwt: "token",
+               jwt_public_key_module: nil,
+               jwt_public_key_pem: nil
+             }
     end
-  end
 
-  test "rejects an invalid auth_conn claim" do
-    assert_raise ArgumentError, ~r/:auth_conn expects :claim to be a map/, fn ->
-      AuthConnCase.normalize_config!(jwt: "token", claim: "realm")
+    test "normalizes the JWT public key configuration" do
+      assert AuthConnCase.normalize_config!(
+               jwt: "token",
+               claim: %{scope: "realm"},
+               jwt_public_key_module: Astarte.TestSuiteTest.AuthConfig,
+               jwt_public_key_pem: "public key"
+             ) == %{
+               claim: %{scope: "realm"},
+               jwt: "token",
+               jwt_public_key_module: Astarte.TestSuiteTest.AuthConfig,
+               jwt_public_key_pem: "public key"
+             }
     end
-  end
 
-  test "keeps an explicit nil auth_conn configuration" do
-    assert AuthConnCase.normalize_config!(jwt: nil, claim: nil) == %{
-             jwt: nil,
-             claim: nil
-           }
-  end
+    test "rejects an invalid auth_conn jwt" do
+      assert_raise ArgumentError, ~r/:auth_conn expects :jwt to be a binary/, fn ->
+        AuthConnCase.normalize_config!(jwt: 1, claim: %{})
+      end
+    end
 
-  test "rejects removed auth_conn configuration" do
-    assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
-      AuthConnCase.normalize_config!(token_ttl: 60)
+    test "rejects an invalid auth_conn claim" do
+      assert_raise ArgumentError, ~r/:auth_conn expects :claim to be a map/, fn ->
+        AuthConnCase.normalize_config!(jwt: "token", claim: "realm")
+      end
+    end
+
+    test "keeps an explicit nil auth_conn configuration" do
+      assert AuthConnCase.normalize_config!(jwt: nil, claim: nil) == %{
+               claim: nil,
+               jwt: nil,
+               jwt_public_key_module: nil,
+               jwt_public_key_pem: nil
+             }
+    end
+
+    test "rejects removed auth_conn configuration" do
+      assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
+        AuthConnCase.normalize_config!(token_ttl: 60)
+      end
     end
   end
 end

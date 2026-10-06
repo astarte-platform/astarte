@@ -31,4 +31,21 @@ defmodule Astarte.TestSuite.Helpers.AuthConn do
     |> Map.put(:auth_conn, auth_conn)
     |> put_fixture(:auth_conn, %{auth_conn_setup?: true})
   end
+
+  @spec bind(map()) :: :ok
+  def bind(%{jwt_public_key_module: nil, jwt_public_key_pem: nil}), do: :ok
+
+  def bind(%{jwt_public_key_module: nil}), do: raise_incomplete_public_key_configuration!()
+  def bind(%{jwt_public_key_pem: nil}), do: raise_incomplete_public_key_configuration!()
+
+  def bind(%{jwt_public_key_module: module, jwt_public_key_pem: public_key_pem}) do
+    Mimic.set_mimic_private()
+    Mimic.stub(module, :jwt_public_key_pem, fn -> {:ok, public_key_pem} end)
+    :ok
+  end
+
+  defp raise_incomplete_public_key_configuration! do
+    raise ArgumentError,
+          ":auth_conn expects :jwt_public_key_module and :jwt_public_key_pem to be configured together"
+  end
 end

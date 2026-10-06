@@ -23,4 +23,7 @@ defmodule Astarte.TestSuite.Fixtures.AuthConn do
 
   @spec setup(map()) :: map()
   def setup(context), do: AuthConnHelper.setup(context)
+
+  @spec bind(map()) :: :ok
+  def bind(context), do: AuthConnHelper.bind(context)
 end
