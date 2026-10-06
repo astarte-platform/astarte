@@ -55,6 +55,7 @@ defmodule Astarte.TestSuite do
             -> group
         -> policy
         -> trigger
+          -> simple_trigger
       -> conn
         -> auth_conn
     -> other
@@ -82,7 +83,8 @@ defmodule Astarte.TestSuite do
   validates the value and writes the normalized fields into the ExUnit context.
 
   Graph-backed collections such as `interfaces`, `devices`, `groups`,
-  `policies`, and `triggers` are stored as a single canonical map:
+  `policies`, `triggers`, and `simple_triggers` are stored as a single canonical
+  map:
 
       %{
         entity_id => {entity, owner_id}
@@ -136,6 +138,7 @@ defmodule Astarte.TestSuite do
   alias Astarte.TestSuite.Cases.Other, as: OtherCase
   alias Astarte.TestSuite.Cases.Policy, as: PolicyCase
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
+  alias Astarte.TestSuite.Cases.SimpleTrigger, as: SimpleTriggerCase
   alias Astarte.TestSuite.Cases.Trigger, as: TriggerCase
 
   @graph [
@@ -170,6 +173,10 @@ defmodule Astarte.TestSuite do
     trigger: [
       module: TriggerCase,
       parents: [:realm]
+    ],
+    simple_trigger: [
+      module: SimpleTriggerCase,
+      parents: [:trigger]
     ],
     conn: [
       module: ConnCase,

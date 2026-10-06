@@ -28,7 +28,8 @@ defmodule Astarte.TestSuite.CaseContext do
     devices: [parent: :interfaces],
     groups: [parent: :devices],
     policies: [parent: :realms],
-    triggers: [parent: :realms]
+    triggers: [parent: :realms],
+    simple_triggers: [parent: :triggers]
   ]
 
   def put_case(context, case_name, values) when is_map(values) do

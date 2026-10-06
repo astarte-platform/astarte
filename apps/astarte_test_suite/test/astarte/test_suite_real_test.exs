@@ -216,6 +216,71 @@ defmodule Astarte.TestSuiteRealTriggerContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealSimpleTriggerContextTest do
+  use Astarte.TestSuite,
+    instance: true,
+    simple_trigger: true
+
+  import Ecto.Query
+
+  import Astarte.DataAccess.Adapters.Triggers.SimpleTrigger,
+    only: [from_core_simple_trigger_to_change: 1]
+
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Realms.SimpleTrigger, as: SimpleTriggerData
+  alias Astarte.DataAccess.Repo
+
+  @moduletag :integration
+  test "persists the generated simple trigger and its reference", %{
+    realms: realms,
+    simple_triggers: simple_triggers,
+    triggers: triggers
+  } do
+    [{_simple_trigger_id, {source, trigger_id}}] = Map.to_list(simple_triggers)
+    {_trigger, realm_id} = Map.fetch!(triggers, trigger_id)
+    {%{id: realm_name}, _instance_id} = Map.fetch!(realms, realm_id)
+    prefix = RealmData.keyspace_name(realm_name)
+
+    %{
+      simple_trigger: simple_trigger_changes,
+      simple_trigger_reference: %{
+        group: reference_group,
+        key: reference_key,
+        value: reference_value
+      }
+    } = from_core_simple_trigger_to_change(source)
+
+    %{
+      object_id: object_id,
+      object_type: object_type,
+      parent_trigger_id: parent_trigger_id,
+      simple_trigger_id: simple_trigger_id
+    } = simple_trigger_changes
+
+    stored_simple_trigger =
+      from(simple_trigger in SimpleTriggerData,
+        where:
+          simple_trigger.object_id == ^object_id and
+            simple_trigger.object_type == ^object_type and
+            simple_trigger.parent_trigger_id == ^parent_trigger_id and
+            simple_trigger.simple_trigger_id == ^simple_trigger_id
+      )
+      |> Repo.one!(prefix: prefix)
+
+    assert Map.take(stored_simple_trigger, Map.keys(simple_trigger_changes)) ==
+             simple_trigger_changes
+
+    assert {:ok, reference_value} ==
+             KvStore.fetch_value(
+               reference_group,
+               reference_key,
+               :binary,
+               prefix: prefix
+             )
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,
