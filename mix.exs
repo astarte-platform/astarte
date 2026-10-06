@@ -29,7 +29,8 @@ defmodule Astarte.MixProject do
 
   defp dialyzer do
     [
-      plt_add_apps: [:ex_unit, :astarte_realm_management]
+      plt_add_apps: [:ex_unit, :astarte_realm_management],
+      flags: [:no_opaque]
     ]
   end
 
