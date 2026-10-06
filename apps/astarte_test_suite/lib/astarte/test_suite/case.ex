@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,19 +35,25 @@ defmodule Astarte.TestSuite.Case do
   A case module should still own its contract by declaring accepted parameters
   and validation rules, while the mechanics are handled here.
 
-      defmodule Astarte.TestSuite.Cases.Instance do
+      defmodule Astarte.TestSuite.Cases.Interface do
+        alias Astarte.Core.Interface
+        alias Astarte.TestSuite.Helpers.Interface, as: InterfaceHelper
+
         use Astarte.TestSuite.Case,
-          name: :instance,
+          name: :interface,
           params: [
-            instance_cluster: [default: :xandra, type: :atom],
-            instances: [default: {InstanceHelper, :instances}, type: :graph, graph_of: :binary]
+            interface_number: [default: 3, type: :positive_integer],
+            interfaces: [
+              default: {InterfaceHelper, :interfaces},
+              type: :graph,
+              graph_of: Interface
+            ]
           ]
 
-        alias Astarte.TestSuite.Fixtures.Instance, as: InstanceFixtures
+        alias Astarte.TestSuite.Fixtures.Interface, as: InterfaceFixtures
 
         setup_all [
-          {InstanceFixtures, :setup},
-          {InstanceFixtures, :data}
+          {InterfaceFixtures, :data}
         ]
       end
 

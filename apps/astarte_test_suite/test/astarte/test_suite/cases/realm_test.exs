@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,31 +27,25 @@ defmodule Astarte.TestSuite.Cases.RealmTest do
 
   test "generates default realm names" do
     assert RealmCase.normalize_config!([realm_number: 2], instance_context()).realm_names
-           |> length() == 4
+           |> length() == 2
   end
 
   test "default realm names use generator path" do
     assert RealmCase.normalize_config!([], instance_context()).realm_names |> hd() |> is_binary()
   end
 
-  test "default realm names cover every instance" do
-    assert RealmCase.normalize_config!([realm_number: 2], instance_context()).realm_names
-           |> length() ==
-             4
-  end
-
-  test "default realms are unique across instances" do
+  test "generates default realms for the instance" do
     assert RealmCase.normalize_config!(
              [realm_number: 1],
              instance_context()
            ).realms
-           |> map_size() == 2
+           |> map_size() == 1
   end
 
   test "normalizes explicit realm names" do
     assert RealmCase.normalize_config!(
              [realm_names: ["realm1"]],
-             single_instance_context()
+             instance_context()
            ).realm_names == ["realm1"]
   end
 
@@ -63,18 +57,7 @@ defmodule Astarte.TestSuite.Cases.RealmTest do
 
   defp instance_context do
     %{
-      instances: %{
-        "astarte1" => {"astarte1", nil},
-        "astarte2" => {"astarte2", nil}
-      }
-    }
-  end
-
-  defp single_instance_context do
-    %{
-      instances: %{
-        "astarte1" => {"astarte1", nil}
-      }
+      instances: %{"instance1" => {"instance1", nil}}
     }
   end
 end

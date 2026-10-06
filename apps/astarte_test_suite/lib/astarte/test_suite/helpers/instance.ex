@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,68 +20,59 @@ defmodule Astarte.TestSuite.Helpers.Instance do
   @moduledoc false
 
   import ExUnit.Callbacks, only: [on_exit: 1]
-  import Astarte.TestSuite.CaseContext, only: [put!: 5, put_fixture: 3, reduce: 4]
+  import Astarte.TestSuite.CaseContext, only: [put!: 5, put_fixture: 3]
 
+  alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  def instances(%{instance_number: instance_number} = context) do
-    instance_names(instance_number)
-    |> Enum.reduce(context, fn instance_name, acc ->
-      put!(acc, :instances, instance_name, instance_name, nil)
-    end)
-  end
-
   def setup(context) do
-    put_fixture(context, :instance_setup, %{
+    instance_id = unique_instance_id()
+    bind_instance(instance_id)
+    instance_keyspace = Realm.astarte_keyspace_name()
+
+    context
+    |> put!(:instances, instance_id, instance_id, nil)
+    |> put_fixture(:instance_setup, %{
+      instance_id: instance_id,
+      instance_keyspace: instance_keyspace,
       instance_setup?: true
     })
   end
 
-  def data(context) do
-    {keyspaces, statements} =
-      reduce(context, :instances, {[], []}, fn _instance_id,
-                                               instance,
-                                               nil,
-                                               {keyspaces, statements} ->
-        keyspace = instance_keyspace(instance)
-
-        {
-          keyspaces ++ [keyspace],
-          statements ++ instance_database_statements_for(instance)
-        }
-      end)
-
-    Enum.each(statements, &Repo.query!/1)
+  def data(%{instance_keyspace: instance_keyspace} = context) do
+    statement = create_keyspace_statement(instance_keyspace)
+    Repo.query!(statement)
+    :ok = Database.migrate()
 
     on_exit(fn ->
-      Enum.each(keyspaces, &cleanup_keyspace/1)
+      cleanup_keyspace(instance_keyspace)
     end)
 
     context
     |> put_fixture(:instance_data, %{
-      instance_keyspaces: keyspaces,
-      instance_database_statements: statements,
+      instance_keyspaces: [instance_keyspace],
+      instance_database_statements: [statement],
       instance_database_ready?: true
     })
   end
 
-  defp instance_names(instance_number) do
-    1..instance_number
-    |> Enum.map(fn _index ->
-      System.unique_integer([:positive])
-      |> format_instance_name()
-    end)
+  def bind(%{instance_id: instance_id}) do
+    bind_instance(instance_id)
+    :ok
   end
 
-  @doc false
-  def format_instance_name(1), do: "astarte"
-  def format_instance_name(id), do: "astarte#{id}"
+  defp unique_instance_id do
+    "instance" <> Integer.to_string(System.unique_integer([:positive]))
+  end
 
-  defp instance_keyspace(instance_id), do: instance_id
+  defp bind_instance(instance_id) do
+    Mimic.set_mimic_private()
 
-  defp instance_database_statements_for(instance) do
-    keyspace = instance_keyspace(instance)
-    [create_keyspace_statement(keyspace), create_realms_table_statement(keyspace)]
+    Config
+    |> Mimic.stub(:astarte_instance_id, fn -> {:ok, instance_id} end)
+    |> Mimic.stub(:astarte_instance_id!, fn -> instance_id end)
   end
 
   defp create_keyspace_statement(keyspace) do
@@ -90,17 +81,6 @@ defmodule Astarte.TestSuite.Helpers.Instance do
       WITH
       replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
       durable_writes = true;
-    """
-    |> String.trim()
-  end
-
-  defp create_realms_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.realms (
-      realm_name varchar,
-      device_registration_limit bigint,
-      PRIMARY KEY (realm_name)
-    );
     """
     |> String.trim()
   end

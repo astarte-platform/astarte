@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,71 +19,58 @@
 defmodule Astarte.TestSuite.Helpers.InstanceTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Database
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
 
-  test "format_instance_name maps 1 to default astarte and others dynamically" do
-    assert InstanceHelper.format_instance_name(1) == "astarte"
-    assert InstanceHelper.format_instance_name(2) == "astarte2"
-    assert InstanceHelper.format_instance_name(99) == "astarte99"
+  describe "instance setup" do
+    test "creates one canonical instance" do
+      %{instance_id: instance_id} = context = InstanceHelper.setup(%{})
+
+      assert context.instance_setup?
+      assert context.instances == %{instance_id => {instance_id, nil}}
+    end
+
+    test "uses the unique instance in the data access configuration" do
+      %{instance_id: instance_id} = InstanceHelper.setup(%{})
+
+      assert Config.astarte_instance_id() == {:ok, instance_id}
+      assert Config.astarte_instance_id!() == instance_id
+    end
+
+    test "binds the setup_all instance in another process" do
+      %{instance_id: instance_id} = context = InstanceHelper.setup(%{})
+
+      configured_instance =
+        Task.async(fn ->
+          InstanceHelper.bind(context)
+          Config.astarte_instance_id!()
+        end)
+        |> Task.await()
+
+      assert configured_instance == instance_id
+    end
   end
 
-  test "instance helper sets setup flag" do
-    assert setup_context().instance_setup?
+  describe "instance database" do
+    @tag :integration
+    test "migrates the isolated astarte keyspace" do
+      context = migrated_context()
+
+      assert context.instance_database_ready?
+      assert context.instance_keyspaces == [context.instance_keyspace]
+      assert Database.astarte_initialized?()
+    end
+
+    @tag :integration
+    test "records the astarte keyspace creation" do
+      context = migrated_context()
+
+      assert context.instance_database_statements == [
+               "CREATE KEYSPACE IF NOT EXISTS #{context.instance_keyspace}\n  WITH\n  replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND\n  durable_writes = true;"
+             ]
+    end
   end
 
-  @tag :integration
-  test "instance helper sets database flag" do
-    assert context().instance_database_ready?
-  end
-
-  @tag :integration
-  test "instance helper creates one keyspace per instance" do
-    assert context().instance_keyspaces |> length() == 2
-  end
-
-  @tag :integration
-  test "instance helper creates keyspace statements for each instance" do
-    assert context().instance_database_statements |> length() == 4
-  end
-
-  @tag :integration
-  test "instance helper creates astarte keyspace SQL" do
-    context = context()
-
-    assert context.instance_database_statements |> hd() =~
-             "CREATE KEYSPACE IF NOT EXISTS #{hd(context.instance_keyspaces)}"
-  end
-
-  @tag :integration
-  test "instance helper creates realms table SQL" do
-    context = context()
-
-    assert Enum.at(context.instance_database_statements, 1) =~
-             "CREATE TABLE IF NOT EXISTS #{hd(context.instance_keyspaces)}.realms"
-  end
-
-  defp setup_context do
-    [first_instance, second_instance] = unique_instance_names()
-
-    %{
-      instance_cluster: :xandra,
-      instances: %{
-        first_instance => {first_instance, nil},
-        second_instance => {second_instance, nil}
-      }
-    }
-    |> InstanceHelper.setup()
-  end
-
-  defp context do
-    setup_context()
-    |> InstanceHelper.data()
-  end
-
-  defp unique_instance_names do
-    [
-      "astarte" <> Integer.to_string(System.unique_integer([:positive])),
-      "astarte" <> Integer.to_string(System.unique_integer([:positive]))
-    ]
-  end
+  defp migrated_context, do: %{} |> InstanceHelper.setup() |> InstanceHelper.data()
 end

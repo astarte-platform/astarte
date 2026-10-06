@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ defmodule Astarte.TestSuite.Helpers.Interface do
 
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointData
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
   alias Astarte.DataAccess.Repo
 
   def interfaces(%{interface_number: interface_number} = context) do
@@ -62,8 +63,8 @@ defmodule Astarte.TestSuite.Helpers.Interface do
 
   defp entries_by_keyspace(context) do
     reduce(context, :interfaces, %{}, fn _interface_id, interface, realm_id, acc ->
-      realm = get!(context, :realms, realm_id)
-      keyspace = realm.instance_id
+      get!(context, :realms, realm_id)
+      keyspace = RealmData.keyspace_name(realm_id)
       entry = interface_entry(interface)
 
       Map.update(acc, keyspace, [entry], &(&1 ++ [entry]))

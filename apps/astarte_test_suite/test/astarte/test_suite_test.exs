@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -246,8 +246,7 @@ defmodule Astarte.TestSuiteTest do
   end
 
   test "case-level validation succeeds for instance parameters" do
-    assert InstanceCase.normalize_config!([], %{instance_cluster: :xandra}).instances
-           |> map_size() == 1
+    assert InstanceCase.normalize_config!([]).instance_cluster == :xandra
   end
 
   test "case-level validation succeeds for realm parameters" do
