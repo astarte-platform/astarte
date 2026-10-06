@@ -25,8 +25,8 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Database
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
 
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
 
@@ -100,7 +100,10 @@ defmodule Astarte.TestSuite.Helpers.Realm do
   defp unique_realm_names(realm_names), do: Enum.map(realm_names, &unique_realm_name/1)
 
   defp unique_realm_name(realm_name) do
-    realm_name <> Integer.to_string(System.unique_integer([:positive]))
+    suffix = Integer.to_string(System.unique_integer([:positive]))
+    prefix_length = min(byte_size(realm_name), 48 - byte_size(suffix))
+
+    binary_part(realm_name, 0, prefix_length) <> suffix
   end
 
   defp realm_entry(instance_id, realm_name),

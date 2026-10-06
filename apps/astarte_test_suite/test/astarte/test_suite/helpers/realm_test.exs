@@ -19,6 +19,8 @@
 defmodule Astarte.TestSuite.Helpers.RealmTest do
   use ExUnit.Case, async: true
 
+  import Astarte.Core.Realm, only: [valid_name?: 1]
+
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
 
@@ -48,12 +50,16 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
   end
 
   describe "realm_names/1" do
-    test "creates the requested names" do
-      assert RealmHelper.realm_names(%{
-               realm_number: 2,
-               instances: %{"instance1" => {"instance1", nil}}
-             })
-             |> length() == 2
+    test "creates the requested valid and unique names" do
+      realm_names =
+        RealmHelper.realm_names(%{
+          realm_number: 100,
+          instances: %{"instance1" => {"instance1", nil}}
+        })
+
+      assert length(realm_names) == 100
+      assert length(Enum.uniq(realm_names)) == 100
+      assert Enum.all?(realm_names, &valid_name?/1)
     end
   end
 
