@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ defmodule Astarte.TestSuite do
         -> interface
           -> device
             -> group
+        -> policy
       -> conn
         -> auth_conn
     -> other
@@ -79,8 +80,8 @@ defmodule Astarte.TestSuite do
   The suite only forwards `[group_number: 4]`. `Astarte.TestSuite.Cases.Group`
   validates the value and writes the normalized fields into the ExUnit context.
 
-  Graph-backed collections such as `interfaces`, `devices`, and `groups` are
-  stored as a single canonical map:
+  Graph-backed collections such as `interfaces`, `devices`, `groups`, and
+  `policies` are stored as a single canonical map:
 
       %{
         entity_id => {entity, owner_id}
@@ -132,6 +133,7 @@ defmodule Astarte.TestSuite do
   alias Astarte.TestSuite.Cases.Instance, as: InstanceCase
   alias Astarte.TestSuite.Cases.Interface, as: InterfaceCase
   alias Astarte.TestSuite.Cases.Other, as: OtherCase
+  alias Astarte.TestSuite.Cases.Policy, as: PolicyCase
   alias Astarte.TestSuite.Cases.Realm, as: RealmCase
 
   @graph [
@@ -158,6 +160,10 @@ defmodule Astarte.TestSuite do
     group: [
       module: GroupCase,
       parents: [:device]
+    ],
+    policy: [
+      module: PolicyCase,
+      parents: [:realm]
     ],
     conn: [
       module: ConnCase,

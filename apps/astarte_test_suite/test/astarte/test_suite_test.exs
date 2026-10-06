@@ -93,6 +93,16 @@ defmodule Astarte.TestSuiteTest do
 
   test "planner exposes graph keys" do
     assert :group in Astarte.TestSuite.graph_keys()
+    assert :policy in Astarte.TestSuite.graph_keys()
+  end
+
+  test "planner deduces policy ancestors" do
+    assert Astarte.TestSuite.plan!(policy: true).load_order == [
+             :common,
+             :instance,
+             :realm,
+             :policy
+           ]
   end
 
   test "planner accepts empty configuration" do

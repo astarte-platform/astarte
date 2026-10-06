@@ -145,6 +145,33 @@ defmodule Astarte.TestSuiteRealGroupContextTest do
   end
 end
 
+defmodule Astarte.TestSuiteRealPolicyContextTest do
+  use Astarte.TestSuite,
+    instance: true,
+    policy: [policy_number: 1]
+
+  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProtobuf
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+
+  @moduletag :integration
+  test "persists the generated policy", %{policies: policies, realms: realms} do
+    [{_policy_id, {%Policy{name: name} = policy, realm_id}}] = Map.to_list(policies)
+    {%{id: realm_name}, _instance_id} = Map.fetch!(realms, realm_id)
+
+    assert {:ok, encoded_policy} =
+             KvStore.fetch_value(
+               "trigger_policy",
+               name,
+               :binary,
+               prefix: RealmData.keyspace_name(realm_name)
+             )
+
+    assert encoded_policy == PolicyProtobuf.encode(Policy.to_policy_proto(policy))
+  end
+end
+
 defmodule Astarte.TestSuiteRealExternalCasesTest do
   use Astarte.TestSuite,
     instance: true,
