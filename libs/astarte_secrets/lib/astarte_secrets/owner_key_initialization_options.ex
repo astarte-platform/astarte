@@ -27,6 +27,10 @@ defmodule Astarte.Secrets.OwnerKeyInitializationOptions do
 
   @allowed_key_algorithms ["ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072"]
 
+  # same as OpenBao's framework.GenericNameRegex, used by transit key paths
+  # (sdk/framework/path.go), as key names are not documented to have a charset
+  @key_name_regex ~r/\A\w(?:[\w\-.]*\w)?\z/
+
   embedded_schema do
     field(:action, :string)
     field(:key_name, :string)
@@ -52,6 +56,10 @@ defmodule Astarte.Secrets.OwnerKeyInitializationOptions do
     |> cast(attrs, cast_attrs)
     |> validate_required(required_attrs)
     |> validate_inclusion(:action, ["create", "upload"])
+    |> validate_format(:key_name, @key_name_regex,
+      message:
+        "must start and end with a letter, digit or underscore, and contain only letters, digits, underscores, hyphens or dots"
+    )
     |> validate_conditional_attrs()
   end
 

@@ -112,6 +112,24 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       |> response(422)
     end
 
+    test "rejects the request if the key name contains invalid characters while uploading key",
+         context do
+      %{
+        auth_conn: conn,
+        owner_key_path: path,
+        upload_key_payload: payload
+      } = context
+
+      payload_invalid_key_name =
+        update_in(payload, [:data, :key_name], fn _ ->
+          "3f5d6e1f42984587d4d90e9e5535500634e70784dd8beb844b0410eb8aa1bb74  -"
+        end)
+
+      conn
+      |> post(path, payload_invalid_key_name)
+      |> response(422)
+    end
+
     test "rejects the request if an invalid key body is passed while uploading key",
          context do
       %{

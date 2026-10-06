@@ -267,6 +267,19 @@ defmodule Astarte.Secrets.CoreTest do
       assert expected_pub_pem == stored_pem
     end
 
+    test "successfully imports a key whose name contains dots and hyphens", %{
+      unique_id: uid,
+      opts: opts
+    } do
+      key_name = "owner-key.#{uid}"
+      ec_key = ECC.generate(:es256)
+
+      assert :ok = Secrets.import_key(key_name, :es256, ec_key, opts)
+      assert {:ok, _raw_sig} = Secrets.sign(key_name, "test_payload", :es256, :sha256, opts)
+      assert {:ok, key_data} = Secrets.get_key(key_name, opts)
+      assert key_data.name == key_name
+    end
+
     test "successfully imports an RSA-2048 key into OpenBao", %{unique_id: uid, opts: opts} do
       key_name = "imported_rsa2048_#{uid}"
       rsa_key = RSA.generate(:rs256)
