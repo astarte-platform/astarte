@@ -101,6 +101,8 @@ EXPOSE 80 1883 1885 8883 8080 44053 4369 8888 \
 
 VOLUME ["/opt/vernemq/log", "/opt/vernemq/data", "/opt/vernemq/etc"]
 
-HEALTHCHECK CMD vernemq ping | grep -q pong
+HEALTHCHECK --start-period=15s --interval=15s \
+            CMD vernemq ping | grep -q pong && \
+            curl -f -s http://$(hostname -i):8888/healthz || exit 1
 
 CMD ["/opt/astarte_vmq_plugin/bin/start_vernemq"]

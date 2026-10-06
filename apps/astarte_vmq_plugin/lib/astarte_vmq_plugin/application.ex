@@ -42,7 +42,8 @@ defmodule Astarte.VMQ.Plugin.Application do
       {Astarte.VMQ.Plugin.Publisher, [Config.registry_mfa()]},
       {Horde.Registry, [name: Registry.VMQPluginRPC, keys: :unique, members: :auto]},
       Astarte.VMQ.Plugin.RPC.Supervisor,
-      {Xandra.Cluster, Config.xandra_options!()}
+      {Xandra.Cluster, Config.xandra_options!()},
+      {Astarte.VMQ.Plugin.HealthHttp.RouteInjectionService, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

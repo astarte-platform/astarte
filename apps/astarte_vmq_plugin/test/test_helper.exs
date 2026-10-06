@@ -18,5 +18,6 @@
 
 Mimic.copy(Astarte.VMQ.Plugin.Config)
 Mimic.copy(:vernemq_dev_api)
+Mimic.copy(Mississippi.Producer.Healthcheck)
 
 ExUnit.start(capture_log: true)

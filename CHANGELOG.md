@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - [astarte_data_updater_plant] Generate `device_empty_cache_received` trigger events when a device sends `/emptyCache`
+- [astarte_vmq_plugin] Expose a new /healtz endpoint to check whether the AMQP connection toward RabbitMQ instance is ok and all the expected Mississippi EventsProducer workers are running.
+
+### Changed
+
+- [astarte_vmq_plugin] Pin vernemq to 2.2.0
 
 ## [1.4.0-rc.6] - 2026-09-28
 
@@ -30,6 +35,8 @@ Includes changes from v1.3.4
 - [fdo] Allow specifying device_id on ownership voucher upload
 - [fdo] The device is now immediately registered on ownership voucher upload
 - [astarte_data_updater_plant] Improve RPC server reliability
+- [astarte_vmq_plugin] Shard AMQP producers
+- [astarte_vmq_plugin] Increase RPC server reliability
 
 ### Fixed
 
@@ -68,10 +75,12 @@ Includes changes from v1.3.4
 ### Fixed
 
 - [astarte_data_updater_plant] Ensure RPC server is always available to clients. Resolved the issue where a temporary disconnection and reconnection of data_updater_plant to the cluster would make the RPC server inaccessible.
+- [astarte_vmq_plugin] Ensure RPC server is always available to clients. Resolved the issue where a temporary disconnection and reconnection of vmq_plugin to the cluster would make the RPC server inaccessible.
 
 ### Changed
 
 - [astarte_data_updater_plant] Ensure memory is properly garbage collected
+- [astarte_vmq_plugin] Pin vernemq to 2.1.2
 
 ## [1.4.0-rc.3] - 2026-07-31
 
@@ -126,12 +135,15 @@ Includes changes from v1.3.4
 ### Changed
 
 - [astarte_data_updater_plant] Use mississippi consumer for data updater processes
+- [astarte_vmq_plugin] Update VerneMQ to 2.0.1
+- [astarte_vmq_plugin] Use mississippi as AMQP publisher
 
 ## [1.3.5] - 2026-10-05
 
 ### Fixed
 
 - [astarte_data_updater_plant] Increase RPC server reliability. A new corner case has been fixed which resulted in the RPC server not being available
+- [astarte_vmq_plugin] Increase RPC server reliability. A new corner case has been fixed which would've resulted in the rpc server not being available
 
 ## [1.3.4] - 2026-09-17
 
@@ -141,6 +153,7 @@ Includes changes from v1.3.4
   uncollected binaries over time by forcing more frequent full sweep garbage collections
   on them.
 - [astarte_data_updater_plant] Ensure the RPC server is always available to clients.
+- [astarte_vmq_plugin] Ensure the RPC server is always available to clients. Previously, a temporary disconnection and reconnection of VerneMQ to the cluster would make the RPC server inaccessible.
 
 ## [1.3.3] - 2026-08-07
 
@@ -150,7 +163,7 @@ Includes changes from v1.3.4
 
 ## [1.3.2] - 2026-07-14
 
-## Fixed
+### Fixed
 
 - Avoid crash on invalid properties message
 
@@ -242,6 +255,7 @@ Includes changes from v1.3.4
 - Allow devices with empty introspection
 - Devices can now declare support for optional Astarte MQTT v1 features to Astarte via capabilities
 - Support for `purge_properties_compression_format` capability. possible values are `zlib` (default) and `plaintext`
+- [astarte_vmq_plugin] Add the option to enable keepalive for scylladb connections, using the environment variable `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__ENABLE_KEEPALIVE`. Defaults to `true`
 
 ### Changed
 
@@ -291,6 +305,7 @@ Includes changes from v1.3.4
 - [astarte_data_updater_plant] Increase device process resiliency: avoid restarting the whole supervision tree when one device/amqp connection crashes
 - [astarte_housekeeping] Fix crashes in migrator
 - [astarte_realm_management] Fix corner case during for the installation of interfaces without data retention ttl
+- [astarte_vmq_plugin] Avoid race conditions preventing correct processing of device deletion requests
 
 ## [1.2.1] - 2026-03-12
 
@@ -301,6 +316,10 @@ Includes changes from v1.3.4
 - [astarte_data_updater_plant] Ensure device deletion rpc always checks updated status
 
 ## [1.2.1-rc.1] - 2026-02-13
+
+### Added
+
+- [astarte_vmq_plugin] Add the option to enable keepalive for scylladb connections, using the environment variable `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__ENABLE_KEEPALIVE`. Defaults to `true`
 
 ### Fixed
 
@@ -337,6 +356,7 @@ Includes changes from v1.3.4
 - Changed the database driver from CQEx (unmantained) to (E)xandra
 - [astarte_trigger_engine] avoid exposing **unknown_fields** in mustache templates
 - [astarte_trigger_engine] properly handle incoming introspection events
+- [astarte_vmq_plugin] RPC now uses erlang clustering instead of `astarte_rpc`
 
 ### Fixed
 
@@ -358,12 +378,16 @@ Includes changes from v1.3.4
 
 ## [1.2.1-alpha.0] - 2025-04-10
 
+### Added
+
+- [astarte_vmq_plugin] Allow to set the Erlang cookie via the `RELEASE_COOKIE` env var. Default to `vmq` for backwards compatibility.
+
 ### Changed
 
 - Update the docker-compose configuration to allow both physical and virtual devices
   to connect to Astarte, provided that the devices and the host are on the same LAN.
 
-## Fixed
+### Fixed
 
 - [astarte_appengine_api] Correctly handle Cassandra `varchar`s.
 - [astarte_data_updater_plant] Correctly handle Cassandra `varchar`s.
@@ -388,7 +412,7 @@ Includes changes from v1.3.4
 - Forward port changes from release-1.1 (connection failure when delivering
   triggers is handled as an error).
 
-## [1.2.0-rc.0] 11-06-2024
+## [1.2.0-rc.0] - 2024-06-11
 
 ### Added
 
@@ -420,6 +444,31 @@ Includes changes from v1.3.4
 - [astarte_realm_management_api] Allow to read realm's maximum datastream
   storage retention period with the `/config/datastream_maximum_storage_retention`
   endpoint.
+- [astarte_vmq_plugin] The plugin now accesses the Astarte database. The following
+  env variables have been added:
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__NODES`
+    (defaults to `localhost:9042`)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__USERNAME`
+    (defaults to `cassandra`)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__PASSWORD`
+    (defaults to `cassandra`)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__POOL_SIZE`
+    (defaults to 10)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__SSL_ENABLED`
+    (defaults to `false`)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__SSL_DISABLE_SNI`
+    (defaults to `true`)
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__SSL_CUSTOM_SNI`
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__SSL_CA_FILE`
+- [astarte_vmq_plugin] Added support for device deletion. During deletion, a device is
+  disconnected and not allowed to reconnect until deletion ends.
+  Inflight messages are discarded. After deletion, a device must be
+  registered again in order to connect to Astarte.
+- [astarte_vmq_plugin] Added support for multiple Astarte instances sharing the same database,
+  the following env variable has been added:
+  - `DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__ASTARTE_INSTANCE_ID`
+    (defaults to ``)
+- [astarte_vmq_plugin] Added support for `capabilities` message topic at `/<realm name>/<device name>/capabilities`
 
 ### Changed
 
@@ -438,6 +487,7 @@ Includes changes from v1.3.4
 - BREAKING: [astarte_realm_management] do not allow installation of interfaces
   where database_retention_ttl exceeds the realm's maximum datastream storage
   retention period, if set.
+- [astarte_vmq_plugin] Update VerneMQ to master (1cc57fa) to support OTP 26.
 
 ## [1.1.2] - Unreleased
 
@@ -501,6 +551,7 @@ Includes changes from v1.3.4
 - Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
 - [astarte_data_updater_plant] Use the `internal` event type for Astarte
   internal messages. (e.g. device heartbeat).
+- [astarte_vmq_plugin] Use the `internal` event type for device heartbeat.
 
 ### Fixed
 
@@ -526,6 +577,7 @@ Includes changes from v1.3.4
 
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces
   which are not fully populated. Fix [531](astarte-platform#531).
+- [astarte_vmq_plugin] Correctly serialize disconnection/reconnection events if VerneMQ hooks are called in the wrong order. Fix https://github.com/astarte-platform/astarte/issues/668.
 
 ## [1.0.6] - 2024-04-23
 
@@ -579,6 +631,15 @@ Includes changes from v1.3.4
   Astarte rooms.
 - [astarte_data_updater_plant] Check for device existence before installation or deletion
   of volatile triggers.
+
+### Fixed
+
+- [astarte_vmq_plugin] Do not let VerneMQ container start unless the CA cert is retrieved from CFSSL.
+- [astarte_vmq_plugin] Prevent the connection from timing out when the client takes more than 5 seconds to perform the SSL handshake
+
+### Security
+
+- [astarte_vmq_plugin] Rebuild official docker image (updates OTP to 23.3.4.17), in order to fix CVE-2022-37026.
 
 ## [1.0.3] - 2022-07-04
 
@@ -656,6 +717,7 @@ Includes changes from v1.3.4
 - [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
   values.
 - Update Cyanide BSON library, in order to fix crash when handling ill-formed BSON arrays.
+- [astarte_vmq_plugin] Do not override VerneMQ config `max_message_rate` value.
 
 ## [1.0.0] - 2021-06-30
 
@@ -667,6 +729,7 @@ Includes changes from v1.3.4
 
 - Document future removal of Astarte Operator's support for Cassandra.
 - Log application version when starting.
+- [astarte_vmq_plugin] Log plugin version when the application is starting.
 
 ### Fixed
 
@@ -719,6 +782,7 @@ Includes changes from v1.3.4
 - Rename device `metadata` to `attributes`. _This requires a manual intervention on the database_,
   see the [Schema Changes](https://docs.astarte-platform.org/1.0/090-database.html#schema-changes)
   documentation for additional information.
+- [astarte_vmq_plugin] Do not authorize non-devices blindly in `auth_on_publish` and `auth_on_subscribe`.
 
 ## [1.0.0-beta.1] - 2021-02-16
 
@@ -754,6 +818,7 @@ Includes changes from v1.3.4
   bumping an interface minor.
 - Remove postgresql dependency in `docker-compose`, make CFSSL stateless.
 - Update Operator's documentation for install/upgrade/uninstall procedures.
+- [astarte_vmq_plugin] Default data_queue_count to 128.
 
 ## [1.0.0-alpha.1] - 2020-06-19
 
@@ -791,6 +856,10 @@ Includes changes from v1.3.4
   pass the `device_id` or `group_name` key inside the `simple_trigger`.
 - [data_updater_plant] Add support for device-specific and group-specific triggers.
 - Add support for device error triggers.
+- [astarte_vmq_plugin] Send a periodic heartbeat for every connected device.
+- [astarte_vmq_plugin] Support SSL for RabbitMQ connections.
+- [astarte_vmq_plugin] Reply with local and remote matches when a publish is requested.
+- [astarte_vmq_plugin] Allow configuring `max_offline_messages` and `persistent_client_expiration` with Docker env variables
 
 ### Removed
 
@@ -820,8 +889,13 @@ Includes changes from v1.3.4
 - [realm_management] Do not allow `/*` as match path when using `value_change` and
   `value_change_applied`. (workaround to https://github.com/astarte-platform/astarte/issues/513).
 - [trigger_engine] Update certifi to 2.5.3 (includes 2020-11-13 mkcert.org full CA bundle).
+- [astarte_vmq_plugin] Fix a bug where the plugin would remain unfunctional after suddenly disconnecting from RabbitMQ.
 
 ## [0.11.3] - 2020-09-24
+
+### Fixed
+
+- [astarte_vmq_plugin] Fix bug that prevented property unset
 
 ## [0.11.2] - 2020-08-14
 
@@ -844,6 +918,7 @@ Includes changes from v1.3.4
   this must be equal to the total number of queues in the Astarte instance.
 - [trigger_engine] Add `TRIGGER_ENGINE_AMQP_PREFETCH_COUNT` environment variable to set the
   prefetech count of AMQPEventsConsumer, avoiding excessive memory usage.
+- [astarte_vmq_plugin] Enhance docker build process
 
 ### Fixed
 
@@ -944,6 +1019,7 @@ Includes changes from v1.3.4
 - [housekeeping] Add database retention ttl and policy related columns (schema has been changed).
 - Allow specifying initial introspection when registering a device.
 - [realm_management] Trigger validation, checks that the interface is existing and performs validation on object aggregation triggers.
+- [astarte_vmq_plugin] Add support to multiple queues with consistent hashing
 
 ### Changed
 
@@ -1005,6 +1081,12 @@ Includes changes from v1.3.4
 - [trigger_engine] Fix datetime type handling, now it is properly serialized.
 
 ## [0.10.0] - 2019-04-16
+
+## [0.10.0-rc.1] - 2019-04-10
+
+### Fixed
+
+- [astarte_vmq_plugin] Re-enable SSL listener, which broke Docker Compose.
 
 ## [0.10.0-rc.0] - 2019-04-03
 

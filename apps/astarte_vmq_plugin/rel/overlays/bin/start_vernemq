@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# allow injection of custom HTTP routes when running inside the VerneMQ release container
+export DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__INJECT_CUSTOM_ROUTES="true"
+
 NET_INTERFACE=$(route | grep '^default' | grep -o '[^ ]*$')
 NET_INTERFACE=${DOCKER_NET_INTERFACE:-${NET_INTERFACE}}
 IP_ADDRESS=$(ip -4 addr show ${NET_INTERFACE} | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | sed -e "s/^[[:space:]]*//" | head -n 1)
