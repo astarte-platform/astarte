@@ -150,6 +150,8 @@ _Rendezvous Server_ (an intermediary node allowing devices to find a suitable ow
 Astarte expects an external _Rendezvous Server_ to be available and properly configured.
 FDO registration makes it possible to initialize a device without it being aware of its
 destination realm and final owner.
+The device destination realm is determined by the realm in which the voucher is saved.
+The device ID is derived from the hardware ID (_hw_id_) specified during voucher upload.
 
 ### Transfer Ownership protocols
 
@@ -194,10 +196,7 @@ The supported replacement parameters are:
   future ownership transfers
 
 The _TO2.DeviceServiceInfo_ message(s) shall be used by the device to send variables and commands
-to Astarte. Notably, this mechanism can be used to determine how the device will be identified
-upon registration. If the device provides its serial number using the _devmod:sn_ field,
-Astarte will use that value to generate the _device ID_. If this key is omitted, Astarte will
-automatically generate an ID using its standard generator.
+to Astarte.
 
 The _TO2.OwnerServiceInfo_ message(s) shall be used to send a list of variables or commands
 from Astarte to the device. In the current implementation the following variables are sent
@@ -220,7 +219,7 @@ Astarte internally correlates each uploaded voucher with an owner key pre-loaded
 
 In order to import owner keys into the vault, it is possible to
 
-- upload a private key to Astarte, which is then imported ino the vault and immediately forgotten, or
+- upload a private key to Astarte, which is then imported into the vault and immediately forgotten, or
 - have the vault generate a keypair and return the related public key, which can then be used
   to extend the Ownership Voucher to account for the final owner
 
