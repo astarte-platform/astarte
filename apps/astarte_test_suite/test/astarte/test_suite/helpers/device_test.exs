@@ -26,13 +26,22 @@ defmodule Astarte.TestSuite.Helpers.DeviceTest do
 
   describe "devices/1" do
     test "creates generated devices in the canonical graph" do
-      %{devices: devices} = DeviceHelper.devices(graph_context())
+      %{devices: devices} = DeviceHelper.devices(graph_context(true))
 
       assert map_size(devices) == 2
 
-      for {encoded_id, {%{encoded_id: generated_id}, owner_id}} <- devices do
+      for {encoded_id, {%{connected: connected, encoded_id: generated_id}, owner_id}} <- devices do
+        assert connected
         assert encoded_id == generated_id
         assert owner_id == "interface"
+      end
+    end
+
+    test "creates disconnected devices when requested" do
+      %{devices: devices} = DeviceHelper.devices(graph_context(false))
+
+      for {_encoded_id, {%{connected: connected}, _owner_id}} <- devices do
+        refute connected
       end
     end
   end
@@ -46,7 +55,7 @@ defmodule Astarte.TestSuite.Helpers.DeviceTest do
     end
   end
 
-  defp graph_context do
+  defp graph_context(device_connected) do
     %{}
     |> put!(:instances, "astarte1", "astarte1", nil)
     |> put!(:realms, "realm1", %{id: "realm1", instance_id: "astarte1"}, "astarte1")
@@ -57,5 +66,6 @@ defmodule Astarte.TestSuite.Helpers.DeviceTest do
       "realm1"
     )
     |> Map.put(:device_number, 2)
+    |> Map.put(:device_connected, device_connected)
   end
 end

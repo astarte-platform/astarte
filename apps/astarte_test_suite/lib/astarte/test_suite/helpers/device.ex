@@ -32,9 +32,11 @@ defmodule Astarte.TestSuite.Helpers.Device do
   alias Astarte.DataAccess.Repo
 
   def devices(%{device_number: device_number} = context) do
+    device_connected = Map.get(context, :device_connected)
+
     reduce(context, :interfaces, context, fn interface_id, interface, _realm_id, acc ->
       interface
-      |> devices_for_interface(device_number)
+      |> devices_for_interface(device_number, device_connected)
       |> Enum.reduce(acc, fn %{encoded_id: encoded_id} = device, inner_acc ->
         put!(inner_acc, :devices, encoded_id, device, interface_id)
       end)
@@ -53,11 +55,34 @@ defmodule Astarte.TestSuite.Helpers.Device do
     })
   end
 
-  defp devices_for_interface(interface, device_number),
+  defp devices_for_interface(interface, device_number, device_connected),
     do:
-      device(interfaces: [interface])
+      interface
+      |> device_generator(device_connected)
       |> Stream.uniq_by(& &1.device_id)
       |> Enum.take(device_number)
+
+  defp device_generator(interface, nil), do: device(interfaces: [interface])
+
+  defp device_generator(interface, true),
+    do:
+      device(
+        interfaces: [interface],
+        last_disconnection: 3,
+        last_connection: 4,
+        first_credentials_request: 2,
+        first_registration: 1
+      )
+
+  defp device_generator(interface, false),
+    do:
+      device(
+        interfaces: [interface],
+        last_disconnection: 4,
+        last_connection: 3,
+        first_credentials_request: 2,
+        first_registration: 1
+      )
 
   defp persist_device!(context, interfaces, device, interface_id) do
     {interface, realm_id} = Map.fetch!(interfaces, interface_id)

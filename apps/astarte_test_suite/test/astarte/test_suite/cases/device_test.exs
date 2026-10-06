@@ -30,6 +30,7 @@ defmodule Astarte.TestSuite.Cases.DeviceTest do
       context = DeviceCase.normalize_config!([], interface_context())
 
       assert context.device_number == 1
+      assert context.device_connected == nil
       assert map_size(context.devices) == 1
 
       for {encoded_id, {%{encoded_id: generated_id}, owner_id}} <- context.devices do
@@ -43,13 +44,19 @@ defmodule Astarte.TestSuite.Cases.DeviceTest do
 
       context =
         DeviceCase.normalize_config!(
-          [device_number: 2, devices: devices, allow_missing_credentials: true],
+          [
+            device_number: 2,
+            devices: devices,
+            allow_missing_credentials: true,
+            device_connected: true
+          ],
           interface_context()
         )
 
       assert context.device_number == 2
       assert context.devices == devices
       assert context.allow_missing_credentials
+      assert context.device_connected
     end
   end
 

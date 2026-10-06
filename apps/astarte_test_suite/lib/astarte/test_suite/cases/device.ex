@@ -25,6 +25,7 @@ defmodule Astarte.TestSuite.Cases.Device do
     name: :device,
     params: [
       device_number: [default: 1, type: :positive_integer],
+      device_connected: [default: nil, type: :boolean],
       devices: [default: {DeviceHelper, :devices}, type: :graph, graph_of: :map],
       allow_missing_credentials: [default: false, type: :boolean]
     ]
