@@ -4,6 +4,8 @@ pub mod interfaces;
 use crate::config::Config;
 use clap::Parser;
 
-fn main() {
-    let _config = Config::parse();
+#[tokio::main]
+async fn main() -> eyre::Result<()> {
+    let config = Config::try_parse()?;
+    config.run().await
 }

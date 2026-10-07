@@ -6,7 +6,9 @@ use crate::astarte_event::{
     SimpleTriggerTarget, Trigger,
 };
 use crate::room::TransitiveTrigger;
-use crate::{config::Config, device_client, interfaces::AstarteClient, room::Room};
+use crate::{
+    config::Config, config::DeviceConfig, device_client, interfaces::AstarteClient, room::Room,
+};
 use astarte_device_sdk::AstarteData::Integer;
 use astarte_device_sdk::{
     EventLoop, pairing::api::registration::generate_random_uuid, transport::mqtt::Credential,
@@ -15,7 +17,7 @@ use astarte_device_sdk::{
 #[cfg(feature = "clap")]
 use clap::Parser;
 
-use eyre::Context;
+use eyre::{Context, OptionExt};
 use tempfile::TempDir;
 use tokio::sync::broadcast::Sender;
 use tokio::task::JoinSet;
@@ -34,6 +36,12 @@ pub struct Connection {
 impl Connection {
     /// Build a connection with a randomly generated device id, registered
     /// through the pairing API using the JWT as pairing token.
+    pub fn from_config(config: Config) -> eyre::Result<ConnectionBuilder> {
+        ConnectionBuilder::from_config(config)
+    }
+    /// Build a connection with a randomly generated device id, registered
+    /// through the pairing API using the JWT as pairing token.
+    #[cfg(feature = "clap")]
     pub fn new_random() -> eyre::Result<ConnectionBuilder> {
         ConnectionBuilder::new_random()
     }
@@ -54,6 +62,26 @@ pub struct ConnectionBuilder {
 }
 
 impl ConnectionBuilder {
+    /// Build a connection with the configured device id, registered
+    /// through the pairing API using the JWT as pairing token or using
+    /// the given credentials secret.
+    pub fn from_config(config: Config) -> eyre::Result<Self> {
+        let DeviceConfig {
+            device_id,
+            credentials_secret,
+        } = config.device.clone();
+
+        let device_id = device_id.ok_or_eyre("device_id is required for ConnectionBuilder::new")?;
+
+        Ok(Self {
+            config,
+            device_id,
+            credentials_secret,
+            receive_interface_data: true,
+            volatile_triggers: vec![],
+        })
+    }
+
     /// Build a connection with a randomly generated device id, registered
     /// through the pairing API using the JWT as pairing token.
     #[cfg(feature = "clap")]
