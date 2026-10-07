@@ -64,7 +64,10 @@ defmodule Astarte.HousekeepingWeb.ApiSpec.Schemas.Realm do
           minimum: 1,
           example: 100,
           description:
-            "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+            "Optional upper bound to the retention period of all datastreams in the realm, in seconds. " <>
+              "It applies to every mapping regardless of its database_retention_policy: mappings using " <>
+              "no_ttl expire after this period, and mappings using use_ttl expire after the lower of " <>
+              "this value and their own database_retention_ttl."
         }
       },
       example: %{
@@ -116,7 +119,10 @@ defmodule Astarte.HousekeepingWeb.ApiSpec.Schemas.Realm do
           minimum: 1,
           example: 100,
           description:
-            "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+            "Optional upper bound to the retention period of all datastreams in the realm, in seconds. " <>
+              "It applies to every mapping regardless of its database_retention_policy: mappings using " <>
+              "no_ttl expire after this period, and mappings using use_ttl expire after the lower of " <>
+              "this value and their own database_retention_ttl."
         }
       },
       example: %{
