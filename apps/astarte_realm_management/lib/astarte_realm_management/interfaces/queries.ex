@@ -331,40 +331,6 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
     some?
   end
 
-  @doc """
-  Fetches the maximum storage retention for datastreams in a specified realm.
-  This function retrieves the maximum storage retention for datastreams from the key-value store.
-  If the value is not found, it defaults to 0, indicating no retention limit.
-
-  ## Parameters
-  - `realm_name`: The name of the realm for which to fetch the maximum storage retention.
-
-  ## Returns
-  - `{:ok, value}`: A tuple containing `:ok` and the maximum storage retention value as an integer.
-  - `{:error, :fetch_error}`: If there was an error fetching the value from the key-value store.
-  """
-  def get_datastream_maximum_storage_retention(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    opts = [
-      prefix: keyspace,
-      consistency: Consistency.domain_model(:read),
-      error: :fetch_error
-    ]
-
-    case KvStore.fetch_value(
-           "realm_config",
-           "datastream_maximum_storage_retention",
-           :integer,
-           opts
-         ) do
-      {:ok, value} -> {:ok, value}
-      # not found means default maximum storage retention of 0
-      {:error, :fetch_error} -> {:ok, 0}
-      error -> error
-    end
-  end
-
   def update_interface_storage(_realm_name, _interface_descriptor, []) do
     # No new mappings, nothing to do
     :ok
