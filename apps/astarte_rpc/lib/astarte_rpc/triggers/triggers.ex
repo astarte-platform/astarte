@@ -82,6 +82,7 @@ defmodule Astarte.RPC.Triggers do
     "trigger-by-type:" <> Atom.to_string(trigger_type)
   end
 
-  defp trigger_type({:device_trigger, device_trigger}), do: device_trigger.device_event_type
-  defp trigger_type({:data_trigger, data_trigger}), do: data_trigger.data_trigger_type
+  @doc false
+  def trigger_type({:device_trigger, device_trigger}), do: device_trigger.device_event_type
+  def trigger_type({:data_trigger, data_trigger}), do: data_trigger.data_trigger_type
 end

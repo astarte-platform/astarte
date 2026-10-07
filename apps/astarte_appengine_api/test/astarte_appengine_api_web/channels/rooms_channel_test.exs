@@ -243,7 +243,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -266,7 +266,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -292,7 +292,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       regex_trigger =
         @data_simple_trigger
@@ -320,7 +320,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       other_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
 
@@ -349,7 +349,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -372,7 +372,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "group_name" => @group_name,
@@ -399,7 +399,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       missing_device_id_trigger =
         @device_simple_trigger
@@ -453,7 +453,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     test "succeeds with valid name", %{socket: socket} do
       VolatileTriggers
       |> expect(:install, fn _realm, _simple_trigger, _target -> :ok end)
-      |> expect(:delete, fn _realm, _id -> :ok end)
+      |> expect(:delete, fn _realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -475,7 +475,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     test "correctly handles group volatile triggers", %{socket: socket} do
       VolatileTriggers
       |> expect(:install, fn _realm, _simple_trigger, _target -> :ok end)
-      |> expect(:delete, fn _realm, _id -> :ok end)
+      |> expect(:delete, fn _realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "group_name" => @group_name,
@@ -500,7 +500,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
     test "an event directed towards an unexisting room uninstalls the trigger" do
       VolatileTriggers
-      |> expect(:delete, fn @realm, @event_simple_trigger_id -> :ok end)
+      |> expect(:delete, fn @realm, @event_simple_trigger_id, _event -> :ok end)
 
       unexisting_room_serialized_event =
         %{@simple_event | parent_trigger_id: Utils.get_uuid()}
@@ -515,7 +515,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
          %{room_process: room_process} do
       VolatileTriggers
-      |> expect(:delete, fn @realm, @event_simple_trigger_id -> :ok end)
+      |> expect(:delete, fn @realm, @event_simple_trigger_id, _event -> :ok end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -540,7 +540,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -592,7 +592,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         :ok
       end)
-      |> expect(:delete, fn @realm, _id -> :ok end)
+      |> expect(:delete, fn @realm, _id, _event -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
