@@ -53,13 +53,13 @@
       "type": "string",
       "enum": ["no_ttl", "use_ttl"],
       "default": "no_ttl",
-      "description": "Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl."
+      "description": "Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl. With no_ttl the mapping does not request an expiry, but data can still be expired by the realm maximum storage retention, if one is set."
     },
     "database_retention_ttl": {
       "type": "integer",
       "minimum": 60,
       "maximum": 630719999,
-      "description": "Useful when database_retention_policy is use_ttl. Defines how many seconds a specific data entry should be kept before erasing it from the database."
+      "description": "Useful when database_retention_policy is use_ttl. Defines the maximum amount of seconds a specific data entry is kept before erasing it from the database. When the realm maximum storage retention is set and is lower than this value, the realm maximum wins."
     },
     "allow_unset": {
       "type": "boolean",

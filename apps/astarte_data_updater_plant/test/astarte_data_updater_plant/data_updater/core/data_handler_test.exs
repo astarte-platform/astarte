@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Interface
+  alias Astarte.DataUpdaterPlant.Helpers.Database
   alias Astarte.Secrets
   alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.Secrets.EncryptedMessages
@@ -37,6 +38,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   import Astarte.InterfaceUpdateGenerators
 
   @generated_data_points 100
+
+  # Value types stored in an atomic column: TTL() refuses the list<...> ones
+  @atomic_value_types [:double, :integer, :boolean, :longinteger, :string, :binaryblob, :datetime]
 
   setup_all context do
     keyspace = Realm.keyspace_name(context.realm)
@@ -390,6 +394,89 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
       assert {:ack, :ok, _, _} =
                DataHandler.handle_data(state, interface_name, path, payload, timestamp, start)
     end
+  end
+
+  describe "realm maximum storage retention and mapping database_retention_ttl interaction" do
+    # The realm maximum is not enforced when the interface is installed, it is applied
+    # here, on every write. These cover the four combinations of the two settings.
+
+    test "realm maximum caps a higher database_retention_ttl", context do
+      assert write_with_retention(context, {:use_ttl, 60}, 5) == 5
+    end
+
+    test "database_retention_ttl wins when lower than the realm maximum", context do
+      assert write_with_retention(context, {:use_ttl, 5}, 60) == 5
+    end
+
+    test "database_retention_ttl applies when no realm maximum is set", context do
+      assert write_with_retention(context, {:use_ttl, 5}, nil) == 5
+    end
+
+    test "no_ttl mappings still expire after the realm maximum", context do
+      assert write_with_retention(context, {:no_ttl, nil}, 5) == 5
+    end
+
+    test "no_ttl mappings never expire when no realm maximum is set", context do
+      assert write_with_retention(context, {:no_ttl, nil}, nil) == nil
+    end
+  end
+
+  # Writes one value on an individual datastream interface, with the given mapping retention
+  # and realm maximum, and returns the TTL the database applied.
+  #
+  # The interface is generated, so its endpoint types change from run to run, and TTL() only
+  # reads atomic columns: the endpoint is picked by value type rather than hardcoded.
+  defp write_with_retention(context, {policy, mapping_ttl}, realm_max_ttl) do
+    interface = context.individual_datastream_with_all_endpoint_types
+
+    mapping =
+      Enum.find(interface.mappings, &(&1.value_type in @atomic_value_types)) ||
+        flunk("no endpoint with an atomic value type on #{interface.name}")
+
+    path = mapping.endpoint |> path_from_endpoint() |> Enum.at(0)
+    value = mapping.value_type |> valid_update_value_for() |> Enum.at(0)
+
+    {:ok, _, state} = Interface.maybe_handle_cache_miss(nil, interface.name, context.state)
+
+    state =
+      state
+      |> Map.put(:datastream_maximum_storage_retention, realm_max_ttl)
+      |> Map.update!(:mappings, fn mappings ->
+        Map.update!(mappings, mapping.endpoint_id, fn stored ->
+          %{stored | database_retention_policy: policy, database_retention_ttl: mapping_ttl}
+        end)
+      end)
+
+    payload =
+      %{"v" => value, "t" => DateTime.utc_now(:millisecond)}
+      |> Cyanide.encode!()
+
+    Database.delete_individual_datastream!(
+      context.realm,
+      context.device_id,
+      interface.interface_id,
+      mapping.endpoint_id,
+      path
+    )
+
+    assert {:ack, :ok, _, _} =
+             DataHandler.handle_data(
+               state,
+               interface.name,
+               path,
+               payload,
+               System.system_time(:microsecond) * 10,
+               System.monotonic_time()
+             )
+
+    Database.fetch_individual_datastream_ttl!(
+      context.realm,
+      context.device_id,
+      interface.interface_id,
+      mapping.endpoint_id,
+      path,
+      mapping.value_type
+    )
   end
 
   describe "validate_value_type/2" do

@@ -1699,6 +1699,90 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     end
   end
 
+  describe "realm maximum storage retention and mapping database_retention_ttl interaction" do
+    setup do
+      DatabaseTestHelper.create_datastream_receiving_device()
+
+      on_exit(fn ->
+        DatabaseTestHelper.unset_realm_ttl()
+        DatabaseTestHelper.remove_datastream_receiving_device()
+      end)
+
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> stub(:publish, fn _data -> {:ok, %{local_matches: 1, remote_matches: 0}} end)
+
+      %{
+        realm: "autotestrealm",
+        device_id: "fmloLzG5T5u0aOUfIkL8KA",
+        interface: "org.ServerOwnedIndividual",
+        path: "1/samplingPeriod",
+        stored_path: "/1/samplingPeriod"
+      }
+    end
+
+    # The realm maximum is not enforced when the interface is installed, it is applied
+    # here, on every write. These cover the four combinations of the two settings.
+
+    test "realm maximum caps a higher database_retention_ttl", ctx do
+      DatabaseTestHelper.set_datastream_receiving_endpoint_retention!(:use_ttl, 60)
+      DatabaseTestHelper.set_realm_ttl(5)
+
+      assert {:ok, _} = write_value(ctx, 10)
+
+      assert DatabaseTestHelper.fetch_individual_datastream_ttl!(ctx.device_id, ctx.stored_path) ==
+               5
+    end
+
+    test "database_retention_ttl wins when lower than the realm maximum", ctx do
+      DatabaseTestHelper.set_datastream_receiving_endpoint_retention!(:use_ttl, 5)
+      DatabaseTestHelper.set_realm_ttl(60)
+
+      assert {:ok, _} = write_value(ctx, 10)
+
+      assert DatabaseTestHelper.fetch_individual_datastream_ttl!(ctx.device_id, ctx.stored_path) ==
+               5
+    end
+
+    test "database_retention_ttl applies when no realm maximum is set", ctx do
+      DatabaseTestHelper.set_datastream_receiving_endpoint_retention!(:use_ttl, 5)
+
+      assert {:ok, _} = write_value(ctx, 10)
+
+      assert DatabaseTestHelper.fetch_individual_datastream_ttl!(ctx.device_id, ctx.stored_path) ==
+               5
+    end
+
+    test "no_ttl mappings still expire after the realm maximum", ctx do
+      DatabaseTestHelper.set_datastream_receiving_endpoint_retention!(:no_ttl, nil)
+      DatabaseTestHelper.set_realm_ttl(5)
+
+      assert {:ok, _} = write_value(ctx, 10)
+
+      assert DatabaseTestHelper.fetch_individual_datastream_ttl!(ctx.device_id, ctx.stored_path) ==
+               5
+    end
+
+    test "no_ttl mappings never expire when no realm maximum is set", ctx do
+      DatabaseTestHelper.set_datastream_receiving_endpoint_retention!(:no_ttl, nil)
+
+      assert {:ok, _} = write_value(ctx, 10)
+
+      assert DatabaseTestHelper.fetch_individual_datastream_ttl!(ctx.device_id, ctx.stored_path) ==
+               nil
+    end
+
+    defp write_value(ctx, value) do
+      Device.update_interface_values(
+        ctx.realm,
+        ctx.device_id,
+        ctx.interface,
+        ctx.path,
+        value,
+        %{}
+      )
+    end
+  end
+
   describe "ttl is handled properly for server owned object aggregated interface" do
     setup do
       DatabaseTestHelper.create_object_receiving_device()
