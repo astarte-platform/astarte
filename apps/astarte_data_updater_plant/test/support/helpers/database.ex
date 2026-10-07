@@ -20,6 +20,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
   @moduledoc """
   This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
   """
+  alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceAccess
   alias Astarte.DataAccess.Device.InsertContext
@@ -305,6 +306,50 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
     execute!(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem}, timeout: 60_000)
+  end
+
+  @doc """
+  Deletes every stored value on one individual datastream path
+  """
+  def delete_individual_datastream!(realm_name, device_id, interface_id, endpoint_id, path) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    Repo.query!(
+      """
+      DELETE FROM #{keyspace}.individual_datastreams
+      WHERE device_id = ? AND interface_id = ? AND endpoint_id = ? AND path = ?
+      """,
+      [device_id, interface_id, endpoint_id, path]
+    )
+
+    :ok
+  end
+
+  @doc """
+  Returns the TTL the database actually applied to the single stored value on the given
+  path, in seconds, or `nil` when the value was stored without any TTL.
+  """
+  def fetch_individual_datastream_ttl!(
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id,
+        path,
+        value_type
+      ) do
+    keyspace = Realm.keyspace_name(realm_name)
+    column = CQLUtils.type_to_db_column_name(value_type)
+
+    %{rows: [[ttl]], num_rows: 1} =
+      Repo.query!(
+        """
+        SELECT TTL(#{column}) FROM #{keyspace}.individual_datastreams
+        WHERE device_id = ? AND interface_id = ? AND endpoint_id = ? AND path = ?
+        """,
+        [device_id, interface_id, endpoint_id, path]
+      )
+
+    ttl
   end
 
   def insert_datastream_maximum_storage_retention!(realm_name, max_retention) do

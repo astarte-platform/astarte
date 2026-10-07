@@ -215,13 +215,15 @@ defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
       assert json_response(get_conn, 200)["data"] == @iface_with_required_mappings
     end
 
-    test "renders error on mapping with higher database_retention_ttl than the maximum", %{
+    test "renders interface on mapping with higher database_retention_ttl than the maximum", %{
       auth_conn: conn,
       realm: realm
     } do
+      # The realm maximum is not enforced at install time: Data Updater Plant caps
+      # the effective TTL of every stored value to the realm maximum when writing.
       insert_datastream_maximum_storage_retention!(realm, 1)
 
-      iface_with_invalid_mappings = %{
+      iface_with_higher_ttl = %{
         @valid_attrs
         | "mappings" => [
             %{
@@ -236,11 +238,11 @@ defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
 
       conn =
         post(conn, interface_path(conn, :create, realm),
-          data: iface_with_invalid_mappings,
+          data: iface_with_higher_ttl,
           async_operation: "false"
         )
 
-      assert json_response(conn, 422)["errors"] != %{}
+      assert response(conn, 201) == ""
 
       keyspace = Realm.keyspace_name(realm)
 

@@ -87,13 +87,6 @@ defmodule Astarte.RealmManagementWeb.FallbackController do
     |> render(:overlapping_mappings)
   end
 
-  def call(conn, {:error, :maximum_database_retention_exceeded}) do
-    conn
-    |> put_status(:unprocessable_entity)
-    |> put_view(Astarte.RealmManagementWeb.ErrorView)
-    |> render(:maximum_database_retention_exceeded)
-  end
-
   def call(conn, {:error, :trigger_policy_not_found}) do
     conn
     |> put_status(:not_found)
