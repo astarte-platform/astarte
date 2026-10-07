@@ -37,6 +37,11 @@ defmodule Astarte.Secrets.Core do
   # RFC 5649 AES Key Wrap with Padding magic constant
   @aes_kwp_magic <<0xA6, 0x59, 0x59, 0xA6>>
 
+  # OpenBao refuses to create a namespace that another request is already
+  # creating, so concurrent creations of a shared parent make all but one fail
+  @namespace_retry_attempts 10
+  @namespace_retry_interval_ms 100
+
   @spec asymmetric_key_algorithms() :: [key_algorithm()]
   def asymmetric_key_algorithms do
     [
@@ -450,7 +455,11 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  defp ensure_namespace_created(base_namespace, new_namespace) do
+  defp ensure_namespace_created(
+         base_namespace,
+         new_namespace,
+         attempts_left \\ @namespace_retry_attempts
+       ) do
     # check if namespace already exists; if not, attempt to create it
     headers = []
     options = [namespace: base_namespace]
@@ -460,12 +469,27 @@ defmodule Astarte.Secrets.Core do
         :ok
 
       {:ok, %HTTPoison.Response{status_code: 404}} ->
-        case Client.post("/v1/sys/namespaces/#{new_namespace}", "", headers, options) do
-          {:ok, %HTTPoison.Response{status_code: 200}} ->
-            :ok
+        create_namespace(base_namespace, new_namespace, attempts_left)
 
-          error ->
-            {:error, error}
+      error ->
+        {:error, error}
+    end
+  end
+
+  defp create_namespace(base_namespace, new_namespace, attempts_left) do
+    headers = []
+    options = [namespace: base_namespace]
+
+    case Client.post("/v1/sys/namespaces/#{new_namespace}", "", headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200}} ->
+        :ok
+
+      {:ok, %HTTPoison.Response{status_code: 400}} = error ->
+        if attempts_left > 1 do
+          Process.sleep(@namespace_retry_interval_ms)
+          ensure_namespace_created(base_namespace, new_namespace, attempts_left - 1)
+        else
+          {:error, error}
         end
 
       error ->

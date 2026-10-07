@@ -157,6 +157,40 @@ defmodule Astarte.Secrets.CoreTest do
     end
   end
 
+  describe "create_nested_namespace/1 while another creation is in flight" do
+    setup :verify_on_exit!
+    setup :http_stubs_setup
+
+    test "retries while the creation is rejected" do
+      Client
+      |> expect(:get, fn _url, _headers, _opts -> response(404) end)
+      |> expect(:post, fn _url, _body, _headers, _opts -> response(400) end)
+      |> expect(:get, fn _url, _headers, _opts -> response(200) end)
+
+      assert {:ok, _namespace} = Core.create_nested_namespace(["ns"])
+    end
+
+    test "stops retrying after the maximum number of attempts" do
+      Client
+      |> stub(:get, fn _url, _headers, _opts -> response(404) end)
+      |> expect(:post, 10, fn _url, _body, _headers, _opts -> response(400) end)
+
+      assert {:error, :namespace_creation_error} = Core.create_nested_namespace(["ns"])
+    end
+
+    test "does not retry errors unrelated to a creation in flight" do
+      Client
+      |> expect(:get, fn _url, _headers, _opts -> response(404) end)
+      |> expect(:post, fn _url, _body, _headers, _opts -> response(403, "permission denied") end)
+
+      assert {:error, :namespace_creation_error} = Core.create_nested_namespace(["ns"])
+    end
+
+    defp response(status_code, body \\ "") do
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}}
+    end
+  end
+
   defp create_nested_namespace_setup(context) do
     base_namespace = Map.get(context, :base_namespace, "")
 
