@@ -106,7 +106,7 @@
     "semver": "^6.3.1",
     "typescript": "^5.7.2",
     "uuid": "^14.0.0",
-    "vite": "^5.4.14",
+    "vite": "^6.0.0",
     "vite-plugin-eslint": "^1.8.1",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^1.6.1",
