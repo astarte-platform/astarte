@@ -25,6 +25,7 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
+  alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Name
   alias Astarte.DataAccess.Realms.Realm
@@ -65,6 +66,11 @@ defmodule Astarte.Helpers.Database do
   ]
 
   @test_realm "autotestrealm"
+
+  # Identifiers of the single `org.ServerOwnedIndividual` endpoint, as inserted by
+  # insert_datastream_receiving_device_endpoints/0
+  @server_owned_individual_interface_id "13ccc31d-f911-29df-cbe6-be22635293bd"
+  @server_owned_individual_endpoint_id "44c2421d-1abf-f3ec-14e1-986928d764aa"
 
   @create_autotestrealm """
     CREATE KEYSPACE #{Realm.keyspace_name(@test_realm)}
@@ -932,6 +938,42 @@ defmodule Astarte.Helpers.Database do
     }
 
     KvStore.insert(params, prefix: keyspace_name)
+  end
+
+  @doc """
+  Sets `database_retention_policy`/`database_retention_ttl` on the
+  `org.ServerOwnedIndividual` endpoint
+  """
+  def set_datastream_receiving_endpoint_retention!(policy, ttl) do
+    keyspace_name = Realm.keyspace_name(@test_realm)
+
+    from(e in EndpointSchema,
+      prefix: ^keyspace_name,
+      where:
+        e.interface_id == ^@server_owned_individual_interface_id and
+          e.endpoint_id == ^@server_owned_individual_endpoint_id
+    )
+    |> Repo.update_all(set: [database_retention_policy: policy, database_retention_ttl: ttl])
+  end
+
+  @doc """
+  Returns the TTL the database actually applied to the stored value, in seconds,
+  or `nil` when the value was stored without any TTL.
+  """
+  def fetch_individual_datastream_ttl!(device_encoded_id, path) do
+    keyspace_name = Realm.keyspace_name(@test_realm)
+    {:ok, device_id} = Device.decode_device_id(device_encoded_id)
+
+    from(d in IndividualDatastream,
+      prefix: ^keyspace_name,
+      where:
+        d.device_id == ^device_id and
+          d.interface_id == ^@server_owned_individual_interface_id and
+          d.endpoint_id == ^@server_owned_individual_endpoint_id and
+          d.path == ^path,
+      select: fragment("TTL(integer_value)")
+    )
+    |> Repo.one!()
   end
 
   def unset_realm_ttl do
