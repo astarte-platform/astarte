@@ -19,7 +19,11 @@
 defmodule Astarte.Helpers.DatabaseV2 do
   @moduledoc false
 
+  import Ecto.Query
+
   alias Astarte.Core.Realm
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -285,6 +289,45 @@ defmodule Astarte.Helpers.DatabaseV2 do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
     execute!(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem})
+  end
+
+  def set_datastream_maximum_storage_retention!(realm_name, ttl_s) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: ttl_s,
+      value_type: :integer
+    }
+    |> KvStore.insert(prefix: keyspace)
+  end
+
+  def unset_datastream_maximum_storage_retention!(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    from(k in KvStore,
+      prefix: ^keyspace,
+      where: k.group == "realm_config" and k.key == "datastream_maximum_storage_retention"
+    )
+    |> Repo.delete_all()
+  end
+
+  @doc """
+  Returns the TTL Scylla applied to the integer value stored at `path`, in seconds,
+  or `nil` when the value was stored without any TTL.
+  """
+  def fetch_individual_datastream_ttl!(realm_name, device_id, interface_id, endpoint_id, path) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    from(d in IndividualDatastream,
+      prefix: ^keyspace,
+      where:
+        d.device_id == ^device_id and d.interface_id == ^interface_id and
+          d.endpoint_id == ^endpoint_id and d.path == ^path,
+      select: fragment("TTL(integer_value)")
+    )
+    |> Repo.one!()
   end
 
   defp execute!(keyspace, query, params \\ [], opts \\ []) do

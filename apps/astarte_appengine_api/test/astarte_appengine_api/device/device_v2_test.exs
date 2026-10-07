@@ -25,6 +25,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Interface, as: CoreInterface
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
 
   describe "update_interface_value" do
     property "returns the given value for valid parameters", context do
@@ -158,6 +162,124 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
         {:error, :unexpected_value_type, _} -> :ok
         _ -> flunk("Wrong return type: #{inspect(result)}")
       end
+    end
+  end
+
+  describe "realm maximum storage retention and mapping database_retention_ttl interaction" do
+    setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+      interface = retention_interface!()
+      insert_interface_cleanly(realm_name, interface)
+
+      device = DeviceGenerator.device(interfaces: [interface]) |> Enum.at(0)
+      insert_device_cleanly(realm_name, device, [interface])
+
+      {:ok, descriptor} =
+        InterfaceQueries.fetch_interface_descriptor(
+          realm_name,
+          interface.name,
+          interface.major_version
+        )
+
+      Mox.stub(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock, :publish, fn _ ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        unset_datastream_maximum_storage_retention!(realm_name)
+      end)
+
+      %{device: device, interface: interface, descriptor: descriptor}
+    end
+
+    # The realm maximum is not enforced when the interface is installed, it is applied
+    # here, on every write. These cover the four combinations of the two settings.
+
+    test "realm maximum caps a higher database_retention_ttl", ctx do
+      set_datastream_maximum_storage_retention!(ctx.realm_name, 600)
+
+      assert_stored_ttl(ctx, "/longTtl", 600)
+    end
+
+    test "database_retention_ttl wins when lower than the realm maximum", ctx do
+      set_datastream_maximum_storage_retention!(ctx.realm_name, 600)
+
+      assert_stored_ttl(ctx, "/shortTtl", 120)
+    end
+
+    test "database_retention_ttl applies when no realm maximum is set", ctx do
+      assert_stored_ttl(ctx, "/longTtl", 3600)
+    end
+
+    test "no_ttl mappings still expire after the realm maximum", ctx do
+      set_datastream_maximum_storage_retention!(ctx.realm_name, 600)
+
+      assert_stored_ttl(ctx, "/noTtl", 600)
+    end
+
+    test "no_ttl mappings never expire when no realm maximum is set", ctx do
+      assert_stored_ttl(ctx, "/noTtl", nil)
+    end
+  end
+
+  defp retention_interface! do
+    mapping = fn endpoint, retention ->
+      Map.merge(%{"endpoint" => endpoint, "type" => "integer"}, retention)
+    end
+
+    params = %{
+      "interface_name" => "org.astarte-platform.test.ServerRetention",
+      "version_major" => 1,
+      "version_minor" => 0,
+      "type" => "datastream",
+      "ownership" => "server",
+      "aggregation" => "individual",
+      "mappings" => [
+        mapping.("/longTtl", %{
+          "database_retention_policy" => "use_ttl",
+          "database_retention_ttl" => 3600
+        }),
+        mapping.("/shortTtl", %{
+          "database_retention_policy" => "use_ttl",
+          "database_retention_ttl" => 120
+        }),
+        mapping.("/noTtl", %{"database_retention_policy" => "no_ttl"})
+      ]
+    }
+
+    %CoreInterface{}
+    |> CoreInterface.changeset(params)
+    |> Ecto.Changeset.apply_action!(:insert)
+  end
+
+  defp assert_stored_ttl(ctx, path, expected_ttl) do
+    %{realm_name: realm_name, device: device, interface: interface, descriptor: descriptor} = ctx
+
+    assert {:ok, _} =
+             Device.update_interface_values(
+               realm_name,
+               device.encoded_id,
+               interface.name,
+               String.trim_leading(path, "/"),
+               10,
+               []
+             )
+
+    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, descriptor.automaton)
+
+    ttl =
+      fetch_individual_datastream_ttl!(
+        realm_name,
+        device.device_id,
+        descriptor.interface_id,
+        endpoint_id,
+        path
+      )
+
+    case expected_ttl do
+      nil -> assert ttl == nil
+      # The TTL counts down from the moment of the write
+      expected_ttl -> assert ttl in (expected_ttl - 5)..expected_ttl
     end
   end
 
