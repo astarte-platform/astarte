@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,19 +41,18 @@ defmodule Astarte.TestSuite.Fixtures.InterfaceTest do
   end
 
   defp context do
-    instance_id = "astarte" <> Integer.to_string(System.unique_integer([:positive]))
     realm_id = realm_name() |> Enum.at(0)
 
+    {:ok, base} = InstanceFixtures.setup(%{})
+    {:ok, base} = InstanceFixtures.data(base)
+
     base =
-      %{
-        instance_cluster: :xandra,
-        instances: %{instance_id => {instance_id, nil}},
-        realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
-      }
+      base
+      |> Map.put(:realms, %{
+        realm_id => {%{id: realm_id, instance_id: base.instance_id}, base.instance_id}
+      })
       |> put!(:interfaces, core_interface().name, core_interface(), realm_id)
 
-    {:ok, base} = InstanceFixtures.setup(base)
-    {:ok, base} = InstanceFixtures.data(base)
     {:ok, base} = RealmFixtures.data(base)
     {:ok, context} = InterfaceFixtures.data(base)
     context

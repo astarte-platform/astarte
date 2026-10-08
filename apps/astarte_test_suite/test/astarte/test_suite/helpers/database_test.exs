@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   import Astarte.Core.Generators.Interface, only: [interface: 0]
   import Astarte.TestSuite.CaseContext, only: [put!: 5]
 
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Repo
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
   alias Astarte.TestSuite.Helpers.Interface, as: InterfaceHelper
@@ -38,6 +39,8 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
     |> stub(:insert!, fn changeset, _opts -> apply_action!(changeset, :insert) end)
     |> stub(:safe_delete_all, fn _query, _opts -> {:ok, 0} end)
 
+    stub(Database, :migrate, fn -> :ok end)
+
     :ok
   end
 
@@ -46,8 +49,8 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
       context = instance_context()
 
       assert context.instance_database_ready?
-      assert length(context.instance_keyspaces) == 2
-      assert length(context.instance_database_statements) == 4
+      assert length(context.instance_keyspaces) == 1
+      assert length(context.instance_database_statements) == 1
     end
 
     test "realm helper records database work" do
@@ -58,7 +61,7 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
       } = realm_context()
 
       assert realms_ready?
-      assert length(realm_keyspaces) == 1
+      assert length(realm_keyspaces) == 2
       assert length(realm_database_statements) == 20
     end
 
@@ -77,29 +80,15 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   end
 
   defp instance_context do
-    [first_instance, second_instance] = unique_instance_ids()
-
-    %{
-      instance_cluster: :xandra,
-      instances: %{
-        first_instance => {first_instance, nil},
-        second_instance => {second_instance, nil}
-      }
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
+    %{} |> InstanceHelper.setup() |> InstanceHelper.data()
   end
 
   defp realm_context do
-    instance_id = unique_instance_id()
     [first_realm, second_realm] = unique_realm_ids()
+    context = instance_context()
+    instance_id = context.instance_id
 
-    %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}}
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
+    context
     |> Map.merge(%{
       realms: %{
         first_realm => {%{id: first_realm, instance_id: instance_id}, instance_id},
@@ -110,28 +99,20 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   end
 
   defp interface_context do
-    instance_id = unique_instance_id()
     realm_id = unique_realm_id()
     first_interface = interface() |> Enum.at(0)
     second_interface = interface() |> Enum.at(1)
+    context = instance_context()
+    instance_id = context.instance_id
 
-    %{
-      instance_cluster: :xandra,
-      instances: %{instance_id => {instance_id, nil}},
-      realms: %{realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}}
-    }
-    |> InstanceHelper.setup()
-    |> InstanceHelper.data()
+    context
+    |> Map.put(:realms, %{
+      realm_id => {%{id: realm_id, instance_id: instance_id}, instance_id}
+    })
     |> RealmHelper.data()
     |> put!(:interfaces, first_interface.name, first_interface, realm_id)
     |> put!(:interfaces, second_interface.name, second_interface, realm_id)
     |> InterfaceHelper.data()
-  end
-
-  defp unique_instance_ids, do: [unique_instance_id(), unique_instance_id()]
-
-  defp unique_instance_id do
-    "astarte" <> Integer.to_string(System.unique_integer([:positive]))
   end
 
   defp unique_realm_ids, do: [unique_realm_id(), unique_realm_id()]

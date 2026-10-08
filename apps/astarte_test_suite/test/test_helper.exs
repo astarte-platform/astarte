@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Database)
 Mimic.copy(Astarte.DataAccess.Repo)
 
 ExUnit.start()
