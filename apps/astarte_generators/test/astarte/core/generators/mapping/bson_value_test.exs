@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 - 2026 SECO Mind Srl
+# Copyright 2025 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,12 +55,14 @@ defmodule Astarte.Core.Generators.Mapping.BSONValueTest do
 
   defp normalize_value(value, _), do: value
 
+  defp normalize_object_value(value, type),
+    do: normalize_value(%{type: type, value: value}).value
+
   defp gen_values(type) when is_atom(type), do: gen_values([type])
 
   defp gen_values(types) when is_list(types) do
     gen all type <- member_of(types),
-            value <- value_from_type(type),
-            value = normalize_value(value, type),
+            value <- value_from_type(type) |> map(&normalize_value(&1, type)),
             bson_value <- to_bson(value, type) do
       {value, bson_value}
     end
@@ -68,8 +70,7 @@ defmodule Astarte.Core.Generators.Mapping.BSONValueTest do
 
   defp gen_package(types) do
     gen all type <- map_of(string(:ascii), member_of(types)),
-            value <- object_value_from_type(type),
-            value = normalize_value(%{type: type, value: value}).value do
+            value <- object_value_from_type(type) |> map(&normalize_object_value(&1, type)) do
       %{path: "/not/used/path", type: type, value: value}
     end
   end
