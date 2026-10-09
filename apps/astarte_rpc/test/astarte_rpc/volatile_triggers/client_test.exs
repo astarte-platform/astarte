@@ -59,8 +59,7 @@ defmodule Astarte.RPC.VolatileTriggers.ClientTest do
 
   describe "trigger deletion" do
     test "calls astarte events", context do
-      %{realm_name: realm_name, trigger_target: target} =
-        context
+      %{realm_name: realm_name, trigger_target: target} = context
 
       test_process = self()
       trigger_id = target.simple_trigger_id
@@ -71,7 +70,7 @@ defmodule Astarte.RPC.VolatileTriggers.ClientTest do
         :ok
       end)
 
-      VolatileTriggers.delete(realm_name, trigger_id)
+      VolatileTriggers.delete(realm_name, trigger_id, :DEVICE_CONNECTED)
       assert_receive :volatile_trigger_deleted, 1000
     end
   end

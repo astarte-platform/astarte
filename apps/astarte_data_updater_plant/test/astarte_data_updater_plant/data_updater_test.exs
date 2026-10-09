@@ -306,7 +306,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the incoming introspection trigger, don't curse next tests
-    assert VolatileTriggers.delete(realm, incoming_introspection_volatile_trigger_id) == :ok
+    assert VolatileTriggers.delete(
+             realm,
+             incoming_introspection_volatile_trigger_id,
+             :INCOMING_INTROSPECTION
+           ) == :ok
 
     # Install a volatile interface added introspection test trigger
     interface_added_trigger_data =
@@ -378,7 +382,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Remove the interface added trigger, don't curse next tests
 
-    assert VolatileTriggers.delete(realm, interface_added_volatile_trigger_id) == :ok
+    assert VolatileTriggers.delete(
+             realm,
+             interface_added_volatile_trigger_id,
+             :INTERFACE_ADDED
+           ) == :ok
 
     # Install a volatile interface minor updated introspection test trigger
     interface_minor_updated_trigger_data =
@@ -451,7 +459,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the interface minor updated trigger, don't curse next tests
-    assert VolatileTriggers.delete(realm, interface_minor_updated_volatile_trigger_id) == :ok
+    assert VolatileTriggers.delete(
+             realm,
+             interface_minor_updated_volatile_trigger_id,
+             :INTERFACE_MINOR_UPDATED
+           ) == :ok
 
     # Install a volatile interface removed introspection test trigger
     interface_removed_trigger_data =
@@ -519,7 +531,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Remove the interface removed trigger, don't curse next tests
-    assert VolatileTriggers.delete(realm, interface_removed_volatile_trigger_id) == :ok
+    assert VolatileTriggers.delete(
+             realm,
+             interface_removed_volatile_trigger_id,
+             :INTERFACE_REMOVED
+           ) == :ok
 
     dump_state(realm, encoded_device_id)
 
@@ -962,7 +978,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert value == 5
 
-    assert VolatileTriggers.delete(realm, volatile_trigger_id) == :ok
+    assert VolatileTriggers.delete(realm, volatile_trigger_id, :INCOMING_DATA) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
 
@@ -1219,7 +1235,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     # Unset subtest
 
     # Delete it otherwise it gets raised
-    assert VolatileTriggers.delete(realm, volatile_changed_trigger_id) == :ok
+    assert VolatileTriggers.delete(realm, volatile_changed_trigger_id, :VALUE_CHANGE_APPLIED) ==
+             :ok
 
     handle_data(
       realm,

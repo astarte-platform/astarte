@@ -31,8 +31,11 @@ defmodule Astarte.RPC.VolatileTriggers.Client do
   def start_link(init_arg), do: GenServer.start_link(Client, init_arg, name: Client)
 
   @impl GenServer
-  def init(_opts) do
-    VolatileTriggers.subscribe_all()
+  def init(opts) do
+    case Keyword.fetch(opts, :types) do
+      {:ok, trigger_types} -> VolatileTriggers.subscribe_types(trigger_types)
+      :error -> VolatileTriggers.subscribe_all()
+    end
 
     {:ok, nil}
   end
