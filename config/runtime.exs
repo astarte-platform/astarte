@@ -49,7 +49,8 @@ case service do
     config :astarte_rpc, :astarte_services, [
       :astarte_data_updater_plant,
       :astarte_vmq_plugin,
-      :astarte_realm_management
+      :astarte_realm_management,
+      :astarte_pairing
     ]
 
   "astarte_data_updater_plant" ->
