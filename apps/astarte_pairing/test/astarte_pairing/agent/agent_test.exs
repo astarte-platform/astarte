@@ -186,6 +186,19 @@ defmodule Astarte.Pairing.AgentTest do
       assert {:error, :device_already_registered} =
                Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
     end
+
+    test "successfully emits volatile trigger upon device registration event", %{
+      realm_name: realm_name
+    } do
+      reset_cache(realm_name)
+
+      ref =
+        register_volatile_device_registration_trigger(realm_name, device_id: @test_hw_id)
+
+      Agent.register_device(realm_name, @valid_attrs)
+
+      assert_receive ^ref
+    end
   end
 
   describe "unregister device" do
