@@ -48,6 +48,7 @@ defmodule Astarte.Pairing.Application do
       Astarte.PairingWeb.Telemetry,
       {Astarte.Pairing.CredentialsSecret.Cache, []},
       {Astarte.RPC.Triggers.Client, types: [:DEVICE_REGISTERED]},
+      {Astarte.RPC.VolatileTriggers.Client, types: [:DEVICE_REGISTERED]},
       Astarte.PairingWeb.Endpoint,
       {Astarte.Events.AMQPEvents.Supervisor, []},
       {Astarte.Events.AMQPTriggers.Supervisor, []},
