@@ -128,6 +128,55 @@ defmodule Astarte.Events.Triggers.Core do
     DEVICE_DELETION_FINISHED: :on_device_deletion_finished
   }
 
+  @data_trigger_type_map %{
+    INCOMING_DATA: :on_incoming_data,
+    VALUE_CHANGE: :on_value_change,
+    VALUE_CHANGE_APPLIED: :on_value_change_applied,
+    PATH_CREATED: :on_path_created,
+    PATH_REMOVED: :on_path_removed,
+    VALUE_STORED: :on_value_stored
+  }
+
+  @simple_event_type_map %{
+    device_connected_event: :on_device_connection,
+    device_disconnected_event: :on_device_disconnection,
+    device_empty_cache_received_event: :on_empty_cache_received,
+    device_error_event: :on_device_error,
+    incoming_introspection_event: :on_incoming_introspection,
+    interface_added_event: :on_interface_added,
+    interface_removed_event: :on_interface_removed,
+    interface_minor_updated_event: :on_interface_minor_updated,
+    device_registered_event: :on_device_registered,
+    device_deletion_started_event: :on_device_deletion_started,
+    device_deletion_finished_event: :on_device_deletion_finished,
+    incoming_data_event: :on_incoming_data,
+    value_change_event: :on_value_change,
+    value_change_applied_event: :on_value_change_applied,
+    path_created_event: :on_path_created,
+    path_removed_event: :on_path_removed,
+    value_stored_event: :on_value_stored
+  }
+
+  @trigger_type_map @device_event_type_map
+                    |> Map.merge(@data_trigger_type_map)
+                    |> Map.merge(@simple_event_type_map)
+
+  @pretty_trigger_types Map.values(@simple_event_type_map)
+
+  @doc """
+  Normalizes a trigger type to its pretty name (e.g. :on_device_connection).
+
+  Accepts both the protobuf trigger types (e.g. :DEVICE_CONNECTED) and the simple event
+  types (e.g. :device_connected_event).
+  """
+  @spec pretty_trigger_type(atom()) :: Astarte.Events.Triggers.Core.event_key()
+  def pretty_trigger_type(trigger_type) do
+    case Map.fetch(@trigger_type_map, trigger_type) do
+      {:ok, pretty_type} -> pretty_type
+      :error when trigger_type in @pretty_trigger_types -> trigger_type
+    end
+  end
+
   def register_targets(realm_name, simple_trigger_list) do
     for {_trigger_key, target} <- simple_trigger_list do
       Core.register_target(realm_name, target)
@@ -401,25 +450,7 @@ defmodule Astarte.Events.Triggers.Core do
   end
 
   defp pretty_data_trigger_type(data_trigger_type) do
-    case data_trigger_type do
-      :INCOMING_DATA ->
-        :on_incoming_data
-
-      :VALUE_CHANGE ->
-        :on_value_change
-
-      :VALUE_CHANGE_APPLIED ->
-        :on_value_change_applied
-
-      :PATH_CREATED ->
-        :on_path_created
-
-      :PATH_REMOVED ->
-        :on_path_removed
-
-      :VALUE_STORED ->
-        :on_value_stored
-    end
+    Map.fetch!(@data_trigger_type_map, data_trigger_type)
   end
 
   def pretty_device_event_type(device_event_type) do

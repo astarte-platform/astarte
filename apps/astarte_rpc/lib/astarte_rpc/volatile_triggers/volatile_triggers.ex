@@ -25,12 +25,19 @@ defmodule Astarte.RPC.VolatileTriggers do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Events.Triggers.Core, as: EventsCore
   alias Astarte.RPC.Server
+  alias Astarte.RPC.Triggers
   alias Astarte.RPC.Triggers.Core
   alias Astarte.RPC.VolatileTriggers.VolatileTriggerDeletion
   alias Astarte.RPC.VolatileTriggers.VolatileTriggerInstallation
   alias Phoenix.PubSub
 
   def subscribe_all, do: PubSub.subscribe(Server, "volatile-triggers:*")
+
+  def subscribe_types(types) do
+    Enum.each(types, fn type ->
+      PubSub.subscribe(Server, trigger_by_type_key(type))
+    end)
+  end
 
   @spec install(
           String.t(),
@@ -48,22 +55,55 @@ defmodule Astarte.RPC.VolatileTriggers do
           data: data
         }
 
-      broadcast(message)
+      trigger_by_type_key = to_trigger_by_type_key(tagged_simple_trigger)
+      broadcast(trigger_by_type_key, message)
     end
   end
 
-  @spec delete(String.t(), Astarte.DataAccess.UUID.t()) :: :ok | {:error, term()}
-  def delete(realm_name, trigger_id) do
+  @doc """
+  Deletes a volatile trigger. `event_type` is used to route the message to the interested
+  subscribers, and can be either a trigger type (e.g. :DEVICE_CONNECTED) or a simple event
+  type (e.g. :device_connected_event).
+  """
+
+  @spec delete(String.t(), Astarte.DataAccess.UUID.t(), TaggedSimpleTrigger.t()) ::
+          :ok | {:error, term()}
+  def delete(realm_name, trigger_id, %TaggedSimpleTrigger{} = tagged_simple_trigger) do
     message =
       %VolatileTriggerDeletion{
         realm_name: realm_name,
         trigger_id: trigger_id
       }
 
-    broadcast(message)
+    broadcast(to_trigger_by_type_key(tagged_simple_trigger), message)
   end
 
-  defp broadcast(message) do
+  @spec delete(String.t(), Astarte.DataAccess.UUID.t(), atom()) :: :ok | {:error, term()}
+  def delete(realm_name, trigger_id, event_type) do
+    message =
+      %VolatileTriggerDeletion{
+        realm_name: realm_name,
+        trigger_id: trigger_id
+      }
+
+    broadcast(trigger_by_type_key(EventsCore.pretty_trigger_type(event_type)), message)
+  end
+
+  defp broadcast(trigger_by_type_key, message) do
+    PubSub.broadcast(Server, trigger_by_type_key, message)
     PubSub.broadcast(Server, "volatile-triggers:*", message)
+  end
+
+  defp to_trigger_by_type_key(tagged_simple_trigger) do
+    trigger_type =
+      Triggers.trigger_type(tagged_simple_trigger.simple_trigger_container.simple_trigger)
+
+    trigger_type
+    |> EventsCore.pretty_trigger_type()
+    |> trigger_by_type_key()
+  end
+
+  defp trigger_by_type_key(trigger_type) do
+    "volatile-triggers-by-type:" <> Atom.to_string(trigger_type)
   end
 end

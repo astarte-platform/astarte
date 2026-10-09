@@ -59,6 +59,16 @@ defmodule Astarte.RPC.VolatileTriggersTest do
     end
   end
 
+  describe "subscribe_types/1" do
+    test "subscribes to selected installation types" do
+      expect(PubSub, :subscribe, fn
+        Server, "volatile-triggers-by-type:on_interface_added" -> :ok
+      end)
+
+      VolatileTriggers.subscribe_types([:on_interface_added])
+    end
+  end
+
   describe "install/4" do
     test "sends an install trigger message to all the replicas for device triggers", context do
       %{
@@ -74,6 +84,31 @@ defmodule Astarte.RPC.VolatileTriggersTest do
       VolatileTriggers.install(realm_name, tagged_simple_trigger, nil)
 
       assert_receive %VolatileTriggerInstallation{}
+    end
+
+    test "routes installations by trigger type for selective subscribers", context do
+      %{realm_name: realm_name} = context
+
+      PubSub.unsubscribe(Server, "volatile-triggers:*")
+      VolatileTriggers.subscribe_types([:on_interface_added])
+
+      matching_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:device_trigger, %{device_event_type: :INTERFACE_ADDED}}
+        }
+      }
+
+      other_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:device_trigger, %{device_event_type: :DEVICE_CONNECTED}}
+        }
+      }
+
+      VolatileTriggers.install(realm_name, matching_trigger, nil)
+      assert_receive %VolatileTriggerInstallation{simple_trigger: ^matching_trigger}
+
+      VolatileTriggers.install(realm_name, other_trigger, nil)
+      refute_receive %VolatileTriggerInstallation{simple_trigger: ^other_trigger}, 50
     end
 
     test "sends an install trigger message to all the replicas for all interface data triggers",
@@ -225,16 +260,27 @@ defmodule Astarte.RPC.VolatileTriggersTest do
     end
   end
 
-  describe "delete/2" do
+  describe "delete/3" do
     test "sends a delete trigger message to all the replicas", context do
-      %{
-        realm_name: realm_name,
-        trigger_id: trigger_id
-      } = context
+      %{realm_name: realm_name, trigger_id: trigger_id} = context
 
-      VolatileTriggers.delete(realm_name, trigger_id)
+      assert :ok = VolatileTriggers.delete(realm_name, trigger_id, :INCOMING_DATA)
 
       assert_receive %VolatileTriggerDeletion{trigger_id: ^trigger_id}
+    end
+
+    test "routes deletions by event type for selective subscribers", context do
+      %{realm_name: realm_name, trigger_id: trigger_id} = context
+
+      PubSub.unsubscribe(Server, "volatile-triggers:*")
+      VolatileTriggers.subscribe_types([:on_interface_added])
+
+      VolatileTriggers.delete(realm_name, trigger_id, :interface_added_event)
+      assert_receive %VolatileTriggerDeletion{trigger_id: ^trigger_id}
+
+      other_id = UUID.uuid4(:raw)
+      VolatileTriggers.delete(realm_name, other_id, :device_connected_event)
+      refute_receive %VolatileTriggerDeletion{trigger_id: ^other_id}, 50
     end
   end
 

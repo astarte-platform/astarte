@@ -36,7 +36,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
       realm: realm,
       device_id: device_id,
       timestamp: timestamp_ms,
-      event: {_event_type, event}
+      event: {event_type, event}
     } = simple_event
 
     timestamp =
@@ -67,7 +67,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           %{realm: realm}
         )
 
-        VolatileTriggers.delete(realm, simple_trigger_id)
+        VolatileTriggers.delete(realm, simple_trigger_id, event_type)
         {:error, :no_room_for_event}
 
       {:error, :trigger_not_found} ->
@@ -83,7 +83,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           %{realm: realm}
         )
 
-        VolatileTriggers.delete(realm, simple_trigger_id)
+        VolatileTriggers.delete(realm, simple_trigger_id, event_type)
         {:error, :trigger_not_found}
 
       {:error, reason} ->
