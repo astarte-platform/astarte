@@ -57,7 +57,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
       {Astarte.RPC.Triggers.Client, types: trigger_types},
-      Astarte.RPC.VolatileTriggers.Client,
+      {Astarte.RPC.VolatileTriggers.Client, types: trigger_types},
       DeletionScheduler,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
