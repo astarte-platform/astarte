@@ -45,7 +45,14 @@ if level = System.get_env("ASTARTE_LOG_LEVEL") do
 end
 
 case service do
-  service when service in ["astarte_appengine_api", "astarte_data_updater_plant"] ->
+  "astarte_appengine_api" ->
+    config :astarte_rpc, :astarte_services, [
+      :astarte_data_updater_plant,
+      :astarte_vmq_plugin,
+      :astarte_realm_management
+    ]
+
+  "astarte_data_updater_plant" ->
     config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
 
   "astarte_pairing" ->

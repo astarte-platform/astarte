@@ -130,6 +130,22 @@ defmodule Astarte.RealmManagement.DevicesTest do
       assert_receive ^ref
     end
 
+    test "generates 'device deletion started' volatile triggers", %{
+      realm: realm,
+      device_id: device_id
+    } do
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
+      reset_cache(realm)
+
+      ref = register_device_deletion_started_volatile_trigger(realm, device_id: device_id)
+
+      start_device_deletion(realm, device_id)
+
+      assert_receive ^ref
+    end
+
     test "calls `Scheduler.delete_device/2`", context do
       %{
         realm: realm_name,

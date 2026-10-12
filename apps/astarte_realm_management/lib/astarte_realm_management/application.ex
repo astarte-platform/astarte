@@ -59,6 +59,7 @@ defmodule Astarte.RealmManagement.Application do
       [
         Astarte.RealmManagement.RPC.Server,
         {Astarte.RPC.Triggers.Client, types: trigger_types},
+        {Astarte.RPC.VolatileTriggers.Client, types: trigger_types},
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},

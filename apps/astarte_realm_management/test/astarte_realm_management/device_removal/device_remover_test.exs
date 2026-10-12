@@ -83,6 +83,20 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     assert_receive ^ref
   end
 
+  test "generates 'device deletion completed' volatile triggers", %{
+    realm_name: realm_name,
+    device_id: device_id,
+    decoded_device_id: decoded_device_id
+  } do
+    reset_cache(realm_name)
+
+    ref = register_device_deletion_finished_volatile_trigger(realm_name, device_id: device_id)
+
+    DeviceRemover.run(%{device_id: decoded_device_id, realm_name: realm_name})
+
+    assert_receive ^ref
+  end
+
   test "deletes the ownership voucher bound to the device", %{realm_name: realm_name} do
     keyspace = Realm.keyspace_name(realm_name)
     astarte_keyspace = Realm.astarte_keyspace_name()
