@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleConfigs.DataTriggerConfig do
   use Astarte.Generators.Utilities.ParamsGen
 
   import Astarte.Core.Generators.Interface, only: [interface: 0]
-  import Astarte.Core.Generators.Mapping.BSONValue, only: [bson_value_type: 1]
+  import Astarte.Core.Generators.Mapping.BSONValue, only: [bson_value_type: 1, to_bson: 2]
   import Astarte.Core.Generators.Triggers.SimpleConfigs.Scope, only: [trigger_scope: 0]
 
   alias Astarte.Core.Interface
@@ -132,6 +132,16 @@ defmodule Astarte.Core.Generators.Triggers.SimpleConfigs.DataTriggerConfig do
 
   defp data_trigger_known_value(:ANY, _trigger_mapping), do: constant(nil)
 
+  defp data_trigger_known_value(_operator, %Mapping{value_type: :string}),
+    do: non_blank_string() |> to_bson(:string)
+
   defp data_trigger_known_value(_operator, %Mapping{value_type: value_type}),
     do: bson_value_type(value_type)
+
+  defp non_blank_string do
+    gen all initial <- string(:alphanumeric, length: 1),
+            rest <- string(:utf8, max_length: 65_534) do
+      initial <> rest
+    end
+  end
 end

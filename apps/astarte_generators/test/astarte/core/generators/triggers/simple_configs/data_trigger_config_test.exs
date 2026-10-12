@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,6 +60,19 @@ defmodule Astarte.Core.Generators.Triggers.SimpleConfigs.DataTriggerConfigTest d
       end
     end
 
+    property "generates non-blank string known values" do
+      check all {interface, endpoint} <- string_interface(),
+                %DataTrigger{known_value: known_value} <-
+                  data_trigger_config(
+                    interface: interface,
+                    match_path: endpoint,
+                    value_match_operator: :EQUAL_TO
+                  ) do
+        assert %{"v" => value} = Cyanide.decode!(known_value)
+        assert String.trim_leading(value) != ""
+      end
+    end
+
     property "generates the consistent any-interface configuration" do
       check all data_trigger_config <-
                   data_trigger_config(interface: constant(:any_interface)) do
@@ -83,6 +96,17 @@ defmodule Astarte.Core.Generators.Triggers.SimpleConfigs.DataTriggerConfigTest d
         assert group_name == Map.get(scope, :group_name)
       end
     end
+  end
+
+  defp string_interface do
+    interface(aggregation: :individual)
+    |> map(&put_string_mapping/1)
+  end
+
+  defp put_string_mapping(%Interface{mappings: [mapping | _]} = interface) do
+    mapping = %{mapping | type: :string, value_type: :string}
+    %Mapping{endpoint: endpoint} = mapping
+    {%{interface | mappings: [mapping]}, endpoint}
   end
 
   defp valid_match_path?(_mappings, "/*"), do: true
