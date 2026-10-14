@@ -78,7 +78,10 @@ services:
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
       ASTARTE_VAULT_URL: "http://openbao:8200"
-      ASTARTE_PAIRING_OPENFGA_URL: "http://openfga:8080"
+      # OpenFGA is a single cluster-wide service, configured through
+      # astarte_auth. ASTARTE_OPENFGA_STORE_ID is provisioned by
+      # the OpenFGA init container.
+      ASTARTE_OPENFGA_URL: "http://openfga:8080"
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:

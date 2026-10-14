@@ -16,12 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.OpenFGATest do
+defmodule Astarte.Auth.OpenFGATest do
   use ExUnit.Case
   use Mimic
 
-  alias Astarte.Pairing.OpenFGA
-  alias Astarte.Pairing.OpenFGA.Client
+  alias Astarte.Auth.Config
+  alias Astarte.Auth.OpenFGA
+  alias Astarte.Auth.OpenFGA.Client
 
   # Matches the :openfga_store_id configured in config/test.exs.
   @store_id "test_store_id"
@@ -61,6 +62,15 @@ defmodule Astarte.Pairing.OpenFGATest do
     end)
 
     assert OpenFGA.check("user:42", "can_unregister", "device:abc123") == :ok
+  end
+
+  test "returns {:error, :store_not_configured} without calling OpenFGA when no store id is set" do
+    for unset <- [nil, ""] do
+      expect(Config, :openfga_store_id!, fn -> unset end)
+      reject(&Client.post/3)
+
+      assert OpenFGA.check("user:1", "viewer", "realm:test") == {:error, :store_not_configured}
+    end
   end
 
   test "returns {:error, :unexpected_response} when the body has no \"allowed\" key" do

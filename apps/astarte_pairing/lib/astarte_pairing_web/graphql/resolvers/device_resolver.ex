@@ -28,7 +28,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
   """
   def obtain_credentials(_parent, %{hw_id: hw_id, csr: csr}, %{context: context}) do
     with_device_context(context, fn realm, secret ->
-      device_ip = Map.get(context, :device_ip, "127.0.0.1")
+      device_ip = Map.get(context, :remote_ip, "127.0.0.1")
       params = %{csr: csr}
 
       case Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
@@ -69,7 +69,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
   # secret (not an Agent JWT), so this check isn't handled by AuthorizeFGA.
   defp with_device_context(context, fun) do
     realm = Map.get(context, :realm_name)
-    secret = Map.get(context, :device_secret)
+    secret = Map.get(context, :auth_token)
 
     if is_nil(realm) or is_nil(secret) do
       {:error, "Unauthorized: Missing realm or device secret in context"}
