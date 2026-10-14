@@ -109,7 +109,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
        room_name: room_name,
        room_uuid: room_uuid,
        watch_id_to_request: %{},
-       watch_name_to_id: %{}
+       watch_name_to_trigger: %{}
      }}
   end
 
@@ -129,7 +129,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   def handle_call({:watch, watch_request}, _from, state) do
     %{
-      watch_name_to_id: watch_name_to_id
+      watch_name_to_trigger: watch_name_to_trigger
     } = state
 
     :telemetry.execute(
@@ -138,7 +138,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       %{realm: state.realm}
     )
 
-    with {:duplicate, false} <- {:duplicate, Map.has_key?(watch_name_to_id, watch_request.name)},
+    with {:duplicate, false} <-
+           {:duplicate, Map.has_key?(watch_name_to_trigger, watch_request.name)},
          {:ok, new_state} <- do_watch(watch_request, state) do
       {:reply, :ok, new_state}
     else
@@ -153,7 +154,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   def handle_call({:unwatch, watch_name}, _from, state) do
     %{
       watch_id_to_request: watch_id_to_request,
-      watch_name_to_id: watch_name_to_id
+      watch_name_to_trigger: watch_name_to_trigger
     } = state
 
     :telemetry.execute(
@@ -162,9 +163,10 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       %{realm: state.realm}
     )
 
-    with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
+    with {:ok, {trigger_id, tagged_simple_trigger}} <-
+           Map.fetch(watch_name_to_trigger, watch_name),
          {:ok, %WatchRequest{} = watch_request} <- Map.fetch(watch_id_to_request, trigger_id),
-         {:ok, new_state} <- do_unwatch(watch_request, trigger_id, state) do
+         {:ok, new_state} <- do_unwatch(watch_request, trigger_id, tagged_simple_trigger, state) do
       {:reply, :ok, new_state}
     else
       :error ->
@@ -218,7 +220,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         %{realm: state.realm}
       )
 
-      {:stop, :normal, %{state | watch_id_to_request: %{}, watch_name_to_id: %{}}}
+      {:stop, :normal, %{state | watch_id_to_request: %{}, watch_name_to_trigger: %{}}}
     else
       {:noreply, %{state | clients: new_clients}}
     end
@@ -228,7 +230,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     %{
       watch_id_to_request: watch_id_to_request,
       room_uuid: room_uuid,
-      watch_name_to_id: watch_name_to_id,
+      watch_name_to_trigger: watch_name_to_trigger,
       realm: realm
     } = state
 
@@ -251,7 +253,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         new_state = %{
           state
           | watch_id_to_request: Map.put(watch_id_to_request, trigger_id, watch_request),
-            watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
+            watch_name_to_trigger:
+              Map.put(watch_name_to_trigger, name, {trigger_id, tagged_simple_trigger})
         }
 
         {:ok, new_state}
@@ -266,10 +269,10 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     end
   end
 
-  defp do_unwatch(watch_request, trigger_id, state) do
+  defp do_unwatch(watch_request, trigger_id, tagged_simple_trigger, state) do
     %{
       watch_id_to_request: watch_id_to_request,
-      watch_name_to_id: watch_name_to_id,
+      watch_name_to_trigger: watch_name_to_trigger,
       realm: realm
     } = state
 
@@ -277,25 +280,25 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       name: watch_name
     } = watch_request
 
-    with :ok <- VolatileTriggers.delete(realm, trigger_id) do
+    with :ok <- VolatileTriggers.delete(realm, trigger_id, tagged_simple_trigger) do
       new_state = %{
         state
         | watch_id_to_request: Map.delete(watch_id_to_request, trigger_id),
-          watch_name_to_id: Map.delete(watch_name_to_id, watch_name)
+          watch_name_to_trigger: Map.delete(watch_name_to_trigger, watch_name)
       }
 
       {:ok, new_state}
     end
   end
 
-  defp room_cleanup(%{watch_id_to_request: watch_id_to_request} = state) do
-    Enum.each(watch_id_to_request, fn {trigger_id, watch_request} ->
-      do_unwatch(watch_request, trigger_id, state)
+  defp room_cleanup(%{watch_name_to_trigger: watch_name_to_trigger} = state) do
+    Enum.each(watch_name_to_trigger, fn {_watch_name, {trigger_id, tagged_simple_trigger}} ->
+      watch_request = Map.fetch!(state.watch_id_to_request, trigger_id)
+      do_unwatch(watch_request, trigger_id, tagged_simple_trigger, state)
     end)
   end
 
   # Helpers
-
   defp via_tuple(room_name) do
     {:via, Registry, {Registry.AstarteRooms, room_name}}
   end
