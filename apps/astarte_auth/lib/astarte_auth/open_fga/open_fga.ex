@@ -16,14 +16,14 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.OpenFGA do
+defmodule Astarte.Auth.OpenFGA do
   @moduledoc """
   Exposes authorization checks against the OpenFGA server configured via
-  `Astarte.Pairing.Config`.
+  `Astarte.Auth.Config`.
   """
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.OpenFGA.Client
+  alias Astarte.Auth.Config
+  alias Astarte.Auth.OpenFGA.Client
 
   require Logger
 
@@ -33,13 +33,23 @@ defmodule Astarte.Pairing.OpenFGA do
 
   Returns `:ok` if the check is allowed, `{:error, :forbidden}` if OpenFGA
   explicitly denied it, or `{:error, reason}` if the check itself couldn't
-  be completed: the request failed, OpenFGA returned an unexpected HTTP
-  status, or its response body wasn't the shape we expect.
+  be completed: no store is configured, the request failed, OpenFGA returned
+  an unexpected HTTP status, or its response body wasn't the shape we expect.
   """
   @spec check(String.t(), String.t(), String.t()) ::
           :ok | {:error, :forbidden} | {:error, term()}
   def check(user, relation, object) do
-    store_id = Config.openfga_store_id!()
+    case Config.openfga_store_id!() do
+      store_id when store_id in [nil, ""] ->
+        Logger.error("OpenFGA store id is not configured")
+        {:error, :store_not_configured}
+
+      store_id ->
+        do_check(store_id, user, relation, object)
+    end
+  end
+
+  defp do_check(store_id, user, relation, object) do
     url = "/stores/#{store_id}/check"
 
     body =

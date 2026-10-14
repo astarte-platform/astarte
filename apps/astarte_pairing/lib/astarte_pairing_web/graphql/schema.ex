@@ -8,7 +8,7 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
 
   import_types Astarte.PairingWeb.GraphQL.Types.{DeviceTypes, AgentTypes, FdoTypes}
 
-  alias Astarte.PairingWeb.GraphQL.Middleware.AuthorizeFGA
+  alias Astarte.Auth.GraphQL.Middleware.AuthorizeFGA
   alias Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver
   alias Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver
   alias Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver

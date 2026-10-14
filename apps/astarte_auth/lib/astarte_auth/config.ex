@@ -16,14 +16,21 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.OpenFGA.Client do
+defmodule Astarte.Auth.Config do
   @moduledoc """
-  HTTP client for the OpenFGA authorization server, wired to the
-  `openfga_url` configured in `Astarte.Pairing.Config`.
+  Configuration of the authorization services shared by every Astarte service.
+
+  OpenFGA is a single cluster-wide deployment, so it is configured here once
+  instead of once per service: every service reads the same `ASTARTE_OPENFGA_*`
+  environment variables.
   """
 
-  use Astarte.Config.HTTPClient, config: Astarte.Pairing.Config, service: :openfga
+  use Astarte.Config, env_app: "ASTARTE"
 
-  # Ignore the dialyzer warning for the macro-injected stream_next/1 function
-  @dialyzer {:nowarn_function, stream_next: 1}
+  url_env(:openfga, :astarte_auth, :openfga, default_port: 8080)
+
+  @envdoc "The OpenFGA store id to use for authorization checks. When unset, every authorization check fails."
+  app_env :openfga_store_id, :astarte_auth, :openfga_store_id,
+    os_env: "ASTARTE_OPENFGA_STORE_ID",
+    type: :binary
 end

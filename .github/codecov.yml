@@ -19,6 +19,7 @@ coverage:
           - astarte_trigger_engine
           - astarte_vmq_plugin
           - astarte_core
+          - astarte_auth
           - astarte_config
           - astarte_data_access
           - astarte_events
@@ -82,6 +83,10 @@ flags:
     carryforward: true
     paths:
       - apps/astarte_core
+  astarte_auth:
+    carryforward: true
+    paths:
+      - apps/astarte_auth
   astarte_config:
     carryforward: true
     paths:

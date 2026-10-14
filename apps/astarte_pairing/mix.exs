@@ -95,6 +95,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "secomind/cfxxl", branch: "main"},
+      {:astarte_auth, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_secrets, in_umbrella: true},

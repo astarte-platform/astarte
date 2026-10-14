@@ -162,14 +162,6 @@ defmodule Astarte.Pairing.Config do
     type: :atom,
     default: :trigger_cache
 
-  url_env(:openfga, :astarte_pairing, :openfga, default_port: 8080)
-
-  @envdoc "The OpenFGA store id to use for authorization checks."
-  app_env :openfga_store_id, :astarte_pairing, :openfga_store_id,
-    os_env: "ASTARTE_PAIRING_OPENFGA_STORE_ID",
-    type: :binary,
-    required: true
-
   @doc """
   Returns the cassandra node configuration
   """

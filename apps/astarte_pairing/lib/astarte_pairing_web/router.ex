@@ -34,7 +34,11 @@ defmodule Astarte.PairingWeb.Router do
   end
 
   pipeline :graphql do
-    plug Astarte.PairingWeb.Plug.GraphQLContext
+    plug Astarte.Auth.GraphQL.Plug.Context,
+      otp_app: :astarte_pairing,
+      guardian: Astarte.PairingWeb.AuthGuardian,
+      verify_header: Astarte.PairingWeb.Plug.VerifyHeader,
+      config: Astarte.Pairing.Config
   end
 
   pipeline :fdo do
