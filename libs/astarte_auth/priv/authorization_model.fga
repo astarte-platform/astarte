@@ -1,0 +1,137 @@
+# Astarte authorization model.
+#
+# Relations come in two kinds:
+#   roles        — directly assignable, `[user, team#member]`. The only thing a tuple ever writes.
+#   capabilities — `can_<verb>_<noun>`, derived from roles. The only thing a service ever checks.
+#
+# Objects and users are realm-qualified, because realms are separate authentication realms with
+# their own public keys and a device id is only unique within a realm:
+#   user:<realm>/<sub>   user:_cluster/<sub>   device:<realm>/<device_id>
+#   interface:<realm>/<name>   device_group:<realm>/<group>
+#
+# See doc/pages/architecture/072-authorization_model.md.
+
+model
+  schema 1.1
+
+type user
+
+type team
+  relations
+    define member: [user, team#member]
+
+type cluster
+  relations
+    # roles
+    define admin: [user, team#member]
+    define observer: [user, team#member] or admin
+
+    # capabilities
+    define can_create_realm: admin
+    define can_list_realms: observer
+    define can_read_cluster_config: observer
+
+type realm
+  relations
+    define parent: [cluster]
+
+    # roles
+    define admin: [user, team#member] or admin from parent
+    define interface_manager: [user, team#member] or admin
+    define trigger_manager: [user, team#member] or admin
+    define fleet_manager: [user, team#member] or admin
+    define fdo_manager: [user, team#member] or admin
+    define fdo_viewer: [user, team#member] or fdo_manager
+    define data_writer: [user, team#member] or admin
+    define observer: [user, team#member] or admin or observer from parent
+    define data_reader: [user, team#member] or data_writer or observer
+
+    # capabilities
+    define can_read_realm: observer
+    define can_update_realm: admin from parent
+    define can_delete_realm: admin from parent
+    define can_read_realm_config: observer
+    define can_update_realm_config: admin
+
+    define can_list_interfaces: observer or data_reader
+    define can_install_interface: interface_manager
+
+    define can_list_triggers: observer
+    define can_create_trigger: trigger_manager
+    define can_list_trigger_policies: observer
+    define can_create_trigger_policy: trigger_manager
+
+    define can_register_device: fleet_manager
+    define can_list_devices: observer or data_reader
+    define can_read_stats: observer or data_reader
+
+    define can_list_device_groups: observer or data_reader
+    define can_create_device_group: fleet_manager
+
+    define can_read_fdo: fdo_viewer
+    define can_manage_fdo: fdo_manager
+
+    define can_join_room: data_reader
+    define can_watch: data_reader
+
+type device_group
+  relations
+    define realm: [realm]
+
+    # a role granted here scopes a user to one slice of the fleet
+    define fleet_manager: [user, team#member] or fleet_manager from realm
+    define data_writer: [user, team#member] or data_writer from realm
+    define observer: [user, team#member] or observer from realm
+    define data_reader: [user, team#member] or data_writer or data_reader from realm
+
+    define can_read: observer or data_reader
+    define can_update: fleet_manager
+
+type device
+  relations
+    define realm: [realm]
+    define group: [device_group]
+
+    # roles inherit from the realm and from every group the device belongs to,
+    # and can also be granted on the device itself
+    define admin: admin from realm
+    define fleet_manager: [user, team#member] or fleet_manager from realm or fleet_manager from group
+    define data_writer: [user, team#member] or data_writer from realm or data_writer from group
+    define observer: [user, team#member] or observer from realm or observer from group
+    define data_reader: [user, team#member] or data_writer or data_reader from realm or data_reader from group
+
+    define can_read: observer or data_reader or fleet_manager
+    define can_update: fleet_manager
+    define can_unregister: fleet_manager
+    define can_delete: admin
+    define can_read_data: data_reader
+    define can_write_data: data_writer
+    define can_watch: data_reader
+
+type interface
+  relations
+    define realm: [realm]
+
+    # a role granted here scopes a user to one interface
+    define interface_manager: [user, team#member] or interface_manager from realm
+    define data_writer: [user, team#member] or data_writer from realm
+    define observer: [user, team#member] or observer from realm
+    define data_reader: [user, team#member] or data_writer or data_reader from realm
+
+    define can_read: observer or data_reader or interface_manager
+    define can_update: interface_manager
+    define can_delete: interface_manager
+    define can_read_data: data_reader
+    define can_write_data: data_writer
+
+type trigger
+  relations
+    define realm: [realm]
+    define can_read: observer from realm
+    define can_delete: trigger_manager from realm
+
+type trigger_policy
+  relations
+    define realm: [realm]
+    define can_read: observer from realm
+    define can_delete: trigger_manager from realm
