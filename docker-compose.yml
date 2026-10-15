@@ -77,6 +77,10 @@ services:
       context: .
       args:
         SERVICE: astarte_pairing
+    command: >
+      /bin/sh -c ". /shared/openfga.env && ./bin/astarte_pairing start"
+    volumes:
+      - openfga-shared:/shared:ro,z
     env_file:
       - ./.env
     environment:
@@ -95,6 +99,8 @@ services:
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:
+      openfga-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       scylla:
@@ -314,6 +320,16 @@ services:
       - OPENFGA_PLAYGROUND_ENABLED=true
     restart: on-failure
 
+  openfga-init:
+    image: alpine:latest
+    depends_on:
+      - openfga
+    volumes:
+      - ./compose/openfga-init:/openfga-init:ro,z
+      - openfga-shared:/shared:z
+    command: >
+      /bin/sh -c "apk add --no-cache curl jq && /openfga-init/init.sh"
+
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:4.3.1-management
@@ -396,6 +412,7 @@ volumes:
   vernemq-data:
   cfssl-data:
   fdo-rendezvous-data:
+  openfga-shared:
 
 networks:
   default:
