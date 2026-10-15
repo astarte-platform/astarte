@@ -353,7 +353,7 @@ defmodule Astarte.AppEngine.API.Device do
 
         error
 
-      {value, encrypted_dek} ->
+      {:ok, {value, encrypted_dek}} ->
         insert_context = %InsertContext{
           realm: realm,
           device_id: device,
@@ -648,7 +648,7 @@ defmodule Astarte.AppEngine.API.Device do
 
         error
 
-      {value, encrypted_dek} ->
+      {:ok, {value, encrypted_dek}} ->
         persist_object_value(
           realm_name,
           device_id,

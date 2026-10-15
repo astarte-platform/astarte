@@ -78,7 +78,7 @@ defmodule Astarte.SecretsTest do
       selected_mapping = %Mapping{endpoint: "/a", encrypted: true}
       mappings = [selected_mapping, %Mapping{endpoint: "/b", encrypted: true}]
 
-      assert {encrypted_value, "vault:v1:test"} =
+      assert {:ok, {encrypted_value, "vault:v1:test"}} =
                Secrets.maybe_encrypt_value(
                  interface_descriptor,
                  selected_mapping,
@@ -92,7 +92,7 @@ defmodule Astarte.SecretsTest do
 
       assert "hello" = :erlang.binary_to_term(encoded_plaintext)
 
-      assert {"hello", nil} =
+      assert {:ok, {"hello", nil}} =
                Secrets.maybe_encrypt_value(
                  interface_descriptor,
                  %Mapping{endpoint: "/c", encrypted: false},
@@ -119,7 +119,7 @@ defmodule Astarte.SecretsTest do
         %Mapping{endpoint: "/endpoint2", encrypted: false}
       ]
 
-      assert {encrypted_object, "vault:v1:test"} =
+      assert {:ok, {encrypted_object, "vault:v1:test"}} =
                Secrets.maybe_encrypt_value(
                  interface_descriptor,
                  selected_mapping,
@@ -684,8 +684,9 @@ defmodule Astarte.SecretsTest do
       %{ec_key: ec_key}
     end
 
-    test "returns :error for unknown key type without calling Core", %{ec_key: ec_key} do
-      assert :error = Secrets.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
+    test "returns an error for unknown key type without calling Core", %{ec_key: ec_key} do
+      assert {:error, :key_import_failed} =
+               Secrets.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
     end
 
     test "passes only :namespace and :token to get_wrapping_key", %{ec_key: ec_key} do
@@ -707,19 +708,19 @@ defmodule Astarte.SecretsTest do
       assert :ok = Secrets.import_key("k", :es256, ec_key, opts)
     end
 
-    test "returns :error when get_wrapping_key fails", %{ec_key: ec_key} do
+    test "returns an error when get_wrapping_key fails", %{ec_key: ec_key} do
       expect(Core, :get_wrapping_key, fn _opts -> {:error, :wrapping_key_parse_failed} end)
 
-      assert {:error, :wrapping_key_parse_failed} =
+      assert {:error, :key_import_failed} =
                Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
     end
 
-    test "returns :error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
+    test "returns an error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
       expect(Core, :prepare_import_ciphertext, fn _material, _pem ->
         {:error, :pem_decode_failed}
       end)
 
-      assert {:error, :pem_decode_failed} =
+      assert {:error, :key_import_failed} =
                Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
     end
   end
@@ -739,6 +740,66 @@ defmodule Astarte.SecretsTest do
 
     test "returns :error in case of error" do
       assert :error == Secrets.rotate("invalid-key", "invalid-namespace")
+    end
+  end
+
+  describe "encrypt_with_kek/3" do
+    setup :realm_kek_setup
+    setup :create_realm_kek
+
+    test "returns a vault ciphertext", %{realm_name: realm_name} do
+      assert {:ok, ciphertext} = Secrets.encrypt_with_kek(realm_name, "my shared secret")
+      assert String.starts_with?(ciphertext, "vault:v1:")
+    end
+
+    test "encrypts using the realm kek in its own namespace", context do
+      %{realm_name: realm_name, key: key} = context
+
+      Core
+      |> expect(:encrypt, fn key_name, plaintext, opts ->
+        assert key_name == key.name
+        assert plaintext == "my shared secret"
+        assert Keyword.fetch!(opts, :namespace) == key.namespace
+
+        {:ok, "vault:v1:stubbed"}
+      end)
+
+      assert {:ok, "vault:v1:stubbed"} =
+               Secrets.encrypt_with_kek(realm_name, "my shared secret")
+    end
+
+    test "returns :error when the realm has no kek" do
+      assert :error = Secrets.encrypt_with_kek("realm_without_kek", "my shared secret")
+    end
+
+    test "returns :error when the realm kek cannot be parsed", %{realm_name: realm_name} do
+      Core
+      |> expect(:get_key, fn _key_name, _namespace ->
+        {:ok, Jason.encode!(%{"data" => %{"type" => "aes256-gcm96", "keys" => %{}}})}
+      end)
+
+      assert :error = Secrets.encrypt_with_kek(realm_name, "my shared secret")
+    end
+  end
+
+  describe "decrypt_with_kek/3" do
+    setup :realm_kek_setup
+    setup :create_realm_kek
+
+    test "round-trips: decrypt recovers the original plaintext", %{realm_name: realm_name} do
+      plaintext = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, ciphertext} = Secrets.encrypt_with_kek(realm_name, plaintext)
+      assert {:ok, ^plaintext} = Secrets.decrypt_with_kek(realm_name, ciphertext)
+    end
+
+    test "returns :error when the realm kek cannot be parsed", %{realm_name: realm_name} do
+      Core
+      |> expect(:get_key, fn _key_name, _namespace ->
+        {:ok, Jason.encode!(%{"data" => %{"type" => "aes256-gcm96", "keys" => %{}}})}
+      end)
+
+      assert :error = Secrets.decrypt_with_kek(realm_name, "vault:v1:abcd")
     end
   end
 end

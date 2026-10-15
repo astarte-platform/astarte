@@ -56,12 +56,31 @@ defmodule Astarte.Secrets do
     get_key(@realm_kek_key_name, namespace: namespace)
   end
 
-  @spec get_key(String.t()) :: {:ok, Key.t()} | :error
+  @spec get_key(String.t(), keyword()) :: {:ok, Key.t()} | :error
   def get_key(key_name, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
-    with {:ok, resp} <- Core.get_key(key_name, namespace),
-         {:ok, data} <- Core.parse_json_data(resp) do
+    with {:ok, resp} <- Core.get_key(key_name, namespace) do
+      parse_key(key_name, namespace, resp)
+    end
+  end
+
+  # the parse helpers report failures as `{:error, reason}`, callers expect `:error`
+  defp parse_key(key_name, namespace, resp) do
+    case parse_key_data(key_name, namespace, resp) do
+      {:ok, key} ->
+        {:ok, key}
+
+      {:error, reason} ->
+        "Error parsing key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  defp parse_key_data(key_name, namespace, resp) do
+    with {:ok, data} <- Core.parse_json_data(resp) do
       Key.parse(key_name, namespace, data)
     end
   end
@@ -73,7 +92,7 @@ defmodule Astarte.Secrets do
     end
   end
 
-  @spec list_keys_names() :: {:ok, [String.t()]} | :error
+  @spec list_keys_names(keyword()) :: {:ok, [String.t()]} | :error
   def list_keys_names(opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
@@ -154,16 +173,32 @@ defmodule Astarte.Secrets do
 
   @type cose_key :: %ECC{} | %RSA{}
 
-  @spec import_key(String.t(), Core.key_algorithm(), cose_key(), list()) :: :ok | :error
+  @spec import_key(String.t(), Core.key_algorithm(), cose_key(), list()) ::
+          :ok | {:error, :key_already_imported | :key_import_failed}
   def import_key(key_name, key_type, key, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
     client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
 
+    case prepare_key_import(key_type, key, client_opts) do
+      {:ok, key_type_string, ciphertext} ->
+        Core.import_key(key_name, key_type_string, ciphertext, opts)
+
+      error ->
+        "Error preparing key #{key_name} for import: #{inspect(error)}"
+        |> Logger.error()
+
+        {:error, :key_import_failed}
+    end
+  end
+
+  # the import helpers report failures as either `:error` or `{:error, reason}`:
+  # the caller logs the reason and reports a single `{:error, :key_import_failed}`
+  defp prepare_key_import(key_type, key, client_opts) do
     with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
          {:ok, wrapping_key_pem} <- Core.get_wrapping_key(client_opts),
          {:ok, ciphertext} <-
            Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(key), wrapping_key_pem) do
-      Core.import_key(key_name, key_type_string, ciphertext, opts)
+      {:ok, key_type_string, ciphertext}
     end
   end
 
@@ -229,11 +264,11 @@ defmodule Astarte.Secrets do
           term(),
           [Mapping.t()],
           String.t()
-        ) :: {term(), String.t() | nil}
+        ) :: {:ok, {term(), String.t() | nil}} | {:error, term()}
 
   # if value == nil we are trying to unset a property, be it encrypted or not: return nil as it is
   def maybe_encrypt_value(_, _, nil, _, _) do
-    {nil, nil}
+    {:ok, {nil, nil}}
   end
 
   def maybe_encrypt_value(interface_descriptor, mapping, value, mappings, realm_name) do
@@ -257,11 +292,11 @@ defmodule Astarte.Secrets do
               plaintext_dek
             )
 
-          {encrypted_value, ciphertext_dek}
+          {:ok, {encrypted_value, ciphertext_dek}}
         end
 
       false ->
-        {value, nil}
+        {:ok, {value, nil}}
     end
   end
 
@@ -298,9 +333,14 @@ defmodule Astarte.Secrets do
   """
   @spec encrypt_with_kek(String.t(), binary(), list()) :: {:ok, String.t()} | :error
   def encrypt_with_kek(realm_name, plaintext, options \\ []) do
-    with {:ok, key} <- fetch_realm_kek(realm_name) do
-      client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
-      Core.encrypt(key.name, plaintext, client_opts)
+    case fetch_realm_kek(realm_name) do
+      {:ok, key} ->
+        client_opts = options |> Keyword.take([:token]) |> Keyword.put(:namespace, key.namespace)
+        Core.encrypt(key.name, plaintext, client_opts)
+
+      :error ->
+        Logger.error("Encountered error while fetching realm KEK for realm #{realm_name}")
+        :error
     end
   end
 

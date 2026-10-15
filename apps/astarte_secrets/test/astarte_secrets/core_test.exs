@@ -214,12 +214,12 @@ defmodule Astarte.Secrets.CoreTest do
       assert :ok = Core.import_key("my-key", "ecdsa-p256", ciphertext)
     end
 
-    test "returns :error on HTTP error response", %{ciphertext: ciphertext} do
+    test "returns {:error, :key_import_failed} on HTTP error response", %{ciphertext: ciphertext} do
       expect(Client, :post, fn _url, _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{status_code: 400, body: "bad request"}}
       end)
 
-      assert :error = Core.import_key("my-key", "ecdsa-p256", ciphertext)
+      assert {:error, :key_import_failed} = Core.import_key("my-key", "ecdsa-p256", ciphertext)
     end
 
     test "sends correct key type and ciphertext in request body", %{ciphertext: ciphertext} do
@@ -729,6 +729,100 @@ defmodule Astarte.Secrets.CoreTest do
       dek = :crypto.strong_rand_bytes(32)
       {:ok, <<first, rest::binary>>} = Core.encrypt_with_dek("data", dek)
       assert :error = Core.decrypt_with_dek(<<Bitwise.bxor(first, 0xFF), rest::binary>>, dek)
+    end
+  end
+
+  describe "encrypt/3" do
+    test "posts the base64-encoded plaintext to the transit encrypt endpoint" do
+      plaintext = <<0, 1, 2, 250, 251>>
+      body = Jason.encode!(%{"data" => %{"ciphertext" => "vault:v1:abcd"}})
+
+      expect(Client, :post, fn url, req_body, headers, opts ->
+        assert url == "/v1/transit/encrypt/my-key"
+        assert {"Content-Type", "application/json"} in headers
+        assert opts == [namespace: "ns"]
+        assert %{"plaintext" => Base.encode64(plaintext)} == Jason.decode!(req_body)
+
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, _ciphertext} = Core.encrypt("my-key", plaintext, namespace: "ns")
+    end
+
+    test "returns :error when the response data has no ciphertext" do
+      body = Jason.encode!(%{"data" => %{"not_ciphertext" => "nope"}})
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert :error = Core.encrypt("my-key", "secret", namespace: "ns")
+    end
+
+    test "returns :error on HTTP error response" do
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 403, body: "permission denied"}}
+      end)
+
+      assert :error = Core.encrypt("my-key", "secret", namespace: "ns")
+    end
+  end
+
+  describe "decrypt/3" do
+    test "returns {:ok, plaintext} on HTTP 200" do
+      body = Jason.encode!(%{"data" => %{"plaintext" => Base.encode64("secret")}})
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, "secret"} = Core.decrypt("my-key", "vault:v1:abcd", namespace: "ns")
+    end
+
+    test "returns :error when the plaintext is not valid base64" do
+      body = Jason.encode!(%{"data" => %{"plaintext" => "not base64!"}})
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert :error = Core.decrypt("my-key", "vault:v1:abcd", namespace: "ns")
+    end
+
+    test "returns :error on HTTP error response" do
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 400, body: "invalid ciphertext"}}
+      end)
+
+      assert :error = Core.decrypt("my-key", "vault:v1:abcd", namespace: "ns")
+    end
+  end
+
+  describe "encrypt/3 and decrypt/3 integration" do
+    setup do
+      {:ok, namespace} = Secrets.create_fdo_namespace("test", :es256)
+      key_name = "test-encrypt-kek#{System.unique_integer([:positive])}"
+      :ok = create_encryption_key(key_name, namespace)
+      %{namespace: namespace, key_name: key_name, opts: [namespace: namespace]}
+    end
+
+    test "round-trips: decrypt recovers the original plaintext", context do
+      %{key_name: key_name, opts: opts} = context
+      plaintext = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, ciphertext} = Core.encrypt(key_name, plaintext, opts)
+      assert String.starts_with?(ciphertext, "vault:v1:")
+      assert {:ok, ^plaintext} = Core.decrypt(key_name, ciphertext, opts)
+    end
+
+    # callers needing the key to pre-exist must check it themselves, as OpenBao upserts it
+    test "creates the key on the fly when it does not exist", context do
+      %{namespace: namespace, opts: opts} = context
+      missing_key_name = "missing-key#{System.unique_integer([:positive])}"
+
+      assert :error = Core.get_key(missing_key_name, namespace)
+      assert {:ok, ciphertext} = Core.encrypt(missing_key_name, "secret", opts)
+      assert {:ok, "secret"} = Core.decrypt(missing_key_name, ciphertext, opts)
     end
   end
 end

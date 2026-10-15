@@ -156,7 +156,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
         error
 
-      {value, encrypted_dek} ->
+      {:ok, {value, encrypted_dek}} ->
         insert_context =
           %InsertContext{
             realm: realm,

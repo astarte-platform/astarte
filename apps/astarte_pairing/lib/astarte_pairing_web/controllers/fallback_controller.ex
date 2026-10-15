@@ -94,6 +94,14 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:key_already_imported)
   end
 
+  # Importing the (FDO) key into OpenBao failed, the reason is logged by Astarte.Secrets
+  def call(conn, {:error, :key_import_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
   # The ownership_voucher parameter was missing from the request
   def call(conn, {:error, :missing_ownership_voucher}) do
     conn
