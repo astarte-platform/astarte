@@ -30,7 +30,8 @@ defmodule Astarte.PairingWeb.AuthGuardian do
     {:ok,
      %User{
        id: claims["sub"],
-       authorizations: Map.get(claims, "a_pa", [])
+       authorizations: Map.get(claims, "a_pa", []),
+       roles: Map.get(claims, "roles", [])
      }}
   end
 end
