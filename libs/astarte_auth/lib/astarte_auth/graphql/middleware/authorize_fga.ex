@@ -71,11 +71,40 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
          {:ok, object} <- object(target, realm_name, resolution.arguments) do
       Logger.debug("Authorizing user #{inspect(user_id)} for #{relation} on #{object}")
 
+      contextual_tuples = build_contextual_tuples(context, user_id, realm_name)
+
       "user:#{user_id}"
-      |> OpenFGA.check(relation, object)
+      |> OpenFGA.check(relation, object, contextual_tuples)
       |> handle_check_result(resolution)
     else
       {:error, message} -> unauthorized(resolution, message)
+    end
+  end
+
+  defp build_contextual_tuples(context, user_id, realm_name) do
+    # Estraiamo i ruoli dall'utente corrente nel context.
+    # Assumiamo che AuthGuardian o il mapping del JWT abbiano salvato un campo :roles
+    # come lista di stringhe: es. ["admin", "user"]
+    case get_roles(context) do
+      roles when is_list(roles) ->
+        Enum.map(roles, fn role ->
+          %{
+            user: "user:#{user_id}",
+            relation: role,
+            object: "realm:#{realm_name}"
+          }
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp get_roles(context) do
+    case Map.get(context, :current_user) do
+      %{roles: roles} when is_list(roles) -> roles
+      %{"roles" => roles} when is_list(roles) -> roles
+      _ -> []
     end
   end
 

@@ -25,7 +25,7 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
     field :list_owner_keys, :owner_keys_map do
       arg :key_algorithm, :key_algorithm
 
-      middleware AuthorizeFGA, relation: "fdo_read", target: :realm
+      middleware AuthorizeFGA, relation: "can_read_fdo", target: :realm
 
       resolve &FdoResolver.list_owner_keys/3
     end
@@ -35,7 +35,7 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       arg :key_algorithm, non_null(:key_algorithm)
       arg :key_name, non_null(:string)
 
-      middleware AuthorizeFGA, relation: "fdo_read", target: :realm
+      middleware AuthorizeFGA, relation: "can_read_fdo", target: :realm
 
       resolve &FdoResolver.get_owner_key/3
     end
@@ -44,14 +44,14 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
     field :owner_keys_for_voucher, :owner_keys_map do
       arg :ownership_voucher, non_null(:string)
 
-      middleware AuthorizeFGA, relation: "fdo_read", target: :realm
+      middleware AuthorizeFGA, relation: "can_read_fdo", target: :realm
 
       resolve &FdoResolver.owner_keys_for_voucher/3
     end
 
     @desc "List registered ownership vouchers in the realm"
     field :list_ownership_vouchers, list_of(:ownership_voucher) do
-      middleware AuthorizeFGA, relation: "fdo_read", target: :realm
+      middleware AuthorizeFGA, relation: "can_read_fdo", target: :realm
 
       resolve &FdoResolver.list_ownership_vouchers/3
     end
@@ -65,7 +65,7 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       @desc "Optional initial introspection for the device"
       arg :initial_introspection, list_of(non_null(:introspection_entry_input))
 
-      middleware AuthorizeFGA, relation: "device_register", target: :realm
+      middleware AuthorizeFGA, relation: "can_register_device", target: :realm
 
       resolve &AgentResolver.register_device/3
     end
@@ -84,8 +84,6 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       arg :hw_id, non_null(:string), description: "The hardware ID of the device"
       arg :csr, non_null(:string), description: "The Certificate Signing Request in PEM format"
 
-      middleware AuthorizeFGA, relation: "can_obtain_credentials", target: :device
-
       resolve &DeviceResolver.obtain_credentials/3
     end
 
@@ -93,8 +91,6 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
     field :verify_mqtt_credentials, :mqtt_credentials_verification do
       arg :hw_id, non_null(:string), description: "The hardware ID of the device"
       arg :client_crt, non_null(:string), description: "The client certificate in PEM format"
-
-      middleware AuthorizeFGA, relation: "can_verify_credentials", target: :device
 
       resolve &DeviceResolver.verify_credentials/3
     end
@@ -106,7 +102,7 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       arg :key_data, :string
       arg :key_algorithm, :key_algorithm
 
-      middleware AuthorizeFGA, relation: "fdo_manage", target: :realm
+      middleware AuthorizeFGA, relation: "can_manage_fdo", target: :realm
 
       resolve &FdoResolver.create_or_upload_owner_key/3
     end
@@ -120,9 +116,18 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       arg :replacement_guid, :string
       arg :replacement_rendezvous_info, :string
 
-      middleware AuthorizeFGA, relation: "fdo_manage", target: :realm
+      middleware AuthorizeFGA, relation: "can_manage_fdo", target: :realm
 
       resolve &FdoResolver.register_ownership_voucher/3
+    end
+
+    @desc "Delete a device ownership voucher"
+    field :delete_ownership_voucher, :boolean do
+      arg :guid, non_null(:string)
+
+      middleware AuthorizeFGA, relation: "can_manage_fdo", target: :realm
+
+      resolve &FdoResolver.delete_ownership_voucher/3
     end
   end
 end

@@ -1,0 +1,8 @@
+{
+  "writes": {
+    "tuple_keys": [
+      {"user": "realm:test", "relation": "realm", "object": "device:test/f0VMRgIBAQAAAAAAAAAAAA"},
+      {"user": "realm:test", "relation": "realm", "object": "device:test/2TBn-jNESuuHamE2Zo1anA"}
+    ]
+  }
+}

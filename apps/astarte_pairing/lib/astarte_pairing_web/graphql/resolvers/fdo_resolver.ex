@@ -138,4 +138,11 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
     |> ChangesetView.translate_errors()
     |> Jason.encode!()
   end
+
+  def delete_ownership_voucher(_parent, %{guid: guid}, %{context: %{realm_name: realm}}) do
+    case Astarte.DataAccess.FDO.Queries.delete_ownership_voucher(realm, guid) do
+      {:ok, _} -> {:ok, true}
+      {:error, reason} -> {:error, "Failed to delete voucher: #{inspect(reason)}"}
+    end
+  end
 end
