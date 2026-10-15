@@ -262,7 +262,8 @@ defmodule Astarte.Secrets.Core do
     - `:namespace`              - OpenBao namespace to target
     - `:token`                  - override the configured auth token
   """
-  @spec import_key(String.t(), String.t(), String.t(), keyword()) :: :ok | :error
+  @spec import_key(String.t(), String.t(), String.t(), keyword()) ::
+          :ok | {:error, :key_already_imported | :key_import_failed}
   def import_key(key_name, key_type_string, ciphertext, opts \\ []) do
     client_opts = Keyword.take(opts, [:namespace, :token])
 
@@ -290,7 +291,7 @@ defmodule Astarte.Secrets.Core do
           {:error, :key_already_imported}
         else
           Logger.error("Encountered HTTP error while importing key #{key_name}: #{inspect(resp)}")
-          :error
+          {:error, :key_import_failed}
         end
 
       error_resp ->
@@ -298,7 +299,7 @@ defmodule Astarte.Secrets.Core do
           "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
         )
 
-        :error
+        {:error, :key_import_failed}
     end
   end
 
