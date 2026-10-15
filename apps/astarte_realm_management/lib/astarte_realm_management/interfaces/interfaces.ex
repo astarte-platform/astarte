@@ -55,7 +55,6 @@ defmodule Astarte.RealmManagement.Interfaces do
   @doc """
   Installs a new interface in the specified realm.
   It performs several checks before proceeding with the installation:
-  - Verifies that the mappings do not exceed the maximum storage retention allowed for the realm.
   - Checks if the interface can be installed (i.e., no existing interface with the same name and major version).
   - Checks for name collisions (i.e., no existing interface with the same normalized name
   - Verifies and builds the automaton for the mappings.
@@ -75,7 +74,6 @@ defmodule Astarte.RealmManagement.Interfaces do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
     with {:ok, interface} <- build_interface(params),
-         :ok <- verify_mappings_max_storage_retention(realm_name, interface),
          :ok <- can_install_interface?(realm_name, interface),
          {:ok, automaton} <- EndpointsAutomaton.build(interface.mappings) do
       _ =
@@ -150,28 +148,6 @@ defmodule Astarte.RealmManagement.Interfaces do
     else
       :ok
     end
-  end
-
-  defp verify_mappings_max_storage_retention(realm_name, interface) do
-    with {:ok, max_retention} <- Queries.get_datastream_maximum_storage_retention(realm_name) do
-      if mappings_retention_valid?(interface.mappings, max_retention) do
-        :ok
-      else
-        {:error, :maximum_database_retention_exceeded}
-      end
-    end
-  end
-
-  defp mappings_retention_valid?(_mappings, 0), do: true
-
-  defp mappings_retention_valid?(mappings, max_retention) do
-    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
-      case retention do
-        nil -> true
-        n when n <= max_retention -> true
-        _ -> false
-      end
-    end)
   end
 
   def update_interface(realm_name, interface_name, major_version, params, opts \\ []) do
