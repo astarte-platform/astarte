@@ -30,7 +30,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "bypasses authorization when the context says authentication is disabled" do
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     resolution = resolution(%{authentication_disabled?: true})
 
@@ -39,7 +39,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
 
   test "enforces authorization when the context doesn't say authentication is disabled" do
     # A context we didn't build must fail closed rather than skip the check.
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     result = AuthorizeFGA.call(resolution(%{}), relation: "viewer", target: :realm)
 
@@ -48,7 +48,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
 
   test "returns Unauthorized if there is no current_user in context" do
     # Authorization must be rejected before reaching the OpenFGA check.
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     result =
       AuthorizeFGA.call(resolution(%{realm_name: "testrealm"}),
@@ -60,7 +60,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "returns Unauthorized if there is no realm in context" do
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     result =
       AuthorizeFGA.call(resolution(%{current_user: %{id: "user1"}}),
@@ -75,7 +75,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
     # A user with a nil id cannot be mapped to a stable user identifier, so the
     # middleware must return an Unauthorized error instead of falling back to
     # a fabricated identity.
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     context = %{realm_name: "testrealm", current_user: %{id: nil, authorizations: ["*:*:*"]}}
 
@@ -85,7 +85,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "performs an OpenFGA check for the :realm target using the user's :id" do
-    expect(OpenFGA, :check, fn "user:testuser", "viewer", "realm:testrealm" -> :ok end)
+    expect(OpenFGA, :check, fn "user:testuser", "viewer", "realm:testrealm", [] -> :ok end)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "testuser"}})
 
@@ -93,7 +93,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "performs an OpenFGA check using the \"sub\" claim if :id is not available" do
-    expect(OpenFGA, :check, fn "user:test_sub", "viewer", "realm:testrealm" -> :ok end)
+    expect(OpenFGA, :check, fn "user:test_sub", "viewer", "realm:testrealm", [] -> :ok end)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{"sub" => "test_sub"}})
 
@@ -101,7 +101,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "names the object from the hw_id argument for the :device target" do
-    expect(OpenFGA, :check, fn "user:user1", "editor", "device:my_device" -> :ok end)
+    expect(OpenFGA, :check, fn "user:user1", "editor", "device:my_device", [] -> :ok end)
 
     resolution =
       resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}}, %{hw_id: "my_device"})
@@ -110,7 +110,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "names the object from the given argument for a {type, arg} target" do
-    expect(OpenFGA, :check, fn "user:user1", "editor", "interface:com.Foo" -> :ok end)
+    expect(OpenFGA, :check, fn "user:user1", "editor", "interface:com.Foo", [] -> :ok end)
 
     resolution =
       resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}}, %{
@@ -123,7 +123,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "returns forbidden and logs a warning if an object-naming argument is missing" do
-    reject(&OpenFGA.check/3)
+    reject(&OpenFGA.check/4)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}}, %{})
 
@@ -140,7 +140,9 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "returns forbidden if the OpenFGA check denies access" do
-    expect(OpenFGA, :check, fn _user, _relation, _object -> {:error, :forbidden} end)
+    expect(OpenFGA, :check, fn _user, _relation, _object, _contextual_tuples ->
+      {:error, :forbidden}
+    end)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}})
 
@@ -151,7 +153,9 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "says so when no OpenFGA store is configured, rather than reporting an internal error" do
-    expect(OpenFGA, :check, fn _user, _relation, _object -> {:error, :store_not_configured} end)
+    expect(OpenFGA, :check, fn _user, _relation, _object, _contextual_tuples ->
+      {:error, :store_not_configured}
+    end)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}})
 
@@ -163,7 +167,9 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
   end
 
   test "returns internal error if the OpenFGA check itself fails" do
-    expect(OpenFGA, :check, fn _user, _relation, _object -> {:error, :nxdomain} end)
+    expect(OpenFGA, :check, fn _user, _relation, _object, _contextual_tuples ->
+      {:error, :nxdomain}
+    end)
 
     resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}})
 

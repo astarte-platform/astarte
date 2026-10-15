@@ -36,26 +36,34 @@ defmodule Astarte.Auth.OpenFGA do
   be completed: no store is configured, the request failed, OpenFGA returned
   an unexpected HTTP status, or its response body wasn't the shape we expect.
   """
-  @spec check(String.t(), String.t(), String.t()) ::
+  @spec check(String.t(), String.t(), String.t(), list(map())) ::
           :ok | {:error, :forbidden} | {:error, term()}
-  def check(user, relation, object) do
+  def check(user, relation, object, contextual_tuples \\ []) do
     case Config.openfga_store_id!() do
       store_id when store_id in [nil, ""] ->
         Logger.error("OpenFGA store id is not configured")
         {:error, :store_not_configured}
 
       store_id ->
-        do_check(store_id, user, relation, object)
+        do_check(store_id, user, relation, object, contextual_tuples)
     end
   end
 
-  defp do_check(store_id, user, relation, object) do
+  defp do_check(store_id, user, relation, object, contextual_tuples) do
     url = "/stores/#{store_id}/check"
 
-    body =
-      Jason.encode!(%{
-        tuple_key: %{user: user, relation: relation, object: object}
-      })
+    body_map = %{
+      tuple_key: %{user: user, relation: relation, object: object}
+    }
+
+    body_map =
+      if contextual_tuples != [] do
+        Map.put(body_map, :contextual_tuples, %{tuple_keys: contextual_tuples})
+      else
+        body_map
+      end
+
+    body = Jason.encode!(body_map)
 
     headers = [{"Content-Type", "application/json"}]
 
