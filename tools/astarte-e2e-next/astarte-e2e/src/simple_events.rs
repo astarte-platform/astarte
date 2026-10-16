@@ -13,6 +13,10 @@ pub struct DeviceDisconnectedEvent {}
 #[derive(::serde::Serialize)]
 #[derive(::serde::Deserialize)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeviceEmptyCacheReceivedEvent {}
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeviceRegisteredEvent {}
 #[derive(::serde::Serialize)]
 #[derive(::serde::Deserialize)]
@@ -34,44 +38,66 @@ pub struct DeviceErrorEvent {
         ::prost::alloc::string::String,
     >,
 }
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct IncomingDataEvent {
     #[prost(string, optional, tag = "1")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub interface: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bytes = "vec", optional, tag = "3")]
+    #[serde(rename = "value", with = "crate::event_serde::bson_value")]
     pub bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ValueChangeEvent {
     #[prost(string, optional, tag = "1")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub interface: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bytes = "vec", optional, tag = "3")]
+    #[serde(rename = "old_value", with = "crate::event_serde::bson_value")]
     pub old_bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
     #[prost(bytes = "vec", optional, tag = "4")]
+    #[serde(rename = "new_value", with = "crate::event_serde::bson_value")]
     pub new_bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ValueChangeAppliedEvent {
     #[prost(string, optional, tag = "1")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub interface: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bytes = "vec", optional, tag = "3")]
+    #[serde(rename = "old_value", with = "crate::event_serde::bson_value")]
     pub old_bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
     #[prost(bytes = "vec", optional, tag = "4")]
+    #[serde(rename = "new_value", with = "crate::event_serde::bson_value")]
     pub new_bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PathCreatedEvent {
     #[prost(string, optional, tag = "1")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub interface: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bytes = "vec", optional, tag = "3")]
+    #[serde(rename = "value", with = "crate::event_serde::bson_value")]
     pub bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
 #[derive(::serde::Serialize)]
@@ -83,13 +109,18 @@ pub struct PathRemovedEvent {
     #[prost(string, optional, tag = "2")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
 }
+#[derive(::serde::Serialize)]
+#[derive(::serde::Deserialize)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ValueStoredEvent {
     #[prost(string, optional, tag = "1")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub interface: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
+    #[serde(with = "crate::event_serde::required_str")]
     pub path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bytes = "vec", optional, tag = "3")]
+    #[serde(rename = "value", with = "crate::event_serde::bson_value")]
     pub bson_value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
 #[derive(::serde::Serialize)]
@@ -162,7 +193,7 @@ pub struct SimpleEvent {
     pub timestamp: ::core::option::Option<i64>,
     #[prost(
         oneof = "simple_event::Event",
-        tags = "6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22"
+        tags = "6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23"
     )]
     pub event: ::core::option::Option<simple_event::Event>,
 }
@@ -221,5 +252,8 @@ pub mod simple_event {
         #[prost(message, tag = "22")]
         #[serde(rename = "device_deletion_finished")]
         DeviceDeletionFinishedEvent(super::DeviceDeletionFinishedEvent),
+        #[prost(message, tag = "23")]
+        #[serde(rename = "device_empty_cache_received")]
+        DeviceEmptyCacheReceivedEvent(super::DeviceEmptyCacheReceivedEvent),
     }
 }

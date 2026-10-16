@@ -6,7 +6,7 @@ use reqwest::Url;
 
 use crate::astarte::ApiClient;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct AstarteConfig {
     /// Astarte API URL
@@ -14,49 +14,72 @@ pub struct AstarteConfig {
         feature = "clap",
         arg(
             long,
+            global = true,
             env = "E2E_ASTARTE_API_URL",
             default_value = "http://api.astarte.localhost/"
         )
     )]
     pub astarte_api_url: Url,
     /// Astarte Pairing URL (defaults to `{astarte_api_url}pairing/`)
-    #[cfg_attr(feature = "clap", arg(long, env = "E2E_PAIRING_URL"))]
+    #[cfg_attr(feature = "clap", arg(long, global = true, env = "E2E_PAIRING_URL"))]
     pub astarte_pairing_url: Option<Url>,
     /// Astarte AppEngine URL (defaults to `{astarte_api_url}appengine/`)
-    #[cfg_attr(feature = "clap", arg(long, env = "E2E_APPENGINE_URL"))]
+    #[cfg_attr(feature = "clap", arg(long, global = true, env = "E2E_APPENGINE_URL"))]
     pub astarte_appengine_url: Option<Url>,
     /// Astarte Realm Management URL (defaults to `{astarte_api_url}realmmanagement/`)
-    #[cfg_attr(feature = "clap", arg(long, env = "E2E_REALM_MANAGEMENT_URL"))]
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, global = true, env = "E2E_REALM_MANAGEMENT_URL")
+    )]
     pub astarte_realm_management_url: Option<Url>,
     /// Ignore SSL validation
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "E2E_IGNORE_SSL_ERRORS", default_value = "false")
+        arg(
+            long,
+            global = true,
+            env = "E2E_IGNORE_SSL_ERRORS",
+            default_value = "false"
+        )
     )]
     pub ignore_ssl: bool,
     /// Realm of the device.
     #[cfg_attr(
         feature = "clap",
-        arg(long, short, env = "E2E_REALM", default_value = "test")
+        arg(long, short, global = true, env = "E2E_REALM", default_value = "test")
     )]
     pub realm: String,
     /// JWT Token with access to all realm APIs.
-    #[cfg_attr(feature = "clap", arg(long, short, env = "E2E_JWT"))]
-    pub jwt: String,
+    /// Optional at parse time so the arg can be `global`, validated when used.
+    #[cfg_attr(feature = "clap", arg(long, short, global = true, env = "E2E_JWT"))]
+    pub jwt: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct DeviceConfig {
     /// Device id.
-    #[cfg_attr(feature = "clap", arg(long, short, env = "E2E_DEVICE_ID"))]
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, short, global = true, env = "E2E_DEVICE_ID")
+    )]
     pub device_id: Option<String>,
     /// Device credentials secret.
-    #[cfg_attr(feature = "clap", arg(long, short, env = "E2E_CREDENTIALS_SECRET"))]
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, short, global = true, env = "E2E_CREDENTIALS_SECRET")
+    )]
     pub credentials_secret: Option<String>,
 }
 
 impl AstarteConfig {
+    /// JWT validated at use time (not parse time) so the arg can be `global`.
+    pub fn jwt_required(&self) -> eyre::Result<&str> {
+        self.jwt
+            .as_deref()
+            .ok_or_else(|| eyre!("missing JWT, pass --jwt <JWT> or set E2E_JWT"))
+    }
+
     fn derived_url(api_url: &Url, path: &str) -> eyre::Result<Url> {
         let mut api_url = api_url.clone();
         if !api_url.path().ends_with('/') {
@@ -106,31 +129,51 @@ impl AstarteConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Args))]
 pub struct AmqpConfig {
     /// RabbitMQ host for trigger events
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "E2E_AMQP_CONSUMER_HOST", default_value = "localhost")
+        arg(
+            long,
+            global = true,
+            env = "E2E_AMQP_CONSUMER_HOST",
+            default_value = "localhost"
+        )
     )]
     pub amqp_consumer_host: String,
     /// RabbitMQ port for trigger events
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "E2E_AMQP_CONSUMER_PORT", default_value = "5672")
+        arg(
+            long,
+            global = true,
+            env = "E2E_AMQP_CONSUMER_PORT",
+            default_value = "5672"
+        )
     )]
     pub amqp_consumer_port: u16,
     /// RabbitMQ username for trigger events
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "E2E_AMQP_CONSUMER_USERNAME", default_value = "guest")
+        arg(
+            long,
+            global = true,
+            env = "E2E_AMQP_CONSUMER_USERNAME",
+            default_value = "guest"
+        )
     )]
     pub amqp_consumer_username: String,
     /// RabbitMQ password for trigger events
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "E2E_AMQP_CONSUMER_PASSWORD", default_value = "guest")
+        arg(
+            long,
+            global = true,
+            env = "E2E_AMQP_CONSUMER_PASSWORD",
+            default_value = "guest"
+        )
     )]
     pub amqp_consumer_password: String,
 }
@@ -147,7 +190,7 @@ impl AmqpConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct Config {
     #[cfg_attr(feature = "clap", command(flatten))]
@@ -160,11 +203,10 @@ pub struct Config {
 
 impl Config {
     pub fn api_client(&self) -> eyre::Result<ApiClient> {
-        let device_id = self
-            .device
-            .device_id
-            .clone()
-            .ok_or_else(|| eyre!("missing device id, required to build the API client"))?;
+        let device_id = self.device.device_id.clone().ok_or_else(|| {
+            eyre!("missing device id, pass --device-id <DEVICE_ID> or set E2E_DEVICE_ID")
+        })?;
+        let jwt = self.astarte.jwt_required()?.to_owned();
 
         ApiClient::build(
             self.astarte.appengine_url()?,
@@ -172,7 +214,7 @@ impl Config {
             self.astarte.realm_management_url()?,
             self.astarte.realm.clone(),
             device_id,
-            &self.astarte.jwt,
+            &jwt,
         )
     }
 }
@@ -215,7 +257,7 @@ mod test {
             astarte_realm_management_url: None,
             ignore_ssl: false,
             realm: "".into(),
-            jwt: "".into(),
+            jwt: Some("".into()),
         })
     }
 }
