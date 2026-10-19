@@ -423,7 +423,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp ensure_shared_key_established(context) do
     case context.state.encrypted_endpoints_key do
-      :established ->
+      {:established, _} ->
         :ok
 
       status ->

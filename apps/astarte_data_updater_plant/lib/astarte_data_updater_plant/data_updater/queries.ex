@@ -33,6 +33,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.Secrets
   alias COSE.Keys.Symmetric
 
@@ -236,7 +237,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # it has been established correctly
     encrypted_endpoints_key_status =
       case shared_secret do
-        %Symmetric{} -> :established
+        %Symmetric{k: key} -> HandshakeState.restore(key)
         _ -> :uninitialized
       end
 

@@ -452,7 +452,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0")
 
-      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm, shared_secret: secret}} =
+      assert {:established, %{shared_secret: secret}} =
                new_state.encrypted_endpoints_key
 
       assert new_state.shared_secret == %Symmetric{alg: :aes_256_gcm, k: secret}
@@ -486,7 +486,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0")
 
-      assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{shared_secret: _}} =
                new_state.encrypted_endpoints_key
     end
 
@@ -505,12 +505,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       state = %{
         state
-        | encrypted_endpoints_key:
-            {:established,
-             %{
-               shared_secret: :crypto.strong_rand_bytes(32),
-               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
-             }}
+        | encrypted_endpoints_key: {:established, %{shared_secret: :crypto.strong_rand_bytes(32)}}
       }
 
       expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
@@ -671,7 +666,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
 
-      assert {:established, %{alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm, shared_secret: secret}} =
+      assert {:established, %{shared_secret: secret}} =
                new_state.encrypted_endpoints_key
 
       assert secret == symmetric_key.k
@@ -707,7 +702,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       assert new_state.total_received_bytes ==
                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
 
-      assert {:established, %{alg: :ecdh_p256_hkdf_sha256_aes_256_gcm}} =
+      assert {:established, %{shared_secret: _}} =
                new_state.encrypted_endpoints_key
     end
 
@@ -1049,11 +1044,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   describe "/keyAgreement/2" do
     setup context do
       established_key_state =
-        {:established,
-         %{
-           shared_secret: context.shared_secret,
-           alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
-         }}
+        {:established, %{shared_secret: context.shared_secret}}
 
       established_state = %{context.state | encrypted_endpoints_key: established_key_state}
 
@@ -1274,12 +1265,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       # Inject the expected established key state before receiving HashOk
       established_state = %{
         state
-        | encrypted_endpoints_key:
-            {:established,
-             %{
-               shared_secret: :crypto.strong_rand_bytes(32),
-               alg: :ecdh_x25519_hkdf_sha256_aes_256_gcm
-             }}
+        | encrypted_endpoints_key: {:established, %{shared_secret: :crypto.strong_rand_bytes(32)}}
       }
 
       assert {:ack, :ok, new_state} =

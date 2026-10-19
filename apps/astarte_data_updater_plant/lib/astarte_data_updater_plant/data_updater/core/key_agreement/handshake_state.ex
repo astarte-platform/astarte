@@ -51,16 +51,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
           init_exchange: InitExchange.t()
         }
 
-  @type established_data :: %{
-          shared_secret: binary(),
-          alg: key_suite()
-        }
+  @type established_data :: %{shared_secret: binary()}
 
   @type t ::
           :uninitialized
           | {:handshake_started, handshake_data()}
           | {:established, established_data()}
           | {:failed, reason :: term()}
+
+  @doc """
+  Builds the `{:established, data}` state for a shared secret that was derived
+  earlier and loaded from the database.
+  """
+  @spec restore(binary()) :: t()
+  def restore(shared_secret) when is_binary(shared_secret) do
+    {:established, %{shared_secret: shared_secret}}
+  end
 
   @doc """
   Pure transition function. Cryptographic derivation must be performed
@@ -97,11 +103,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
 
   # Successful handshake completion (Result of SharedSecret.derive/3)
   def transition(
-        {:handshake_started, %{key_type: alg}},
+        {:handshake_started, _},
         {:handshake_completed, shared_secret}
       )
       when is_binary(shared_secret) do
-    {:ok, {:established, %{shared_secret: shared_secret, alg: alg}}}
+    {:ok, {:established, %{shared_secret: shared_secret}}}
   end
 
   # SecretHash successfully verified while already established
