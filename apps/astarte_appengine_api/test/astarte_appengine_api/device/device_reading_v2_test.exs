@@ -302,13 +302,13 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
       assert topic_tokens == expected_token
       assert qos == expected_qos
 
-      assert {:ok, %{"v" => published_value}} = Cyanide.decode(payload)
+      # Encrypted payloads are the whole BSON document wrapped in COSE: once
+      # decrypted, they must read like a plaintext payload.
+      bson_payload =
+        if encrypted_path?, do: decrypt_payload(payload, shared_key), else: payload
 
-      if encrypted_path? do
-        assert decrypt_value(published_value, shared_key) == expected_published_value
-      else
-        assert published_value == expected_published_value
-      end
+      assert {:ok, %{"v" => published_value}} = Cyanide.decode(bson_payload)
+      assert published_value == expected_published_value
     end)
 
     with {:ok, device_id} <- CoreDevice.decode_device_id(device.encoded_id),
@@ -367,19 +367,13 @@ defmodule Astarte.AppEngine.API.Device.DeviceReadingV2Test do
     end
   end
 
-  defp decrypt_value(encrypted_value, shared_secret) do
-    case EncryptedMessages.decrypt(encrypted_value, shared_secret) do
-      {:ok, decrypted_value} ->
-        case Cyanide.decode(decrypted_value) do
-          {:ok, %{"v" => value}} ->
-            value
-
-          _ ->
-            :erlang.binary_to_term(decrypted_value)
-        end
+  defp decrypt_payload(encrypted_payload, shared_secret) do
+    case EncryptedMessages.decrypt(encrypted_payload, shared_secret) do
+      {:ok, bson_payload} ->
+        bson_payload
 
       {:error, reason} ->
-        flunk("Unable to decrypt published value: #{inspect(reason)}")
+        flunk("Unable to decrypt published payload: #{inspect(reason)}")
     end
   end
 end
