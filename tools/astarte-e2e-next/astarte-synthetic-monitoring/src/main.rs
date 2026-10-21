@@ -1,9 +1,10 @@
 mod config;
 pub mod interfaces;
 
-use crate::config::Config;
-use clap::Parser;
+use crate::config::SyntheticMonitoringConfig;
 
-fn main() {
-    let _config = Config::parse();
+#[tokio::main]
+async fn main() -> eyre::Result<()> {
+    let config = SyntheticMonitoringConfig::parse_with_default()?;
+    config.run().await
 }

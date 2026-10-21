@@ -4,19 +4,21 @@ use std::time::Duration;
 use astarte_device_sdk::AstarteData;
 use chrono::{DateTime, Utc};
 use reqwest::{Method, Url};
-use serde::de::{Error as _, IgnoredAny, MapAccess, Visitor};
-use serde::ser::{Error as _, SerializeMap};
+use serde::de::{IgnoredAny, MapAccess, Visitor};
+use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::{DisplayFromStr, DurationMilliSeconds, serde_as};
 
 pub use crate::simple_events::simple_event::Event;
 pub use crate::simple_events::{
     DeviceConnectedEvent, DeviceDeletionFinishedEvent, DeviceDeletionStartedEvent,
-    DeviceDisconnectedEvent, DeviceErrorEvent, IncomingDataEvent, IncomingIntrospectionEvent,
-    InterfaceAddedEvent, InterfaceMinorUpdatedEvent, InterfaceRemovedEvent, InterfaceVersion,
-    PathCreatedEvent, PathRemovedEvent, SimpleEvent, ValueChangeAppliedEvent, ValueChangeEvent,
-    ValueStoredEvent,
+    DeviceDisconnectedEvent, DeviceEmptyCacheReceivedEvent, DeviceErrorEvent, IncomingDataEvent,
+    IncomingIntrospectionEvent, InterfaceAddedEvent, InterfaceMinorUpdatedEvent,
+    InterfaceRemovedEvent, InterfaceVersion, PathCreatedEvent, PathRemovedEvent, SimpleEvent,
+    ValueChangeAppliedEvent, ValueChangeEvent, ValueStoredEvent,
 };
+
+pub(crate) use crate::event_serde::bson_value_to_json;
 
 #[derive(Debug, Serialize)]
 pub struct Trigger {
@@ -204,224 +206,6 @@ impl IncomingDataEvent {
     }
 }
 
-fn json_to_bson_value(value: &serde_json::Value) -> eyre::Result<Vec<u8>> {
-    bson::serialize_to_vec(&serde_json::json!({ "v": value })).map_err(Into::into)
-}
-
-fn bson_value_to_json(bytes: &[u8]) -> eyre::Result<serde_json::Value> {
-    if bytes.is_empty() {
-        return Ok(serde_json::Value::Null);
-    }
-
-    let payload: serde_json::Value = bson::deserialize_from_slice(bytes)?;
-
-    Ok(payload.get("v").cloned().unwrap_or(serde_json::Value::Null))
-}
-
-fn serialize_bson_value_event<S: Serializer>(
-    serializer: S,
-    interface: &Option<String>,
-    path: &Option<String>,
-    value: &[u8],
-) -> Result<S::Ok, S::Error> {
-    let mut map = serializer.serialize_map(None)?;
-    map.serialize_entry(
-        "interface",
-        interface
-            .as_deref()
-            .ok_or_else(|| S::Error::custom("missing interface"))?,
-    )?;
-    map.serialize_entry(
-        "path",
-        path.as_deref()
-            .ok_or_else(|| S::Error::custom("missing path"))?,
-    )?;
-    map.serialize_entry(
-        "value",
-        &bson_value_to_json(value).map_err(S::Error::custom)?,
-    )?;
-    map.end()
-}
-
-fn serialize_bson_value_change_event<S: Serializer>(
-    serializer: S,
-    interface: &Option<String>,
-    path: &Option<String>,
-    old_value: &[u8],
-    new_value: &[u8],
-) -> Result<S::Ok, S::Error> {
-    let mut map = serializer.serialize_map(None)?;
-    map.serialize_entry(
-        "interface",
-        interface
-            .as_deref()
-            .ok_or_else(|| S::Error::custom("missing interface"))?,
-    )?;
-    map.serialize_entry(
-        "path",
-        path.as_deref()
-            .ok_or_else(|| S::Error::custom("missing path"))?,
-    )?;
-    map.serialize_entry(
-        "old_value",
-        &bson_value_to_json(old_value).map_err(S::Error::custom)?,
-    )?;
-    map.serialize_entry(
-        "new_value",
-        &bson_value_to_json(new_value).map_err(S::Error::custom)?,
-    )?;
-    map.end()
-}
-
-impl Serialize for IncomingDataEvent {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bson_value_event(
-            serializer,
-            &self.interface,
-            &self.path,
-            self.bson_value.as_deref().unwrap_or(&[]),
-        )
-    }
-}
-
-impl Serialize for PathCreatedEvent {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bson_value_event(
-            serializer,
-            &self.interface,
-            &self.path,
-            self.bson_value.as_deref().unwrap_or(&[]),
-        )
-    }
-}
-
-impl Serialize for ValueStoredEvent {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bson_value_event(
-            serializer,
-            &self.interface,
-            &self.path,
-            self.bson_value.as_deref().unwrap_or(&[]),
-        )
-    }
-}
-
-impl Serialize for ValueChangeEvent {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bson_value_change_event(
-            serializer,
-            &self.interface,
-            &self.path,
-            self.old_bson_value.as_deref().unwrap_or(&[]),
-            self.new_bson_value.as_deref().unwrap_or(&[]),
-        )
-    }
-}
-
-impl Serialize for ValueChangeAppliedEvent {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bson_value_change_event(
-            serializer,
-            &self.interface,
-            &self.path,
-            self.old_bson_value.as_deref().unwrap_or(&[]),
-            self.new_bson_value.as_deref().unwrap_or(&[]),
-        )
-    }
-}
-
-#[derive(Deserialize)]
-struct BsonValueEventParts {
-    interface: String,
-    path: String,
-    value: Option<serde_json::Value>,
-    old_value: Option<serde_json::Value>,
-    new_value: Option<serde_json::Value>,
-}
-
-impl<'de> Deserialize<'de> for IncomingDataEvent {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let parts = BsonValueEventParts::deserialize(deserializer)?;
-        let value = parts
-            .value
-            .ok_or_else(|| D::Error::missing_field("value"))?;
-
-        Ok(Self {
-            interface: Some(parts.interface),
-            path: Some(parts.path),
-            bson_value: Some(json_to_bson_value(&value).map_err(D::Error::custom)?),
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for PathCreatedEvent {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let parts = BsonValueEventParts::deserialize(deserializer)?;
-        let value = parts
-            .value
-            .ok_or_else(|| D::Error::missing_field("value"))?;
-
-        Ok(Self {
-            interface: Some(parts.interface),
-            path: Some(parts.path),
-            bson_value: Some(json_to_bson_value(&value).map_err(D::Error::custom)?),
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueStoredEvent {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let parts = BsonValueEventParts::deserialize(deserializer)?;
-        let value = parts
-            .value
-            .ok_or_else(|| D::Error::missing_field("value"))?;
-
-        Ok(Self {
-            interface: Some(parts.interface),
-            path: Some(parts.path),
-            bson_value: Some(json_to_bson_value(&value).map_err(D::Error::custom)?),
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueChangeEvent {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let parts = BsonValueEventParts::deserialize(deserializer)?;
-        let old_value = parts
-            .old_value
-            .ok_or_else(|| D::Error::missing_field("old_value"))?;
-        let new_value = parts
-            .new_value
-            .ok_or_else(|| D::Error::missing_field("new_value"))?;
-
-        Ok(Self {
-            interface: Some(parts.interface),
-            path: Some(parts.path),
-            old_bson_value: Some(json_to_bson_value(&old_value).map_err(D::Error::custom)?),
-            new_bson_value: Some(json_to_bson_value(&new_value).map_err(D::Error::custom)?),
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueChangeAppliedEvent {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let parts = BsonValueEventParts::deserialize(deserializer)?;
-        let old_value = parts
-            .old_value
-            .ok_or_else(|| D::Error::missing_field("old_value"))?;
-        let new_value = parts
-            .new_value
-            .ok_or_else(|| D::Error::missing_field("new_value"))?;
-
-        Ok(Self {
-            interface: Some(parts.interface),
-            path: Some(parts.path),
-            old_bson_value: Some(json_to_bson_value(&old_value).map_err(D::Error::custom)?),
-            new_bson_value: Some(json_to_bson_value(&new_value).map_err(D::Error::custom)?),
-        })
-    }
-}
-
 #[allow(deprecated)]
 impl Serialize for IncomingIntrospectionEvent {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -497,8 +281,9 @@ mod test {
         DeviceTriggerCondition, IncomingDataEvent, RoomEvent, SimpleEvent,
         SimpleTrigger::{DataTrigger, DeviceTrigger},
         SimpleTriggerTarget::{self, AnyDevice},
-        Trigger, TriggerAction, ValueChangeEvent, bson_value_to_json, json_to_bson_value,
+        Trigger, TriggerAction, ValueChangeEvent, bson_value_to_json,
     };
+    use crate::event_serde::json_to_bson_value;
     use crate::simple_events::simple_event::Event;
 
     #[test]
@@ -704,5 +489,68 @@ mod test {
             bson_value_to_json(&encoded).unwrap().get("v"),
             value.get("v")
         );
+    }
+
+    #[test]
+    fn device_empty_cache_received_room_event_roundtrip() {
+        use crate::astarte_event::DeviceEmptyCacheReceivedEvent;
+
+        let room_event = RoomEvent {
+            device_id: "LrWIo53eSuyhq9Xum5VT3Q".into(),
+            timestamp: DateTime::from_timestamp_millis(1787904402000).unwrap(),
+            event: Event::DeviceEmptyCacheReceivedEvent(DeviceEmptyCacheReceivedEvent {}),
+        };
+
+        let json = serde_json::to_value(&room_event).unwrap();
+        assert_eq!(json["event"]["type"], "device_empty_cache_received");
+
+        let roundtrip: RoomEvent = serde_json::from_value(json).unwrap();
+        assert!(matches!(
+            roundtrip.event,
+            Event::DeviceEmptyCacheReceivedEvent(_)
+        ));
+    }
+
+    #[test]
+    fn incoming_data_null_value_maps_to_absent() {
+        let json = serde_json::json!({
+            "device_id": "LrWIo53eSuyhq9Xum5VT3Q",
+            "timestamp": "2026-08-28T07:00:02.000000Z",
+            "event": {
+                "type": "incoming_data",
+                "interface": "com.test.Interface",
+                "path": "/data",
+                "value": null,
+            }
+        });
+
+        // Explicit null (what Elixir emits for unset bson_value) must decode,
+        // mirroring the Elixir `nil <-> nil` mapping.
+        let room_event: RoomEvent = serde_json::from_value(json).unwrap();
+        let event = room_event.event.try_into_incoming_data().unwrap();
+        assert_eq!(event.bson_value, None);
+
+        // And re-serializes back to null.
+        let json = serde_json::to_value(&event).unwrap();
+        assert_eq!(json["value"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn incoming_data_missing_keys_are_rejected() {
+        for event in [
+            serde_json::json!({"type": "incoming_data", "path": "/data", "value": 1}),
+            serde_json::json!({"type": "incoming_data", "interface": "i", "value": 1}),
+            serde_json::json!({"type": "incoming_data", "interface": "i", "path": "/data"}),
+        ] {
+            let json = serde_json::json!({
+                "device_id": "d",
+                "timestamp": "2026-08-28T07:00:02.000000Z",
+                "event": event,
+            });
+            assert!(
+                serde_json::from_value::<RoomEvent>(json).is_err(),
+                "expected error for {event}"
+            );
+        }
     }
 }

@@ -19,6 +19,10 @@ RUN cargo e2e --no-run
 CMD ["cargo", "e2e"]
 
 FROM debian:trixie-20260112-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/target/release/astarte-synthetic-monitoring /usr/local/bin/astarte-synthetic-monitoring
+COPY astarte-e2e/interfaces astarte-e2e/interfaces
 ENTRYPOINT ["/usr/local/bin/astarte-synthetic-monitoring"]

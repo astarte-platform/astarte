@@ -72,7 +72,7 @@ impl Room {
         cancel: broadcast::Receiver<()>,
     ) -> eyre::Result<Self> {
         let realm = &astarte_config.realm;
-        let jwt = astarte_config.jwt.as_str();
+        let jwt = astarte_config.jwt_required()?;
         let mut appengine_ws = astarte_config.appengine_websocket()?;
 
         appengine_ws
