@@ -22,7 +22,7 @@ defmodule Astarte.Events.Triggers.Queries do
   """
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger

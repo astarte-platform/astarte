@@ -21,9 +21,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Pairing.Cases.Data
   use Mimic
 
-  alias Astarte.Core.Device
-  alias Astarte.DataAccess.Device, as: DeviceQueries
-  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -34,8 +33,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   import Astarte.Pairing.Helpers.FDO
 
-  @sample_device_id Device.random_device_id()
-  @sample_hw_id Device.encode_device_id(@sample_device_id)
+  @sample_device_id CoreDevice.random_device_id()
+  @sample_hw_id CoreDevice.encode_device_id(@sample_device_id)
 
   @sample_initial_introspection %{
     "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
@@ -99,7 +98,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
 
-      %DeviceStruct{device_id: @sample_device_id}
+      %Device{device_id: @sample_device_id}
       |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
 
       Queries.delete_ownership_voucher(@sample_ownership_voucher_guid)
@@ -156,7 +155,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> json_response(200)
 
       assert {:ok, %{credentials_secret: nil}} =
-               DeviceQueries.fetch(realm_name, @sample_device_id)
+               Device.fetch(realm_name, @sample_device_id)
     end
 
     test "registers the device with the voucher's guid", context do
@@ -186,7 +185,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       voucher_guid = UUID.string_to_binary!(guid)
 
       assert {:ok, %{fdo_guid: ^voucher_guid}} =
-               DeviceQueries.fetch(realm_name, @sample_device_id)
+               Device.fetch(realm_name, @sample_device_id)
     end
 
     test "registers the device with the specified initial introspection", context do
@@ -210,7 +209,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> post(path, params)
       |> json_response(200)
 
-      assert {:ok, device} = DeviceQueries.fetch(realm_name, @sample_device_id)
+      assert {:ok, device} = Device.fetch(realm_name, @sample_device_id)
 
       assert device.introspection == %{
                "org.astarteplatform.OtherValues" => 1,

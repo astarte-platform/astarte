@@ -22,7 +22,6 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
 
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Devices.Device, as: DeviceDB
   alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DataAccessOwnershipVoucher
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -182,7 +181,7 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
       session: session
     } do
       keyspace = Realm.keyspace_name(realm_name)
-      Repo.delete(%DeviceDB{device_id: session.device_id}, prefix: keyspace)
+      Repo.delete(%Device{device_id: session.device_id}, prefix: keyspace)
 
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 

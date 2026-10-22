@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Helpers.Database do
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Device, as: DeviceSchema
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

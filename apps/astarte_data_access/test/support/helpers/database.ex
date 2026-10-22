@@ -23,7 +23,7 @@ defmodule Astarte.DataAccess.Helpers.Database do
 
   alias Astarte.Core.Device, as: DeviceCore
   alias Astarte.DataAccess.Database
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Interface

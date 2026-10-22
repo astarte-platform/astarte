@@ -30,8 +30,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
   alias Astarte.Core.Device
 
+  alias Astarte.DataAccess.Device, as: DeviceData
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DeviceData
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 

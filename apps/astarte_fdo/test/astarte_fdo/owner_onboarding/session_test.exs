@@ -21,7 +21,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
   use Astarte.FDO.Cases.FDOSession
   use Mimic
 
-  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
@@ -66,10 +66,10 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
         ownership_voucher: ownership_voucher
       } = context
 
-      :ok = DeviceQueries.add_unconfirmed_credentials(realm_name, device_id, "secret")
+      :ok = Device.add_unconfirmed_credentials(realm_name, device_id, "secret")
 
       assert {:ok, _, _} = Session.new(realm_name, device_id, hello_device, ownership_voucher)
-      assert {:ok, %{credentials_secret: nil}} = DeviceQueries.fetch(realm_name, device_id)
+      assert {:ok, %{credentials_secret: nil}} = Device.fetch(realm_name, device_id)
     end
 
     test "cleans up previous device session", context do

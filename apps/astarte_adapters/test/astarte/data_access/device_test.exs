@@ -26,7 +26,7 @@ defmodule Astarte.DataAccess.Adapters.DeviceTest do
   import Astarte.DataAccess.Adapters.Device
 
   alias Astarte.Core.Device.Capabilities
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Realms.Name
   alias COSE.Keys.Symmetric
 

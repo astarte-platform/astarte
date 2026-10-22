@@ -20,9 +20,8 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.Core.Device
-  alias Astarte.DataAccess.Device, as: DeviceQueries
-  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
@@ -41,8 +40,8 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   yfLzYWUTgxViGMfJkvql4W3zrtRaVPU9I06TOHFC2Mwy+9S3A7UWv/EWtg==
   -----END PUBLIC KEY-----
   """
-  @sample_device_id Device.random_device_id()
-  @sample_hw_id Device.encode_device_id(@sample_device_id)
+  @sample_device_id CoreDevice.random_device_id()
+  @sample_hw_id CoreDevice.encode_device_id(@sample_device_id)
 
   @sample_key_name "owner_key"
   @sample_key_algorithm "ecdsa-p256"
@@ -66,7 +65,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
   setup do
     Queries |> stub(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
-    DeviceQueries |> stub(:fetch, fn _, _ -> {:error, :device_not_found} end)
+    Device |> stub(:fetch, fn _, _ -> {:error, :device_not_found} end)
 
     :ok
   end
@@ -259,7 +258,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     test "a device_id of an already existing device" do
       realm = @sample_realm
       Queries |> expect(:fetch_ownership_voucher, fn _ -> {:error, :not_found} end)
-      DeviceQueries |> expect(:fetch, fn ^realm, @sample_device_id -> {:ok, %DeviceStruct{}} end)
+      Device |> expect(:fetch, fn ^realm, @sample_device_id -> {:ok, %Device{}} end)
 
       assert {:error, changeset} = from_changeset(@sample_params)
       assert %{device_id: ["already exists"]} = errors_on(changeset)

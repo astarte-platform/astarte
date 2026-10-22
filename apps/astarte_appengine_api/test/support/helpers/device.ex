@@ -27,7 +27,7 @@ defmodule Astarte.AppEngine.API.Helpers.Device do
   alias Astarte.AppEngine.API.Device.InterfaceValue
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings, as: MappingsQueries
   alias Astarte.DataAccess.Realms.Interface

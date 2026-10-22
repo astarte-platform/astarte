@@ -21,9 +21,8 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
   This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
   """
   alias Astarte.DataAccess.Database
-  alias Astarte.DataAccess.Device, as: DeviceAccess
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.InsertContext
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm
@@ -223,7 +222,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
     groups = Keyword.get(opts, :groups, [])
     groups_map = for group <- groups, do: {group, UUID.uuid1()}
 
-    %DeviceSchema{}
+    %Device{}
     |> Ecto.Changeset.change(%{
       device_id: device_id,
       last_connection: last_connection,
@@ -256,7 +255,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
     groups = Keyword.get(opts, :groups, [])
     groups_map = for group <- groups, do: {group, UUID.uuid1()}
 
-    DeviceSchema
+    Device
     |> Repo.get(device_id, prefix: keyspace_name)
     |> case do
       nil ->
@@ -282,7 +281,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
   def remove_device(device_id, realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    %DeviceSchema{device_id: device_id}
+    %Device{device_id: device_id}
     |> Repo.delete(prefix: keyspace)
 
     :ok
@@ -366,7 +365,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
         opts: []
       }
 
-      :ok = DeviceAccess.insert_value_into_db(insert_context)
+      :ok = Device.insert_value_into_db(insert_context)
 
       timestamp
     end)

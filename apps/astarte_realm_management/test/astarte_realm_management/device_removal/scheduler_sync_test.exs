@@ -32,8 +32,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerSyncTest do
   import Astarte.RealmManagement.Helpers.Device
   import Astarte.RealmManagement.Generators.DeletionInProgress
 
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 

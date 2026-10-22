@@ -20,10 +20,9 @@ defmodule Astarte.FDO.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 
-  alias Astarte.Core.Device
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Device, as: QueryDevice
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -393,7 +392,7 @@ defmodule Astarte.FDO.Helpers.Database do
     groups = Keyword.get(opts, :groups, [])
     groups_map = for group <- groups, do: {group, UUID.uuid1()}
 
-    %DeviceSchema{}
+    %Device{}
     |> Ecto.Changeset.change(%{
       device_id: device_id,
       last_connection: last_connection,
@@ -412,7 +411,7 @@ defmodule Astarte.FDO.Helpers.Database do
   def update_device(device_id, realm_name, opts \\ []) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    DeviceSchema
+    Device
     |> Repo.get(device_id, prefix: keyspace_name)
     |> case do
       nil ->
@@ -473,7 +472,7 @@ defmodule Astarte.FDO.Helpers.Database do
   def remove_device(device_id, realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    %DeviceSchema{device_id: device_id}
+    %Device{device_id: device_id}
     |> Repo.delete(prefix: keyspace)
 
     :ok
@@ -515,29 +514,29 @@ defmodule Astarte.FDO.Helpers.Database do
   end
 
   def get_first_registration(realm, hardware_id) do
-    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+    {:ok, device_id} = CoreDevice.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = QueryDevice.fetch(realm, device_id)
+    {:ok, device} = Device.fetch(realm, device_id)
     device.first_registration
   end
 
   def get_introspection(realm, hardware_id) do
-    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+    {:ok, device_id} = CoreDevice.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = QueryDevice.fetch(realm, device_id)
+    {:ok, device} = Device.fetch(realm, device_id)
     device.introspection
   end
 
   def get_introspection_minor(realm, hardware_id) do
-    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
-    {:ok, device} = QueryDevice.fetch(realm, device_id)
+    {:ok, device_id} = CoreDevice.decode_device_id(hardware_id, allow_extended_id: true)
+    {:ok, device} = Device.fetch(realm, device_id)
     device.introspection_minor
   end
 
   def get_message_count_for_device(realm, hardware_id) do
-    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+    {:ok, device_id} = CoreDevice.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = QueryDevice.fetch(realm, device_id)
+    {:ok, device} = Device.fetch(realm, device_id)
 
     [
       %{
@@ -564,11 +563,11 @@ defmodule Astarte.FDO.Helpers.Database do
       ) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
-    {:ok, device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
+    {:ok, device_id} = CoreDevice.decode_device_id(device_id, allow_extended_id: true)
 
     opts = [prefix: realm_keyspace, consistency: Consistency.domain_model(:write)]
 
-    from(DeviceSchema, where: [device_id: ^device_id])
+    from(Device, where: [device_id: ^device_id])
     |> Repo.update_all(
       [
         set: [

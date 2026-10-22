@@ -24,7 +24,7 @@ defmodule Astarte.DataAccess.Adapters.GroupTest do
   import Astarte.DataAccess.Adapters.Group
 
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Devices.Device, as: DeviceData
+  alias Astarte.DataAccess.Device, as: DeviceData
   alias Astarte.DataAccess.Groups.Group
   alias Astarte.DataAccess.Groups.GroupedDevice
 

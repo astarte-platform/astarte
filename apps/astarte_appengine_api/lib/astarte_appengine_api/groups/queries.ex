@@ -18,7 +18,7 @@
 
 defmodule Astarte.AppEngine.API.Groups.Queries do
   @moduledoc """
-  Database query logic for Devices Groups. 
+  Database query logic for Devices Groups.
 
   This module manages the relationship between devices and groups ensuring
   consistency across the denormalized storage. It provides functionaliies for:
@@ -31,8 +31,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device, as: DataBaseDevice
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DataBaseDevice
   alias Astarte.DataAccess.Groups.Group
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.Realms.Realm

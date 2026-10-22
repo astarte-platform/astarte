@@ -21,8 +21,8 @@ defmodule Astarte.AppEngine.API.Helpers.Database do
 
   alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceSchema
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema

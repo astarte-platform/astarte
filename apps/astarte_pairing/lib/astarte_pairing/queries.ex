@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

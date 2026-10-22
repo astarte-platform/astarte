@@ -20,7 +20,6 @@ defmodule Astarte.DataAccess.Device.XandraTest do
   use Astarte.DataAccess.Cases.Database, async: true
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -62,7 +61,7 @@ defmodule Astarte.DataAccess.Device.XandraTest do
     %{realm_name: realm_name} = context
     device_id = :crypto.strong_rand_bytes(16)
 
-    %DeviceStruct{device_id: device_id, introspection: %{}}
+    %Device{device_id: device_id, introspection: %{}}
     |> Repo.insert!(prefix: Realm.keyspace_name(realm_name))
 
     assert Device.interface_version(
@@ -120,7 +119,7 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       device_id = :crypto.strong_rand_bytes(16)
 
       on_exit(fn ->
-        %DeviceStruct{device_id: device_id} |> Repo.delete!(prefix: keyspace)
+        %Device{device_id: device_id} |> Repo.delete!(prefix: keyspace)
       end)
 
       guid = :crypto.strong_rand_bytes(16)
@@ -273,7 +272,7 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       keyspace = Realm.keyspace_name(realm_name)
 
       device_query =
-        DeviceStruct
+        Device
         |> select([d], %{
           credentials_secret: d.credentials_secret,
           credentials_secret_ttl: fragment("TTL(?)", d.credentials_secret)
@@ -363,7 +362,7 @@ defmodule Astarte.DataAccess.Device.XandraTest do
     credentials_secret = "credentials_secret"
 
     on_exit(fn ->
-      Repo.delete!(%DeviceStruct{device_id: device_id}, prefix: keyspace)
+      Repo.delete!(%Device{device_id: device_id}, prefix: keyspace)
     end)
 
     %{

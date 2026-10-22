@@ -9,8 +9,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device, as: RealmsDevice
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint

@@ -21,7 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
   import Mox
 
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper

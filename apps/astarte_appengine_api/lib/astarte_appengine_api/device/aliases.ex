@@ -20,7 +20,7 @@ defmodule Astarte.AppEngine.API.Device.Aliases do
     Handles validation and application of device aliases.
   """
 
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Ecto.Changeset
 
   alias Astarte.AppEngine.API.Device.Queries

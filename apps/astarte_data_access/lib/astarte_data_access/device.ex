@@ -20,20 +20,76 @@ defmodule Astarte.DataAccess.Device do
   @moduledoc """
   This module provides functions to fetch and manipulate device information in Astarte Data Access.
   """
+
+  use TypedEctoSchema
+
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: DeviceCore
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.DateTime, as: DateTimeMs
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.InsertContext
-  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.UUID
+  alias COSE.Keys.Symmetric
   alias Ecto.Changeset
 
   import Ecto.Query
+
+  @primary_key {:device_id, UUID, autogenerate: false}
+  typed_schema "devices" do
+    field :aliases, Exandra.Map, key: :string, value: :string
+    field :attributes, Exandra.Map, key: :string, value: :string
+    field :cert_aki, :string
+    field :cert_serial, :string
+    field :connected, :boolean
+    field :credentials_secret, :string
+
+    field :exchanged_bytes_by_interface, Exandra.Map,
+      key: Exandra.Tuple,
+      types: [:string, :integer],
+      value: :integer
+
+    field :exchanged_msgs_by_interface, Exandra.Map,
+      key: Exandra.Tuple,
+      types: [:string, :integer],
+      value: :integer
+
+    field :first_credentials_request, DateTimeMs
+    field :first_registration, DateTimeMs
+    field :groups, Exandra.Map, key: :string, value: UUID
+    field :fdo_guid, :binary
+    field :inhibit_credentials_request, :boolean
+    field :introspection, Exandra.Map, key: :string, value: :integer
+    field :introspection_minor, Exandra.Map, key: :string, value: :integer
+    field :last_connection, DateTimeMs
+    field :last_credentials_request_ip, Exandra.Inet
+
+    field :last_disconnection, DateTimeMs
+    field :last_seen_ip, Exandra.Inet
+
+    field :old_introspection,
+          Exandra.Map,
+          key: Exandra.Tuple,
+          types: [:string, :integer],
+          value: :integer
+
+    field :capabilities, Exandra.EmbeddedType, using: Capabilities
+    field :pending_empty_cache, :boolean
+    field :protocol_revision, :integer
+    field :total_received_bytes, :integer
+    field :total_received_msgs, :integer
+    field :shared_secret, Exandra.EmbeddedType, using: Symmetric
+
+    field :confirmation_status, Ecto.Enum, values: [:confirmed, :unconfirmed], virtual: true
+  end
 
   @ten_minutes_in_seconds 600
 

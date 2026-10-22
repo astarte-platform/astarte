@@ -25,7 +25,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
   """
   use TypedStruct
 
-  alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.Queries
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.FDO.Core.Hash
@@ -123,7 +123,7 @@ defmodule Astarte.FDO.OwnerOnboarding.Session do
   end
 
   defp cleanup_credentials(realm_name, device_id) do
-    DeviceQueries.unregister(realm_name, device_id)
+    Device.unregister(realm_name, device_id)
   end
 
   def add_setup_dv_nonce(session, setup_dv_nonce) do

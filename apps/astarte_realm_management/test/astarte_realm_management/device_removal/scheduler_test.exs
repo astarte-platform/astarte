@@ -32,8 +32,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
 
   alias Astarte.Core.Device, as: CoreDevice
 
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
