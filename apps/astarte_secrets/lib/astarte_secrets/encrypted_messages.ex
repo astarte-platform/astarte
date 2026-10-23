@@ -34,8 +34,13 @@ defmodule Astarte.Secrets.EncryptedMessages do
   @spec encrypt(binary(), Symmetric.t()) :: binary()
   def encrypt(plaintext, %Symmetric{} = symmetric_key) do
     iv = :crypto.strong_rand_bytes(12)
+
+    # `alg` goes in the protected header, as it's needed to pick the cipher, and a
+    # non-empty protected header keeps the AAD computed by `enc_structure`
+    # the same way to what is actually sent.
+    phdr = %{alg: symmetric_key.alg}
     uhdr = %{iv: COSE.tag_as_byte(iv)}
-    msg = Encrypt0.build(plaintext, %{}, uhdr)
+    msg = Encrypt0.build(plaintext, phdr, uhdr)
 
     Encrypt0.encrypt_encode(msg, symmetric_key.alg, symmetric_key, iv)
   end

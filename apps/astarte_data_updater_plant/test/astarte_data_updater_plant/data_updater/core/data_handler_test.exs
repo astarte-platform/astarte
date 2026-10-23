@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Interface
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.Secrets
   alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.Secrets.EncryptedMessages
@@ -291,6 +292,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
     end
   end
 
+  describe "shared key state on encrypted endpoints" do
+    @tag interface_aggregation: :individual
+    test "is restored as established when the key is loaded from the database", context do
+      %{state: state} = context
+
+      shared_secret = state.shared_secret.k
+      assert {:established, %{shared_secret: ^shared_secret}} = state.encrypted_endpoints_key
+
+      assert {:ack, :ok, _, _} = handle_encrypted_property(context, state)
+    end
+
+    @tag interface_aggregation: :individual
+    test "accepts encrypted data right after a handshake completes", context do
+      %{state: state} = context
+
+      handshake_started =
+        {:handshake_started, %{key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm, init_exchange: nil}}
+
+      {:ok, established} =
+        HandshakeState.transition(
+          handshake_started,
+          {:handshake_completed, state.shared_secret.k}
+        )
+
+      state = %{state | encrypted_endpoints_key: established}
+
+      assert {:ack, :ok, _, _} = handle_encrypted_property(context, state)
+    end
+  end
+
   describe "data_handler/6" do
     test "correctly receives and validates payloads for all defined value types on individual datastream mappings",
          context do
@@ -467,5 +498,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
         decrypted_val
       )
     end)
+  end
+
+  defp handle_encrypted_property(context, state) do
+    %{interfaces: interfaces, payload: payload, timestamp: timestamp, start: start} = context
+
+    interface = Enum.find(interfaces, &(&1.name == "test.EncryptedPropertiesInterface"))
+    encrypted_mapping = Enum.find(interface.mappings, & &1.encrypted)
+    endpoint_path = encrypted_mapping.endpoint |> String.replace("%{some_param}", "some_value")
+
+    DataHandler.handle_data(state, interface.name, endpoint_path, payload, timestamp, start)
   end
 end
