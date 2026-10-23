@@ -77,6 +77,10 @@ services:
       context: .
       args:
         SERVICE: astarte_pairing
+    command: >
+      /bin/sh -c ". /shared/openfga.env && ./bin/astarte_pairing start"
+    volumes:
+      - openfga-shared:/shared:ro,z
     env_file:
       - ./.env
     environment:
@@ -91,6 +95,8 @@ services:
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:
+      openfga-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       scylla:
@@ -302,6 +308,29 @@ services:
       - "traefik.http.routers.https-fdo-rendezvous.tls=true"
       - "traefik.http.routers.https-fdo-rendezvous.service=fdo-rendezvous"
       - "traefik.http.services.fdo-rendezvous.loadbalancer.server.port=8041"
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=memory
+      - OPENFGA_PLAYGROUND_ENABLED=true
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=openfga:8081"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  openfga-init:
+    image: alpine:latest
+    depends_on:
+      openfga:
+        condition: service_healthy
+    volumes:
+      - ./compose/openfga-init:/openfga-init:ro,z
+      - openfga-shared:/shared:z
+    command: >
+      /bin/sh -c "apk add --no-cache curl jq && /openfga-init/init.sh"
 
   # RabbitMQ
   rabbitmq:
@@ -385,6 +414,7 @@ volumes:
   vernemq-data:
   cfssl-data:
   fdo-rendezvous-data:
+  openfga-shared:
 
 networks:
   default:

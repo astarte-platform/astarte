@@ -158,6 +158,9 @@ config :astarte_pairing, :astarte_instance_id, "test"
 
 config :astarte_pairing, :enable_credential_reuse, true
 
+config :astarte_auth, :openfga_url, "http://localhost:8081"
+config :astarte_auth, :openfga_store_id, "test_store_id"
+
 config :astarte_fdo, :base_url_host, "api.astarte.localhost"
 config :astarte_fdo, :base_url_port, 4003
 config :astarte_fdo, :base_url_protocol, :http

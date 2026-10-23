@@ -95,6 +95,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "secomind/cfxxl", branch: "main"},
+      {:astarte_auth, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
       {:astarte_secrets, in_umbrella: true},
@@ -111,7 +112,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0"},
       {:hackney, "~> 4.0", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:absinthe, "~> 1.7"},
+      {:absinthe_plug, "~> 1.5"}
     ]
   end
 end
