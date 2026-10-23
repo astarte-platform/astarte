@@ -24,9 +24,6 @@ defmodule Astarte.Auth.OpenFGATest do
   alias Astarte.Auth.OpenFGA
   alias Astarte.Auth.OpenFGA.Client
 
-  # Matches the :openfga_store_id configured in config/test.exs.
-  @store_id "test_store_id"
-
   defp respond(status, body) do
     fn _url, _body, _headers ->
       {:ok, %HTTPoison.Response{status_code: status, body: body}}
@@ -47,7 +44,7 @@ defmodule Astarte.Auth.OpenFGATest do
 
   test "sends the configured store id, and the user/relation/object tuple" do
     expect(Client, :post, fn url, body, headers ->
-      assert url == "/stores/#{@store_id}/check"
+      assert url == "/stores/#{Config.openfga_store_id!()}/check"
       assert {"Content-Type", "application/json"} in headers
 
       assert Jason.decode!(body) == %{
@@ -62,15 +59,6 @@ defmodule Astarte.Auth.OpenFGATest do
     end)
 
     assert OpenFGA.check("user:42", "can_unregister", "device:abc123") == :ok
-  end
-
-  test "returns {:error, :store_not_configured} without calling OpenFGA when no store id is set" do
-    for unset <- [nil, ""] do
-      expect(Config, :openfga_store_id!, fn -> unset end)
-      reject(&Client.post/3)
-
-      assert OpenFGA.check("user:1", "viewer", "realm:test") == {:error, :store_not_configured}
-    end
   end
 
   test "returns {:error, :unexpected_response} when the body has no \"allowed\" key" do

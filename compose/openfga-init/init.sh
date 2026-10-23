@@ -4,12 +4,6 @@ set -eu
 OPENFGA_URL="http://openfga:8080"
 SHARED_ENV="/shared/openfga.env"
 
-echo "Waiting for OpenFGA to be ready..."
-while ! curl -s -f "$OPENFGA_URL/healthz" >/dev/null; do
-  sleep 2
-done
-echo "OpenFGA is ready."
-
 echo "Creating Store..."
 STORE_RESPONSE=$(curl -s -X POST "$OPENFGA_URL/stores" \
   -H "Content-Type: application/json" \

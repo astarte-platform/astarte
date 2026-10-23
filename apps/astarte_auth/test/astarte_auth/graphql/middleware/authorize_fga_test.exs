@@ -29,16 +29,7 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
     %Absinthe.Resolution{context: context, arguments: arguments}
   end
 
-  test "bypasses authorization when the context says authentication is disabled" do
-    reject(&OpenFGA.check/4)
-
-    resolution = resolution(%{authentication_disabled?: true})
-
-    assert AuthorizeFGA.call(resolution, []) == resolution
-  end
-
-  test "enforces authorization when the context doesn't say authentication is disabled" do
-    # A context we didn't build must fail closed rather than skip the check.
+  test "fails closed on an empty context" do
     reject(&OpenFGA.check/4)
 
     result = AuthorizeFGA.call(resolution(%{}), relation: "viewer", target: :realm)
@@ -100,6 +91,26 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
     assert AuthorizeFGA.call(resolution, relation: "viewer", target: :realm) == resolution
   end
 
+  test "sends the user's JWT roles as contextual tuples on the realm" do
+    expect(OpenFGA, :check, fn "user:user1", "viewer", "realm:testrealm", contextual_tuples ->
+      assert contextual_tuples == [
+               %{user: "user:user1", relation: "fdo_manager", object: "realm:testrealm"},
+               %{user: "user:user1", relation: "device_registrar", object: "realm:testrealm"}
+             ]
+
+      :ok
+    end)
+
+    context = %{
+      realm_name: "testrealm",
+      current_user: %{id: "user1", roles: ["fdo_manager", "device_registrar"]}
+    }
+
+    resolution = resolution(context)
+
+    assert AuthorizeFGA.call(resolution, relation: "viewer", target: :realm) == resolution
+  end
+
   test "names the object from the hw_id argument for the :device target" do
     expect(OpenFGA, :check, fn "user:user1", "editor", "device:my_device", [] -> :ok end)
 
@@ -122,21 +133,24 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
     assert AuthorizeFGA.call(resolution, opts) == resolution
   end
 
-  test "returns forbidden and logs a warning if an object-naming argument is missing" do
+  test "returns forbidden and logs a warning if an object-naming argument is missing or nil" do
     reject(&OpenFGA.check/4)
 
-    resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}}, %{})
+    for arguments <- [%{}, %{hw_id: nil}] do
+      resolution =
+        resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}}, arguments)
 
-    log =
-      capture_log(fn ->
-        result = AuthorizeFGA.call(resolution, relation: "editor", target: :device)
+      log =
+        capture_log(fn ->
+          result = AuthorizeFGA.call(resolution, relation: "editor", target: :device)
 
-        assert %Absinthe.Resolution{
-                 errors: ["Forbidden: OpenFGA denied access for this action"]
-               } = result
-      end)
+          assert %Absinthe.Resolution{
+                   errors: ["Forbidden: OpenFGA denied access for this action"]
+                 } = result
+        end)
 
-    assert log =~ "a :device-target field was called without hw_id"
+      assert log =~ "a :device-target field was called without hw_id"
+    end
   end
 
   test "returns forbidden if the OpenFGA check denies access" do
@@ -150,20 +164,6 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGATest do
 
     assert %Absinthe.Resolution{errors: ["Forbidden: OpenFGA denied access for this action"]} =
              result
-  end
-
-  test "says so when no OpenFGA store is configured, rather than reporting an internal error" do
-    expect(OpenFGA, :check, fn _user, _relation, _object, _contextual_tuples ->
-      {:error, :store_not_configured}
-    end)
-
-    resolution = resolution(%{realm_name: "testrealm", current_user: %{id: "user1"}})
-
-    result = AuthorizeFGA.call(resolution, relation: "viewer", target: :realm)
-
-    assert %Absinthe.Resolution{
-             errors: ["Authorization unavailable: OpenFGA store not configured"]
-           } = result
   end
 
   test "returns internal error if the OpenFGA check itself fails" do

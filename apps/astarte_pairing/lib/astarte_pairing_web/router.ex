@@ -19,6 +19,8 @@
 defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
 
+  alias Astarte.Auth.GraphQL.Plug.Context
+
   pipeline :realm_api do
     plug :accepts, ["json"]
     plug Astarte.PairingWeb.Plug.LogRealm
@@ -33,12 +35,17 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
+  # Authentication errors don't halt the connection: the Absinthe resolvers
+  # report them, through the context built by the Context plug.
   pipeline :graphql do
-    plug Astarte.Auth.GraphQL.Plug.Context,
+    plug Guardian.Plug.Pipeline,
       otp_app: :astarte_pairing,
-      guardian: Astarte.PairingWeb.AuthGuardian,
-      verify_header: Astarte.PairingWeb.Plug.VerifyHeader,
-      config: Astarte.Pairing.Config
+      module: Astarte.PairingWeb.AuthGuardian,
+      error_handler: Context.ErrorHandler
+
+    plug Astarte.PairingWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Context
   end
 
   pipeline :fdo do

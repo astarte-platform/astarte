@@ -33,24 +33,16 @@ defmodule Astarte.Auth.OpenFGA do
 
   Returns `:ok` if the check is allowed, `{:error, :forbidden}` if OpenFGA
   explicitly denied it, or `{:error, reason}` if the check itself couldn't
-  be completed: no store is configured, the request failed, OpenFGA returned
-  an unexpected HTTP status, or its response body wasn't the shape we expect.
+  be completed: the request failed, OpenFGA returned an unexpected HTTP
+  status, or its response body wasn't the shape we expect.
+
+  The store id is assumed to be configured: services validate
+  `Astarte.Auth.Config` when they start.
   """
   @spec check(String.t(), String.t(), String.t(), list(map())) ::
           :ok | {:error, :forbidden} | {:error, term()}
   def check(user, relation, object, contextual_tuples \\ []) do
-    case Config.openfga_store_id!() do
-      store_id when store_id in [nil, ""] ->
-        Logger.error("OpenFGA store id is not configured")
-        {:error, :store_not_configured}
-
-      store_id ->
-        do_check(store_id, user, relation, object, contextual_tuples)
-    end
-  end
-
-  defp do_check(store_id, user, relation, object, contextual_tuples) do
-    url = "/stores/#{store_id}/check"
+    url = "/stores/#{Config.openfga_store_id!()}/check"
 
     body_map = %{
       tuple_key: %{user: user, relation: relation, object: object}

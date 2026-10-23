@@ -19,7 +19,7 @@
 defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   @moduledoc """
   Absinthe middleware that authorizes GraphQL field resolution against
-  OpenFGA, unless authentication is disabled.
+  OpenFGA.
 
   It reads the identity and the realm from the Absinthe context built by
   `Astarte.Auth.GraphQL.Plug.Context`, and checks `relation` on the object
@@ -53,14 +53,6 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
 
   @impl Absinthe.Middleware
   def call(resolution, opts) do
-    if authentication_disabled?(resolution.context) do
-      resolution
-    else
-      do_authorize(resolution, opts)
-    end
-  end
-
-  defp do_authorize(resolution, opts) do
     context = resolution.context
 
     relation = Keyword.fetch!(opts, :relation)
@@ -85,19 +77,15 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
     # Estraiamo i ruoli dall'utente corrente nel context.
     # Assumiamo che AuthGuardian o il mapping del JWT abbiano salvato un campo :roles
     # come lista di stringhe: es. ["admin", "user"]
-    Enum.map(get_roles(context), fn role ->
-      %{
-        user: "user:#{user_id}",
-        relation: role,
-        object: "realm:#{realm_name}"
-      }
-    end)
+    base_contextual_tuple = %{user: "user:#{user_id}", object: "realm:#{realm_name}"}
+
+    get_roles(context)
+    |> Enum.map(&Map.put(base_contextual_tuple, :relation, &1))
   end
 
   defp get_roles(context) do
     case Map.get(context, :current_user) do
       %{roles: roles} when is_list(roles) -> roles
-      %{"roles" => roles} when is_list(roles) -> roles
       _ -> []
     end
   end
@@ -107,9 +95,6 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   defp handle_check_result({:error, :forbidden}, resolution),
     do: unauthorized(resolution, "Forbidden: OpenFGA denied access for this action")
 
-  defp handle_check_result({:error, :store_not_configured}, resolution),
-    do: unauthorized(resolution, "Authorization unavailable: OpenFGA store not configured")
-
   defp handle_check_result({:error, reason}, resolution) do
     Logger.error("OpenFGA check failed: #{inspect(reason)}")
     unauthorized(resolution, "Internal Server Error during authorization")
@@ -117,12 +102,6 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
 
   defp unauthorized(resolution, message),
     do: Absinthe.Resolution.put_result(resolution, {:error, message})
-
-  # The context is built by Astarte.Auth.GraphQL.Plug.Context, which only sets
-  # this once it has read the service's own configuration. A context without it
-  # is one we didn't build, so enforce authorization rather than skip it.
-  defp authentication_disabled?(context),
-    do: Map.get(context, :authentication_disabled?, false)
 
   # current_user is either the user struct Guardian loaded, or the raw JWT
   # claims if it didn't. Anything else is rejected instead of guessing an
@@ -150,14 +129,14 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
     do: object({:device, :hw_id}, realm_name, arguments)
 
   defp object({type, arg}, _realm_name, arguments) do
-    case Map.get(arguments, arg) do
-      nil ->
+    case Map.fetch(arguments, arg) do
+      {:ok, id} when not is_nil(id) ->
+        {:ok, "#{type}:#{id}"}
+
+      _ ->
         Logger.warning("AuthorizeFGA: a #{inspect(type)}-target field was called without #{arg}")
 
         {:error, "Forbidden: OpenFGA denied access for this action"}
-
-      id ->
-        {:ok, "#{type}:#{id}"}
     end
   end
 end

@@ -18,28 +18,26 @@
 
 defmodule Astarte.Auth.GraphQL.Plug.Context do
   @moduledoc """
-  Plug that extracts authentication information from the request, verifies
-  JWTs through the service's own Guardian implementation, and builds the
-  Absinthe context that `Astarte.Auth.GraphQL.Middleware.AuthorizeFGA` and
-  the service's resolvers read.
+  Plug that builds the Absinthe context that
+  `Astarte.Auth.GraphQL.Middleware.AuthorizeFGA` and the service's resolvers
+  read.
+
+  JWT verification is left to the service's own Guardian plugs, which must run
+  before this one without halting the connection, so that error formatting is
+  left to the Absinthe resolvers:
 
   ```elixir
   pipeline :graphql do
-    plug Astarte.Auth.GraphQL.Plug.Context,
+    plug Guardian.Plug.Pipeline,
       otp_app: :astarte_pairing,
-      guardian: Astarte.PairingWeb.AuthGuardian,
-      verify_header: Astarte.PairingWeb.Plug.VerifyHeader,
-      config: Astarte.Pairing.Config
+      module: Astarte.PairingWeb.AuthGuardian,
+      error_handler: Context.ErrorHandler
+
+    plug Astarte.PairingWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Context
   end
   ```
-
-  Options, all required, since each is service-specific:
-
-  - `otp_app` - the service's OTP application, used to read its Guardian config.
-  - `guardian` - the service's `Guardian` implementation.
-  - `verify_header` - the service's `Guardian.Plug.VerifyHeader` wrapper, which
-    resolves the realm's JWT public key from the connection.
-  - `config` - the service's `Config` module, read for `authentication_disabled?/0`.
 
   The context it puts together holds:
 
@@ -48,18 +46,11 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   - `:auth_token` - the raw bearer token, for endpoints authenticated by a
     device's credentials secret rather than by a JWT.
   - `:remote_ip` - the caller's IP address.
-  - `:authentication_disabled?` - whether the service has authentication off.
-
-  This plug never halts the connection, leaving error formatting to the
-  Absinthe resolvers.
   """
 
   @behaviour Plug
 
   import Plug.Conn
-
-  alias Guardian.Plug.LoadResource
-  alias Guardian.Plug.Pipeline
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
@@ -76,76 +67,26 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   end
 
   @impl Plug
-  def init(opts) do
-    %{
-      otp_app: Keyword.fetch!(opts, :otp_app),
-      guardian: Keyword.fetch!(opts, :guardian),
-      verify_header: Keyword.fetch!(opts, :verify_header),
-      config: Keyword.fetch!(opts, :config)
-    }
-  end
+  def init(opts), do: opts
 
   @impl Plug
-  def call(conn, opts) do
-    auth_token = conn |> get_req_header("authorization") |> find_bearer_token()
-    realm_name = conn |> get_req_header("astarte-realm") |> List.first()
-    remote_ip = conn.remote_ip |> :inet_parse.ntoa() |> to_string()
-
-    {conn, current_user} = verify_jwt(conn, realm_name, opts)
-
+  def call(conn, _opts) do
     context = %{
-      realm_name: realm_name,
-      current_user: current_user,
-      auth_token: auth_token,
-      remote_ip: remote_ip,
-      authentication_disabled?: opts.config.authentication_disabled?()
+      realm_name: conn |> get_req_header("astarte-realm") |> List.first(),
+      current_user: Guardian.Plug.current_resource(conn),
+      auth_token: conn |> get_req_header("authorization") |> find_bearer_token(),
+      remote_ip: conn.remote_ip |> :inet_parse.ntoa() |> to_string()
     }
 
     Absinthe.Plug.put_options(conn, context: context)
   end
 
-  defp verify_jwt(conn, realm_name, opts) do
-    %{otp_app: otp_app, guardian: guardian, verify_header: verify_header} = opts
-
-    # The VerifyHeader wrapper recovers the realm's JWT public key from the
-    # connection, and reads the realm from the assigns since this plug doesn't
-    # go through regular Phoenix routing.
-    conn = if realm_name, do: assign(conn, :realm_name, realm_name), else: conn
-
-    pipeline_opts =
-      Pipeline.init(
-        otp_app: otp_app,
-        module: guardian,
-        error_handler: __MODULE__.ErrorHandler
-      )
-
-    # VerifyHeader.init/1 compiles the :scheme_reg regex that Guardian uses to
-    # strip the "Bearer " prefix from the Authorization header. Without it, the
-    # entire header value (including "Bearer ") is passed to decode_and_verify,
-    # which fails.
-    verify_header_opts = verify_header.init([])
-    load_resource_opts = LoadResource.init(allow_blank: true)
-
-    conn =
-      conn
-      |> Pipeline.call(pipeline_opts)
-      |> verify_header.call(verify_header_opts)
-      |> LoadResource.call(load_resource_opts)
-
-    # Includes the authorizations carried by the service's claims.
-    current_user = Guardian.Plug.current_resource(conn)
-
-    # Guardian halts on an invalid or missing token; un-halt so the resolvers
-    # can report their own errors.
-    {%{conn | halted: false}, current_user}
-  end
-
-  defp find_bearer_token([]), do: nil
-
-  defp find_bearer_token([auth_header | tail]) do
-    case Regex.run(@bearer_regex, auth_header) do
-      [_, match] -> match
-      _ -> find_bearer_token(tail)
-    end
+  defp find_bearer_token(auth_headers) do
+    Enum.find_value(auth_headers, fn auth_header ->
+      case Regex.run(@bearer_regex, auth_header) do
+        [_, token] -> token
+        _ -> nil
+      end
+    end)
   end
 end

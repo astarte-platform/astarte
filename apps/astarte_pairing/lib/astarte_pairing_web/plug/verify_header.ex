@@ -61,11 +61,10 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
     end
   end
 
-  # The realm can either come from `conn.assigns` (set by
-  # Astarte.Auth.GraphQL.Plug.Context, which doesn't go through regular
-  # Phoenix routing) or from `conn.path_params` (set by the router for
-  # REST requests).
+  # REST requests carry the realm in the path, GraphQL requests in the
+  # `astarte-realm` header.
   defp realm_name(conn) do
-    conn.assigns[:realm_name] || Map.get(conn.path_params, "realm_name")
+    Map.get(conn.path_params, "realm_name") ||
+      conn |> Plug.Conn.get_req_header("astarte-realm") |> List.first()
   end
 end
