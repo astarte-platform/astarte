@@ -80,6 +80,8 @@ defmodule Astarte.Events.TriggersHandler.Core do
         policy_name
       )
 
+    routing_key = interpolate_routing_key(routing_key, simple_event)
+
     opts_with_nil = [
       expiration: message_expiration_ms && to_string(message_expiration_ms),
       priority: message_priority,
@@ -131,6 +133,14 @@ defmodule Astarte.Events.TriggersHandler.Core do
          _policy_name
        ) do
     {routing_key, headers}
+  end
+
+  defp interpolate_routing_key(nil, _simple_event), do: nil
+
+  defp interpolate_routing_key(routing_key, %SimpleEvent{} = simple_event)
+       when is_binary(routing_key) do
+    device_id = simple_event.device_id || ""
+    String.replace(routing_key, "{device_id}", device_id)
   end
 
   defp generate_message_id(realm, device_id, timestamp) do

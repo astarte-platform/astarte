@@ -106,6 +106,60 @@ defmodule Astarte.RealmManagement.Triggers.AMQPActionTest do
     assert errors[:amqp_routing_key] == {"can't be blank", [validation: :required]}
   end
 
+  test "amqp_routing_key with {device_id} placeholder is accepted" do
+    valid_keys = [
+      "my-routing-key-{device_id}",
+      "{device_id}",
+      "events.{device_id}.data",
+      "prefix.{device_id}.suffix.{device_id}"
+    ]
+
+    for key <- valid_keys do
+      input = %{
+        "amqp_exchange" => "astarte_events_test_custom_exchange",
+        "amqp_routing_key" => key,
+        "amqp_message_persistent" => true,
+        "amqp_message_expiration_ms" => 5000
+      }
+
+      out =
+        %AMQPAction{}
+        |> AMQPAction.changeset(input, realm_name: "test")
+        |> Changeset.apply_action(:insert)
+
+      assert {:ok, %AMQPAction{amqp_routing_key: ^key}} = out
+    end
+  end
+
+  test "amqp_routing_key with invalid placeholders or unclosed braces is rejected" do
+    invalid_keys = [
+      "my-routing-key-{invalid_param}",
+      "my-routing-key-{device_id",
+      "my-routing-key-device_id}",
+      "my-routing-key-{{device_id}}",
+      "my-routing-key-{}"
+    ]
+
+    for key <- invalid_keys do
+      input = %{
+        "amqp_exchange" => "astarte_events_test_custom_exchange",
+        "amqp_routing_key" => key,
+        "amqp_message_persistent" => true,
+        "amqp_message_expiration_ms" => 5000
+      }
+
+      out =
+        %AMQPAction{}
+        |> AMQPAction.changeset(input, realm_name: "test")
+        |> Changeset.apply_action(:insert)
+
+      assert {:error, %Changeset{errors: errors, valid?: false}} = out
+
+      assert errors[:amqp_routing_key] ==
+               {"has an invalid format or contains invalid placeholders", []}
+    end
+  end
+
   test "amqp_exchange must contain realm_name" do
     input = %{
       "amqp_exchange" => "astarte_events_other_custom_exchange",

@@ -162,6 +162,21 @@ defmodule Astarte.Events.TriggersHandler.CoreTest do
       assert Core.dispatch_event(simple_event, target, nil) == :ok
     end
 
+    test "interpolates {device_id} in routing_key with actual device_id", %{
+      simple_event_default: simple_event,
+      target_default: target
+    } do
+      target_with_placeholder = %{target | routing_key: "events.{device_id}.data"}
+
+      AMQPEvents
+      |> expect(:publish, fn routing_key, _payload, _opts ->
+        assert routing_key == "events.#{@device_id}.data"
+        :ok
+      end)
+
+      assert Core.dispatch_event(simple_event, target_with_placeholder, nil) == :ok
+    end
+
     test "includes message expiration in opts when set", %{
       simple_event_default: simple_event,
       target_default: target

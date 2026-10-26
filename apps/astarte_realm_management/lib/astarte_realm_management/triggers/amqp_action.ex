@@ -44,6 +44,8 @@ defmodule Astarte.RealmManagement.Triggers.AMQPAction do
   ]
   @all_attrs [:amqp_static_headers, :amqp_message_priority] ++ @mandatory_attrs
 
+  @allowed_placeholders ["device_id"]
+
   @doc false
   def changeset(%AMQPAction{} = amqp_action, attrs, opts) do
     realm_name = Keyword.fetch!(opts, :realm_name)
@@ -54,11 +56,32 @@ defmodule Astarte.RealmManagement.Triggers.AMQPAction do
     |> validate_length(:amqp_exchange, max: 255, count: :bytes)
     |> validate_format(:amqp_exchange, ~r"^astarte_events_#{realm_name}_[a-zA-Z0-9_\.\:]+$")
     |> validate_length(:amqp_routing_key, max: 255, count: :bytes)
-    |> validate_format(:amqp_routing_key, ~r"^[^{}]+$")
+    |> validate_amqp_routing_key()
     |> validate_number(:amqp_message_expiration_ms, greater_than: 0)
     |> validate_inclusion(:amqp_message_priority, 0..9)
     |> validate_headers_size(:amqp_static_headers)
   end
+
+  defp validate_amqp_routing_key(changeset) do
+    validate_change(changeset, :amqp_routing_key, fn :amqp_routing_key, routing_key ->
+      if valid_routing_key?(routing_key) do
+        []
+      else
+        [amqp_routing_key: "has an invalid format or contains invalid placeholders"]
+      end
+    end)
+  end
+
+  defp valid_routing_key?(routing_key) when is_binary(routing_key) do
+    cleaned =
+      Enum.reduce(@allowed_placeholders, routing_key, fn placeholder, acc ->
+        String.replace(acc, "{" <> placeholder <> "}", "x")
+      end)
+
+    not (String.contains?(cleaned, "{") or String.contains?(cleaned, "}"))
+  end
+
+  defp valid_routing_key?(_), do: false
 
   defp validate_headers_size(changeset, field, opts \\ []) do
     validate_change(changeset, field, fn field, headers ->
