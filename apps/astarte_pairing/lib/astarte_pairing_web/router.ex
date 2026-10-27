@@ -47,6 +47,12 @@ defmodule Astarte.PairingWeb.Router do
     plug Context
   end
 
+  # no :accepts, clients may ask for application/graphql-response+json
+  pipeline :graphql_realm do
+    plug :put_format, "json"
+    plug Astarte.PairingWeb.Plug.VerifyRealmExists
+  end
+
   pipeline :fdo do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
@@ -119,10 +125,15 @@ defmodule Astarte.PairingWeb.Router do
     end
   end
 
+  scope "/v1/graphql" do
+    pipe_through [:graphql_realm, :graphql]
+
+    forward "/", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
+  end
+
+  # the playground has no astarte-realm header
   scope "/v1" do
     pipe_through [:graphql]
-
-    forward "/graphql", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
 
     forward "/graphiql", Absinthe.Plug.GraphiQL,
       schema: Astarte.PairingWeb.GraphQL.Schema,

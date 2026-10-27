@@ -32,8 +32,20 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
   end
 
   def call(conn, _opts) do
-    realm_name = conn.path_params["realm_name"]
+    case realm_name(conn) do
+      nil -> forbidden(conn)
+      realm_name -> verify_realm_exists(conn, realm_name)
+    end
+  end
 
+  # GraphQL requests have the realm in the astarte-realm header
+  defp realm_name(conn) do
+    with nil <- conn.path_params["realm_name"] do
+      conn |> get_req_header("astarte-realm") |> List.first()
+    end
+  end
+
+  defp verify_realm_exists(conn, realm_name) do
     case Queries.realm_existing?(realm_name) do
       {:ok, true} ->
         Logger.metadata(realm: realm_name)
@@ -46,11 +58,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
           realm: realm_name
         )
 
-        conn
-        |> put_status(:forbidden)
-        |> put_view(Astarte.PairingWeb.ErrorView)
-        |> render(:"403")
-        |> halt()
+        forbidden(conn)
 
       {:error, reason} ->
         Logger.error("Error checking if realm exists: #{inspect(reason)}.",
@@ -64,5 +72,13 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
         |> render(:"503")
         |> halt()
     end
+  end
+
+  defp forbidden(conn) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"403")
+    |> halt()
   end
 end
