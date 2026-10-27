@@ -43,6 +43,11 @@ defmodule Astarte.Auth.GraphQL.Plug.ContextTest do
     assert %{realm_name: "testrealm", current_user: ^user} = context(conn)
   end
 
+  test "has no realm when the astarte-realm header is missing or not a valid realm name" do
+    assert %{realm_name: nil} = context(call([]))
+    assert %{realm_name: nil} = context(call([{"astarte-realm", "Bad!"}]))
+  end
+
   test "has no current user when Guardian didn't load one" do
     conn = call([{"authorization", "Bearer not-a-jwt"}, {"astarte-realm", "testrealm"}])
 

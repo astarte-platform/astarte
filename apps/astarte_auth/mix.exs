@@ -52,6 +52,7 @@ defmodule Astarte.Auth.MixProject do
   defp deps do
     [
       {:astarte_config, in_umbrella: true},
+      {:astarte_core, in_umbrella: true},
       {:absinthe, "~> 1.7"},
       {:absinthe_plug, "~> 1.5"},
       {:guardian, "~> 2.4"},

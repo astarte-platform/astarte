@@ -37,7 +37,8 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
 
   The context it puts together holds:
 
-  - `:realm_name` - the realm from the `astarte-realm` request header.
+  - `:realm_name` - the realm from the `astarte-realm` request header, or `nil`
+    if it is missing or not a valid realm name.
   - `:current_user` - the resource Guardian loaded, or `nil`.
   - `:auth_token` - the raw bearer token, for endpoints authenticated by a
     device's credentials secret rather than by a JWT.
@@ -47,6 +48,8 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   @behaviour Plug
 
   import Plug.Conn
+
+  alias Astarte.Core.Realm
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
@@ -68,7 +71,7 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   @impl Plug
   def call(conn, _opts) do
     context = %{
-      realm_name: conn |> get_req_header("astarte-realm") |> List.first(),
+      realm_name: conn |> get_req_header("astarte-realm") |> find_realm_name(),
       current_user: Guardian.Plug.current_resource(conn),
       auth_token: conn |> get_req_header("authorization") |> find_bearer_token(),
       remote_ip: conn.remote_ip |> :inet_parse.ntoa() |> to_string()
@@ -76,6 +79,12 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
 
     Absinthe.Plug.put_options(conn, context: context)
   end
+
+  defp find_realm_name([realm_name | _]) do
+    if Realm.valid_name?(realm_name), do: realm_name
+  end
+
+  defp find_realm_name([]), do: nil
 
   defp find_bearer_token(auth_headers) do
     Enum.find_value(auth_headers, fn auth_header ->
