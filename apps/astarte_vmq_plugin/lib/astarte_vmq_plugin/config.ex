@@ -173,7 +173,7 @@ defmodule Astarte.VMQ.Plugin.Config do
           total_count: data_queue_count(),
           prefix: data_queue_prefix()
         ],
-        cluster_distribution_strategy: :uniform
+        worker_distribution_scope: :local
       ]
     ]
   end
