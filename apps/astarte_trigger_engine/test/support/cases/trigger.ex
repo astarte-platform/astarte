@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Trigger do
+defmodule Astarte.TriggerEngine.Cases.Trigger do
   @moduledoc """
   ExUnit case template for trigger tests.
   """
@@ -30,11 +30,11 @@ defmodule Astarte.Cases.Trigger do
     quote do
       @moduletag triggers: unquote(triggers)
 
-      import Astarte.Helpers.Trigger
+      import Astarte.TriggerEngine.Helpers.Trigger
     end
   end
 
-  alias Astarte.Helpers.Trigger
+  alias Astarte.TriggerEngine.Helpers.Trigger
 
   setup_all context do
     %{realm_name: realm_name, triggers: triggers} = context

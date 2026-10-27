@@ -1,0 +1,107 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2026 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.TestSuite.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :astarte_test_suite,
+      # x-release-please-start-version
+      version: "1.5.0-dev",
+      # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.20",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      deps: deps() ++ astarte_required_modules(),
+      package: package(),
+      dialyzer: dialyzer(),
+      test_coverage: [tool: ExCoveralls]
+    ]
+  end
+
+  # Run "mix help compile.app" to learn about applications.
+  def application do
+    [
+      extra_applications: [:logger]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
+  defp astarte_required_modules do
+    [
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true},
+      {:astarte_adapters, in_umbrella: true}
+    ]
+  end
+
+  defp dialyzer,
+    do: [
+      plt_core_path: dialyzer_cache_directory(Mix.env()),
+      plt_add_apps: [:ex_unit],
+      files: ["lib"]
+    ]
+
+  defp dialyzer_cache_directory(:test), do: "dialyzer_cache"
+  defp dialyzer_cache_directory(_), do: nil
+
+  defp elixirc_paths(env) when env in [:test], do: ["test/astarte/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:stream_data, "~> 1.1"},
+      {:plug, "~> 1.20"},
+      # Test section
+
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.15", only: [:test]},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
+      {:mox, "~> 1.3", only: :test},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  # Run "mix help licenses" to learn about licenses.
+  defp package do
+    [
+      maintainers: ["Gabriele Ghio"],
+      licenses: ["Apache-2.0"],
+      links: %{
+        "Astarte" => "https://astarte-platform.org",
+        "GitHub" => "https://github.com/astarte-platform/astarte/libs/astarte_test_suite"
+      }
+    ]
+  end
+end

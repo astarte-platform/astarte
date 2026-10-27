@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -31,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -349,7 +351,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   Sets a device as disconnected, this does not foce device disconnection, but
   rather informs other astarte components that a device has been disconnected.
   """
-  def set_device_disconnected(state, timestamp) do
+  def set_device_disconnected(%State{} = state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
@@ -365,6 +367,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     maybe_execute_device_disconnected_trigger(state, timestamp_ms)
 
     %{state | connected: false}
+    |> reset_encrypted_endpoints_key()
+  end
+
+  defp reset_encrypted_endpoints_key(state) do
+    {:ok, key_state} = HandshakeState.transition(state.encrypted_endpoints_key, :reset)
+    %{state | encrypted_endpoints_key: key_state}
   end
 
   defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok
@@ -401,15 +409,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   end
 
   def prune_device_properties(state, decoded_payload, timestamp) do
-    {:ok, paths_set} =
-      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
+    with {:ok, paths_set} <-
+           PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection) do
+      Enum.each(state.introspection, fn {interface, _} ->
+        # TODO: check result here
+        Core.Interface.prune_interface(state, interface, paths_set, timestamp)
+      end)
 
-    Enum.each(state.introspection, fn {interface, _} ->
-      # TODO: check result here
-      Core.Interface.prune_interface(state, interface, paths_set, timestamp)
-    end)
-
-    :ok
+      :ok
+    end
   end
 
   def resend_all_properties(state) do
@@ -423,9 +431,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
         {:cont, {:ok, new_state}}
       else
-        {:error, :interface_loading_failed} ->
-          Logger.warning("Failed #{interface} interface loading.")
-          {:halt, {:error, :sending_properties_to_interface_failed}}
+        {:error, reason} = error ->
+          Logger.warning(
+            "Error while sending properties to device: #{inspect(reason)} on interface #{interface}"
+          )
+
+          {:halt, error}
       end
     end)
   end
@@ -436,14 +447,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
        ) do
     encoded_device_id = Device.encode_device_id(device_id)
 
-    Core.Interface.each_interface_mapping(mappings, interface_descriptor, fn mapping ->
-      resend_interface_mapping_properties(
-        realm,
-        device_id,
-        encoded_device_id,
-        interface_descriptor,
-        mapping
-      )
+    mappings
+    |> Enum.filter(fn {_endpoint_id, mapping} ->
+      mapping.interface_id == interface_descriptor.interface_id
+    end)
+    |> Enum.reduce_while(:ok, fn {_endpoint_id, mapping}, :ok ->
+      case resend_interface_mapping_properties(
+             realm,
+             device_id,
+             encoded_device_id,
+             interface_descriptor,
+             mapping
+           ) do
+        :ok ->
+          {:cont, :ok}
+
+        {:error, reason} ->
+          Logger.warning(
+            "Failed sending properties for interface #{interface_descriptor.name}: #{inspect(reason)}."
+          )
+
+          {:halt, {:error, :sending_properties_to_interface_failed}}
+      end
     end)
   end
 

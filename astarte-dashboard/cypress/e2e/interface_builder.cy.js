@@ -9,6 +9,7 @@ const parseMappingOptions = (mapping) => {
     databaseRetention: _.get(mapping, 'database_retention_policy', 'no_ttl'),
     databaseTTL: _.get(mapping, 'database_retention_ttl'),
     allowUnset: _.get(mapping, 'allow_unset', false),
+    encrypted: _.get(mapping, 'encrypted', false),
     required: _.get(mapping, 'required', false),
   };
 };
@@ -532,7 +533,7 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add Mapping');
-          cy.get('#mappingEndpoint').paste('/enpdoint');
+          cy.get('#mappingEndpoint').paste('/endpoint');
           cy.get('button').contains('Add').click();
         });
 

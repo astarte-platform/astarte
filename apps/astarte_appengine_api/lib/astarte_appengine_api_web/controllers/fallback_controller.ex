@@ -198,11 +198,11 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_invalid_attributes")
   end
 
-  def call(conn, {:error, :unexpected_object_key}) do
+  def call(conn, {:error, :unexpected_object_key, keys: keys}) do
     conn
     |> put_status(:bad_request)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"422_unexpected_object_key")
+    |> render(:"422_unexpected_object_key", keys: keys)
   end
 
   def call(conn, {:error, :unset_not_allowed}) do

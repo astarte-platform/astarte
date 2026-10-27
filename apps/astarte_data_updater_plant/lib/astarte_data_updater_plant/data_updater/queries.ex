@@ -26,13 +26,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   import Ecto.Query
   require Logger
@@ -217,7 +220,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         :total_received_bytes,
         :introspection,
         :exchanged_bytes_by_interface,
-        :exchanged_msgs_by_interface
+        :exchanged_msgs_by_interface,
+        :shared_secret
       ])
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
@@ -227,13 +231,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # for unset capabilities
     capabilities = normalize_capabilities(stats.capabilities)
 
+    {:ok, shared_secret} = maybe_decrypt_shared_secret(realm, stats.shared_secret)
+
+    # register the shared key status in DUP state, assuming that if the key is found in db
+    # it has been established correctly
+    encrypted_endpoints_key_status =
+      case shared_secret do
+        %Symmetric{k: key} -> HandshakeState.restore(key)
+        _ -> :uninitialized
+      end
+
     %{
       capabilities: capabilities,
       introspection: stats.introspection,
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
       initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
-      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface
+      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface,
+      shared_secret: shared_secret,
+      encrypted_endpoints_key: encrypted_endpoints_key_status
     }
   end
 
@@ -731,5 +747,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> Map.take(nil_keys)
 
     Map.merge(capabilities, defaults)
+  end
+
+  defp maybe_decrypt_shared_secret(_realm, nil), do: {:ok, nil}
+
+  defp maybe_decrypt_shared_secret(realm, %Symmetric{} = shared_secret) do
+    decrypt_shared_secret(realm, shared_secret)
+  end
+
+  defp decrypt_shared_secret(realm, %Symmetric{k: key_material} = shared_secret)
+       when is_binary(key_material) do
+    with {:ok, decrypted_key} <-
+           Secrets.decrypt_with_kek(realm, key_material) do
+      {:ok, %Symmetric{shared_secret | k: decrypted_key}}
+    end
+  end
+
+  def save_shared_secret(realm, device_id, shared_secret) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{shared_secret: shared_secret})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    case Repo.safe_update(changeset, opts) do
+      {:ok, _device} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot save shared secret for device #{CoreDevice.encode_device_id(device_id)}: #{inspect(reason)}",
+          realm: realm,
+          tag: "save_shared_secret_fail"
+        )
+
+        {:error, reason}
+    end
   end
 end

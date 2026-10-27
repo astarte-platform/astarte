@@ -17,10 +17,10 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.StatsControllerTest do
-  use Astarte.Cases.Conn
+  use Astarte.AppEngine.API.Cases.Conn
 
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
+  alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
 
   setup_all do
     DatabaseTestHelper.create_test_keyspace()

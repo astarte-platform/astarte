@@ -93,24 +93,71 @@ logic.
 
 ## FIDO Device Onboard
 
-Since v1.4.0, Astarte can also be used as the Owner Onboarding Service for [FDO 1.1], allowing
-devices to be registered without being aware of their destination realm during device
-initialization. Device Initialization is out of scope for the Astarte implementation of FDO, and
-Astarte expects an external rendezvous server to be available and correctly configured.
+For the FDO registration procedures to work properly, Astarte needs access to:
 
-When using FDO, the Device ID is derived from the device's hardware id, and the
-_Credentials Secret_ is sent directly to the device in the Owner Service Info messages.
+- an external storage for secrets (referred to as "the vault" here onward).
+  Astarte currently supports integration with HashiCorp Vault and OpenBao services
+- an external _FDO Rendezvous Server_
 
-### Key management
+Both owner keys and ownership vouchers can be imported and made known to Astarte, allowing the owner
+to claim a device and let it register to the platform.
 
-Astarte must be able to sign messages using the owner private key in order to complete the
-Transfer Ownership protocol.
-Vault/OpenBao is used as a safe storage solution, and messages are signed directly by it without
-keys ever being downloaded (or even known) by Astarte.
+**Note**: Both owner keys and ownership vouchers are strictly realm-scoped.
 
-In order to import your keys, you may either upload your private key to astarte, which is imported
-in Vault and immediately forgotten, or have Vault generate a keypair for you, and then you can use
-the new public key to extend the Ownership Voucher yourself.
+### Owner Keys
+
+The API endpoint for uploading owner keys into the vault is `/fdo/owner_keys`, exposed by the
+_Pairing_ service.
+
+The key upload operation supports two use cases:
+
+- **key import**: if the owner already has a key and an associated voucher ready for claiming a device,
+  the `upload` action can be used to directly import the key into the vault. The key is never
+  persisted in the Astarte database and lives in memory only for the duration of the import operation
+- **key generation**: if the owner wants the vault to generate the keypair and never let the private
+  key be known to Astarte, the `create` action can be used to have the vault create and
+  store the secret, returning only the public key. Using this option the choice of the
+  algorithm for key generation is mandatory: currently supported algorithms are `ecdsa-p256`,
+  `ecdsa-p384`, `rsa-2048` and `rsa-3072`. The generated key can then be used to extend the voucher
+
+### Ownership Vouchers
+
+After key creation or import it is possible to upload an ownership voucher for claiming a device.
+The API endpoint for uploading ownership vouchers into Astarte is `/fdo/ownership_vouchers`,
+exposed by the _Pairing_ service. The supported voucher format is a Base64-encoded string
+containing its CBOR representation.
+
+A _hw_id_ (hardware ID) is mandatory when uploading a voucher, this is also set as the Device ID.
+
+As soon as an ownership voucher is uploaded into Astarte, a _TO0_ procedure starts. This allows the
+_Rendezvous Server_ to register the voucher and the FDO routing information toward the Astarte instance.
+The device is also pre-registered in the realm upon voucher upload, but it will only be able to connect
+once its credentials are generated and shared with the device during the TO2 exchange.
+
+Any uploaded voucher must correlate with a pre-existing owner key stored in the vault,
+with Astarte validating that the owner public key of the voucher matches with the selected key
+stored in the vault.
+
+A voucher cannot be created with the same GUID as an already existing voucher in the entire astarte
+instance.
+
+The upload API also allows to explicitly define replacement parameters to be sent to the device
+during _TO2_ exchanges (namely `replacement GUID`, `replacement owner public key` and
+`replacement rendezvous info`). The replacement ownership voucher that is made available after
+_TO2_ completion contains the updated information.
+
+The _Rendezvous Server_ only serves a registration for a limited amount of time, which it
+negotiates at the end of _TO0_. Astarte stores the resulting expiry and reports it, together with
+the voucher status, when listing the ownership vouchers of a realm. Once a registration has
+expired, the device can no longer find its owner through the _Rendezvous Server_:
+`POST /fdo/ownership_vouchers/:guid/to0` runs _TO0_ again and refreshes the expiry. Only vouchers
+whose device has not completed _Device Onboard_ yet (i.e. with a `created` status) can be
+re-registered this way: _TO2_ consumes the registration, so the expiry is cleared along with the
+status change.
+
+Ownership vouchers can be deleted using the `DELETE /fdo/ownership_vouchers/:guid` endpoint.
+Deleting a device also deletes its associated ownership voucher, and vice versa.
+Users cannot delete ownership vouchers belonging to other realms.
 
 ## Credentials Secret Lifecycle
 

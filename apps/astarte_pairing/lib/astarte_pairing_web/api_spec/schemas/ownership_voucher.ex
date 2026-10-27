@@ -24,12 +24,16 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
     @moduledoc false
     require OpenApiSpex
 
+    alias Astarte.PairingWeb.ApiSpec.Schemas.Agent.DeviceRegistrationRequest
+
     OpenApiSpex.schema(%{
       type: :object,
       properties: %{
         data: %Schema{
           type: :object,
           properties: %{
+            hw_id: DeviceRegistrationRequest.hw_id(),
+            initial_introspection: DeviceRegistrationRequest.initial_introspection(),
             ownership_voucher: %Schema{
               type: :string,
               description:
@@ -61,7 +65,7 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
               description: "Optional PEM-encoded replacement public key."
             }
           },
-          required: [:ownership_voucher, :key_name, :key_algorithm]
+          required: [:hw_id, :ownership_voucher, :key_name, :key_algorithm]
         }
       },
       required: [:data]
@@ -99,7 +103,37 @@ defmodule Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher do
                 type: :string,
                 nullable: true,
                 description: "The PEM-encoded output ownership voucher, if any."
+              },
+              expiry: %Schema{
+                type: :string,
+                format: :"date-time",
+                nullable: true,
+                description:
+                  "The instant at which the rendezvous server stops serving the registration " <>
+                    "made during TO0, if the voucher was ever registered."
               }
+            }
+          }
+        }
+      }
+    })
+  end
+
+  defmodule TO0Response do
+    @moduledoc false
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :object,
+          properties: %{
+            expiry: %Schema{
+              type: :string,
+              format: :"date-time",
+              description:
+                "The instant at which the rendezvous server stops serving the new registration."
             }
           }
         }

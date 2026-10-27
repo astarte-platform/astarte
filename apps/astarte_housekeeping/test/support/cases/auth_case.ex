@@ -22,7 +22,7 @@ defmodule Astarte.HousekeepingWeb.AuthCase do
 
   import Plug.Conn
 
-  alias Astarte.Helpers.JWTTestHelper
+  alias Astarte.Housekeeping.Helpers.JWTTestHelper
 
   setup %{conn: conn} do
     token = JWTTestHelper.gen_jwt_all_access_token()

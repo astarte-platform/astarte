@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagementWeb.Plug.VerifyRealmExistsTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
   use Mimic
 

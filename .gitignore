@@ -1,8 +1,9 @@
 # Ignore compose files
 compose/astarte-keys/*
-compose/vernemq-certs/*
-compose/cfssl-config/*.pem
+compose/certificates/
 compose/cfssl-config/*.csr
+compose/cfssl-config/*.pem
+compose/vernemq-certs/*
 compose_generated.env
 
 # Ignore all keys
@@ -26,6 +27,8 @@ erl_crash.dump
 *.beam
 apps/*/config/*.secret.exs
 .elixir_ls/
+.lexical/
+.expert/
 
 # Standard Erlang gitignore to be applied to all apps
 .eunit
@@ -33,6 +36,9 @@ apps/*/config/*.secret.exs
 *.beam
 *.plt
 apps/*/.concrete/DEV_MODE
+
+# Standard Rust gitignore to be applied to all apps
+target
 
 # rebar 2.x
 .rebar

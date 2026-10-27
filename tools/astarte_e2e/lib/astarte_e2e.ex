@@ -21,8 +21,6 @@ defmodule AstarteE2E do
   Documentation for `AstarteE2E`.
   """
 
-  require Logger
-
   use ExUnitProperties
 
   alias Astarte.Core.Mapping

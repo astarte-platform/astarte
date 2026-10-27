@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   @moduledoc """
   This module is responsible for handling the messages received from the AMQPDataConsumer.
   """
+
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -36,6 +37,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Secrets
+  alias Astarte.Secrets.EncryptedMessages
 
   require Logger
 
@@ -56,6 +59,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface_descriptor: nil,
       interface_id: nil,
       mapping: nil,
+      current_interface_mappings: nil,
       endpoint_id: nil
     }
 
@@ -63,11 +67,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- validate_path(context),
          {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
-         {:ok, mapping} <- resolve_path(context, interface_descriptor),
+         {:ok, {mapping, current_interface_mappings}} <-
+           resolve_path(context, interface_descriptor),
+         {:ok, context} <- maybe_decrypt_payload(context, interface_descriptor),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
-         # TODO device_shared_secret will be fetched from DB later, for now it can be hardcoded
-         # {:ok, value} <- do_decrypt_payload(value, mapping, context, "some_device_shared_secret"),
-         :ok <- validate_value(context, interface_descriptor, mapping, value) do
+         :ok <-
+           validate_value(
+             context,
+             interface_descriptor,
+             mapping,
+             value
+           ) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
@@ -89,6 +99,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         | interface_descriptor: interface_descriptor,
           interface_id: interface_descriptor.interface_id,
           mapping: mapping,
+          current_interface_mappings: current_interface_mappings,
           endpoint_id: mapping.endpoint_id,
           db_max_ttl: db_max_ttl,
           value: value,
@@ -110,6 +121,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       db_max_ttl: db_max_ttl,
       interface_descriptor: interface_descriptor,
       mapping: mapping,
+      current_interface_mappings: current_interface_mappings,
       path: path,
       state: state,
       timestamp: timestamp,
@@ -129,20 +141,39 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       maybe_insert_path(context, interface_descriptor, mapping)
     end
 
-    insert_context = %InsertContext{
-      realm: realm,
-      device_id: device_id,
-      interface_descriptor: interface_descriptor,
-      mapping: mapping,
-      path: path,
-      value: value,
-      value_timestamp: maybe_explicit_value_timestamp,
-      reception_timestamp: timestamp,
-      opts: [ttl: db_max_ttl]
-    }
+    case Secrets.maybe_encrypt_value(
+           interface_descriptor,
+           mapping,
+           value,
+           current_interface_mappings,
+           realm
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database",
+          tag: "data_encryption_error"
+        )
 
-    DeviceAccess.insert_value_into_db(insert_context)
-    |> handle_result(context, start)
+        error
+
+      {:ok, {value, encrypted_dek}} ->
+        insert_context =
+          %InsertContext{
+            realm: realm,
+            device_id: device_id,
+            interface_descriptor: interface_descriptor,
+            mapping: mapping,
+            path: path,
+            value: value,
+            value_timestamp: maybe_explicit_value_timestamp,
+            reception_timestamp: timestamp,
+            encrypted_dek: encrypted_dek,
+            opts: [ttl: db_max_ttl]
+          }
+
+        DeviceAccess.insert_value_into_db(insert_context)
+        |> handle_result(context, start)
+    end
   end
 
   defp get_previous_value(context, interface_descriptor, mapping)
@@ -234,7 +265,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp validate_value(context, interface_descriptor, mapping, value) do
     %{state: state} = context
 
-    mappings = Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
+    mappings =
+      Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
 
     with :ok <- validate_value_type(context, mappings, value) do
       validate_required_mappings(context, interface_descriptor, mappings, value)
@@ -359,8 +391,83 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
         Core.Error.handle_error(context, error)
 
-      ok ->
-        ok
+      {:ok, current_interface_mappings} ->
+        mapping = hd(current_interface_mappings)
+        {:ok, {mapping, current_interface_mappings}}
+    end
+  end
+
+  # if the interface contains encrypted endpoints assume that the payload is CBOR-encrypted,
+  # and otherwise is a plain BSON. Put back in context map the (maybe) decrypted payload
+  defp maybe_decrypt_payload(context, interface_descriptor) do
+    case payload_encryption_enabled?(context, interface_descriptor) do
+      false ->
+        {:ok, context}
+
+      true ->
+        with :ok <- ensure_shared_key_established(context),
+             {:ok, decrypted_payload} <- decrypt_cbor_payload(context) do
+          {:ok, %{context | payload: decrypted_payload}}
+        end
+    end
+  end
+
+  # check if interface on which data is currently received requires payload decryption
+  defp payload_encryption_enabled?(context, interface_descriptor) do
+    current_data_interface_id = interface_descriptor |> Map.get(:interface_id)
+
+    Enum.any?(context.state.mappings, fn {_, mapping} ->
+      mapping.interface_id == current_data_interface_id and mapping.encrypted
+    end)
+  end
+
+  defp ensure_shared_key_established(context) do
+    case context.state.encrypted_endpoints_key do
+      {:established, _} ->
+        :ok
+
+      status ->
+        error = %{
+          message:
+            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: device shared key not established. Current key agreement status: #{status}.",
+          logger_metadata: [tag: "key_agreement_error"],
+          error_name: "key_agreement_error",
+          error: :key_agreement_error
+        }
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+          %{},
+          %{realm: context.state.realm, reason: :key_agreement_error}
+        )
+
+        # TODO consider whether to make it a soft error, and do not disconnect the device
+        Core.Error.handle_error(context, error, ask_clean_session: true)
+    end
+  end
+
+  defp decrypt_cbor_payload(context) do
+    case EncryptedMessages.decrypt(context.payload, context.state.shared_secret) do
+      {:ok, _val} = decrypted_payload ->
+        decrypted_payload
+
+      _err ->
+        error = %{
+          message:
+            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: decryption error.",
+          logger_metadata: [tag: "decryption_error"],
+          error_name: "decryption_error",
+          error: :decryption_error
+        }
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :encrypted_message_handling_failure],
+          %{},
+          %{realm: context.state.realm, reason: :decryption_error}
+        )
+
+        # TODO consider whether to make it a soft error, and do not disconnect the device
+        Core.Error.handle_error(context, error, ask_clean_session: true)
     end
   end
 
@@ -503,14 +610,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   # TODO: We need tests for this function
-  def validate_value_type(expected_type, %DateTime{} = value) do
+  @spec validate_value_type(Mapping.t() | %{String.t() => Mapping.t()}, any()) ::
+          :ok | {:error, atom()}
+  def validate_value_type(%Mapping{value_type: expected_type}, %DateTime{} = value) do
     ValueType.validate_value(expected_type, value)
   end
 
   # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
-  def validate_value_type(expected_type, %Cyanide.Binary{} = value) do
+  def validate_value_type(%Mapping{value_type: expected_type}, %Cyanide.Binary{} = value) do
     %Cyanide.Binary{subtype: _subtype, data: bin} = value
-    validate_value_type(expected_type, bin)
+    ValueType.validate_value(expected_type, bin)
+  end
+
+  # All binaries should be %Cyanide.Binary{}, if we're here something went wrong
+  def validate_value_type(%Mapping{value_type: :binaryblob}, binary) when is_binary(binary) do
+    {:error, :unexpected_value_type}
   end
 
   # Explicitly match on all other structs to avoid pattern matching them as maps below
@@ -518,14 +632,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     {:error, :unexpected_value_type}
   end
 
-  def validate_value_type(%Mapping{value_type: expected_type}, value) do
-    validate_value_type(expected_type, value)
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an individual value, but we received an aggregated
+  def validate_value_type(%Mapping{} = _expected_types, %{} = _object) do
+    {:error, :unexpected_value_type}
   end
 
+  def validate_value_type(%Mapping{value_type: expected_type}, value) do
+    if value != nil do
+      ValueType.validate_value(expected_type, value)
+    else
+      :ok
+    end
+  end
+
+  # object interface: validate all the types of the contained mappings
   def validate_value_type(%{} = mappings_by_key, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
-           :ok <- ValueType.validate_value(expected_type, value) do
+      with {:ok, mapping} <- Map.fetch(mappings_by_key, key),
+           :ok <- validate_value_type(mapping, value) do
         {:cont, :ok}
       else
         {:error, reason} ->
@@ -542,23 +667,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   # TODO: we should test for this kind of unexpected messages
-  # We expected an individual value, but we received an aggregated
-  def validate_value_type(_expected_types, %{} = _object) do
-    {:error, :unexpected_value_type}
-  end
-
-  # TODO: we should test for this kind of unexpected messages
   # We expected an aggregated, but we received an individual
   def validate_value_type(%{} = _expected_types, _object) do
     {:error, :unexpected_value_type}
-  end
-
-  def validate_value_type(expected_type, value) do
-    if value != nil do
-      ValueType.validate_value(expected_type, value)
-    else
-      :ok
-    end
   end
 
   def update_stats(state, interface, major, path, payload) do
@@ -630,39 +741,4 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     do: realm_max_ttl
 
   defp max_ttl(_, _, _), do: nil
-
-  # TODO re-enable these functions when we can use the shared secret key
-  # defp do_decrypt_payload(value, %Mapping{encrypted: true}, context, key)
-  #      when is_binary(value) and is_binary(key) do
-  #   case value do
-  #     <<iv::binary-12, tag::binary-16, ciphertext::binary>> ->
-  #       decrypted_payload =
-  #         :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, ciphertext, <<>>, tag, false)
-
-  #       {:ok, decrypted_payload}
-
-  #     _ ->
-  #       handle_decryption_failure(context)
-  #   end
-  # end
-
-  # defp do_decrypt_payload(_value, %Mapping{encrypted: true}, context, _device_shared_secret) do
-  #   handle_decryption_failure(context)
-  # end
-
-  # defp do_decrypt_payload(value, %Mapping{encrypted: false}, _context, _device_shared_secret),
-  #   do: {:ok, value}
-
-  # defp handle_decryption_failure(context) do
-  #   %{state: %{realm: realm, device_id: device_id}} = context
-
-  #   error = %{
-  #     message: "Failed to decrypt payload for device #{device_id} in realm #{realm}",
-  #     logger_metadata: [tag: "decryption_failed"],
-  #     error_name: "decryption_failed",
-  #     error: :decryption_failed
-  #   }
-
-  #   Core.Error.handle_error(context, error)
-  # end
 end

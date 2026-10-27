@@ -201,7 +201,8 @@ devices is displayed.
 
 Each device in the list is displayed together with info regarding its _status_ and the _last
 connection event_. The status is represented by a grey dot if the device never connected to Astarte,
-a green dot if it is currently connected, a red dot if it is currently disconnected. The last
+a green dot if it is currently connected, a red dot if it is currently disconnected, and an
+orange dot if the device messages aren't properly consumed (unknown status). The last
 connection event reports, if available, the date of the last connection or disconnection.
 
 A filter section is present on the side of the list to aid the search for specific devices,

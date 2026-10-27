@@ -82,7 +82,7 @@ defmodule Astarte.RealmManagement.Triggers.Core do
         tag: "install_trigger"
       )
 
-    with :ok <- check_trigger_does_not_exitst(realm_name, trigger_name),
+    with :ok <- check_trigger_does_not_exist(realm_name, trigger_name),
          simple_trigger_maps = build_simple_trigger_maps(tagged_simple_triggers),
          trigger = build_trigger(trigger_name, trigger_policy_name, simple_trigger_maps, action),
          %CoreTrigger{trigger_uuid: trigger_uuid} = trigger,
@@ -132,7 +132,7 @@ defmodule Astarte.RealmManagement.Triggers.Core do
     end)
   end
 
-  defp check_trigger_does_not_exitst(realm_name, trigger_name) do
+  defp check_trigger_does_not_exist(realm_name, trigger_name) do
     case Queries.retrieve_trigger_uuid(realm_name, trigger_name) do
       {:error, :trigger_not_found} -> :ok
       {:ok, _} -> {:error, :already_installed_trigger}

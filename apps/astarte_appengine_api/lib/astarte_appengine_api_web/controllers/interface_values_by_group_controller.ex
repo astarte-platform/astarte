@@ -205,18 +205,11 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
         "group_name" => group_name,
         "device_id" => device_id
       }) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+    with :ok <- ensure_device_in_group(realm_name, group_name, device_id),
          {:ok, interfaces} <- Device.list_interfaces(realm_name, device_id) do
       conn
       |> put_view(InterfaceValuesView)
       |> render("index.json", interfaces: interfaces)
-    else
-      {:ok, false} ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        # To FallbackController
-        {:error, reason}
     end
   end
 
@@ -238,7 +231,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
            "path" => path
          } = parameters
        ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+    with :ok <- ensure_device_in_group(realm_name, group_name, device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(
              realm_name,
@@ -250,13 +243,6 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
       conn
       |> put_view(InterfaceValuesView)
       |> render("show.json", interface_values: interface_values)
-    else
-      {:ok, false} ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        # To FallbackController
-        {:error, reason}
     end
   end
 
@@ -269,7 +255,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
            "interface" => interface
          } = parameters
        ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+    with :ok <- ensure_device_in_group(realm_name, group_name, device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(
              realm_name,
@@ -280,13 +266,6 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
       conn
       |> put_view(InterfaceValuesView)
       |> render("show.json", interface_values: interface_values)
-    else
-      {:ok, false} ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        # To FallbackController
-        {:error, reason}
     end
   end
 
@@ -301,7 +280,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
           "data" => value
         } = parameters
       ) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+    with :ok <- ensure_device_in_group(realm_name, group_name, device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.update_interface_values(
              realm_name,
@@ -314,12 +293,6 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
       conn
       |> put_view(InterfaceValuesView)
       |> render("show.json", interface_values: interface_values)
-    else
-      {:ok, false} ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
@@ -330,15 +303,17 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
         "interface" => interface,
         "path" => path
       }) do
-    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+    with :ok <- ensure_device_in_group(realm_name, group_name, device_id),
          :ok <- Device.delete_interface_values(realm_name, device_id, interface, path) do
       send_resp(conn, :no_content, "")
-    else
-      {:ok, false} ->
-        {:error, :device_not_found}
+    end
+  end
 
-      {:error, reason} ->
-        {:error, reason}
+  defp ensure_device_in_group(realm_name, group_name, device_id) do
+    case Groups.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} -> :ok
+      {:ok, false} -> {:error, :device_not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 end

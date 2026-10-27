@@ -1,0 +1,55 @@
+//
+// This file is part of Astarte.
+//
+// Copyright 2017 Ispirata Srl
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+message DataTrigger {
+    int32 version = 1 [deprecated = true];
+
+    enum DataTriggerType {
+        INVALID = 0;
+        INCOMING_DATA = 1;
+        VALUE_CHANGE = 2;
+        VALUE_CHANGE_APPLIED = 3;
+        PATH_CREATED = 4;
+        PATH_REMOVED = 5;
+        VALUE_STORED = 6;
+    }
+
+    enum MatchOperator {
+        INVALID_OPERATOR = 0;
+        ANY = 1;
+        EQUAL_TO = 2;
+        NOT_EQUAL_TO = 3;
+        GREATER_THAN = 4;
+        GREATER_OR_EQUAL_TO = 5;
+        LESS_THAN = 6;
+        LESS_OR_EQUAL_TO = 7;
+        CONTAINS = 8;
+        NOT_CONTAINS = 9;
+    }
+
+    DataTriggerType data_trigger_type = 2;
+    optional string interface_name = 3;
+    int32 interface_major = 4;
+    optional string match_path = 5;
+    MatchOperator value_match_operator = 6;
+    optional bytes known_value = 7;
+    optional string device_id = 8;
+    optional string group_name = 9;
+}

@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.HealthTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.Pairing.Cases.Data, async: true
   use Mimic
 
   alias Astarte.DataAccess.Health, as: DataAccessHealth

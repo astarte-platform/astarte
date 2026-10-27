@@ -35,12 +35,10 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
   end
 
   def call(conn, _opts) do
-    realm_name = Map.fetch!(conn.path_params, "realm_name")
-
     with [token] <- get_req_header(conn, "authorization"),
          {:ok, guid, token_nonce} <-
            SessionToken.verify(token),
-         {:ok, session} <- Session.fetch(realm_name, guid),
+         {:ok, session} <- Session.fetch(guid),
          :ok <- verify_nonce(session.nonce, token_nonce) do
       conn
       |> put_resp_header("authorization", token)

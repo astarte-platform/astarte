@@ -17,8 +17,6 @@
 #
 
 defmodule AstarteE2E.Realm do
-  require Logger
-
   alias AstarteE2E.Config
 
   def create_realm!() do

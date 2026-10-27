@@ -95,6 +95,15 @@ defmodule Astarte.PairingWeb.ErrorView do
     }
   end
 
+  def render("device_already_onboarded.json", assigns) do
+    %{
+      errors: %{
+        detail:
+          "Device Onboard has already completed for the voucher with GUID #{assigns.fdo_guid}"
+      }
+    }
+  end
+
   def render("422.json", _assigns) do
     %{
       errors: %{

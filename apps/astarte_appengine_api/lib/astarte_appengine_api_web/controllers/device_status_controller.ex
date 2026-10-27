@@ -141,9 +141,9 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
     ]
 
   operation :update,
-    summary: "Update a device writeable property",
+    summary: "Update a device writable property",
     description:
-      "Update any of the writeable device properties such as device aliases, device attributes or credentials inhibited.",
+      "Update any of the writable device properties such as device aliases, device attributes or credentials inhibited.",
     operation_id: "updateDeviceStatus",
     tags: ["device"],
     security: [%{"JWT" => []}],

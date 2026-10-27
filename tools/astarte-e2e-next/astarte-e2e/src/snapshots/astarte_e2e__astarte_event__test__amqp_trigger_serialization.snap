@@ -1,0 +1,27 @@
+---
+source: astarte-e2e/src/astarte_event.rs
+expression: trigger
+---
+{
+  "name": "some_trigger",
+  "policy": null,
+  "action": {
+    "amqp_exchange": "some-exchange",
+    "amqp_routing_key": "my-routing-key",
+    "amqp_message_expiration_ms": 30000,
+    "amqp_message_persistent": true,
+    "amqp_message_priority": null
+  },
+  "simple_triggers": [
+    {
+      "type": "data_trigger",
+      "on": "incoming_data",
+      "group_name": "my-group",
+      "interface_name": "an.Interface",
+      "interface_major": 0,
+      "match_path": "/data",
+      "value_match_operator": "==",
+      "known_value": 4
+    }
+  ]
+}

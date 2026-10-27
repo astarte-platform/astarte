@@ -104,6 +104,9 @@ This is the generic representation of a Device Trigger:
 
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
+- `device_empty_cache_received`: triggered when a device sends an `/emptyCache` message and Astarte
+  has finished processing it, i.e. after the device properties have been resent and the pending
+  empty cache flag has been cleared. It is not triggered if that processing fails.
 - `device_error`: triggered when data from a device causes an error.
 - `device_registered`: triggered when a device is registered to Astarte.
 - `device_deletion_started`: triggered when the deletion of a device is started.
@@ -282,6 +285,14 @@ Additionally, the realm that originated the trigger is available in the request 
 ```json
 {
   "type": "device_disconnected"
+}
+```
+
+###### DeviceEmptyCacheReceivedEvent
+
+```json
+{
+  "type": "device_empty_cache_received"
 }
 ```
 

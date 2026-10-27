@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Trigger do
+defmodule Astarte.TriggerEngine.Helpers.Trigger do
   @moduledoc """
   Helper module for trigger operations.
   """

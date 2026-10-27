@@ -41,6 +41,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
 
   use GenServer
   require Logger
+  alias AMQP.Channel
+  alias AMQP.Connection
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl
   alias Astarte.TriggerEngine.Policy
 
@@ -66,6 +68,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
 
   @impl true
   def init(opts) do
+    Process.flag(:trap_exit, true)
     realm_name = Keyword.fetch!(opts, :realm_name)
     policy = Keyword.fetch!(opts, :policy)
 
@@ -88,6 +91,11 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
         {:DOWN, monitor, :process, chan_pid, _reason},
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
+    connect(state)
+  end
+
+  @impl true
+  def handle_info({:EXIT, conn_pid, _reason}, %{channel: %{conn: %{pid: conn_pid}}} = state) do
     connect(state)
   end
 
@@ -153,6 +161,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   end
 
   defp connect(state) do
+    maybe_disconnect(state.channel)
     %{channel: channel, monitor: monitor} = do_connect(state)
     new_state = %{state | channel: channel, monitor: monitor}
     {:noreply, new_state}
@@ -169,6 +178,18 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
         schedule_connect()
         %{channel: nil, monitor: nil}
     end
+  end
+
+  defp maybe_disconnect(nil), do: :ok
+
+  defp maybe_disconnect(channel) do
+    if Process.alive?(channel.pid) do
+      Channel.close(channel)
+      Process.unlink(channel.conn.pid)
+      Connection.close(channel.conn)
+    end
+
+    :ok
   end
 
   defp get_policy_process(realm_name, policy) do

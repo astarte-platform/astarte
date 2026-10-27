@@ -41,6 +41,8 @@ interface AstarteMappingObject {
 
   allowUnset?: boolean;
 
+  encrypted?: boolean;
+
   explicitTimestamp?: boolean;
 
   required?: boolean;
@@ -122,6 +124,8 @@ class AstarteMapping {
 
   allowUnset?: boolean;
 
+  encrypted?: boolean;
+
   explicitTimestamp?: boolean;
 
   required?: boolean;
@@ -140,6 +144,7 @@ class AstarteMapping {
     this.databaseRetentionPolicy = validatedObj.databaseRetentionPolicy;
     this.databaseRetentionTtl = validatedObj.databaseRetentionTtl;
     this.allowUnset = validatedObj.allowUnset;
+    this.encrypted = validatedObj.encrypted;
     this.explicitTimestamp = validatedObj.explicitTimestamp;
     this.required = validatedObj.required;
     this.description = validatedObj.description;

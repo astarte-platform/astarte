@@ -20,7 +20,6 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
   @moduledoc """
   This module sends RPC to VMQPlugin
   """
-  require Logger
 
   @rpc_behaviour Application.compile_env(
                    :astarte_appengine_api,

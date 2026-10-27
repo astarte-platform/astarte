@@ -66,7 +66,7 @@ type InterfaceOrInterfaceNameParams =
 // Wrap phoenix lib calls in promise for async handling
 async function openNewSocketConnection(
   connectionParams: { socketUrl: string; realm: string; token: string },
-  onErrorHanlder: () => void,
+  onErrorHandler: () => void,
   onCloseHandler: () => void,
 ): Promise<Socket> {
   const { socketUrl, realm, token } = connectionParams;
@@ -78,7 +78,7 @@ async function openNewSocketConnection(
         token,
       },
     });
-    phoenixSocket.onError(onErrorHanlder);
+    phoenixSocket.onError(onErrorHandler);
     phoenixSocket.onClose(onCloseHandler);
     phoenixSocket.onOpen(() => {
       resolve(phoenixSocket);
@@ -207,6 +207,8 @@ class AstarteClient {
     this.listFdoOwnerKeys = this.listFdoOwnerKeys.bind(this);
     this.getFdoOwnerKey = this.getFdoOwnerKey.bind(this);
     this.listFdoVouchers = this.listFdoVouchers.bind(this);
+    this.deleteFdoVoucher = this.deleteFdoVoucher.bind(this);
+    this.runFdoVoucherTo0 = this.runFdoVoucherTo0.bind(this);
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
@@ -253,6 +255,8 @@ class AstarteClient {
       // Ownership Vouchers (OpenBao-backed, agent API)
       fdoOwnerKeysForVoucher: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys_for_voucher`,
       fdoOwnershipVouchers: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers`,
+      fdoOwnershipVoucherDetail: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers/${'guid'}`,
+      fdoOwnershipVoucherTo0: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers/${'guid'}/to0`,
     };
   }
 
@@ -790,9 +794,11 @@ class AstarteClient {
   }
 
   async uploadFdoVoucher(
+    hwId: AstarteDevice['id'],
     keyName: string,
     voucherText: string,
     options?: {
+      initialIntrospection?: { [interfaceName: string]: AstarteInterfaceDescriptor };
       keyAlgorithm?: string;
       replacementGuid?: string;
       replacementRvInfo?: string;
@@ -800,6 +806,7 @@ class AstarteClient {
     },
   ): Promise<any> {
     const payloadData: any = {
+      hw_id: hwId,
       ownership_voucher: voucherText,
     };
 
@@ -811,14 +818,21 @@ class AstarteClient {
       payloadData.key_algorithm = options.keyAlgorithm;
     }
 
+    if (!_.isEmpty(options?.initialIntrospection)) {
+      payloadData.initial_introspection = _.mapValues(
+        options?.initialIntrospection,
+        (interfaceDescriptor) => _.pick(interfaceDescriptor, ['minor', 'major']),
+      );
+    }
+
     if (options?.replacementGuid?.trim()) {
       payloadData.replacement_guid = options.replacementGuid;
     }
     if (options?.replacementRvInfo?.trim()) {
-      payloadData.replacement_rv_info = options.replacementRvInfo;
+      payloadData.replacement_rendezvous_info = options.replacementRvInfo;
     }
     if (options?.replacementPubKey?.trim()) {
-      payloadData.replacement_pub_key = options.replacementPubKey;
+      payloadData.replacement_public_key = options.replacementPubKey;
     }
 
     return axios({
@@ -943,6 +957,7 @@ class AstarteClient {
       input_voucher: string | null;
       output_voucher: string | null;
       output_guid: string | null;
+      expiry: string | null;
     }[]
   > {
     return axios({
@@ -950,6 +965,24 @@ class AstarteClient {
       url: this.apiConfig.fdoOwnershipVouchers(this.config),
       headers: { Authorization: `Bearer ${this.token}` },
     }).then((response) => response.data.data ?? []);
+  }
+
+  async deleteFdoVoucher(guid: string): Promise<void> {
+    await axios({
+      method: 'delete',
+      url: this.apiConfig.fdoOwnershipVoucherDetail({ ...this.config, guid }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
+  }
+
+  // Registers the voucher on the FDO rendezvous server again, returning the new expiry.
+  // Only vouchers whose device has not completed Device Onboard yet can be re-registered.
+  async runFdoVoucherTo0(guid: string): Promise<{ expiry: string }> {
+    return axios({
+      method: 'post',
+      url: this.apiConfig.fdoOwnershipVoucherTo0({ ...this.config, guid }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    }).then((response) => response.data.data);
   }
 
   private async $get(url: string) {

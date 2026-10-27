@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Policy do
+defmodule Astarte.TriggerEngine.Helpers.Policy do
   @moduledoc """
   Helper module for policy test fixtures.
   """

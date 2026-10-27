@@ -35,7 +35,6 @@ defmodule Astarte.RealmManagementWeb.Telemetry.DatabaseEvents do
     [:failed_to_connect]
   ]
 
-  require Logger
   alias Astarte.RealmManagementWeb.TelemetryTaskSupervisor
 
   @doc """

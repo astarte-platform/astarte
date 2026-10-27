@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.RealmManagementWeb.DeviceControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
-  use Astarte.Cases.Device
+  use Astarte.RealmManagement.Cases.Device
   alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
   use Mimic
 

@@ -94,12 +94,53 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:key_already_imported)
   end
 
+  # Importing the (FDO) key into OpenBao failed, the reason is logged by Astarte.Secrets
+  def call(conn, {:error, :key_import_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
   # The ownership_voucher parameter was missing from the request
   def call(conn, {:error, :missing_ownership_voucher}) do
     conn
     |> put_status(:unprocessable_entity)
     |> put_view(Astarte.PairingWeb.ErrorView)
     |> render(:missing_ownership_voucher)
+  end
+
+  # Deleting an ownership voucher requires first revoking its registration on
+  # the FDO rendezvous server and the voucher is not deleted if that fails
+  def call(conn, {:error, :rendezvous_revocation_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
+  # Both uploading a voucher and re-running TO0 register it on the FDO
+  # rendezvous server, and neither can succeed if that fails
+  def call(conn, {:error, :rendezvous_registration_failed}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
+  end
+
+  # Once Device Onboard completes, the voucher is not registered on the rendezvous anymore
+  def call(conn, {:error, :device_already_onboarded}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:device_already_onboarded)
+  end
+
+  # Catch unhandled errors
+  def call(conn, :error) do
+    conn
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
   end
 
   # This is called when no JWT token is present

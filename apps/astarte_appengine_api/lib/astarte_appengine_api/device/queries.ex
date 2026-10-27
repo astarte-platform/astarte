@@ -38,14 +38,16 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Name
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   require Logger
 
@@ -72,7 +74,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       from Endpoint,
         prefix: ^keyspace,
         where: [interface_id: ^interface_id],
-        select: [:value_type, :endpoint_id]
+        select: [:value_type, :endpoint_id, :encrypted]
 
     query =
       case opts[:limit] do
@@ -90,7 +92,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       from Endpoint,
         prefix: ^keyspace,
         where: [interface_id: ^interface_id],
-        select: [:value_type, :endpoint]
+        select: [:value_type, :endpoint, :encrypted]
 
     Repo.all(query, consistency: Consistency.domain_model(:read))
   end
@@ -173,6 +175,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
     |> select(^columns)
     |> Repo.fetch_one(consistency: Consistency.time_series(:read, endpoint_row))
+    |> maybe_decrypt_result(endpoint_row, realm_name)
   end
 
   def retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id) do
@@ -497,6 +500,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     timestamp_column = timestamp_column(opts.explicit_timestamp)
     columns = [timestamp_column | columns]
 
+    columns =
+      if endpoint_rows |> Enum.any?(& &1.encrypted) do
+        [:encrypted_dek | columns]
+      else
+        columns
+      end
+
     # Check the explicit user defined limit to know if we have to reorder data
     data_ordering = if explicit_limit?(opts), do: [desc: timestamp_column], else: []
 
@@ -519,6 +529,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       query
       |> select(^columns)
       |> Repo.all(consistency: consistency)
+      |> maybe_decrypt_object(endpoint_rows, realm_name)
 
     count =
       query
@@ -535,8 +546,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         endpoint_row,
         endpoint_id
       ) do
-    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
-    columns = [:path, value_column]
+    {value_column, extra_columns} =
+      if Map.get(endpoint_row, :encrypted) do
+        {:encryptedblob_value, [:encrypted_dek]}
+      else
+        {CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom(), []}
+      end
+
+    columns = [:path, value_column | extra_columns]
     keyspace = Realm.keyspace_name(realm_name)
 
     find_endpoints(
@@ -548,6 +565,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     )
     |> select(^columns)
     |> Repo.all(consistency: Consistency.device_info(:read))
+    |> maybe_decrypt_values(endpoint_row, realm_name, endpoint_row.value_type)
   end
 
   def retrieve_datastream_values(
@@ -573,6 +591,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       query
       |> select(^columns)
       |> Repo.all(consistency: consistency)
+      |> maybe_decrypt_values(mapping, realm_name, endpoint_row.value_type)
 
     count =
       query
@@ -584,7 +603,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   def value_type_query(realm_name, interface_id, endpoint_id) do
     keyspace = Realm.keyspace_name(realm_name)
-    query = from Endpoint, select: [:value_type]
+    query = from Endpoint, select: [:value_type, :encrypted]
 
     opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
 
@@ -667,8 +686,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   defp default_endpoint_column_selection(endpoint_row) do
-    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
-    [value_column | default_endpoint_column_selection()]
+    {value_column, extra_columns} =
+      if Map.get(endpoint_row, :encrypted) do
+        {:encryptedblob_value, [:encrypted_dek]}
+      else
+        {CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom(), []}
+      end
+
+    [value_column | extra_columns ++ default_endpoint_column_selection()]
   end
 
   defp timestamp_column(explicit_timestamp?) do
@@ -677,6 +702,113 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       false -> :reception_timestamp
       true -> :value_timestamp
     end
+  end
+
+  defp maybe_decrypt_object(values, rows, realm_name) do
+    if Enum.any?(rows, & &1.encrypted) do
+      case fetch_deks(values, realm_name) do
+        {:ok, keys} -> decrypt_object_values(rows, values, keys)
+        _ -> values
+      end
+    else
+      values
+    end
+  end
+
+  defp decrypt_object_values(rows, values, keys) do
+    Enum.reduce(rows, values, fn row, acc ->
+      if row.encrypted do
+        decrypt_row_values(acc, row, keys)
+      else
+        acc
+      end
+    end)
+  end
+
+  defp decrypt_row_values(values, row, keys) do
+    col_name =
+      row.endpoint
+      |> CQLUtils.endpoint_to_db_column_name()
+      |> String.to_atom()
+
+    Enum.map(values, fn value ->
+      if value[col_name] do
+        key = Map.fetch!(keys, value.encrypted_dek)
+        {:ok, bin} = Secrets.decrypt_with_dek(value[col_name], key)
+        Map.put(value, col_name, :erlang.binary_to_term(bin))
+      else
+        value
+      end
+    end)
+  end
+
+  defp maybe_decrypt_values(values, %{encrypted: true}, realm_name, value_type) do
+    with {:ok, keys} <- fetch_deks(values, realm_name) do
+      decrypt_values(keys, values, value_type)
+    end
+  end
+
+  defp maybe_decrypt_values(values, _, _, _), do: values
+
+  defp maybe_decrypt_result({:ok, row}, %{encrypted: true}, realm_name) do
+    with {:ok, dek} <- fetch_dek(row.encrypted_dek, realm_name),
+         {:ok, bin} <- Secrets.decrypt_with_dek(row.encrypted_value, dek) do
+      value = :erlang.binary_to_term(bin)
+
+      Map.put(
+        row,
+        CQLUtils.type_to_db_column_name(row.value_type) |> String.to_atom(),
+        value
+      )
+    else
+      _ ->
+        {:error, :decrypt_error}
+    end
+  end
+
+  defp maybe_decrypt_result(result, _, _), do: result
+
+  defp decrypt_values(keys, values, value_type) do
+    decrypted = values |> Enum.map(&decrypt_row(keys, &1, value_type))
+
+    case Enum.find(decrypted, &(&1 == :error)) do
+      nil ->
+        decrypted = decrypted |> Enum.map(fn {:ok, value} -> value end)
+        decrypted
+
+      :error ->
+        {:error, :decrypt_error}
+    end
+  end
+
+  defp fetch_deks(data, realm_name) do
+    data
+    |> Enum.map(& &1.encrypted_dek)
+    |> Enum.uniq()
+    |> Enum.reduce_while({:ok, %{}}, fn encrypted_dek, {:ok, cache} ->
+      case fetch_dek(encrypted_dek, realm_name) do
+        {:ok, dek} -> {:cont, {:ok, Map.put(cache, encrypted_dek, dek)}}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp fetch_dek(encrypted_dek, realm_name) do
+    case Secrets.fetch_realm_kek(realm_name) do
+      {:ok, key} ->
+        Secrets.unwrap_dek(key.name, encrypted_dek, key.namespace)
+
+      _ ->
+        :error
+    end
+  end
+
+  defp decrypt_row(keys, row, value_type) do
+    key = Map.fetch!(keys, row.encrypted_dek)
+    {:ok, bin} = Secrets.decrypt_with_dek(row.encryptedblob_value, key)
+    value = :erlang.binary_to_term(bin)
+
+    {:ok, Map.put(row, CQLUtils.type_to_db_column_name(value_type) |> String.to_atom(), value)}
   end
 
   defp clean_device_introspection(device) do
@@ -791,5 +923,49 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       previous_interfaces: previous_interfaces,
       groups: groups
     }
+  end
+
+  def retrieve_shared_secret(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    query =
+      from d in DatabaseDevice,
+        prefix: ^keyspace_name,
+        select: d.shared_secret
+
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    case Repo.fetch(query, device_id, opts) do
+      {:ok, nil} ->
+        {:error, :device_not_ready_for_encryption}
+
+      {:ok, shared_secret} ->
+        decrypt_shared_secret(realm, shared_secret)
+
+      error ->
+        error
+    end
+  end
+
+  defp decrypt_shared_secret(realm, %Symmetric{k: key_material} = shared_secret)
+       when is_binary(key_material) do
+    with {:ok, decrypted_key} <-
+           Secrets.decrypt_with_kek(realm, key_material) do
+      {:ok, %Symmetric{shared_secret | k: decrypted_key}}
+    end
+  end
+
+  # TODO This is copied from DUP
+  @doc false
+  def save_shared_secret(realm, device_id, shared_secret) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    device =
+      %DatabaseDevice{device_id: device_id}
+      |> Ecto.Changeset.change(%{shared_secret: shared_secret})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    Repo.update!(device, opts)
+    :ok
   end
 end

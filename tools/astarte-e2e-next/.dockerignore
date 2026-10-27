@@ -1,0 +1,19 @@
+*
+
+!Dockerfile
+!.dockerignore
+!/Cargo.toml
+!/Cargo.lock
+!/.cargo/
+!/astarte-e2e/
+!/astarte-synthetic-monitoring/
+
+# Standard Rust gitignore to be applied to all apps
+**/target/
+
+# tools
+**/.direnv/
+**/.envrc
+**/.helix
+**/.nix-mix/
+**/.nix-hex/

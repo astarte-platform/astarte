@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.RealmManagement.Helpers.Database do
   @moduledoc false
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
@@ -68,6 +68,13 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_session_key_type """
+  CREATE TYPE IF NOT EXISTS :keyspace.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE IF NOT EXISTS :keyspace.devices (
     device_id uuid,
@@ -95,6 +102,8 @@ defmodule Astarte.Helpers.Database do
     attributes map<varchar, varchar>,
     capabilities capabilities,
     groups map<text, timeuuid>,
+    shared_secret session_key,
+    fdo_guid blob,
 
     PRIMARY KEY (device_id)
   )
@@ -238,12 +247,23 @@ defmodule Astarte.Helpers.Database do
     )
   """
 
-  @create_unconfirmed_devices_table """
-  CREATE TABLE IF NOT EXISTS :keyspace.unconfirmed_devices (
-      device_id uuid,
-      created_at timestamp,
-      PRIMARY KEY ((device_id))
-    )
+  @create_ownership_vouchers_table """
+  CREATE TABLE IF NOT EXISTS :keyspace.ownership_vouchers (
+    guid blob,
+    realm text,
+    status int,
+    device_id uuid,
+    voucher_data blob,
+    output_voucher blob,
+    user_id blob,
+    key_name text,
+    key_algorithm int,
+    replacement_guid blob,
+    replacement_rendezvous_info blob,
+    replacement_public_key blob,
+    expiry timestamp,
+    PRIMARY KEY (guid)
+  )
   """
 
   @insert_public_key """
@@ -261,6 +281,7 @@ defmodule Astarte.Helpers.Database do
     execute!(astarte_keyspace, @create_keyspace)
     execute!(astarte_keyspace, @create_kv_store)
     execute!(astarte_keyspace, @create_realms_table)
+    execute!(astarte_keyspace, @create_ownership_vouchers_table)
   end
 
   def setup!(realm_name) do
@@ -277,6 +298,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)
@@ -287,7 +309,6 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
-    execute!(realm_keyspace, @create_unconfirmed_devices_table)
 
     :ok
   end

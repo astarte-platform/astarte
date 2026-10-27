@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - "release-*"
+      - "release-[0-9]+.[0-9]+"
     paths:
       - "astarte-dashboard/**"
       - ".github/workflows/astarte-dashboard-compatibility.yml"
@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         node_version:
           - 22
     steps:

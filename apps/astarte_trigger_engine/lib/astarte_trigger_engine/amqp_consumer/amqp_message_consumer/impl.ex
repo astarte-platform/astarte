@@ -23,21 +23,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl do
 
   alias AMQP.Basic
   alias AMQP.Channel
+  alias AMQP.Connection
+  alias AMQP.Exchange
+  alias AMQP.Queue
   alias Astarte.Core.Triggers.Policy, as: PolicyStruct
   alias Astarte.TriggerEngine.Config
-  alias ExRabbitPool.Consumer
 
   require Logger
-
-  @adapter Config.amqp_adapter!()
-
-  @type delivery_params() :: %{
-          realm_name: String.t(),
-          policy: PolicyStruct.t(),
-          channel: Channel.t(),
-          payload: Basic.payload(),
-          meta: Consumer.meta()
-        }
 
   @doc """
     Gets a connection worker out of the connection pool, if there is one available
@@ -47,9 +39,9 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl do
   @spec connect(String.t(), PolicyStruct.t()) ::
           {:ok, Channel.t(), reference()} | {:error, reason :: term()}
   def connect(realm_name, policy) do
-    conn = ExRabbitPool.get_connection_worker(:events_consumer_pool)
-
-    with {:ok, channel} <- ExRabbitPool.checkout_channel(conn) do
+    with {:ok, conn} <- Connection.open(Config.amqp_consumer_options!()),
+         true = Process.link(conn.pid),
+         {:ok, channel} <- Channel.open(conn) do
       try_to_connect(realm_name, policy, channel)
     end
   end
@@ -61,18 +53,18 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl do
     queue_name = generate_queue_name(realm_name, policy.name)
     routing_key = generate_routing_key(realm_name, policy.name)
 
-    with :ok <- @adapter.qos(channel, prefetch_count: Config.amqp_consumer_prefetch_count!()),
-         :ok <- @adapter.declare_exchange(channel, exchange_name, type: :direct, durable: true),
-         {:ok, _queue} <- @adapter.declare_queue(channel, queue_name, durable: true),
+    with :ok <- Basic.qos(channel, prefetch_count: Config.amqp_consumer_prefetch_count!()),
+         :ok <- Exchange.declare(channel, exchange_name, :direct, durable: true),
+         :ok <- declare_queue(channel, queue_name, durable: true),
          :ok <-
-           @adapter.queue_bind(
+           Queue.bind(
              channel,
              queue_name,
              exchange_name,
              routing_key: routing_key,
              arguments: [{"x-queue-mode", :longstr, "lazy"} | generate_policy_x_args(policy)]
            ),
-         {:ok, _consumer_tag} <- @adapter.consume(channel, queue_name, self(), []) do
+         {:ok, _consumer_tag} <- Basic.consume(channel, queue_name) do
       ref = Process.monitor(channel_pid)
 
       _ =
@@ -104,5 +96,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl do
 
   defp generate_routing_key(realm, policy) do
     "#{realm}_#{policy}"
+  end
+
+  defp declare_queue(channel, queue, opts) do
+    case Queue.declare(channel, queue, opts) do
+      :ok -> :ok
+      {:ok, _queue} -> :ok
+      error -> error
+    end
   end
 end

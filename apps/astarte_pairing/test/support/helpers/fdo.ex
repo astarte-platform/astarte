@@ -16,16 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.FDO do
+defmodule Astarte.Pairing.Helpers.FDO do
   @moduledoc """
-  Test helpers and data generators for FDO (FIDO Device Onboard) related structures.
+  Test Pairing.helpers and data generators for FDO (FIDO Device Onboard) related structures.
   """
 
   import StreamData
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
@@ -169,12 +166,6 @@ defmodule Astarte.Helpers.FDO do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
-  def insert_voucher(realm_name, attrs) when is_map(attrs) do
-    %DBOwnershipVoucher{}
-    |> DBOwnershipVoucher.changeset(attrs)
-    |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
-  end
-
   def generate_p384_x5chain_data_and_pem do
     generate_voucher_data_and_pem(curve: :p384, encoding: :x5chain)
   end
@@ -238,8 +229,8 @@ defmodule Astarte.Helpers.FDO do
           :public_key.der_encode(
             :SubjectPublicKeyInfo,
             {:SubjectPublicKeyInfo,
-             {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1},
-              :public_key.der_encode(:EcpkParameters, {:namedCurve, oid})}, device_pub_key_point}
+             {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1}, {:namedCurve, oid}},
+             device_pub_key_point}
           )
       end
 

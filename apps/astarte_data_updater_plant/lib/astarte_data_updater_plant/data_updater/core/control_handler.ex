@@ -24,15 +24,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   """
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeFailed
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.ExchangeResp
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HashOk
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SecretHash
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.SharedSecret
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   require Logger
 
@@ -42,8 +47,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   ### Supported Paths
   * `/producer/properties` - Handles properties pruning (plaintext or zlib compressed).
   * `/emptyCache` - Triggers a cache empty and interface properties resend.
-  * `/keyAgreement` - Handles the InitExchange protocol (Device to Astarte direction).
+  * `/keyAgreement/0` - Handles the InitExchange protocol (Device to Astarte direction).
   * `/keyAgreement/1` - Receives an ExchangeResp sent by the device when Astarte previously initiated a key-agreement handshake.
+  * `/keyAgreement/2` - Receives a SecretHash from the device to verify keys.
+  * `/keyAgreement/3` - Receives a HashOk from the device confirming the key verification.
+  * `/keyAgreement/4` - Receives an ExchangeFailed from the device signalling a key-agreement failure.
   """
   def handle_control(state, path, payload, timestamp)
 
@@ -80,42 +88,40 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     decompression_start = System.monotonic_time()
 
-    case decode_payload(state, payload) do
-      {:ok, decoded_payload} ->
-        # Track successful decompression
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
-          %{
-            duration: System.monotonic_time() - decompression_start,
-            compressed_size: byte_size(payload),
-            uncompressed_size: byte_size(decoded_payload)
-          },
-          %{realm: new_state.realm, result: "success"}
-        )
+    with {:ok, decoded_payload} <- decode_payload(state, payload),
+         :ok <- Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms) do
+      # Track successful decompression
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
+        %{
+          duration: System.monotonic_time() - decompression_start,
+          compressed_size: byte_size(payload),
+          uncompressed_size: byte_size(decoded_payload)
+        },
+        %{realm: new_state.realm, result: "success"}
+      )
 
-        :ok = Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms)
+      # Track properties prune with payload
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :control_handler, :properties_prune],
+        %{
+          duration: System.monotonic_time() - start_time,
+          payload_size: byte_size(payload)
+        },
+        %{realm: new_state.realm, prune_type: "with_payload"}
+      )
 
-        # Track properties prune with payload
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :properties_prune],
-          %{
-            duration: System.monotonic_time() - start_time,
-            payload_size: byte_size(payload)
-          },
-          %{realm: new_state.realm, prune_type: "with_payload"}
-        )
+      final_state = %{
+        new_state
+        | total_received_msgs: new_state.total_received_msgs + 1,
+          total_received_bytes:
+            new_state.total_received_bytes + byte_size(payload) +
+              byte_size("/producer/properties")
+      }
 
-        final_state = %{
-          new_state
-          | total_received_msgs: new_state.total_received_msgs + 1,
-            total_received_bytes:
-              new_state.total_received_bytes + byte_size(payload) +
-                byte_size("/producer/properties")
-        }
-
-        {:ack, :ok, final_state}
-
-      :error ->
+      {:ack, :ok, final_state}
+    else
+      _ ->
         # Track failed decompression
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
@@ -152,6 +158,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     with :ok <- send_control_consumer_properties(state, timestamp),
          {:ok, state} <- resend_all_properties(state, timestamp),
          :ok <- set_pending_empty_cache(state, timestamp) do
+      :ok = Core.Trigger.execute_empty_cache_received_triggers(state, timestamp)
+
       :telemetry.execute(
         [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
         %{},
@@ -162,7 +170,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
-  def handle_control(state, "/keyAgreement", payload, timestamp) do
+  def handle_control(state, "/keyAgreement/0", payload, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     case InitExchange.decode(payload) do
@@ -173,43 +181,79 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: new_state.realm}
         )
 
-        # TODO: call send_exchange_resp/3 here and use the returned key pair
-        #       for the ECDH + HKDF shared-secret derivation step.
-        case HandshakeState.transition(
-               new_state.encrypted_endpoints_key,
-               {:receive_init, init_exchange}
-             ) do
-          {:ok, new_key_state} ->
-            final_state = %{
-              new_state
-              | total_received_msgs: new_state.total_received_msgs + 1,
-                total_received_bytes: new_state.total_received_bytes + byte_size(payload),
-                encrypted_endpoints_key: new_key_state
-            }
-
+        case perform_key_agreement(new_state, init_exchange, payload) do
+          {:ok, final_state} ->
             {:ack, :ok, final_state}
 
+          {:error, reason, message} ->
+            Logger.error(
+              "[keyAgreement/0] State machine transition failed: #{inspect(reason)} - #{message}"
+            )
+
+            _ =
+              send_exchange_failed(
+                new_state.realm,
+                new_state.device_id,
+                init_exchange.seq_num,
+                reason,
+                message
+              )
+
+            context = %{
+              state: new_state,
+              payload: payload,
+              path: "/keyAgreement/0",
+              timestamp: timestamp
+            }
+
+            error = %{
+              message:
+                "keyAgreement/0 state machine transition failed: #{inspect(reason)} - #{message}",
+              logger_metadata: [tag: "key_agreement_transition_error"],
+              error_name: "key_agreement_transition_error",
+              error: :key_agreement_transition_error
+            }
+
+            Core.Error.handle_error(context, error)
+
           {:error, reason} ->
-            Logger.error("[keyAgreement] State machine transition failed: #{inspect(reason)}")
-            {:ack, :ok, new_state}
+            Logger.error("[keyAgreement/0] Failed to send ExchangeResp: #{inspect(reason)}")
+
+            context = %{
+              state: new_state,
+              payload: payload,
+              path: "/keyAgreement/0",
+              timestamp: timestamp
+            }
+
+            error = %{
+              message: "keyAgreement/0 failed to send ExchangeResp: #{inspect(reason)}",
+              logger_metadata: [tag: "key_agreement_transition_error"],
+              error_name: "key_agreement_transition_error",
+              error: :key_agreement_transition_error
+            }
+
+            Core.Error.handle_error(context, error)
         end
 
-      {:error, reason} ->
+      {:error, reason, message} ->
         Logger.warning(
-          "[keyAgreement] payload validation failed: #{inspect(reason)}",
+          "[keyAgreement/0] payload validation failed: #{inspect(reason)} - #{message}",
           tag: "key_agreement_invalid_payload"
         )
+
+        _ = send_exchange_failed(new_state.realm, new_state.device_id, 0, reason, message)
 
         context = %{
           state: new_state,
           payload: payload,
-          path: "/keyAgreement",
+          path: "/keyAgreement/0",
           timestamp: timestamp
         }
 
         error = %{
           message:
-            "Invalid keyAgreement payload (#{inspect(reason)}): " <>
+            "Invalid keyAgreement/0 payload (#{inspect(reason)}: #{message}): " <>
               inspect(Base.encode64(payload)),
           logger_metadata: [tag: "key_agreement_error"],
           error_name: "key_agreement_error",
@@ -224,6 +268,132 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     state
     |> TimeBasedActions.execute_time_based_actions(timestamp)
     |> process_key_agreement(payload, timestamp)
+  end
+
+  def handle_control(state, "/keyAgreement/2", payload, timestamp) do
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
+    case SecretHash.cbor_decode(payload) do
+      {:ok, %SecretHash{seq_num: seq_num} = secret_hash_msg} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_secret_hash],
+          %{payload_size: byte_size(payload)},
+          %{realm: new_state.realm}
+        )
+
+        process_secret_hash(new_state, seq_num, secret_hash_msg, payload, timestamp)
+
+      {:error, reason} ->
+        Logger.warning(
+          "[keyAgreement/2] payload validation failed: #{inspect(reason)}",
+          tag: "secret_hash_invalid_payload"
+        )
+
+        context = %{
+          state: new_state,
+          payload: payload,
+          path: "/keyAgreement/2",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message: "Invalid SecretHash payload: #{inspect(Base.encode64(payload))}",
+          logger_metadata: [tag: "secret_hash_error"],
+          error_name: "secret_hash_error",
+          error: :secret_hash_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
+  def handle_control(state, "/keyAgreement/3", payload, timestamp) do
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
+    case HashOk.cbor_decode(payload) do
+      {:ok, %HashOk{seq_num: seq_num}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok],
+          %{payload_size: byte_size(payload)},
+          %{realm: new_state.realm}
+        )
+
+        # Execute the state transition
+        case HandshakeState.transition(new_state.encrypted_endpoints_key, :secret_reconfirmed) do
+          {:ok, new_key_state} ->
+            final_state = %{
+              new_state
+              | encrypted_endpoints_key: new_key_state,
+                total_received_msgs: new_state.total_received_msgs + 1,
+                total_received_bytes:
+                  new_state.total_received_bytes + byte_size(payload) +
+                    byte_size("/keyAgreement/3")
+            }
+
+            {:ack, :ok, final_state}
+
+          {:error, reason, message} ->
+            Logger.error(
+              "[keyAgreement/3] State transition failed: #{inspect(reason)} - #{message}"
+            )
+
+            _ =
+              send_exchange_failed(
+                new_state.realm,
+                new_state.device_id,
+                seq_num,
+                reason,
+                message
+              )
+
+            context = %{
+              state: new_state,
+              payload: payload,
+              path: "/keyAgreement/3",
+              timestamp: timestamp
+            }
+
+            error = %{
+              message:
+                "keyAgreement/3 state machine transition failed: #{inspect(reason)} - #{message}",
+              logger_metadata: [tag: "key_agreement_transition_error"],
+              error_name: "key_agreement_transition_error",
+              error: :key_agreement_transition_error
+            }
+
+            Core.Error.handle_error(context, error)
+        end
+
+      {:error, reason, message} ->
+        Logger.warning(
+          "[keyAgreement/3] payload validation failed: #{inspect(reason)} - #{message}",
+          tag: "hash_ok_invalid_payload"
+        )
+
+        _ = send_exchange_failed(new_state.realm, new_state.device_id, 0, reason, message)
+
+        context = %{
+          state: new_state,
+          payload: payload,
+          path: "/keyAgreement/3",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message: "Invalid HashOk payload: #{inspect(Base.encode64(payload))}",
+          logger_metadata: [tag: "hash_ok_error"],
+          error_name: "hash_ok_error",
+          error: :hash_ok_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
+  def handle_control(state, "/keyAgreement/4", payload, timestamp) do
+    state
+    |> TimeBasedActions.execute_time_based_actions(timestamp)
+    |> process_exchange_failed(payload, timestamp)
   end
 
   def handle_control(state, path, payload, timestamp) do
@@ -248,14 +418,131 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.Error.handle_error(context, error)
   end
 
+  defp perform_key_agreement(new_state, init_exchange, payload) do
+    with {:ok, state_after_receive} <-
+           HandshakeState.transition(
+             new_state.encrypted_endpoints_key,
+             {:receive_init, init_exchange}
+           ),
+         {:ok, exchange_resp} <-
+           send_exchange_resp(new_state.realm, new_state.device_id, init_exchange),
+         {:ok, symmetric_key} <- SharedSecret.derive(init_exchange, exchange_resp),
+         {:ok, established_key_state} <-
+           HandshakeState.transition(
+             state_after_receive,
+             {:handshake_completed, symmetric_key.k}
+           ),
+         :ok <- persist_shared_secret(new_state.realm, new_state.device_id, symmetric_key) do
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :device_key_agreement, :succeeded],
+        %{},
+        %{realm: new_state.realm}
+      )
+
+      final_state = %{
+        new_state
+        | total_received_msgs: new_state.total_received_msgs + 1,
+          total_received_bytes:
+            new_state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/0"),
+          encrypted_endpoints_key: established_key_state,
+          shared_secret: symmetric_key
+      }
+
+      {:ok, final_state}
+    end
+  end
+
+  defp process_secret_hash(
+         %{encrypted_endpoints_key: {:established, %{shared_secret: shared_secret}}} =
+           state,
+         seq_num,
+         secret_hash_msg,
+         payload,
+         _timestamp
+       ) do
+    state
+    |> confirm_secret_hash(secret_hash_msg, shared_secret)
+    |> case do
+      {:ok, new_key_state} ->
+        final_state = %{
+          state
+          | encrypted_endpoints_key: new_key_state,
+            total_received_msgs: state.total_received_msgs + 1,
+            total_received_bytes:
+              state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/2")
+        }
+
+        {:ack, :ok, final_state}
+
+      {:error, :hash_mismatch} ->
+        Logger.warning("[keyAgreement/2] SecretHash mismatch.")
+
+        _ =
+          send_exchange_failed(
+            state.realm,
+            state.device_id,
+            seq_num,
+            :hash_mismatch,
+            "hash comparison failed"
+          )
+
+        {:ack, :ok, state}
+
+      {:error, reason} ->
+        Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
+
+        _ =
+          send_exchange_failed(
+            state.realm,
+            state.device_id,
+            seq_num,
+            :internal_server_error,
+            "unexpected error processing secret hash"
+          )
+
+        {:ack, :ok, state}
+    end
+  end
+
+  defp process_secret_hash(state, seq_num, _secret_hash_msg, _payload, _timestamp) do
+    Logger.warning("[keyAgreement/2] No shared secret established.")
+
+    _ =
+      send_exchange_failed(
+        state.realm,
+        state.device_id,
+        seq_num,
+        :unprocessable_entity,
+        "no shared secret established"
+      )
+
+    {:ack, :ok, state}
+  end
+
+  defp confirm_secret_hash(state, secret_hash_msg, shared_secret) do
+    with :ok <- SecretHash.verify(secret_hash_msg, shared_secret),
+         {:ok, new_key_state} <-
+           HandshakeState.transition(state.encrypted_endpoints_key, :secret_reconfirmed) do
+      case send_hash_ok(state.realm, state.device_id, secret_hash_msg.seq_num) do
+        :ok -> {:ok, new_key_state}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
   defp process_key_agreement(
          %{encrypted_endpoints_key: {:handshake_started, data}} = state,
          payload,
-         timestamp
+         _timestamp
        ) do
-    with {:ok, exchange_resp} <- decode_exchange_resp(state, payload, timestamp, data.key_type),
-         {:ok, shared_secret} <- derive_shared_secret(state, data.init_exchange, exchange_resp),
-         {:ok, new_key_state} <- transition_key_agreement(state, shared_secret) do
+    with {:ok, exchange_resp} <- ExchangeResp.cbor_decode(payload, data.key_type),
+         {:ok, symmetric_key} <- SharedSecret.derive(data.init_exchange, exchange_resp),
+         {:ok, new_key_state} <-
+           HandshakeState.transition(
+             state.encrypted_endpoints_key,
+             {:handshake_completed, symmetric_key.k}
+           ),
+         :ok <- persist_shared_secret(state.realm, state.device_id, symmetric_key) do
       :telemetry.execute(
         [:astarte, :data_updater_plant, :control_handler, :key_agreement_resp],
         %{payload_size: byte_size(payload)},
@@ -265,18 +552,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       final_state = %{
         state
         | encrypted_endpoints_key: new_key_state,
+          shared_secret: symmetric_key,
           total_received_msgs: state.total_received_msgs + 1,
-          total_received_bytes: state.total_received_bytes + byte_size(payload)
+          total_received_bytes:
+            state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
       }
 
       {:ack, :ok, final_state}
     else
-      {:error, reason} ->
-        # TODO: Implement failedexchange message
-        Logger.warning("keyAgreement/1 failed, ignoring for now: #{inspect(reason)}")
+      {:error, reason, message} ->
+        Logger.warning("[keyAgreement/1] Processing failed: #{inspect(reason)} - #{message}")
 
-        # Fallback
-        {:ack, :ok, state}
+        _ = send_exchange_failed(state.realm, state.device_id, 0, reason, message)
+
+        final_state = %{
+          state
+          | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
+            total_received_msgs: state.total_received_msgs + 1,
+            total_received_bytes:
+              state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
+        }
+
+        {:ack, :ok, final_state}
     end
   end
 
@@ -285,79 +582,102 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     {:ack, :ok, state}
   end
 
-  defp decode_exchange_resp(_state, payload, _timestamp, expected_key_type) do
-    case ExchangeResp.cbor_decode(payload, expected_key_type) do
-      {:ok, exchange_resp} ->
-        {:ok, exchange_resp}
+  defp persist_shared_secret(realm, device_id, %Symmetric{} = symmetric_key) do
+    with {:ok, encrypted_secret} <- encrypt_shared_secret(realm, symmetric_key) do
+      case Queries.save_shared_secret(realm, device_id, encrypted_secret) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          {:error, :internal_server_error, "failed to persist shared secret: #{inspect(reason)}"}
+      end
+    end
+  end
+
+  defp encrypt_shared_secret(realm, %Symmetric{} = symmetric_key) do
+    case Secrets.encrypt_with_kek(realm, symmetric_key.k) do
+      {:ok, encrypted_key} -> {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
+      :error -> {:error, :internal_server_error, "failed to encrypt shared secret"}
+    end
+  end
+
+  defp process_exchange_failed(state, payload, timestamp) do
+    case ExchangeFailed.cbor_decode(payload) do
+      {:ok, exchange_failed} ->
+        ack_device_exchange_failed(state, exchange_failed, payload)
 
       {:error, reason} ->
-        # TODO : implement ExchangeFailed message
-        {:error, reason}
+        discard_invalid_exchange_failed(state, payload, reason, timestamp)
     end
   end
 
-  defp derive_shared_secret(_state, init_exchange, exchange_resp) do
-    case SharedSecret.derive(
-           init_exchange.public_key,
-           exchange_resp.public_key,
-           init_exchange.hkdf_salt
-         ) do
-      {:ok, shared_secret} ->
-        {:ok, shared_secret}
+  defp ack_device_exchange_failed(
+         state,
+         %ExchangeFailed{seq_num: seq_num, reason: reason, error_msg: error_msg},
+         payload
+       ) do
+    Logger.warning(
+      "[keyAgreement/4] Device signalled ExchangeFailed seq=#{seq_num}: #{inspect(reason)} – #{error_msg}",
+      tag: "key_agreement_device_failed"
+    )
 
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] Derivation failed: #{inspect(reason)}")
-        {:error, reason}
-    end
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :control_handler, :key_agreement_device_failed],
+      %{payload_size: byte_size(payload)},
+      %{realm: state.realm, reason: reason}
+    )
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :device_key_agreement, :failed],
+      %{},
+      %{realm: state.realm, reason: reason}
+    )
+
+    final_state = %{
+      state
+      | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
+        total_received_msgs: state.total_received_msgs + 1,
+        total_received_bytes:
+          state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
+    }
+
+    {:ack, :ok, final_state}
   end
 
-  defp transition_key_agreement(state, shared_secret) do
-    case HandshakeState.transition(
-           state.encrypted_endpoints_key,
-           {:handshake_completed, shared_secret}
-         ) do
-      {:ok, new_key_state} ->
-        {:ok, new_key_state}
+  defp discard_invalid_exchange_failed(state, payload, decode_reason, timestamp) do
+    Logger.warning(
+      "[keyAgreement/4] payload validation failed: #{inspect(decode_reason)}",
+      tag: "exchange_failed_invalid_payload"
+    )
 
-      {:error, reason} ->
-        Logger.error("[keyAgreement/1] State machine transition failed: #{inspect(reason)}")
-        {:error, reason}
-    end
+    context = %{
+      state: state,
+      payload: payload,
+      path: "/keyAgreement/4",
+      timestamp: timestamp
+    }
+
+    error = %{
+      message: "Invalid ExchangeFailed payload: #{inspect(Base.encode64(payload))}",
+      logger_metadata: [tag: "exchange_failed_error"],
+      error_name: "exchange_failed_error",
+      error: :exchange_failed_error
+    }
+
+    Core.Error.handle_error(context, error)
   end
 
-  @doc """
-  Sends an `InitExchange` message from Astarte to a device to trigger
-  a new key-agreement handshake
+  defp send_hash_ok(realm, device_id, seq_num) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/3"
 
-  Generates a fresh ephemeral X25519 key pair, a random HKDF
-  salt, and a random AES-256-GCM nonce, CBOR-encodes the `InitExchange`
-  struct, updates the state with the new handshake key type, and publishes
-  it on: `<realm>/<device_id>/control/keyAgreement`
-  """
-  @spec send_init_exchange(State.t()) :: {:ok, State.t()} | {:error, term()}
-  def send_init_exchange(state) do
-    init_exchange = InitExchange.new()
-
-    with :ok <- publish_init_exchange(state.realm, state.device_id, init_exchange),
-         {:ok, new_key_state} <-
-           HandshakeState.transition(
-             state.encrypted_endpoints_key,
-             {:initiate_handshake, init_exchange}
-           ) do
-      {:ok, %{state | encrypted_endpoints_key: new_key_state}}
-    end
-  end
-
-  defp publish_init_exchange(realm, device_id, %InitExchange{} = init_exchange) do
-    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement"
-    payload = InitExchange.cbor_encode(init_exchange)
+    payload = HashOk.cbor_encode(%HashOk{seq_num: seq_num})
 
     publish_start = System.monotonic_time()
 
     case VMQPlugin.publish(topic, payload, 2) do
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
         :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok_send],
           %{
             duration: System.monotonic_time() - publish_start,
             payload_size: byte_size(payload)
@@ -369,7 +689,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:ok, %{local_matches: 0, remote_matches: 0}} ->
         :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok_send],
           %{
             duration: System.monotonic_time() - publish_start,
             payload_size: byte_size(payload)
@@ -381,7 +701,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
       {:error, reason} ->
         :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_hash_ok_send],
           %{
             duration: System.monotonic_time() - publish_start,
             payload_size: byte_size(payload)
@@ -390,6 +710,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         )
 
         {:error, reason}
+    end
+  end
+
+  defp send_exchange_failed(realm, device_id, seq_num, reason, error_msg) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :device_key_agreement, :failed],
+      %{},
+      %{realm: realm, reason: reason}
+    )
+
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement/4"
+
+    {:ok, exchange_failed} = ExchangeFailed.new(seq_num, reason, error_msg)
+    payload = ExchangeFailed.cbor_encode(exchange_failed)
+
+    publish_start = System.monotonic_time()
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success", reason: reason}
+        )
+
+        :ok
+
+      {:ok, %{local_matches: 0, remote_matches: 0}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "no_matches", reason: reason}
+        )
+
+        Logger.warning(
+          "[keyAgreement/4] Could not deliver ExchangeFailed (#{inspect(reason)}): device session not found",
+          tag: "exchange_failed_no_session"
+        )
+
+        {:error, :session_not_found}
+
+      {:error, publish_reason} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_exchange_failed_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "error", reason: reason}
+        )
+
+        Logger.warning(
+          "[keyAgreement/4] Could not deliver ExchangeFailed (#{inspect(reason)}): #{inspect(publish_reason)}",
+          tag: "exchange_failed_publish_error"
+        )
+
+        {:error, publish_reason}
     end
   end
 
@@ -610,12 +993,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         {:ok, new_state}
 
+      {:error, :interface_loading_failed} ->
+        # Track interface loading failure
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
+          %{duration: System.monotonic_time() - resend_start},
+          %{realm: state.realm, result: "interface_loading_failed"}
+        )
+
+        interface_loading_error(state, timestamp)
+
       {:error, :sending_properties_to_interface_failed} ->
         # Track interface send failure
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :properties_resend],
           %{duration: System.monotonic_time() - resend_start},
-          %{realm: state.realm, result: "interface_failed"}
+          %{realm: state.realm, result: "sending_properties_to_interface_failed"}
         )
 
         sending_properties_error(state, timestamp)
@@ -658,6 +1051,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       logger_metadata: [tag: "resend_interface_properties_failed"],
       error_name: "resend_interface_properties_failed",
       error: :resend_interface_properties_failed
+    }
+
+    opts = [update_stats: false]
+    Core.Error.handle_error(context, error, opts)
+  end
+
+  defp interface_loading_error(state, timestamp) do
+    context = %{state: state, timestamp: timestamp}
+
+    error = %{
+      message: "Cannot load interface while resending properties",
+      logger_metadata: [tag: "interface_loading_failed"],
+      error_name: "interface_loading_failed",
+      error: :interface_loading_failed
     }
 
     opts = [update_stats: false]

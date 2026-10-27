@@ -25,7 +25,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   """
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
-  use GenServer, restart: :transient
+  use GenServer, restart: :permanent
   require Logger
 
   def start_link(args, opts \\ []) do
@@ -33,6 +33,9 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
     opts = Keyword.put(opts, :name, name)
 
     with {:error, {:already_started, pid}} <- GenServer.start_link(__MODULE__, args, opts) do
+      "RPC server: already running: #{inspect(pid)}"
+      |> Logger.debug(tag: "rpc_started")
+
       {:ok, pid}
     end
   end
@@ -49,28 +52,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
     :ok = Core.start_device_deletion(realm_name, encoded_device_id, now)
 
     {:reply, :ok, state}
-  end
-
-  @impl GenServer
-  def handle_call({:install_volatile_trigger, volatile_trigger}, _from, state) do
-    reply = Core.install_volatile_trigger(volatile_trigger)
-
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while installing a new volatile trigger: #{inspect(error)}")
-    end
-
-    {:reply, reply, state}
-  end
-
-  @impl GenServer
-  def handle_call({:delete_volatile_trigger, delete_request}, _from, state) do
-    reply = Core.delete_volatile_trigger(delete_request)
-
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while deleting a volatile trigger: #{inspect(error)}")
-    end
-
-    {:reply, reply, state}
   end
 
   @impl GenServer

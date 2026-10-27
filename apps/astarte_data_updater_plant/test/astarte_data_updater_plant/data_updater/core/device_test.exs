@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,31 +17,36 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-
-  use Astarte.Cases.DataUpdater
-
   use ExUnitProperties
+  use ExUnit.Case, async: true
   use Mimic
 
-  @moduletag timeout: 180_000
+  use Astarte.DataUpdaterPlant.Cases.Data
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
 
-  import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
+  import Astarte.Core.Generators.Device
+
+  import Astarte.InterfaceUpdateGenerators
+
   alias Astarte.Core.Device
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+
+  alias Astarte.DataAccess.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
-  alias Astarte.Helpers.Database
+
+  alias Astarte.DataUpdaterPlant.Helpers.Database
+
+  @moduletag timeout: 180_000
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
 
@@ -207,6 +212,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
 
       assert actual_paths == expected_paths
     end
+
+    test "returns error for invalid payload", context do
+      %{state: state} = context
+      invalid_payload = <<0, 0, 0, 0, 24, 149, 3, 0, 0, 0, 0, 1>>
+
+      assert {:error, :invalid_properties} =
+               Core.Device.prune_device_properties(state, invalid_payload, DateTime.utc_now())
+    end
   end
 
   describe "resend_all_properties/1" do
@@ -218,7 +231,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
         {:error, :interface_loading_failed}
       end)
 
-      assert {:error, :sending_properties_to_interface_failed} ==
+      assert {:error, :interface_loading_failed} ==
                Core.Device.resend_all_properties(state)
     end
 
@@ -254,12 +267,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
 
       Core.Device.resend_all_properties(state)
     end
+
+    test "returns error when sending properties to the device fails", context do
+      %{state: state, server_property_with_all_endpoint_types: interface} = context
+
+      state = put_in(state.introspection, %{interface.name => interface.major_version})
+
+      Mimic.expect(VMQPlugin, :publish, 1, fn _topic, _bson, _qos ->
+        {:ok, %{local_matches: 0, remote_matches: 0}}
+      end)
+
+      assert {:error, :sending_properties_to_interface_failed} ==
+               Core.Device.resend_all_properties(state)
+    end
   end
 
   describe "set_device_disconnected/2" do
     @tag :regression
     test "does not re-insert a deleted device", %{state: state} do
-      device_id = DeviceGenerator.id() |> Enum.at(0)
+      device_id = device_id() |> Enum.at(0)
 
       # Simulate a non-existing device by changing the id
       state = %{state | device_id: device_id, connected: false}

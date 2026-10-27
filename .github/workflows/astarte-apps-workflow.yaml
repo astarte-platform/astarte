@@ -1,0 +1,191 @@
+name: Build and Test Astarte Apps
+
+on:
+  push:
+    paths:
+      - "apps/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-apps-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-[0-9]+.[0-9]+"
+  create:
+  pull_request:
+    paths:
+      - "apps/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-apps-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  warmup:
+    name: Cache warmup
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          use-cache: false
+          working-directory: .
+          mix-env: test
+          args: "--warnings-as-errors"
+
+  formatter:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          use-cache: false
+          working-directory: .
+          mix-env: test
+
+  credo:
+    name: Credo
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          use-cache: false
+          working-directory: .
+          mix-env: test
+
+  deps_audit:
+    name: Deps Audit
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          use-cache: false
+          working-directory: .
+          mix-env: test
+          task: deps.audit
+
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-24.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          use-cache: false
+          working-directory: .
+          mix-env: test
+      - run: mix dialyzer --format github --force-check --no-compile
+        shell: bash
+        env:
+          MIX_ENV: "test"
+          HEX_HOME: ${{ runner.temp }}/.hex
+          MIX_HOME: ${{ runner.temp }}/.mix
+        working-directory: .
+
+  astarte_appengine_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+  astarte_fdo:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_fdo"
+    secrets: inherit
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
+  astarte_vmq_plugin:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_vmq_plugin"
+    secrets: inherit
+  astarte_test_suite:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_test_suite"
+    secrets: inherit
+  astarte_adapters:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_adapters"
+    secrets: inherit
+  astarte_rpc:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_rpc"
+    secrets: inherit
+  astarte_secrets:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_secrets"
+    secrets: inherit
+  astarte_events:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_events"
+    secrets: inherit
+  astarte_config:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_config"
+    secrets: inherit
+  astarte_data_access:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_access"
+    secrets: inherit
+  astarte_generators:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_generators"
+    secrets: inherit
+  astarte_fdo_core:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_fdo_core"
+    secrets: inherit
+  astarte_core:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_core"
+    secrets: inherit

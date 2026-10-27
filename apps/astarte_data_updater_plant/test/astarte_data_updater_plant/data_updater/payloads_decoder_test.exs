@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
-  use ExUnit.Case, async: true
   use ExUnitProperties
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  use ExUnit.Case, async: true
+
+  import Astarte.Common.Generators.Timestamp
+  import Astarte.Core.Generators.Interface
+
   alias Astarte.Core.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
 
@@ -123,7 +125,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   test "invalid device properties paths payload decode" do
-    interface = InterfaceGenerator.interface() |> resize(10) |> Enum.at(0)
+    interface = interface() |> resize(10) |> Enum.at(0)
     invalid = "#{interface.name};#{interface.name}"
     introspection = %{interface.name => interface.major_version}
 
@@ -139,7 +141,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   property "valid introspection parsing" do
-    check all introspection <- list_of(InterfaceGenerator.interface()) do
+    check all introspection <- list_of(interface()) do
       expected_introspection =
         Enum.map(introspection, &{&1.name, &1.major_version, &1.minor_version})
 
@@ -175,7 +177,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   defp decimicrosecond_timestamp do
-    gen all timestamp_seconds <- TimestampGenerator.timestamp(),
+    gen all timestamp_seconds <- timestamp(),
             decimicroseconds <- integer(0..9999) do
       timestamp_seconds * 10_000 + decimicroseconds
     end
@@ -188,7 +190,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       boolean(),
       string(:utf8, min_length: 1),
       binary(min_length: 1),
-      TimestampGenerator.timestamp()
+      timestamp()
     ]
 
     array_types = Enum.map(base_types, &list_of/1)
@@ -207,7 +209,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
   defp decoded_payload do
     value = astarte_value()
-    timestamp = map(TimestampGenerator.timestamp(), &DateTime.from_unix!/1)
+    timestamp = map(timestamp(), &DateTime.from_unix!/1)
     metadata = map_of(string(:alphanumeric, min_length: 1), string(:utf8, min_length: 1))
 
     optional_map(%{"v" => value, "t" => timestamp, "m" => metadata}, ["t", "m"])
@@ -225,7 +227,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
   defp missing_version do
     incomplete_interface =
-      gen all interface <- InterfaceGenerator.interface(),
+      gen all interface <- interface(),
               invalid_string <-
                 member_of([
                   "#{interface.name}",
@@ -252,7 +254,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
         not_a_number
       ])
 
-    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+    gen all interfaces <- list_of(interface(), min_length: 1),
             majors <- list_of(invalid_versions, length: length(interfaces)),
             minors <- list_of(invalid_versions, length: length(interfaces)) do
       Enum.zip_with([interfaces, majors, minors], fn [%{name: name}, major, minor] ->
@@ -267,7 +269,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       string(:utf8)
       |> filter(fn name -> not String.match?(name, Interface.interface_name_regex()) end)
 
-    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+    gen all interfaces <- list_of(interface(), min_length: 1),
             invalid_names <-
               list_of(invalid_names, length: length(interfaces)) do
       Enum.zip_with(interfaces, invalid_names, fn interface, name ->
@@ -278,7 +280,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   defp extra_numbers do
-    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1) do
+    gen all interfaces <- list_of(interface(), min_length: 1) do
       Enum.map_join(interfaces, ";", fn interface ->
         "#{interface.name}:#{interface.major_version}:#{interface.minor_version}:#{interface.major_version}"
       end)
@@ -288,7 +290,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   defp interface_string(interface_name, major, minor), do: "#{interface_name}:#{major}:#{minor}"
 
   defp introspection_map do
-    list_of(InterfaceGenerator.interface())
+    list_of(interface())
     |> map(&Map.new(&1, fn %{name: name, major_version: major} -> {name, major} end))
   end
 

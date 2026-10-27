@@ -42,7 +42,7 @@ defmodule Astarte.RealmManagement.RPC.ServerTest do
 
   test "DeviceDeletion calls delete_device" do
     realm_name = realm_name() |> Enum.at(0)
-    encoded_device_id = encoded_id() |> Enum.at(0)
+    encoded_device_id = device_encoded_id() |> Enum.at(0)
 
     Devices
     |> expect(:delete_device, fn ^realm_name, ^encoded_device_id -> :ok end)

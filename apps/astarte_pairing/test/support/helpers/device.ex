@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Device do
+defmodule Astarte.Pairing.Helpers.Device do
   @moduledoc false
   import ExUnit.CaptureLog
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  import Astarte.Core.Generators.Device
 
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -68,14 +68,14 @@ defmodule Astarte.Helpers.Device do
     introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
     interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
     interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
-    secret = CredentialsSecret.hash(secret)
+    hash = if secret, do: CredentialsSecret.hash(secret)
 
     device_db_params = %{
       introspection: introspection,
       introspection_minor: introspection_minor,
       exchanged_bytes_by_interface: interfaces_bytes,
       exchanged_msgs_by_interface: interfaces_msgs,
-      credentials_secret: secret
+      credentials_secret: hash
     }
 
     device_db = struct(Device, Map.merge(device, device_db_params))
@@ -110,7 +110,7 @@ defmodule Astarte.Helpers.Device do
   @doc false
   @spec sample_device(list(Astarte.Core.Interface.t())) :: map()
   def sample_device(interfaces) do
-    DeviceGenerator.device(interfaces: interfaces)
+    device(interfaces: interfaces)
     |> StreamData.resize(10)
     |> Enum.at(0)
   end

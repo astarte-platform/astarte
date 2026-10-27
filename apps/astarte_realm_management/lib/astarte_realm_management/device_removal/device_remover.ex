@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
   use Task
   require Logger
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.RealmManagement.DeviceRemoval.Core
 
   @spec run(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok | no_return()
@@ -34,13 +35,17 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
     encoded_device_id = Device.encode_device_id(device_id)
     _ = Logger.info("Starting to remove device #{encoded_device_id}", tag: "device_delete_start")
 
-    Core.delete_individual_datastreams!(realm_name, device_id)
-    Core.delete_individual_properties!(realm_name, device_id)
-    Core.delete_object_datastream!(realm_name, device_id)
-    Core.delete_aliases!(realm_name, device_id)
-    Core.delete_groups!(realm_name, device_id)
-    Core.delete_kv_store_entries!(realm_name, encoded_device_id)
-    Core.delete_device!(realm_name, device_id)
+    with {:ok, device} <- DeviceQueries.fetch(realm_name, device_id) do
+      Core.delete_ownership_voucher!(realm_name, device.fdo_guid)
+      Core.delete_individual_datastreams!(realm_name, device_id)
+      Core.delete_individual_properties!(realm_name, device_id)
+      Core.delete_object_datastream!(realm_name, device_id)
+      Core.delete_aliases!(realm_name, device_id)
+      Core.delete_groups!(realm_name, device_id)
+      Core.delete_kv_store_entries!(realm_name, encoded_device_id)
+      Core.delete_device!(realm_name, device_id)
+    end
+
     Core.complete_deletion(realm_name, device_id)
 
     _ = Logger.info("Successfully removed device #{encoded_device_id}", tag: "device_delete_ok")

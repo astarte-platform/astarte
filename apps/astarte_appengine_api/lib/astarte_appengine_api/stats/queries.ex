@@ -24,11 +24,9 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   alias Astarte.AppEngine.API.Stats.DevicesStats
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  require Logger
 
   import Ecto.Query
 

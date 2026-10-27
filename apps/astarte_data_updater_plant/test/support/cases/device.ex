@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,28 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.DataUpdaterPlant.Cases.Device do
   @moduledoc """
   This module provides helper functions and setup for tests related to devices in the DataUpdaterPlant.
   """
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  use ExUnit.CaseTemplate
+  use ExUnitProperties
+
+  import Ecto.Query
+
+  import Astarte.Core.Generators.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Core.Generators.Mapping
+
+  import Astarte.DataUpdaterPlant.Helpers.Device
+  import Astarte.DataUpdaterPlant.Helpers.Database
+  import Astarte.InterfaceUpdateGenerators
+
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  use ExUnit.CaseTemplate
-  use ExUnitProperties
-
-  import Astarte.Helpers.Device
-  import Astarte.Helpers.Database
-  import Astarte.InterfaceUpdateGenerators
-  import Ecto.Query
 
   using do
     quote do
@@ -45,7 +47,7 @@ defmodule Astarte.Cases.Device do
 
   setup_all %{realm_name: realm_name} do
     interfaces_data = interfaces()
-    device = DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> Enum.at(0)
+    device = device(interfaces: interfaces_data.interfaces) |> Enum.at(0)
 
     Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
@@ -67,7 +69,8 @@ defmodule Astarte.Cases.Device do
 
     endpoints_to_update =
       for interface <- interfaces_with_encrypted_endpoints,
-          mapping <- interface.mappings do
+          mapping <- interface.mappings,
+          Map.get(mapping, :encrypted) do
         {interface.interface_id, mapping.endpoint_id}
       end
 
@@ -248,8 +251,20 @@ defmodule Astarte.Cases.Device do
       {:properties_server, fn acc -> new_interfaces(properties(:server), acc, :list) end},
       {:server_property_with_all_endpoint_types,
        fn acc -> [new_interfaces(all_endpoint_types(:server, :properties), acc, :single)] end},
+      {:individual_datastream_with_all_endpoint_types,
+       fn acc ->
+         [new_interfaces(all_endpoint_types(:device, :datastream, :individual), acc, :single)]
+       end},
+      {:object_datastream_with_all_endpoint_types,
+       fn acc ->
+         [new_interfaces(all_endpoint_types(:device, :datastream, :object), acc, :single)]
+       end},
       {:fixed_endpoint_interface,
        fn acc -> [new_interfaces(fixed_endpoint_interface(), acc, :single)] end},
+      {:fixed_object_datastream_1,
+       fn acc -> [new_interfaces(fixed_object_datastream_1(), acc, :single)] end},
+      {:fixed_object_datastream_2,
+       fn acc -> [new_interfaces(fixed_object_datastream_2(), acc, :single)] end},
       {
         :encrypted_endpoints_properties_interfaces,
         fn acc ->
@@ -263,11 +278,10 @@ defmodule Astarte.Cases.Device do
         end
       },
       {
-        :encrypted_endpoints_oject_datastream_interfaces,
+        :encrypted_endpoints_object_datastream_interfaces,
         fn acc -> new_interfaces(encrypted_endpoint_mapping(:datastream, :object), acc, :list) end
       },
-      {:other_interfaces,
-       fn acc -> new_interfaces(InterfaceGenerator.interface(), acc, :list) end}
+      {:other_interfaces, fn acc -> new_interfaces(interface(), acc, :list) end}
     ]
 
     {all_interfaces, named_interfaces} =
@@ -280,18 +294,24 @@ defmodule Astarte.Cases.Device do
 
     %{
       interfaces: all_interfaces,
+      fixed_object_datastream_1: named_interfaces.fixed_object_datastream_1,
+      fixed_object_datastream_2: named_interfaces.fixed_object_datastream_2,
       fixed_endpoint_interface: named_interfaces.fixed_endpoint_interface,
       server_property_with_all_endpoint_types:
-        named_interfaces.server_property_with_all_endpoint_types
+        named_interfaces.server_property_with_all_endpoint_types,
+      individual_datastream_with_all_endpoint_types:
+        named_interfaces.individual_datastream_with_all_endpoint_types,
+      object_datastream_with_all_endpoint_types:
+        named_interfaces.object_datastream_with_all_endpoint_types
     }
   end
 
   defp object_datastream(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, aggregation: :object, type: :datastream)
+    interface(ownership: ownership, aggregation: :object, type: :datastream)
   end
 
   defp individual_datastream(ownership) do
-    InterfaceGenerator.interface(
+    interface(
       ownership: ownership,
       aggregation: :individual,
       type: :datastream
@@ -299,11 +319,11 @@ defmodule Astarte.Cases.Device do
   end
 
   defp properties(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, type: :properties)
+    interface(ownership: ownership, type: :properties)
   end
 
   defp fixed_endpoint_interface do
-    InterfaceGenerator.interface(ownership: :device, type: :datastream, aggregation: :individual)
+    interface(ownership: :device, type: :datastream, aggregation: :individual)
     |> map(fn interface ->
       mapping = Enum.at(interface.mappings, 0)
       mapping = %{mapping | endpoint: "/value", value_type: :integer}
@@ -313,21 +333,28 @@ defmodule Astarte.Cases.Device do
   end
 
   defp encrypted_endpoint_mapping(:properties, :individual) do
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedPropertiesInterface",
       ownership: :device,
       type: :properties
     )
     |> map(fn interface ->
       mapping = Enum.at(interface.mappings, 0)
-      mapping = %{mapping | endpoint: "/encryptedProperty", value_type: :string, encrypted: true}
+
+      mapping = %{
+        mapping
+        | endpoint: "/encryptedProperty",
+          value_type: :string,
+          encrypted: true,
+          allow_unset: true
+      }
 
       %{interface | mappings: [mapping]}
     end)
   end
 
   defp encrypted_endpoint_mapping(:datastream, :individual) do
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedIndividualDatastreamInterface",
       ownership: :device,
       type: :datastream,
@@ -335,7 +362,13 @@ defmodule Astarte.Cases.Device do
     )
     |> map(fn interface ->
       mapping = Enum.at(interface.mappings, 0)
-      mapping = %{mapping | endpoint: "/encryptedValue", value_type: :string, encrypted: true}
+
+      mapping = %{
+        mapping
+        | endpoint: "/%{some_param}/encryptedValue",
+          value_type: :string,
+          encrypted: true
+      }
 
       %{interface | mappings: [mapping]}
     end)
@@ -346,24 +379,43 @@ defmodule Astarte.Cases.Device do
       interface_type: :datastream,
       value_type: :string,
       database_retention_policy: :no_ttl,
-      reliability: nil,
+      reliability: :unreliable,
       retention: :discard,
       expiry: 0,
       explicit_timestamp: false
     ]
 
-    mapping_gen = MappingGenerator.mapping(common_mapping_params)
+    mapping_gen = mapping(common_mapping_params)
 
-    # generate two encrypted mappings
+    # generate two encrypted mappings and a non-encrypted one
     mappings =
-      StreamData.fixed_list([mapping_gen, mapping_gen])
-      |> map(fn [mapping_0, mapping_1] ->
-        mapping_0 = %{mapping_0 | endpoint: "/encryptedPath/endpoint0", encrypted: true}
-        mapping_1 = %{mapping_1 | endpoint: "/encryptedPath/endpoint1", encrypted: true}
-        [mapping_0, mapping_1]
+      StreamData.fixed_list([mapping_gen, mapping_gen, mapping_gen])
+      |> map(fn [mapping_0, mapping_1, mapping_2] ->
+        mapping_0 = %{
+          mapping_0
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint0",
+            value_type: :string,
+            encrypted: true
+        }
+
+        mapping_1 = %{
+          mapping_1
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint1",
+            value_type: :string,
+            encrypted: true
+        }
+
+        mapping_2 = %{
+          mapping_2
+          | endpoint: "/partiallyEncryptedPath/%{some_param}/endpoint2",
+            value_type: :string,
+            encrypted: false
+        }
+
+        [mapping_0, mapping_1, mapping_2]
       end)
 
-    InterfaceGenerator.interface(
+    interface(
       name: "test.EncryptedObjectDatastreamInterface",
       ownership: :device,
       type: :datastream,
@@ -372,13 +424,71 @@ defmodule Astarte.Cases.Device do
     )
   end
 
+  defp fixed_object_datastream_1 do
+    interface(
+      name: "test.FixedObjectDatastream1",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :object
+    )
+    |> map(fn interface ->
+      mapping = Enum.at(interface.mappings, 0)
+
+      mapping_first = %{
+        mapping
+        | endpoint: "/data/first",
+          value_type: :string
+      }
+
+      mapping_second = %{
+        mapping
+        | endpoint: "/data/second",
+          value_type: :integer
+      }
+
+      %{interface | mappings: [mapping_first, mapping_second]}
+    end)
+  end
+
+  defp fixed_object_datastream_2 do
+    interface(
+      name: "test.FixedObjectDatastream2",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :object
+    )
+    |> map(fn interface ->
+      mapping = Enum.at(interface.mappings, 0)
+
+      mapping_first = %{
+        mapping
+        | endpoint: "/data/first",
+          value_type: :boolean
+      }
+
+      mapping_second = %{
+        mapping
+        | endpoint: "/data/second",
+          value_type: :binaryblob
+      }
+
+      %{interface | mappings: [mapping_first, mapping_second]}
+    end)
+  end
+
   defp all_endpoint_types(ownership, type) do
-    gen all name <- InterfaceGenerator.name(),
-            major <- InterfaceGenerator.major_version(),
-            aggregation <- InterfaceGenerator.aggregation(type),
-            mappings <- all_endpoint_mappings(type, name, major, aggregation),
+    gen all aggregation <- interface_aggregation(type),
+            interface <- all_endpoint_types(ownership, type, aggregation) do
+      interface
+    end
+  end
+
+  defp all_endpoint_types(ownership, type, aggregation) do
+    gen all name <- interface_name(),
+            major <- interface_major_version(),
+            mappings <- all_endpoint_mappings(type, name, major),
             interface <-
-              InterfaceGenerator.interface(
+              interface(
                 name: name,
                 major_version: major,
                 ownership: ownership,
@@ -390,12 +500,15 @@ defmodule Astarte.Cases.Device do
     end
   end
 
-  defp all_endpoint_mappings(type, name, major, :individual) do
-    gen all retention <- MappingGenerator.retention(type),
-            reliability <- MappingGenerator.reliability(type),
-            expiry <- MappingGenerator.expiry(type),
-            allow_unset <- MappingGenerator.allow_unset(type),
-            explicit_timestamp <- MappingGenerator.explicit_timestamp(type),
+  defp all_endpoint_mappings(type, name, major) do
+    gen all retention <- retention(type),
+            reliability <- reliability(type),
+            expiry <- expiry(type),
+            allow_unset <- allow_unset(type),
+            explicit_timestamp <- explicit_timestamp(type),
+            database_retention_policy <- database_retention_policy(type),
+            database_retention_ttl <-
+              database_retention_ttl(type, database_retention_policy),
             params = [
               interface_major: major,
               interface_type: type,
@@ -404,7 +517,9 @@ defmodule Astarte.Cases.Device do
               reliability: reliability,
               expiry: expiry,
               allow_unset: allow_unset,
-              explicit_timestamp: explicit_timestamp
+              explicit_timestamp: explicit_timestamp,
+              database_retention_policy: database_retention_policy,
+              database_retention_ttl: database_retention_ttl
             ],
             double_mappings <- mappings(:double, params),
             integer_mappings <- mappings(:integer, params),
@@ -449,7 +564,7 @@ defmodule Astarte.Cases.Device do
       | common_params
     ]
 
-    MappingGenerator.mapping(params)
+    mapping(params)
     |> list_of(min_length: 1)
   end
 

@@ -53,7 +53,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies do
     with {:ok, policy_proto} <- TriggerQueries.fetch_trigger_policy(realm_name, policy_name) do
       policy_proto
       |> PolicyProto.decode()
-      |> Policy.from_policy_proto!()
+      |> Policy.from_policy_proto()
       |> Jason.encode()
     end
   end

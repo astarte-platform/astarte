@@ -17,13 +17,13 @@
 #
 
 defmodule Astarte.RealmManagementWeb.TriggerControllerTest do
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
 
   @moduletag :triggers
 
-  alias Astarte.Helpers.Database
-  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
+  alias Astarte.RealmManagement.Helpers.Database
   alias Astarte.RealmManagement.Triggers
 
   import Astarte.RealmManagement.Fixtures.Trigger

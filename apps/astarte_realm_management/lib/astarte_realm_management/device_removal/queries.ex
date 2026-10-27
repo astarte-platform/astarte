@@ -9,9 +9,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device, as: RealmsDevice
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Device.UnconfirmedDevice
-  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
@@ -227,10 +226,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     |> Enum.filter(&DeletionInProgress.all_ack?/1)
   end
 
-  @doc """
-  Returns unconfirmed devices, with a grace period of 5 minutes
-  """
-  def retrieve_unconfirmed_devices!(realm_name) do
+  def retrieve_devices_pending_deletion!(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
     opts = [
@@ -238,13 +234,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
       consistency: Consistency.device_info(:read)
     ]
 
-    now = DateTime.utc_now()
-
-    from(UnconfirmedDevice)
+    from(DeletionInProgress)
     |> Repo.all(opts)
-    |> Enum.filter(fn %{created_at: created_at} ->
-      DateTime.diff(now, created_at, :minute) > 5
-    end)
+    |> Enum.reject(&DeletionInProgress.all_ack?/1)
   end
 
   def retrieve_kv_store_entries!(realm_name, device_id) do
@@ -328,20 +320,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     ]
 
     _ = Repo.delete_all(query, opts)
-
-    :ok
-  end
-
-  def remove_device_from_unconfirmed_devices!(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.device_info(:write)
-    ]
-
-    %UnconfirmedDevice{device_id: device_id}
-    |> Repo.delete!(opts)
 
     :ok
   end

@@ -1,0 +1,15 @@
+[package]
+name = "astarte-synthetic-monitoring"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+astarte-device-sdk.workspace = true
+astarte-e2e.workspace = true
+clap = { workspace = true, features = ["derive", "env"] }
+color-eyre.workspace = true
+eyre.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["full"] }

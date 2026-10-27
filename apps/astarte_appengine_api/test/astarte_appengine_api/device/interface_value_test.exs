@@ -155,7 +155,8 @@ defmodule Astarte.AppEngine.API.InterfaceValueTest do
       "c" => "unexpected"
     }
 
-    assert InterfaceValue.cast_value(expected_types, object) == {:error, :unexpected_object_key}
+    assert InterfaceValue.cast_value(expected_types, object) ==
+             {:error, :unexpected_object_key, keys: ["c"]}
   end
 
   test "returns error when value type does not match expected type" do

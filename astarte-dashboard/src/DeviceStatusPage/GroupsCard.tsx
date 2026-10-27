@@ -59,13 +59,13 @@ const GroupsTable = ({ groups }: GroupsTableProps): React.ReactElement => {
 
 interface GroupsCardProps {
   device: AstarteDevice;
-  showAddToGropButton: boolean;
+  showAddToGroupButton: boolean;
   onAddToGroupClick: () => void;
 }
 
 const GroupsCard = ({
   device,
-  showAddToGropButton,
+  showAddToGroupButton,
   onAddToGroupClick,
 }: GroupsCardProps): React.ReactElement => (
   <FullHeightCard xs={12} md={6} className="mb-4">
@@ -77,7 +77,7 @@ const GroupsCard = ({
         <p>Device does not belong to any group</p>
       )}
       <div className="mt-auto">
-        {showAddToGropButton && (
+        {showAddToGroupButton && (
           <Button variant="primary" onClick={onAddToGroupClick}>
             Add to existing group
           </Button>

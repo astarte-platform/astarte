@@ -28,11 +28,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.Helpers
+  alias Astarte.DataUpdaterPlant.Helpers
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.DataUpdater
+  use Astarte.DataUpdaterPlant.Cases.Data, async: true
+  use Astarte.DataUpdaterPlant.Cases.Device
+  use Astarte.DataUpdaterPlant.Cases.DataUpdater
   use ExUnitProperties
 
   import Ecto.Query
@@ -170,8 +170,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
                 mapping_update <- valid_mapping_update_for(interface) do
         descriptor = state.interfaces[interface.name]
 
-        {:ok, endpoint} =
+        {:ok, endpoints} =
           Core.Interface.resolve_path(mapping_update.path, descriptor, state.mappings)
+
+        endpoint = hd(endpoints)
 
         assert matches?(endpoint.endpoint, mapping_update.path, interface.aggregation)
       end
@@ -207,6 +209,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
 
         assert valid_type?(mapping, expected_type, interface.aggregation)
       end
+    end
+
+    @tag regression: true
+    test "extract_mappings/3 only considers mappings for the current object interface", context do
+      %{
+        fixed_object_datastream_1: fixed_object_datastream_1,
+        fixed_object_datastream_2: fixed_object_datastream_2,
+        state: state,
+        realm_name: realm_name
+      } = context
+
+      # ignored for objects
+      mapping = nil
+
+      descriptor = state.interfaces[fixed_object_datastream_1.name]
+
+      assert %{"first" => %{value_type: :string}, "second" => %{value_type: :integer}} =
+               Core.Interface.extract_mappings(descriptor, mapping, state.mappings)
+
+      descriptor = state.interfaces[fixed_object_datastream_2.name]
+
+      assert %{"first" => %{value_type: :boolean}, "second" => %{value_type: :binaryblob}} =
+               Core.Interface.extract_mappings(descriptor, mapping, state.mappings)
     end
 
     property "forget_interfaces/2 removes interfaces from state cache", context do

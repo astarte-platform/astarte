@@ -16,21 +16,20 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Cases.Device do
+defmodule Astarte.Pairing.Cases.Device do
   @moduledoc false
-  use ExUnit.CaseTemplate
   use ExUnitProperties
+  use ExUnit.CaseTemplate
 
-  import Astarte.Helpers.Device
+  import Astarte.Core.Generators.Interface
+  import Astarte.Pairing.Helpers.Device
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  alias Astarte.Helpers.Device, as: DeviceHelper
   alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.Pairing.Helpers.Device, as: DeviceHelper
 
   using do
     quote do
@@ -83,6 +82,8 @@ defmodule Astarte.Cases.Device do
         credentials_secret: confirmed_credentials_secret
     }
 
+    device_without_credentials = %{base_device(interfaces) | credentials_secret: nil}
+
     for interface <- interfaces, do: insert_interface_cleanly(realm_name, interface)
 
     interface_descriptors = get_interface_descriptors(realm_name, interfaces)
@@ -111,6 +112,7 @@ defmodule Astarte.Cases.Device do
 
     insert_device_cleanly(realm_name, confirmed_device, interfaces, confirmed_credentials_secret)
     insert_device_cleanly(realm_name, inhibited_device, interfaces, inhibited_credentials_secret)
+    insert_device_cleanly(realm_name, device_without_credentials, interfaces, nil)
 
     %{
       interfaces: interfaces,
@@ -119,6 +121,7 @@ defmodule Astarte.Cases.Device do
       unconfirmed_device2: unconfirmed_device2,
       confirmed_device: confirmed_device,
       inhibited_device: inhibited_device,
+      device_without_credentials: device_without_credentials,
       unregistered_device: unregistered_device,
       interface_descriptors: interface_descriptors,
       endpoints: endpoints
@@ -145,7 +148,7 @@ defmodule Astarte.Cases.Device do
   end
 
   defp individual_datastream(ownership) do
-    InterfaceGenerator.interface(
+    interface(
       ownership: ownership,
       aggregation: :individual,
       type: :datastream
@@ -153,14 +156,14 @@ defmodule Astarte.Cases.Device do
   end
 
   defp object_datastream(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, aggregation: :object, type: :datastream)
+    interface(ownership: ownership, aggregation: :object, type: :datastream)
   end
 
   defp properties(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, type: :properties)
+    interface(ownership: ownership, type: :properties)
   end
 
-  defp other, do: InterfaceGenerator.interface()
+  defp other, do: interface()
 
   defp new_interfaces(interface_gen, previous_interfaces) do
     installed_interfaces = previous_interfaces |> Enum.map(&{&1.name, &1.major_version})

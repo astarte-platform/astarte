@@ -106,17 +106,6 @@ defmodule AstarteE2E.DataTrigger do
   end
 
   @impl GenServer
-  def handle_call({:handle_trigger, trigger, event}, _from, state) do
-    %{"value" => value} = event
-
-    case pop_trigger(state.messages, trigger, value) do
-      {:ok, []} -> {:reply, :ok, %{state | messages: []}, {:continue, :delete_triggers}}
-      {:ok, new_messages} -> {:reply, :ok, %{state | messages: new_messages}}
-      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
-    end
-  end
-
-  @impl GenServer
   def handle_continue(:delete_triggers, state) do
     base_url = Config.realm_management_url!()
     realm = Config.realm!()
@@ -154,6 +143,18 @@ defmodule AstarteE2E.DataTrigger do
         {:stop, error, state}
     end
   end
+
+  @impl GenServer
+  def handle_call({:handle_trigger, trigger, event}, _from, state) do
+    %{"value" => value} = event
+
+    case pop_trigger(state.messages, trigger, value) do
+      {:ok, []} -> {:reply, :ok, %{state | messages: []}, {:continue, :delete_triggers}}
+      {:ok, new_messages} -> {:reply, :ok, %{state | messages: new_messages}}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+    end
+  end
+
 
   def install_data_trigger(opts) do
     device_id = Keyword.fetch!(opts, :device_id)

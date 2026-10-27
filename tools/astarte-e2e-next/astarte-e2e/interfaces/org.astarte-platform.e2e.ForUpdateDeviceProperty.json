@@ -1,0 +1,15 @@
+{
+  "interface_name": "org.astarte-platform.e2e.ForUpdateDeviceProperty",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "properties",
+  "ownership": "device",
+  "description": "Test properties interface.",
+  "doc": "Test interface used to test properties.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/endpoint",
+      "type": "double"
+    }
+  ]
+}

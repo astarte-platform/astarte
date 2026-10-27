@@ -1,0 +1,343 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.FDO.OwnerOnboarding.Session do
+  @moduledoc """
+  Represents an active FDO TO2 (Transfer of Ownership 2) session.
+
+  Holds all state required during the owner onboarding protocol, including
+  cryptographic keys, nonces, device identity, and service info exchange state.
+  """
+  use TypedStruct
+
+  alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.FDO.Core.Hash
+  alias Astarte.FDO.Core.Helpers
+  alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
+  alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
+  alias Astarte.FDO.Core.OwnerOnboarding.SignatureInfo
+  alias Astarte.FDO.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding.SessionToken
+  alias COSE.Messages.Encrypt0
+
+  typedstruct do
+    field :guid, binary()
+    field :realm, String.t()
+    field :hmac, Hash.t()
+    field :device_id, Astarte.DataAccess.UUID
+    field :nonce, binary()
+    field :device_signature, SignatureInfo.device_signature()
+    field :prove_dv_nonce, binary()
+    field :setup_dv_nonce, binary()
+    field :kex_suite_name, String.t()
+    field :cipher_suite, String.t()
+    field :owner_random, term()
+    field :xa, binary()
+    field :secret, binary() | nil
+    field :sevk, struct() | nil
+    field :svk, struct() | nil
+    field :sek, struct() | nil
+    field :max_owner_service_info_size, integer() | nil
+    field :device_service_info, map() | nil
+    field :owner_service_info, [binary()] | nil
+    field :last_chunk_sent, non_neg_integer() | nil
+    field :replacement_hmac, Hash.t() | nil
+  end
+
+  def new(realm_name, device_id, hello_device, ownership_voucher) do
+    prove_dv_nonce = :crypto.strong_rand_bytes(16)
+    nonce = :crypto.strong_rand_bytes(16)
+    hmac = ownership_voucher.hmac
+
+    %HelloDevice{
+      guid: guid,
+      easig_info: easig_info,
+      cipher_name: cipher_suite_name,
+      kex_name: kex_name
+    } = hello_device
+
+    with {:ok, owner_random, xa} <- SessionKey.new(kex_name),
+         {:ok, device_signature} <-
+           Helpers.validate_signature_info(easig_info, ownership_voucher),
+         :ok <- cleanup_previous_session(realm_name, device_id, guid),
+         signature_params =
+           SignatureInfo.device_signature_to_database_params(device_signature),
+         session_params =
+           %TO2Session{
+             guid: guid,
+             device_id: device_id,
+             realm: realm_name,
+             hmac: hmac,
+             nonce: nonce,
+             prove_dv_nonce: prove_dv_nonce,
+             kex_suite_name: kex_name,
+             cipher_suite_name: cipher_suite_name,
+             owner_random: owner_random
+           },
+         session_params = Map.merge(session_params, signature_params),
+         :ok <-
+           Queries.store_session(session_params) do
+      token = SessionToken.generate(guid, nonce)
+
+      session =
+        %Session{
+          guid: guid,
+          realm: realm_name,
+          hmac: hmac,
+          device_id: device_id,
+          nonce: nonce,
+          prove_dv_nonce: prove_dv_nonce,
+          kex_suite_name: kex_name,
+          cipher_suite: cipher_suite_name,
+          owner_random: owner_random,
+          xa: xa,
+          device_signature: device_signature
+        }
+
+      {:ok, token, session}
+    end
+  end
+
+  defp cleanup_previous_session(realm_name, device_id, guid) do
+    with :ok <- cleanup_credentials(realm_name, device_id) do
+      Queries.delete_session(guid)
+    end
+  end
+
+  defp cleanup_credentials(realm_name, device_id) do
+    Device.unregister(realm_name, device_id)
+  end
+
+  def add_setup_dv_nonce(session, setup_dv_nonce) do
+    with :ok <- Queries.session_add_setup_dv_nonce(session.guid, setup_dv_nonce) do
+      {:ok, %{session | setup_dv_nonce: setup_dv_nonce}}
+    end
+  end
+
+  def add_max_owner_service_info_size(session, size) do
+    with :ok <-
+           Queries.add_session_max_owner_service_info_size(session.guid, size) do
+      {:ok, %{session | max_owner_service_info_size: size}}
+    end
+  end
+
+  def add_owner_service_info(session, owner_service_info) do
+    with :ok <-
+           Queries.session_add_owner_service_info(
+             session.guid,
+             owner_service_info
+           ) do
+      {:ok, %{session | owner_service_info: owner_service_info}}
+    end
+  end
+
+  def next_owner_service_info_chunk(session) do
+    case get_next_owner_chunk(session) do
+      {:ok, index, service_info_chunk} ->
+        with :ok <-
+               Queries.session_update_last_chunk_sent(
+                 session.guid,
+                 index
+               ) do
+          {:ok, %{session | last_chunk_sent: index}, service_info_chunk}
+        end
+
+      :done ->
+        {:ok, session, OwnerServiceInfo.done()}
+    end
+  end
+
+  defp get_next_owner_chunk(%{owner_service_info: chunks, last_chunk_sent: last}) do
+    next_index = (last || -1) + 1
+
+    case Enum.at(chunks || [], next_index) do
+      nil ->
+        :done
+
+      chunk ->
+        {:ok, next_index, chunk}
+    end
+  end
+
+  def add_device_id(session, device_id) do
+    with :ok <- Queries.session_update_device_id(session.guid, device_id) do
+      {:ok, %{session | device_id: device_id}}
+    end
+  end
+
+  def add_device_service_info(session, new_service_info) do
+    service_info = encode_values_to_cbor(new_service_info)
+    session = update_in(session.device_service_info, &Map.merge(&1 || %{}, service_info))
+
+    with :ok <-
+           Queries.session_add_device_service_info(
+             session.guid,
+             session.device_service_info
+           ) do
+      {:ok, session}
+    end
+  end
+
+  defp encode_values_to_cbor(map) when is_map(map) do
+    Map.new(map, fn
+      {key, value} ->
+        {key, CBOR.encode(value)}
+    end)
+  end
+
+  def decode_device_service_info(service_info) when is_map(service_info) do
+    Map.new(service_info, fn
+      {key, value} ->
+        {key, decode_cbor_value(value)}
+    end)
+  end
+
+  defp decode_cbor_value(value) when is_binary(value) do
+    case CBOR.decode(value) do
+      {:ok, decoded, ""} -> decoded
+      _ -> value
+    end
+  end
+
+  def add_replacement_hmac(session, hmac) do
+    with :ok <-
+           Queries.session_add_replacement_hmac(
+             session.guid,
+             hmac
+           ) do
+      session = %{session | replacement_hmac: hmac}
+      {:ok, session}
+    end
+  end
+
+  def build_session_secret(
+        session = %{kex_suite_name: kex, guid: guid},
+        %Astarte.Secrets.Key{} = owner_key,
+        xb
+      )
+      when kex in ["ASYMKEX2048", "ASYMKEX3072"] do
+    with {:ok, secret} <-
+           Astarte.Secrets.decrypt(owner_key.name, xb, namespace: owner_key.namespace),
+         :ok <- Queries.add_session_secret(guid, secret) do
+      {:ok, %{session | secret: secret}}
+    end
+  end
+
+  def build_session_secret(session, owner_key, xb) do
+    %Session{kex_suite_name: kex, owner_random: owner_random, guid: guid} = session
+
+    with {:ok, secret} <-
+           SessionKey.compute_shared_secret(kex, owner_key, owner_random, xb),
+         :ok <- Queries.add_session_secret(guid, secret) do
+      {:ok, %{session | secret: secret}}
+    end
+  end
+
+  def derive_key(session) do
+    %Session{
+      kex_suite_name: kex_suite_name,
+      cipher_suite: cipher_suite,
+      secret: secret,
+      owner_random: owner_random,
+      guid: guid
+    } = session
+
+    with {:ok, sevk, svk, sek} <-
+           SessionKey.derive_key(kex_suite_name, cipher_suite, secret, owner_random),
+         :ok <- Queries.add_session_keys(guid, sevk, svk, sek) do
+      {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
+    end
+  end
+
+  def decrypt_and_verify(%Session{sevk: sevk}, message) when not is_nil(sevk) do
+    cipher = sevk.alg
+
+    with {:ok, enc0} <- Encrypt0.decrypt_decode(message, cipher, sevk),
+         {:ok, body, _} <- CBOR.decode(enc0.payload) do
+      {:ok, body}
+    else
+      _ -> :error
+    end
+  end
+
+  def encrypt_and_sign(%Session{sevk: sevk}, message) when not is_nil(sevk) do
+    cipher = sevk.alg
+    iv = :crypto.strong_rand_bytes(12)
+    protected_headers = %{alg: cipher}
+    unprotected_headers = %{iv: COSE.tag_as_byte(iv)}
+
+    Encrypt0.build(message, protected_headers, unprotected_headers)
+    |> Encrypt0.encrypt_encode(cipher, sevk, iv)
+  end
+
+  def fetch(guid) do
+    with {:ok, database_session} <- Queries.fetch_session(guid),
+         {:ok, device_signature} <-
+           SignatureInfo.database_params_to_device_signature(database_session) do
+      %TO2Session{
+        guid: guid,
+        realm: db_realm,
+        device_id: device_id,
+        hmac: hmac,
+        nonce: db_nonce,
+        prove_dv_nonce: prove_dv_nonce,
+        setup_dv_nonce: setup_dv_nonce,
+        kex_suite_name: kex_suite_name,
+        cipher_suite_name: cipher_suite_name,
+        owner_random: owner_random,
+        secret: secret,
+        sevk: sevk,
+        svk: svk,
+        sek: sek,
+        max_owner_service_info_size: max_owner_service_info_size,
+        device_service_info: device_service_info,
+        owner_service_info: owner_service_info,
+        last_chunk_sent: last_chunk_sent,
+        replacement_hmac: replacement_hmac
+      } = database_session
+
+      session = %Session{
+        guid: guid,
+        realm: db_realm,
+        device_id: device_id,
+        hmac: hmac,
+        nonce: db_nonce,
+        prove_dv_nonce: prove_dv_nonce,
+        setup_dv_nonce: setup_dv_nonce,
+        kex_suite_name: kex_suite_name,
+        cipher_suite: cipher_suite_name,
+        owner_random: owner_random,
+        device_signature: device_signature,
+        secret: secret,
+        sevk: sevk,
+        svk: svk,
+        sek: sek,
+        max_owner_service_info_size: max_owner_service_info_size,
+        device_service_info: device_service_info,
+        owner_service_info: owner_service_info,
+        last_chunk_sent: last_chunk_sent,
+        replacement_hmac: replacement_hmac
+      }
+
+      {:ok, session}
+    end
+  end
+end

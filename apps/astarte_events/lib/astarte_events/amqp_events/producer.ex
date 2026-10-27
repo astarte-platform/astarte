@@ -1,0 +1,194 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2017-2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.Events.AMQPEvents.Producer do
+  @moduledoc """
+  AMQP Events Producer GenServer.
+  """
+  require Logger
+  use GenServer
+
+  alias AMQP.Basic
+  alias AMQP.Channel
+  alias AMQP.Connection
+  alias AMQP.Exchange
+  alias Astarte.Events.Config
+
+  def start_link(args \\ []) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  def publish(exchange, routing_key, payload, opts) do
+    # Use a longer timeout to allow RabbitMQ to process requests even if loaded
+    GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts}, 60_000)
+  end
+
+  def declare_exchange(exchange) do
+    # Use a longer timeout to allow RabbitMQ to process requests even if loaded
+    GenServer.call(__MODULE__, {:declare_exchange, exchange}, 60_000)
+  end
+
+  # Server callbacks
+
+  @impl true
+  def init(_opts) do
+    case init_producer() do
+      {:ok, chan} ->
+        {:ok, chan}
+
+      {:error, reason} ->
+        {:stop, reason}
+    end
+  end
+
+  @impl true
+  def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
+    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
+
+    {:reply, reply, chan}
+  end
+
+  def handle_call({:declare_exchange, exchange}, _from, chan) do
+    # TODO: we need to decide who is responsible of deleting the exchange once it is
+    # no longer needed
+    reply = Exchange.declare(chan, exchange, :direct, durable: true)
+
+    {:reply, reply, chan}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :astarte_events, :amqp_events_producer, :channel_crash],
+      %{},
+      %{reason: inspect(reason)}
+    )
+
+    Logger.warning("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reconnect...",
+      tag: "events_producer_conn_lost"
+    )
+
+    case init_producer() do
+      {:ok, channel} ->
+        {:noreply, channel}
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, :not_connected}
+    end
+  end
+
+  @impl true
+  def handle_info({:EXIT, conn_pid, reason}, %{conn: %{pid: conn_pid}} = channel) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :astarte_events, :amqp_events_producer, :channel_crash],
+      %{},
+      %{reason: inspect(reason)}
+    )
+
+    close_channel(channel)
+
+    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
+      tag: "events_producer_conn_lost"
+    )
+
+    case init_producer() do
+      {:ok, channel} ->
+        {:noreply, channel}
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, :not_connected}
+    end
+  end
+
+  @impl true
+  def handle_info(:init, :not_connected) do
+    case init_producer() do
+      {:ok, chan} ->
+        {:noreply, chan}
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, :not_connected}
+    end
+  end
+
+  @impl true
+  def handle_info(:init, chan), do: {:noreply, chan}
+
+  defp init_producer do
+    with {:ok, conn} <- Connection.open(Config.amqp_options!()),
+         true = Process.link(conn.pid),
+         {:ok, channel} <- checkout_channel(conn),
+         :ok <- declare_default_events_exchange(channel) do
+      %Channel{pid: channel_pid} = channel
+      _ref = Process.monitor(channel_pid)
+
+      _ =
+        Logger.debug("AMQPEventsProducer initialized",
+          tag: "event_producer_init_ok"
+        )
+
+      {:ok, channel}
+    end
+  end
+
+  defp checkout_channel(conn) do
+    with {:error, reason} <- Channel.open(conn) do
+      _ =
+        Logger.warning(
+          "Failed to check out channel for producer: #{inspect(reason)}",
+          tag: "event_producer_channel_checkout_fail"
+        )
+
+      {:error, :event_producer_channel_checkout_fail}
+    end
+  end
+
+  defp declare_default_events_exchange(channel) do
+    with {:error, reason} <-
+           Exchange.declare(channel, Config.amqp_events_exchange_name!(), :direct, durable: true) do
+      Logger.warning(
+        "Error declaring AMQPEvents.Producer default events exchange: #{inspect(reason)}",
+        tag: "event_producer_init_fail"
+      )
+
+      # Something went wrong, let's put the channel back where it belongs
+      close_channel(channel)
+      {:error, :event_producer_init_fail}
+    end
+  end
+
+  defp close_channel(channel) do
+    if Process.alive?(channel.pid) do
+      Channel.close(channel)
+      Process.unlink(channel.conn.pid)
+      Connection.close(channel.conn)
+    end
+
+    :ok
+  end
+
+  defp schedule_connect do
+    _ = Logger.warning("Retrying connection in #{Config.connection_backoff!()} ms")
+    Process.send_after(self(), :init, Config.connection_backoff!())
+  end
+end

@@ -1,0 +1,12 @@
+---
+source: astarte-e2e/src/astarte_event.rs
+expression: room_event
+---
+{
+  "device_id": "LrWIo53eSuyhq9Xum5VT3Q",
+  "timestamp": "2026-08-28T08:06:42Z",
+  "event": {
+    "type": "device_connected",
+    "device_ip_address": "192.168.1.1"
+  }
+}

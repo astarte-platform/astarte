@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.JWT do
+defmodule Astarte.AppEngine.API.Helpers.JWT do
   @moduledoc """
   Helper module for generating JWT tokens for tests.
   """

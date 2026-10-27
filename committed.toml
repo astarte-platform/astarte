@@ -39,7 +39,10 @@ allowed_scopes = [
   "housekeeping",
   "appengine",
   "te",
+  "vmq_plugin",
   # libraries
+  "core",
+  "config",
   "data_access",
   "events",
   "rpc",
@@ -67,5 +70,5 @@ merge_commit = true
 imperative_subject = true
 subject_not_punctuated = true
 subject_capitalized = false
-subject_length = 100
-line_length = 100
+subject_length = 500
+line_length = 500

@@ -24,21 +24,23 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   """
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  use Astarte.Cases.Triggers
+  use Astarte.RealmManagement.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Device
+  use Astarte.RealmManagement.Cases.Triggers
 
-  import Astarte.Helpers.Triggers
+  import Astarte.Core.Generators.Group
 
-  alias Astarte.Core.Device
+  import Astarte.RealmManagement.Helpers.Triggers
 
+  alias Astarte.Core.Device, as: CoreDevice
+
+  alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Device.UnconfirmedDevice
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.Queries, as: FDOQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
-
-  alias Astarte.Core.Generators.Group, as: GroupGenerator
 
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
 
@@ -68,8 +70,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
 
     # This is a device not in the database, which is the same as a device with all data
     # already deleted
-    device_id = Device.random_device_id()
-    groups = GroupGenerator.name() |> Enum.take(3)
+    device_id = CoreDevice.random_device_id()
+    groups = group_name() |> Enum.take(3)
 
     ref = register_device_deletion_finished_trigger(realm_name, group_name: Enum.random(groups))
     reset_cache(realm_name)
@@ -80,20 +82,84 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     assert_receive ^ref
   end
 
-  test "removes device from unconfirmed devices", context do
-    %{
-      realm_name: realm_name,
-      decoded_device_id: device_id
-    } = context
+  test "generates 'device deletion completed' volatile triggers", %{
+    realm_name: realm_name,
+    device_id: device_id,
+    decoded_device_id: decoded_device_id
+  } do
+    reset_cache(realm_name)
 
-    insert_unconfirmed_device_entry(realm_name, device_id)
-    DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
-    refute Repo.get(UnconfirmedDevice, device_id, prefix: Realm.keyspace_name(realm_name))
+    ref = register_device_deletion_finished_volatile_trigger(realm_name, device_id: device_id)
+
+    DeviceRemover.run(%{device_id: decoded_device_id, realm_name: realm_name})
+
+    assert_receive ^ref
   end
 
-  defp insert_unconfirmed_device_entry(realm_name, device_id) do
-    %UnconfirmedDevice{device_id: device_id}
-    |> Repo.insert!(prefix: Realm.keyspace_name(realm_name))
+  test "deletes the ownership voucher bound to the device", %{realm_name: realm_name} do
+    keyspace = Realm.keyspace_name(realm_name)
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    device_id = CoreDevice.random_device_id()
+    guid = :crypto.strong_rand_bytes(16)
+
+    on_exit(fn ->
+      Repo.delete(%Device{device_id: device_id}, prefix: keyspace)
+      Repo.delete(%OwnershipVoucher{guid: guid}, prefix: astarte_keyspace)
+    end)
+
+    Repo.insert!(%Device{device_id: device_id, fdo_guid: guid}, prefix: keyspace)
+
+    Repo.insert!(%OwnershipVoucher{guid: guid, device_id: device_id, realm: realm_name},
+      prefix: astarte_keyspace
+    )
+
+    insert_deletion_entry(realm_name, device_id, [])
+    reset_cache(realm_name)
+
+    assert {:ok, _voucher} = FDOQueries.fetch_ownership_voucher(guid)
+
+    DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
+
+    assert {:error, :not_found} = FDOQueries.fetch_ownership_voucher(guid)
+  end
+
+  test "completes the deletion when the voucher is already gone", %{realm_name: realm_name} do
+    keyspace = Realm.keyspace_name(realm_name)
+    device_id = CoreDevice.random_device_id()
+    guid = :crypto.strong_rand_bytes(16)
+
+    on_exit(fn ->
+      Repo.delete(%Device{device_id: device_id}, prefix: keyspace)
+    end)
+
+    Repo.insert!(%Device{device_id: device_id, fdo_guid: guid}, prefix: keyspace)
+
+    insert_deletion_entry(realm_name, device_id, [])
+    reset_cache(realm_name)
+
+    assert {:error, :not_found} = FDOQueries.fetch_ownership_voucher(guid)
+
+    assert :ok = DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
+
+    assert {:error, :device_not_found} = Device.fetch(realm_name, device_id)
+  end
+
+  test "completes the deletion of a device with no voucher bound", %{realm_name: realm_name} do
+    keyspace = Realm.keyspace_name(realm_name)
+    device_id = CoreDevice.random_device_id()
+
+    on_exit(fn ->
+      Repo.delete(%Device{device_id: device_id}, prefix: keyspace)
+    end)
+
+    Repo.insert!(%Device{device_id: device_id, fdo_guid: nil}, prefix: keyspace)
+
+    insert_deletion_entry(realm_name, device_id, [])
+    reset_cache(realm_name)
+
+    assert :ok = DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
+
+    assert {:error, :device_not_found} = Device.fetch(realm_name, device_id)
   end
 
   defp insert_deletion_entry(realm_name, device_id, groups) do

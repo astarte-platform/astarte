@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.Helpers.Database do
+defmodule Astarte.AppEngine.API.Helpers.Database do
   @moduledoc false
   import Ecto.Query
 
+  alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceSchema
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
@@ -30,9 +31,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.UUID
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
-
-  require Logger
 
   @devices_list [
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
@@ -136,6 +134,8 @@ defmodule Astarte.Helpers.Database do
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
         capabilities capabilities,
+        shared_secret session_key,
+        fdo_guid blob,
 
         PRIMARY KEY (device_id)
       );
@@ -408,6 +408,13 @@ defmodule Astarte.Helpers.Database do
     """
   ]
 
+  @create_session_key_type """
+  CREATE TYPE #{Realm.keyspace_name(@test_realm)}.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   def insert_empty_device(device_id) do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
@@ -440,6 +447,8 @@ defmodule Astarte.Helpers.Database do
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
         Repo.query!(@create_capabilities_type)
+
+        Repo.query!(@create_session_key_type)
 
         Repo.query!(@create_devices_table)
 

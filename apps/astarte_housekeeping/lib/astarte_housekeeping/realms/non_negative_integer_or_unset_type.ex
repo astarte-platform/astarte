@@ -40,4 +40,5 @@ defmodule Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType do
   def dump(:unset), do: {:ok, :unset}
   def dump(n) when is_integer(n), do: {:ok, n}
   def dump(_), do: :error
+  # coveralls-ignore-stop
 end

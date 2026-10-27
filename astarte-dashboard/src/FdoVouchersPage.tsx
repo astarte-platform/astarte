@@ -17,12 +17,25 @@
 */
 
 import React, { useState } from 'react';
-import { Badge, Button, Col, Container, Form, Modal, Row, Spinner, Table } from 'react-bootstrap';
+import {
+  Alert,
+  Badge,
+  Button,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+  Spinner,
+  Table,
+} from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
 import { useAstarte } from './AstarteManager';
 import useFetch from './hooks/useFetch';
 import useInterval from './hooks/useInterval';
+import { useFdo } from './hooks/useFdo';
+import ConfirmModal from './components/modals/Confirm';
 import Empty from './components/Empty';
 import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
@@ -35,6 +48,9 @@ type FdoVoucher = {
   input_voucher: string | null;
   output_voucher: string | null;
   output_guid: string | null;
+  // instant at which the rendezvous server stops serving the TO0 registration,
+  // cleared once the device completes Device Onboard
+  expiry: string | null;
 };
 
 const STATUSES: VoucherStatus[] = ['created', 'claimed'];
@@ -45,7 +61,52 @@ const formatStatus = (status: VoucherStatus | null): string =>
 const statusVariant = (status: VoucherStatus | null) =>
   status === 'claimed' ? 'success' : 'secondary';
 
-// ── Status Filter ────────────────────────────────────────────────────────────
+const isExpired = (expiry: string | null): boolean =>
+  expiry != null && new Date(expiry).getTime() <= Date.now();
+
+// A voucher can be registered on the rendezvous server again only while its
+// device has not completed Device Onboard yet.
+const canRunTo0 = (voucher: FdoVoucher): boolean => voucher.status === 'created';
+
+const formatExpiry = (expiry: string | null): string => new Date(expiry as string).toLocaleString();
+
+// The alert is shared by the whole list, so every message names the voucher it
+// is about, the way the success one does.
+const to0ErrorMessage = (err: any, guid: string): string => {
+  const status = err?.response?.status;
+  if (status === 409) {
+    return `Device Onboard has already completed for ${guid}, so it is no longer registered on the rendezvous server.`;
+  }
+  if (status === 404) {
+    return `The voucher ${guid} no longer exists in this realm.`;
+  }
+  return err?.response?.data?.errors?.detail ?? err?.message ?? `Could not run TO0 for ${guid}.`;
+};
+
+// Expiry
+
+const VoucherExpiry = ({ voucher }: { voucher: FdoVoucher }): React.ReactElement => {
+  if (voucher.expiry == null) {
+    return (
+      <span className="text-muted" title="No registration on the rendezvous server">
+        &mdash;
+      </span>
+    );
+  }
+  if (isExpired(voucher.expiry)) {
+    return (
+      <>
+        <Badge bg="warning" text="dark" className="me-2">
+          Expired
+        </Badge>
+        <span className="text-muted small">{formatExpiry(voucher.expiry)}</span>
+      </>
+    );
+  }
+  return <span title={voucher.expiry}>{formatExpiry(voucher.expiry)}</span>;
+};
+
+// Status Filter
 
 interface StatusFilterProps {
   allVouchers: FdoVoucher[];
@@ -99,7 +160,7 @@ const StatusFilter = ({
 
 const LoadingRow = (): React.ReactElement => (
   <tr>
-    <td colSpan={3} className="text-center py-4">
+    <td colSpan={4} className="text-center py-4">
       <Spinner animation="border" role="status" />
     </td>
   </tr>
@@ -112,7 +173,7 @@ interface ErrorRowProps {
 
 const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
   <tr>
-    <td colSpan={3}>
+    <td colSpan={4}>
       <Empty
         title={
           errorMessage?.includes('401') || errorMessage?.includes('403')
@@ -129,10 +190,21 @@ const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement 
 
 interface VoucherRowProps {
   voucher: FdoVoucher;
+  isRunningTo0: boolean;
+  to0InFlight: boolean;
   onView: () => void;
+  onRunTo0: () => void;
+  onDelete: () => void;
 }
 
-const VoucherRow = ({ voucher, onView }: VoucherRowProps): React.ReactElement => (
+const VoucherRow = ({
+  voucher,
+  isRunningTo0,
+  to0InFlight,
+  onView,
+  onRunTo0,
+  onDelete,
+}: VoucherRowProps): React.ReactElement => (
   <tr>
     <td>
       <Icon icon="devices" className="me-2" />
@@ -141,10 +213,34 @@ const VoucherRow = ({ voucher, onView }: VoucherRowProps): React.ReactElement =>
     <td>
       <Badge bg={statusVariant(voucher.status)}>{formatStatus(voucher.status)}</Badge>
     </td>
+    <td>
+      <VoucherExpiry voucher={voucher} />
+    </td>
     <td className="text-end">
-      <Button variant="outline-secondary" size="sm" onClick={onView}>
+      <Button variant="outline-secondary" size="sm" onClick={onView} className="me-2">
         <Icon icon="documentation" className="me-1" />
         View details
+      </Button>
+      {canRunTo0(voucher) && (
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={onRunTo0}
+          disabled={to0InFlight}
+          className="me-2"
+          title="Register the voucher on the rendezvous server again, refreshing its expiry"
+        >
+          {isRunningTo0 ? (
+            <Spinner animation="border" size="sm" role="status" className="me-1" />
+          ) : (
+            <Icon icon="reload" className="me-1" />
+          )}
+          Re-run TO0
+        </Button>
+      )}
+      <Button variant="outline-danger" size="sm" onClick={onDelete}>
+        <Icon icon="delete" className="me-1" />
+        Delete
       </Button>
     </td>
   </tr>
@@ -208,6 +304,19 @@ const VoucherDetailModal = ({ voucher, onClose }: VoucherDetailModalProps): Reac
           <Badge bg={statusVariant(voucher.status)} className="fs-6 px-3 py-2">
             {formatStatus(voucher.status)}
           </Badge>
+        </div>
+      </div>
+
+      {/* Rendezvous registration expiry */}
+      <div className="mb-4">
+        <strong>Rendezvous registration expiry</strong>
+        <div className="mt-1">
+          <VoucherExpiry voucher={voucher} />
+        </div>
+        <div className="text-muted small mt-1">
+          {voucher.expiry == null
+            ? 'The voucher is not registered on the FDO rendezvous server.'
+            : 'After this instant the device can no longer find its owner through the FDO rendezvous server.'}
         </div>
       </div>
 
@@ -279,18 +388,94 @@ const VoucherDetailModal = ({ voucher, onClose }: VoucherDetailModalProps): Reac
   </Modal>
 );
 
+interface DeleteVoucherModalProps {
+  voucher: FdoVoucher;
+  isDeleting: boolean;
+  error: Error | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+const DeleteVoucherModal = ({
+  voucher,
+  isDeleting,
+  error,
+  onCancel,
+  onConfirm,
+}: DeleteVoucherModalProps): React.ReactElement => (
+  <ConfirmModal
+    title="Delete ownership voucher"
+    confirmLabel="Delete"
+    confirmVariant="danger"
+    isConfirming={isDeleting}
+    onCancel={onCancel}
+    onConfirm={onConfirm}
+  >
+    <p>
+      Delete ownership voucher <code>{voucher.guid}</code>?
+    </p>
+    <p className="text-muted small">
+      This also expires its registration on the FDO rendezvous server, so the device can no longer
+      be onboarded through it. This action cannot be undone.
+    </p>
+    {error && <p className="text-danger small mb-0">{error.message}</p>}
+  </ConfirmModal>
+);
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default (): React.ReactElement => {
   const navigate = useNavigate();
   const [selectedVoucher, setSelectedVoucher] = useState<FdoVoucher | null>(null);
+  const [voucherPendingDeletion, setVoucherPendingDeletion] = useState<FdoVoucher | null>(null);
   const [activeFilter, setActiveFilter] = useState<VoucherStatus | null>(null);
+  const [runningTo0Guid, setRunningTo0Guid] = useState<string | null>(null);
+  const [to0Result, setTo0Result] = useState<{
+    variant: 'success' | 'danger';
+    message: string;
+  } | null>(null);
   const astarte = useAstarte();
   const vouchersFetcher = useFetch(astarte.client.listFdoVouchers);
+  const { deleteVoucher, deleteStatus, deleteError, runTo0 } = useFdo();
   useInterval(vouchersFetcher.refresh, 30000);
 
   const applyFilters = (vouchers: FdoVoucher[]) =>
     activeFilter === null ? vouchers : vouchers.filter((v) => v.status === activeFilter);
+
+  const handleRunTo0 = async (voucher: FdoVoucher) => {
+    setRunningTo0Guid(voucher.guid);
+    setTo0Result(null);
+    try {
+      const expiry = await runTo0(voucher.guid);
+      setTo0Result({
+        variant: 'success',
+        message: `TO0 completed for ${voucher.guid}. The registration is now served until ${new Date(
+          expiry,
+        ).toLocaleString()}.`,
+      });
+      vouchersFetcher.refresh();
+    } catch (err) {
+      setTo0Result({ variant: 'danger', message: to0ErrorMessage(err, voucher.guid) });
+      // the device may have onboarded, or the voucher may be gone, in the meantime
+      vouchersFetcher.refresh();
+    } finally {
+      setRunningTo0Guid(null);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!voucherPendingDeletion) {
+      return;
+    }
+    try {
+      await deleteVoucher(voucherPendingDeletion.guid);
+      setVoucherPendingDeletion(null);
+      vouchersFetcher.refresh();
+    } catch (err) {
+      // deleteError is already surfaced by useFdo and rendered in the modal
+      console.error('Failed to delete ownership voucher', err);
+    }
+  };
 
   return (
     <Container fluid className="p-3" data-testid="fdo-vouchers-page">
@@ -305,6 +490,15 @@ export default (): React.ReactElement => {
           </Button>
         </Col>
       </Row>
+      {to0Result && (
+        <Row className="mt-3">
+          <Col>
+            <Alert variant={to0Result.variant} dismissible onClose={() => setTo0Result(null)}>
+              {to0Result.message}
+            </Alert>
+          </Col>
+        </Row>
+      )}
       <Row className="mt-3">
         <Col>
           <Table responsive hover>
@@ -312,6 +506,7 @@ export default (): React.ReactElement => {
               <tr>
                 <th>GUID</th>
                 <th>Status</th>
+                <th>Rendezvous expiry</th>
                 <th />
               </tr>
             </thead>
@@ -332,7 +527,7 @@ export default (): React.ReactElement => {
                   return (
                     <>
                       <tr>
-                        <td colSpan={3} className="border-0 pb-0">
+                        <td colSpan={4} className="border-0 pb-0">
                           <StatusFilter
                             allVouchers={vouchers}
                             activeFilter={activeFilter}
@@ -342,7 +537,7 @@ export default (): React.ReactElement => {
                       </tr>
                       {filtered.length === 0 ? (
                         <tr>
-                          <td colSpan={3} className="text-center py-4">
+                          <td colSpan={4} className="text-center py-4">
                             {vouchers.length === 0 ? (
                               <Empty title="No ownership vouchers yet" />
                             ) : (
@@ -364,7 +559,11 @@ export default (): React.ReactElement => {
                           <VoucherRow
                             key={v.guid}
                             voucher={v}
+                            isRunningTo0={runningTo0Guid === v.guid}
+                            to0InFlight={runningTo0Guid !== null}
                             onView={() => setSelectedVoucher(v)}
+                            onRunTo0={() => handleRunTo0(v)}
+                            onDelete={() => setVoucherPendingDeletion(v)}
                           />
                         ))
                       )}
@@ -378,6 +577,15 @@ export default (): React.ReactElement => {
       </Row>
       {selectedVoucher && (
         <VoucherDetailModal voucher={selectedVoucher} onClose={() => setSelectedVoucher(null)} />
+      )}
+      {voucherPendingDeletion && (
+        <DeleteVoucherModal
+          voucher={voucherPendingDeletion}
+          isDeleting={deleteStatus === 'loading'}
+          error={deleteError}
+          onCancel={() => setVoucherPendingDeletion(null)}
+          onConfirm={handleDeleteConfirm}
+        />
       )}
     </Container>
   );

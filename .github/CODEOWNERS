@@ -1,0 +1,29 @@
+* @AliouneGaye21 @eddbbt @frossq @mizzet1 @nedimtokic @noaccOS @shinnokdisengir
+
+/apps/astarte_adapters/ @shinnokdisengir @noaccOS
+/apps/astarte_appengine_api/ @nedimtokic @noaccOS
+/apps/astarte_config/ @nedimtokic @eddbbt
+/apps/astarte_core/ @nedimtokic @frossq
+/apps/astarte_data_access/ @eddbbt @noaccOS
+/apps/astarte_data_updater_plant/ @noaccOS @frossq
+/apps/astarte_events/ @noaccOS @AliouneGaye21
+/apps/astarte_fdo/ @frossq @AliouneGaye21
+/apps/astarte_fdo_core/ @frossq @AliouneGaye21
+/apps/astarte_generators/ @shinnokdisengir @noaccOS
+/apps/astarte_housekeeping/ @eddbbt @nedimtokic
+/apps/astarte_pairing/ @AliouneGaye21 @frossq
+/apps/astarte_realm_management/ @mizzet1 @eddbbt
+/apps/astarte_rpc/ @noaccOS @nedimtokic
+/apps/astarte_secrets/ @frossq @noaccOS
+/apps/astarte_test_suite/ @shinnokdisengir @noaccOS
+/apps/astarte_trigger_engine/ @mizzet1 @nedimtokic
+/apps/astarte_vmq_plugin/ @frossq @mizzet1
+
+/tools/astarte-e2e-next/ @noaccOS @mizzet1
+/tools/astarte_dev_tool/ @shinnokdisengir @noaccOS
+/tools/astarte_device_fleet_simulator/ @frossq @eddbbt
+/tools/astarte_e2e/ @noaccOS @mizzet1
+/tools/astarte_export/ @eddbbt @nedimtokic
+/tools/astarte_import/ @nedimtokic @eddbbt
+
+/astarte-dashboard/ @AliouneGaye21 @mizzet1

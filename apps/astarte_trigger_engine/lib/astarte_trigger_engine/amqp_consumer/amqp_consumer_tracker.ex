@@ -93,7 +93,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
     policy =
       policy_data
       |> PolicyProto.decode()
-      |> Policy.from_policy_proto!()
+      |> Policy.from_policy_proto()
 
     child =
       {AMQPMessageConsumer,

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.Plug do
+defmodule Astarte.TriggerEngine.Helpers.Plug do
   @moduledoc """
   Helper module for Plug testing.
   """

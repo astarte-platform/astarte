@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.JWTTestHelper do
+defmodule Astarte.Housekeeping.Helpers.JWTTestHelper do
   @moduledoc false
   alias Astarte.Housekeeping.Auth.User
   alias Astarte.HousekeepingWeb.AuthGuardian

@@ -33,7 +33,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
           {:halt, {:error, reason, expected}}
 
         :error ->
-          {:halt, {:error, :unexpected_object_key}}
+          {:halt, {:error, :unexpected_object_key, keys: unexpected_keys(expected_types, object)}}
       end
     end)
   end
@@ -146,6 +146,19 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
 
   def cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
+  end
+
+  @doc """
+  Return the keys of `object` that have no counterpart in `expected`, sorted.
+
+  Only the keys of `expected` are looked at, so it accepts both an expected
+  types map and a mappings map.
+  """
+  def unexpected_keys(expected, object) do
+    object
+    |> Map.keys()
+    |> Enum.reject(&Map.has_key?(expected, &1))
+    |> Enum.sort()
   end
 
   defp map_while_ok(values, fun) when is_list(values) do

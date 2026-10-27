@@ -23,9 +23,9 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
 
   import Mox
 
@@ -1305,7 +1305,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                path,
                value,
                par
-             ) == {:error, :unexpected_object_key}
+             ) == {:error, :unexpected_object_key, keys: ["invalidKey"]}
     end
 
     test "fails with invalid path" do

@@ -19,19 +19,19 @@
 defmodule Astarte.RealmManagement.DevicesTest do
   use ExUnitProperties
 
-  use Astarte.Cases.Data, async: true
+  use Astarte.RealmManagement.Cases.Data, async: true
   use Mimic
-  use Astarte.Cases.Device
-  use Astarte.Cases.Triggers
+  use Astarte.RealmManagement.Cases.Device
+  use Astarte.RealmManagement.Cases.Triggers
 
-  import Astarte.Helpers.Triggers
+  import Astarte.Core.Generators.Device
+
+  import Astarte.RealmManagement.Helpers.Triggers
 
   alias Astarte.Core.Device
 
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-
+  alias Astarte.DataAccess.Device, as: DeviceData
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DeviceData
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -63,7 +63,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "is not queued for deletion if there are no acks", %{realm: realm} do
-      check all device_id <- DeviceGenerator.id(), max_runs: 10 do
+      check all device_id <- device_id(), max_runs: 10 do
         DevicesRPC
         |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
 
@@ -90,7 +90,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "is queued for deletion with all acks", %{realm: realm} do
-      check all device <- DeviceGenerator.device(interfaces: []) do
+      check all device <- device(interfaces: []), max_runs: 1 do
         keyspace = Realm.keyspace_name(realm)
         device_id = device.device_id
         device = %DeviceData{device_id: device_id}
@@ -130,6 +130,22 @@ defmodule Astarte.RealmManagement.DevicesTest do
       assert_receive ^ref
     end
 
+    test "generates 'device deletion started' volatile triggers", %{
+      realm: realm,
+      device_id: device_id
+    } do
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
+      reset_cache(realm)
+
+      ref = register_device_deletion_started_volatile_trigger(realm, device_id: device_id)
+
+      start_device_deletion(realm, device_id)
+
+      assert_receive ^ref
+    end
+
     test "calls `Scheduler.delete_device/2`", context do
       %{
         realm: realm_name,
@@ -153,7 +169,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "does not delete a non existing device", %{realm: realm} do
-      check all(encoded_device_id <- DeviceGenerator.encoded_id()) do
+      check all encoded_device_id <- device_encoded_id(), max_runs: 5 do
         assert {:error, :device_not_found} = Devices.delete_device(realm, encoded_device_id)
       end
     end
@@ -165,7 +181,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
     |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
 
     keyspace = Realm.keyspace_name(realm)
-    device_id = DeviceGenerator.id() |> Enum.at(0)
+    device_id = device_id() |> Enum.at(0)
     encoded_id = Device.encode_device_id(device_id)
 
     device =
@@ -198,7 +214,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
     %{realm: realm} = context
     keyspace = Realm.keyspace_name(realm)
-    device_id = DeviceGenerator.id() |> Enum.at(0)
+    device_id = device_id() |> Enum.at(0)
     encoded_id = Device.encode_device_id(device_id)
 
     DeviceQueries

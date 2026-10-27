@@ -18,10 +18,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
-
 Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
   for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
 )

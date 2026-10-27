@@ -1,0 +1,46 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
+  @moduledoc """
+  Ecto schema for persisting ownership voucher binary data to the database.
+  """
+  use TypedEctoSchema
+
+  alias Astarte.DataAccess.DateTime, as: DateTimeMs
+  alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
+  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.Core.PublicKey
+
+  @primary_key false
+  typed_schema "ownership_vouchers" do
+    field :guid, Astarte.DataAccess.UUID, primary_key: true
+    field :device_id, Astarte.DataAccess.UUID
+    field :status, Ecto.Enum, values: [created: 0, claimed: 1], default: :created
+    field :realm, :string
+    field :voucher_data, :binary
+    field :output_voucher, :binary
+    field :user_id, :binary
+    field :key_name, :string
+    field :key_algorithm, Ecto.Enum, values: [es256: 0, es384: 1, rs256: 10, rs384: 11]
+    field :replacement_guid, :binary
+    field :replacement_rendezvous_info, CBOREncoded, using: RendezvousInfo
+    field :replacement_public_key, CBOREncoded, using: PublicKey
+    field :expiry, DateTimeMs
+  end
+end

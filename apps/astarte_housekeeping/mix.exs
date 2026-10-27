@@ -22,19 +22,19 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
+      # x-release-please-start-version
       version: "1.5.0-dev",
-      elixir: "~> 1.15",
+      # x-release-please-end
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      deps: deps(),
       description: "Astarte Housekeeping API"
     ]
   end
@@ -49,27 +49,27 @@ defmodule Astarte.Housekeeping.Mixfile do
     ]
   end
 
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_core, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_core, github: "astarte-platform/astarte_core"}
-    ]
-  end
 
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:astarte_core, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
@@ -77,9 +77,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:gettext, "~> 0.24"},
       {:cors_plug, "~> 2.0"},
       {:bandit, "~> 1.11"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:exandra, github: "vinniefranco/exandra", override: true},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},
       {:observer_cli, "~> 1.5"},
@@ -87,26 +86,20 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.11", only: [:test, :dev]},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:mimic, "~> 2.4", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:httpoison, "~> 2.0"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]},
+      {:astarte_events, in_umbrella: true},
+      {:astarte_secrets, in_umbrella: true},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
-      {:xandra, github: "whatyouhide/xandra", override: true},
-      {:decimal, "~> 3.0", override: true}
+      {:httpoison, "~> 3.0", override: true},
+      {:hackney, "~> 4.0", override: true},
+      {:tzdata, github: "lau/tzdata", override: true}
     ]
-  end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
   end
 end

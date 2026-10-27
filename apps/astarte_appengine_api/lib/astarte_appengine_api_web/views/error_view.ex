@@ -98,8 +98,8 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Invalid attributes"}}
   end
 
-  def render("422_unexpected_object_key.json", _assigns) do
-    %{errors: %{detail: "Unexpected object key"}}
+  def render("422_unexpected_object_key.json", %{keys: keys} = _assigns) do
+    %{errors: %{detail: "Unexpected object key", unexpected_keys: keys}}
   end
 
   def render("422_missing_required_mapping.json", _assigns) do

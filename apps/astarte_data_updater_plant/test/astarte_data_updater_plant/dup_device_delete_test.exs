@@ -18,20 +18,20 @@
 
 defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
-  use Astarte.Cases.Trigger
+  use Astarte.DataUpdaterPlant.Cases.Trigger
   import Ecto.Query
   import Mox
   import StreamData
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DeviceSchema
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
+  alias Astarte.DataUpdaterPlant.Helpers.DataUpdater
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
-  alias Astarte.Helpers.DataUpdater
 
   setup :verify_on_exit!
   setup :set_mox_global

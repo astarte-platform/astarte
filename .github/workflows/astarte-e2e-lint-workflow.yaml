@@ -1,0 +1,46 @@
+name: Astarte E2E Next lint
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tools/astarte-e2e-next/**"
+      - ".github/workflows/astarte-e2e-lint-workflow.yaml"
+  push:
+    branches:
+      - master
+      - "release-[0-9]+.[0-9]+"
+    paths:
+      - "tools/astarte-e2e-next/**"
+      - ".github/workflows/astarte-e2e-lint-workflow.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+
+jobs:
+  lint:
+    name: Lint and unit test
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: tools/astarte-e2e-next
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mozilla-actions/sccache-action@v0.0.11
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+      - uses: go-task/setup-task@v2
+      - run: task ci

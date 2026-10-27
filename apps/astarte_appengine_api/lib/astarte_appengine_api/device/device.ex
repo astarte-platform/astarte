@@ -40,6 +40,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings
+  alias Astarte.Secrets
   alias Ecto.Changeset
 
   require Logger
@@ -205,18 +206,20 @@ defmodule Astarte.AppEngine.API.Device do
            ),
          {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
-         wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
          interface_type = interface_descriptor.type,
          reliability = mapping.reliability,
          publish_opts = build_publish_opts(interface_type, reliability),
          interface_name = interface_descriptor.name,
+         publish_value = wrap_to_bson_struct(mapping.value_type, value),
+         {:ok, publish_opts} <-
+           maybe_add_transport_encryption(publish_opts, realm_name, mapping, device_id),
          :ok <-
            ensure_publish(
              realm_name,
              device_id,
              interface_name,
              path,
-             wrapped_value,
+             publish_value,
              publish_opts
            ) do
       opts = build_database_opts(realm_name, mapping)
@@ -254,6 +257,30 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp maybe_add_transport_encryption(opts, realm_name, %Mapping{} = mapping, device_id) do
+    if mapping.encrypted do
+      put_shared_secret(opts, realm_name, device_id)
+    else
+      {:ok, opts}
+    end
+  end
+
+  defp maybe_add_transport_encryption(opts, realm_name, mappings, device_id)
+       when is_list(mappings) do
+    if Enum.any?(mappings, & &1.encrypted) do
+      put_shared_secret(opts, realm_name, device_id)
+    else
+      {:ok, opts}
+    end
+  end
+
+  defp put_shared_secret(opts, realm_name, device_id) do
+    case Queries.retrieve_shared_secret(realm_name, device_id) do
+      {:ok, shared_secret} -> {:ok, Keyword.put(opts, :encryption_key, shared_secret)}
+      error -> error
+    end
+  end
+
   # Helper to calculate TTL and build DB options
   defp build_database_opts(realm_name, mapping) do
     realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
@@ -280,21 +307,51 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
       |> Kernel.*(10)
 
-    insert_context = %InsertContext{
-      realm: realm,
-      device_id: device,
-      interface_descriptor: desc,
-      mapping: mapping,
-      path: path,
-      value: val,
-      value_timestamp: now_millisecond,
-      reception_timestamp: now_decimicrosecond,
-      opts: opts
-    }
+    case Secrets.maybe_encrypt_value(
+           desc,
+           mapping,
+           val,
+           [mapping],
+           realm
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database"
+        )
 
+        error
+
+      {:ok, {value, encrypted_dek}} ->
+        insert_context = %InsertContext{
+          realm: realm,
+          device_id: device,
+          interface_descriptor: desc,
+          mapping: mapping,
+          path: path,
+          value: value,
+          value_timestamp: now_millisecond,
+          reception_timestamp: now_decimicrosecond,
+          encrypted_dek: encrypted_dek,
+          opts: opts
+        }
+
+        do_persist_encrypted_value(insert_context, raw, ctx.end_id, now)
+    end
+  end
+
+  defp do_persist_encrypted_value(insert_context, raw, end_id, now) do
     with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
-      if desc.type == :datastream do
-        Queries.insert_path_into_db(realm, device, desc, ctx.end_id, path, now, now, opts)
+      if insert_context.interface_descriptor.type == :datastream do
+        Queries.insert_path_into_db(
+          insert_context.realm,
+          insert_context.device_id,
+          insert_context.interface_descriptor,
+          end_id,
+          insert_context.path,
+          now,
+          now,
+          insert_context.opts
+        )
       end
 
       {:ok, %InterfaceValues{data: raw}}
@@ -311,14 +368,19 @@ defmodule Astarte.AppEngine.API.Device do
          %InterfaceDescriptor{aggregation: :object} = interface_descriptor,
          mappings
        ) do
-    mappings =
+    mappings_by_endpoint_id =
       Enum.into(mappings, %{}, fn mapping ->
         {mapping.endpoint_id, mapping}
       end)
 
     with {:guessed, guessed_endpoints} <-
            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings_by_endpoint_id) do
+      all_mappings =
+        Enum.filter(mappings, fn %Mapping{endpoint_id: guessed_endpoint_id} ->
+          guessed_endpoint_id in guessed_endpoints
+        end)
+
       endpoint_id =
         CQLUtils.endpoint_id(
           interface_descriptor.name,
@@ -326,7 +388,7 @@ defmodule Astarte.AppEngine.API.Device do
           ""
         )
 
-      {:ok, %Mapping{endpoint_id: endpoint_id}}
+      {:ok, {endpoint_id, hd(all_mappings), all_mappings}}
     else
       {:ok, _endpoint_id} ->
         # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
@@ -425,80 +487,53 @@ defmodule Astarte.AppEngine.API.Device do
              realm_name,
              interface_descriptor.interface_id
            ),
-         {:ok, endpoint} <-
+         {:ok, {endpoint_id, mapping, current_interface_mappings}} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
-         endpoint_id <- endpoint.endpoint_id,
          mappings_by_key = extract_mappings(mappings),
          expected_types =
            Map.new(mappings_by_key, fn {k, %Mapping{value_type: t}} -> {k, t} end),
          {:ok, value} <- InterfaceValue.cast_value(expected_types, raw_value),
          :ok <- validate_value(mappings_by_key, value),
-         wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
          interface_name = interface_descriptor.name,
+         publish_value = wrap_to_bson_struct(expected_types, value),
+         {:ok, publish_opts} <-
+           maybe_add_transport_encryption(publish_opts, realm_name, mappings, device_id),
          :ok <-
            ensure_publish(
              realm_name,
              device_id,
              interface_name,
              path,
-             wrapped_value,
+             publish_value,
              publish_opts
            ) do
-      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
-      db_max_ttl = min(realm_max_ttl, object_retention(mappings))
-
-      opts =
-        case db_max_ttl do
-          nil ->
-            []
-
-          _ ->
-            [ttl: db_max_ttl]
-        end
-
-      now_millisecond = DateTime.to_unix(now, :millisecond)
-
-      now_decimicrosecond =
-        now
-        |> DateTime.to_unix(:microsecond)
-        |> Kernel.*(10)
-
-      insert_context = %InsertContext{
-        realm: realm_name,
+      handle_object_value_storage(%{
+        realm_name: realm_name,
         device_id: device_id,
         interface_descriptor: interface_descriptor,
-        mapping: nil,
         path: path,
+        raw_value: raw_value,
         value: value,
-        value_timestamp: now_millisecond,
-        reception_timestamp: now_decimicrosecond,
-        opts: opts
-      }
-
-      with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
-        Queries.insert_path_into_db(
-          realm_name,
-          device_id,
-          interface_descriptor,
-          endpoint_id,
-          path,
-          now,
-          now,
-          opts
-        )
-
-        {:ok,
-         %InterfaceValues{
-           data: raw_value
-         }}
-      end
+        mappings: mappings,
+        mapping: mapping,
+        current_interface_mappings: current_interface_mappings,
+        endpoint_id: endpoint_id,
+        now: now
+      })
     else
       {:error, :unexpected_value_type, expected: value_type} ->
         Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
+
+      {:error, :unexpected_object_key, keys: keys} ->
+        Logger.warning("Unexpected object keys #{inspect(keys)} in object interface update.",
+          tag: "unexpected_object_key"
+        )
+
+        {:error, :unexpected_object_key, keys: keys}
 
       {:error, :invalid_object_aggregation_path} ->
         Logger.warning("Error while trying to publish on path for object aggregated interface.",
@@ -527,6 +562,124 @@ defmodule Astarte.AppEngine.API.Device do
         )
 
         {:error, reason}
+    end
+  end
+
+  defp handle_object_value_storage(%{
+         realm_name: realm_name,
+         device_id: device_id,
+         interface_descriptor: interface_descriptor,
+         path: path,
+         raw_value: raw_value,
+         value: value,
+         mappings: mappings,
+         mapping: mapping,
+         current_interface_mappings: current_interface_mappings,
+         endpoint_id: endpoint_id,
+         now: now
+       }) do
+    realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
+    db_max_ttl = min(realm_max_ttl, object_retention(mappings))
+
+    opts =
+      case db_max_ttl do
+        nil ->
+          []
+
+        _ ->
+          [ttl: db_max_ttl]
+      end
+
+    now_millisecond = DateTime.to_unix(now, :millisecond)
+
+    now_decimicrosecond =
+      now
+      |> DateTime.to_unix(:microsecond)
+      |> Kernel.*(10)
+
+    case Secrets.maybe_encrypt_value(
+           interface_descriptor,
+           mapping,
+           value,
+           current_interface_mappings,
+           realm_name
+         ) do
+      {:error, err_msg} = error ->
+        Logger.debug(
+          "Issue #{err_msg} encountered while attempting to encrypt data values with DEK. Data could not be saved to database"
+        )
+
+        error
+
+      {:ok, {value, encrypted_dek}} ->
+        persist_object_value(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          raw_value,
+          value,
+          encrypted_dek,
+          %{
+            opts: opts,
+            now_millisecond: now_millisecond,
+            now_decimicrosecond: now_decimicrosecond,
+            endpoint_id: endpoint_id,
+            now: now,
+            mappings: mappings
+          }
+        )
+    end
+  end
+
+  defp persist_object_value(
+         realm_name,
+         device_id,
+         interface_descriptor,
+         path,
+         raw_value,
+         value,
+         encrypted_dek,
+         storage_context
+       ) do
+    %{
+      opts: opts,
+      now_millisecond: now_millisecond,
+      now_decimicrosecond: now_decimicrosecond,
+      endpoint_id: endpoint_id,
+      now: now,
+      mappings: mappings
+    } = storage_context
+
+    insert_context = %InsertContext{
+      realm: realm_name,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mappings,
+      path: path,
+      value: value,
+      value_timestamp: now_millisecond,
+      reception_timestamp: now_decimicrosecond,
+      encrypted_dek: encrypted_dek,
+      opts: opts
+    }
+
+    with :ok <- DeviceQueries.insert_value_into_db(insert_context) do
+      Queries.insert_path_into_db(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        endpoint_id,
+        path,
+        now,
+        now,
+        opts
+      )
+
+      {:ok,
+       %InterfaceValues{
+         data: raw_value
+       }}
     end
   end
 
@@ -603,6 +756,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp publish_data(realm, device_id, interface, path, value, opts) do
+    transmitter_opts = Keyword.take(opts, [:encryption_key])
+
     case Keyword.fetch!(opts, :type) do
       :properties ->
         DataTransmitter.set_property(
@@ -610,7 +765,8 @@ defmodule Astarte.AppEngine.API.Device do
           device_id,
           interface,
           path,
-          value
+          value,
+          transmitter_opts
         )
 
       :datastream ->
@@ -624,7 +780,7 @@ defmodule Astarte.AppEngine.API.Device do
           interface,
           path,
           value,
-          qos: qos
+          Keyword.put(transmitter_opts, :qos, qos)
         )
     end
   end
@@ -692,7 +848,8 @@ defmodule Astarte.AppEngine.API.Device do
           {:halt, {:error, reason}}
 
         :error ->
-          {:halt, {:error, :unexpected_object_key}}
+          keys = InterfaceValue.unexpected_keys(mappings_by_key, object)
+          {:halt, {:error, :unexpected_object_key, keys: keys}}
       end
     end)
   end
@@ -1133,10 +1290,7 @@ defmodule Astarte.AppEngine.API.Device do
       )
 
     values
-    |> maybe_downsample_to(count, :object, nil, %InterfaceValuesOptions{
-      opts
-      | downsample_key: downsample_column
-    })
+    |> maybe_downsample_to(count, :object, nil, %{opts | downsample_key: downsample_column})
     |> pack_result(:object, :datastream, endpoint_metadata, opts)
   end
 
