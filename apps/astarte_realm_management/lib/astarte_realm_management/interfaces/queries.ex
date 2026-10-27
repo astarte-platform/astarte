@@ -35,11 +35,10 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   alias Astarte.Core.StorageType
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
-  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo

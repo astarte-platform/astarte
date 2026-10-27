@@ -21,7 +21,7 @@ defmodule Astarte.RPC.Helpers.Database do
   Helper module for database schema management and data manipulation.
   """
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -330,7 +330,7 @@ defmodule Astarte.RPC.Helpers.Database do
       execute!(realm_keyspace, query)
     end)
 
-    %InterfaceSchema{}
+    %Interface{}
     |> Ecto.Changeset.change(%{
       name: "com.test.LCDMonitor",
       major_version: 1,
@@ -352,7 +352,7 @@ defmodule Astarte.RPC.Helpers.Database do
     })
     |> Repo.insert!(prefix: realm_keyspace)
 
-    %InterfaceSchema{}
+    %Interface{}
     |> Ecto.Changeset.change(%{
       name: "com.test.SimpleStreamTest",
       major_version: 1,

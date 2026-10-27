@@ -23,7 +23,7 @@ defmodule Astarte.DataAccess.Adapters.Interface do
   use Astarte.Adapters
 
   import Astarte.Core.CQLUtils, only: [endpoint_id: 3]
-  import Astarte.DataAccess.Realms.Interface, only: [storage: 1, storage_type: 1]
+  import Astarte.DataAccess.Interface, only: [storage: 1, storage_type: 1]
 
   alias Astarte.Core.Interface, as: InterfaceCore
   alias Astarte.Core.Mapping.EndpointsAutomaton

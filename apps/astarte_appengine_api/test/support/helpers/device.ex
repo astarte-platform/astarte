@@ -28,9 +28,8 @@ defmodule Astarte.AppEngine.API.Helpers.Device do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings, as: MappingsQueries
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
@@ -178,7 +177,7 @@ defmodule Astarte.AppEngine.API.Helpers.Device do
   def downsampable_paths(realm_name, interface, registered_paths)
       when interface.aggregation == :individual do
     {:ok, interface_descriptor} =
-      InterfaceQueries.fetch_interface_descriptor(
+      Interface.fetch_interface_descriptor(
         realm_name,
         interface.name,
         interface.major_version

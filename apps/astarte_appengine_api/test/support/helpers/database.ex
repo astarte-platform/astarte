@@ -26,7 +26,6 @@ defmodule Astarte.AppEngine.API.Helpers.Database do
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Name
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

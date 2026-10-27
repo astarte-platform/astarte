@@ -30,8 +30,8 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
   alias Astarte.Core.Interface, as: InterfaceCore
   alias Astarte.Core.Mapping.EndpointsAutomaton
 
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.DataAccess.Realms.Interface
 
   defp normalize_empty(map, key) do
     case Map.fetch(map, key) do

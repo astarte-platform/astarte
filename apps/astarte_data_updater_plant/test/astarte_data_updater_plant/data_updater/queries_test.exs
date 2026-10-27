@@ -30,8 +30,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Interface, as: DatabaseInterface
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Interface, as: DatabaseInterface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core

@@ -30,8 +30,8 @@ defmodule Astarte.TestSuite.Helpers.Interface do
 
   alias Astarte.Core.Interface
 
+  alias Astarte.DataAccess.Interface, as: InterfaceData
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointData
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
   alias Astarte.DataAccess.Repo
 

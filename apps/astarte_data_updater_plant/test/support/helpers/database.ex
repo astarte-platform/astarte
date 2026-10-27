@@ -24,7 +24,6 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Device.InsertContext
   alias Astarte.DataAccess.Interface
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
@@ -146,7 +145,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
       execute!(realm_keyspace, query, [], timeout: 60_000)
     end)
 
-    %InterfaceSchema{}
+    %Interface{}
     |> Ecto.Changeset.change(%{
       name: "com.test.LCDMonitor",
       major_version: 1,
@@ -168,7 +167,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
     })
     |> Repo.insert!(prefix: realm_keyspace, timeout: 60_000)
 
-    %InterfaceSchema{}
+    %Interface{}
     |> Ecto.Changeset.change(%{
       name: "com.test.SimpleStreamTest",
       major_version: 1,

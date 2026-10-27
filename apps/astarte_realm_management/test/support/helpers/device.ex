@@ -19,7 +19,7 @@ defmodule Astarte.RealmManagement.Helpers.Device do
   @moduledoc false
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Helpers

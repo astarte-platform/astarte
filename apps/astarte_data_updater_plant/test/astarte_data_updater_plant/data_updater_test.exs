@@ -46,9 +46,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.DataAccess.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper

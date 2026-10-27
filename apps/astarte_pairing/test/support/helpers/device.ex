@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Helpers.Device do
   import Astarte.Core.Generators.Device
 
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 

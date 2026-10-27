@@ -22,9 +22,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.Core.Interface
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Interface, as: InterfaceData
   alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core

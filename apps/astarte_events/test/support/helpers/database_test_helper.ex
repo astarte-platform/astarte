@@ -31,8 +31,8 @@ defmodule Astarte.Events.Helpers.Database do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
 
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.SimpleTrigger
 
   alias Astarte.Events.Triggers.Core, as: TriggersCore

@@ -32,7 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo

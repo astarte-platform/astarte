@@ -20,7 +20,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Device do
   This module provides helper functions for testing device-related functionality.
   """
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
