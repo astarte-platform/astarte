@@ -20,31 +20,29 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
   @moduledoc """
   Absinthe resolvers for FDO-related GraphQL fields: owner key management
   and ownership voucher operations.
+
+  Errors are left to `Astarte.PairingWeb.GraphQL.Middleware.HandleErrors`.
   """
 
-  alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO
-  alias Astarte.PairingWeb.ChangesetView
+  alias Astarte.Pairing.FDO.OwnerKey
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.PairingWeb.OwnershipVoucherView
-  alias Astarte.Secrets
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
 
-  def list_owner_keys(_parent, %{key_algorithm: alg}, %{context: %{realm_name: realm}}) do
-    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(alg) do
-      Secrets.Core.get_keys(realm, [algorithm_atom])
-    end
+  def list_owner_keys(_parent, %{key_algorithm: alg}, %{context: %{realm_name: realm}})
+      when is_binary(alg) do
+    OwnerKey.list(realm, alg)
   end
 
   def list_owner_keys(_parent, _args, %{context: %{realm_name: realm}}) do
-    Secrets.Core.get_keys(realm, Secrets.Core.asymmetric_key_algorithms())
+    OwnerKey.list(realm)
   end
 
   def get_owner_key(_parent, %{key_algorithm: alg, key_name: key_name}, %{
         context: %{realm_name: realm}
       }) do
-    with {:ok, algorithm_atom} <- key_type(alg),
-         {:ok, key} <- owner_key(realm, key_name, algorithm_atom) do
+    with {:ok, key} <- OwnerKey.fetch(realm, alg, key_name) do
       {:ok, %{key_name: key.name, public_key: key.public_pem}}
     end
   end
@@ -52,39 +50,13 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
   def create_or_upload_owner_key(_parent, args, %{context: %{realm_name: realm}}) do
     changeset = OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, args)
 
-    with {:ok, validated_options} <- validate_owner_key_options(changeset) do
+    with {:ok, validated_options} <- Ecto.Changeset.apply_action(changeset, :insert) do
       OwnerKeyInitialization.create_or_upload(validated_options, realm)
     end
   end
 
-  # Turns :error into its own message, so get_owner_key/3's with doesn't
-  # need an else to tell it apart from find_key/3's :not_found.
-  defp key_type(alg) do
-    case Secrets.Core.string_to_key_type(alg) do
-      {:ok, algorithm_atom} -> {:ok, algorithm_atom}
-      :error -> {:error, "Invalid key algorithm"}
-    end
-  end
-
-  defp owner_key(realm, key_name, algorithm_atom) do
-    case Secrets.Core.find_key(realm, key_name, algorithm_atom) do
-      {:ok, key} -> {:ok, key}
-      :not_found -> {:error, "Key not found"}
-    end
-  end
-
-  defp validate_owner_key_options(changeset) do
-    case Ecto.Changeset.apply_action(changeset, :insert) do
-      {:ok, validated_options} -> {:ok, validated_options}
-      {:error, changeset} -> changeset_error(changeset)
-    end
-  end
-
   def owner_keys_for_voucher(_parent, %{ownership_voucher: pem}, %{context: %{realm_name: realm}}) do
-    with {:ok, voucher} <- OwnershipVoucher.decode_binary_voucher(pem) do
-      key_algorithm = OwnershipVoucher.key_algorithm(voucher)
-      Secrets.Core.get_keys(realm, key_algorithm)
-    end
+    OwnershipVoucher.compatible_owner_keys(realm, pem)
   end
 
   def list_ownership_vouchers(_parent, _args, %{context: %{realm_name: realm}}) do
@@ -108,55 +80,14 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
       "replacement_rendezvous_info" => Map.get(args, :replacement_rendezvous_info)
     }
 
-    params
-    |> FDO.OwnershipVoucher.register(realm)
-    |> handle_register_ownership_voucher()
-  end
-
-  defp handle_register_ownership_voucher({:ok, resp}) do
-    {:ok,
-     %{
-       public_key: resp.public_key,
-       guid: UUID.binary_to_string!(resp.guid)
-     }}
-  end
-
-  defp handle_register_ownership_voucher({:error, %Ecto.Changeset{} = changeset}) do
-    changeset_error(changeset)
-  end
-
-  defp handle_register_ownership_voucher({:error, reason}) do
-    {:error, reason}
-  end
-
-  defp changeset_error(changeset) do
-    {:error, "Validation failed: #{format_changeset_errors(changeset)}"}
-  end
-
-  defp format_changeset_errors(changeset) do
-    changeset
-    |> ChangesetView.translate_errors()
-    |> Jason.encode!()
+    with {:ok, resp} <- OwnershipVoucher.register(params, realm) do
+      {:ok, %{public_key: resp.public_key, guid: UUID.binary_to_string!(resp.guid)}}
+    end
   end
 
   def delete_ownership_voucher(_parent, %{guid: guid}, %{context: %{realm_name: realm}}) do
-    case delete_voucher(realm, guid) do
-      :ok -> {:ok, guid}
-      {:error, reason} -> {:error, "Failed to delete voucher: #{inspect(reason)}"}
-    end
-  end
-
-  # Vouchers are stored by their binary GUID, while clients see its string form.
-  defp delete_voucher(realm, guid) do
-    with {:ok, binary_guid} <- dump_guid(guid) do
-      OwnershipVoucher.delete(realm, binary_guid)
-    end
-  end
-
-  defp dump_guid(guid) do
-    case Ecto.UUID.dump(guid) do
-      {:ok, _binary_guid} = ok -> ok
-      :error -> {:error, :not_found}
+    with :ok <- OwnershipVoucher.delete(realm, guid) do
+      {:ok, guid}
     end
   end
 end

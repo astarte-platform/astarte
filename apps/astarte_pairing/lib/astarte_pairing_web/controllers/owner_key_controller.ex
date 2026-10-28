@@ -20,8 +20,8 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
   use Astarte.PairingWeb, :controller
   use OpenApiSpex.ControllerSpecs
 
-  alias Astarte.PairingWeb.ApiSpec.Schemas.OwnerKey
-  alias Astarte.Secrets
+  alias Astarte.Pairing.FDO.OwnerKey
+  alias Astarte.PairingWeb.ApiSpec.Schemas.OwnerKey, as: OwnerKeySchema
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
   alias OpenApiSpex.Schema
@@ -48,7 +48,7 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
     ],
     request_body:
       {"Create or Upload Owner Key Request", "application/json",
-       OwnerKey.CreateOrUploadOwnerKeyRequest},
+       OwnerKeySchema.CreateOrUploadOwnerKeyRequest},
     responses: [
       ok:
         {"Owner key created or uploaded successfully", "text/plain",
@@ -203,15 +203,8 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
     end
   end
 
-  @supported_key_algorithms [:es256, :es384, :rs256, :rs384]
-  def list_keys(
-        conn,
-        %{
-          "realm_name" => realm_name
-        }
-      ) do
-    with {:ok, keys} <-
-           Secrets.Core.get_keys(realm_name, @supported_key_algorithms) do
+  def list_keys(conn, %{"realm_name" => realm_name}) do
+    with {:ok, keys} <- OwnerKey.list(realm_name) do
       send_resp(conn, 200, Jason.encode!(keys))
     end
   end
@@ -220,8 +213,7 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "realm_name" => realm_name,
         "key_algorithm" => key_algorithm
       }) do
-    with {:ok, algorithm} <- Secrets.Core.string_to_key_type(key_algorithm),
-         {:ok, keys} <- Secrets.Core.get_keys(realm_name, [algorithm]) do
+    with {:ok, keys} <- OwnerKey.list(realm_name, key_algorithm) do
       json(conn, %{data: keys})
     end
   end
@@ -231,17 +223,17 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "key_algorithm" => key_algorithm,
         "key_name" => key_name
       }) do
-    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm),
-         {:ok, key} <- Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
-      json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
-    else
-      :error ->
-        {:error, :unprocessable_key}
+    case OwnerKey.fetch(realm_name, key_algorithm, key_name) do
+      {:ok, key} ->
+        json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
 
-      :not_found ->
+      {:error, :key_not_found} ->
         conn
         |> put_status(:not_found)
         |> json(%{errors: %{detail: "Key not found"}})
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 end
