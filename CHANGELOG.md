@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - [astarte_vmq_plugin] Pin vernemq to 2.2.0
+- [astarte_vmq_plugin] The message producer workers now run on the local node only, guaranteeing per-device message
+  ordering with lower latency.
 
 ## [1.4.0-rc.6] - 2026-09-28
 
