@@ -17,13 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
-  # The REST controller tests cover registration end to end; these cover what
-  # they can't reach: the failures after the voucher was claimed.
-  #
-  # Not async: the REST controller tests register the same voucher, and a
-  # voucher GUID can only be stored once.
-  use ExUnit.Case
-  use Astarte.Pairing.Cases.Data
+  use Astarte.Pairing.Cases.Data, async: true
   use Mimic
 
   import Astarte.Pairing.Helpers.FDO
@@ -31,19 +25,22 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
 
   alias Astarte.Core.Device
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
-  alias Astarte.Pairing.Engine
   alias Astarte.Pairing.FDO
   alias Astarte.Secrets
 
   @key_name "owner_key"
 
-  setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
-    device_id = Device.random_device_id()
-
+  setup_all %{realm_name: realm_name} do
     {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, :es256)
     {:ok, owner_key} = COSE.Keys.from_pem(registrable_voucher_owner_key_pem())
     :ok = Secrets.import_key(@key_name, :es256, owner_key, namespace: namespace)
     on_exit(fn -> delete_owner_keys(namespace) end)
+
+    :ok
+  end
+
+  setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+    device_id = Device.random_device_id()
 
     cleanup_registrable_voucher_on_exit(astarte_instance_id, realm_name, device_id)
 
@@ -58,9 +55,6 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
   end
 
   describe "register/2" do
-    # Storing the voucher and registering the device can't be made to fail for
-    # real once the claim succeeded, so these two failures are injected.
-
     test "logs the claimed voucher when it can't be stored", context do
       %{realm_name: realm, guid: guid, params: params} = context
       expect(LoadRequest, :store_voucher, fn _req, _expiry -> {:error, :connection_error} end)
@@ -79,12 +73,20 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
     end
 
     test "logs the claimed voucher when its device can't be registered", context do
-      %{realm_name: realm, guid: guid, params: params} = context
-      expect(Engine, :register_device, fn _realm, _hw_id, _opts -> {:error, :realm_not_found} end)
+      %{realm_name: realm, astarte_instance_id: astarte_instance_id} = context
+      %{guid: guid, params: params} = context
+
+      set_device_registration_limit(realm, 0)
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        set_device_registration_limit(realm, nil)
+      end)
 
       log =
         capture_log([metadata: [:realm, :fdo_guid, :reason]], fn ->
-          assert FDO.OwnershipVoucher.register(params, realm) == {:error, :realm_not_found}
+          assert FDO.OwnershipVoucher.register(params, realm) ==
+                   {:error, :device_registration_limit_reached}
         end)
 
       assert log =~
@@ -92,8 +94,19 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
 
       assert log =~ "realm=#{realm}"
       assert log =~ "fdo_guid=#{guid}"
-      assert log =~ "reason=realm_not_found"
+      assert log =~ "reason=device_registration_limit_reached"
     end
   end
 
+  describe "compatible_owner_keys/2" do
+    test "lists the owner keys of the voucher's key algorithm", %{realm_name: realm} do
+      assert FDO.OwnershipVoucher.compatible_owner_keys(realm, registrable_voucher_pem()) ==
+               {:ok, %{es256: [@key_name]}}
+    end
+
+    test "returns an error for a malformed voucher", %{realm_name: realm} do
+      assert {:error, _reason} =
+               FDO.OwnershipVoucher.compatible_owner_keys(realm, "not a voucher")
+    end
+  end
 end
