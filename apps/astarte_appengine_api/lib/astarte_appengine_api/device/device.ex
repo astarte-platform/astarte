@@ -45,6 +45,8 @@ defmodule Astarte.AppEngine.API.Device do
 
   require Logger
 
+  @empty_mapset MapSet.new()
+
   def list_devices!(realm_name, params) do
     changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
 
@@ -358,43 +360,46 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp path_or_endpoint_depth(path) when is_binary(path) do
-    String.split(path, "/", trim: true)
-    |> length()
-  end
-
   defp resolve_object_aggregation_path(
          path,
          %InterfaceDescriptor{aggregation: :object} = interface_descriptor,
          mappings
        ) do
+    %InterfaceDescriptor{
+      name: interface_name,
+      major_version: interface_major,
+      interface_id: interface_id
+    } =
+      interface_descriptor
+
     mappings_by_endpoint_id =
-      Enum.into(mappings, %{}, fn mapping ->
+      Map.new(mappings, fn mapping ->
         {mapping.endpoint_id, mapping}
       end)
 
-    with {:guessed, guessed_endpoints} <-
+    with {:guessed, interface_endpoints} <-
            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings_by_endpoint_id) do
-      all_mappings =
-        Enum.filter(mappings, fn %Mapping{endpoint_id: guessed_endpoint_id} ->
-          guessed_endpoint_id in guessed_endpoints
-        end)
+         interface_mappings = mappings_by_endpoint_id |> Map.take(interface_endpoints),
+         :ok <-
+           check_all_object_aggregation_mappings_from_interface(interface_id, interface_mappings),
+         :ok <-
+           check_all_object_aggregation_mappings_found(
+             interface_name,
+             interface_mappings,
+             interface_endpoints
+           ),
+         {_id, interface_mapping} = Enum.at(interface_mappings, 0),
+         :ok <- check_object_path_length(interface_mapping, path) do
+      interface_mappings = Map.values(interface_mappings)
+      endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, "")
 
-      endpoint_id =
-        CQLUtils.endpoint_id(
-          interface_descriptor.name,
-          interface_descriptor.major_version,
-          ""
-        )
-
-      {:ok, {endpoint_id, hd(all_mappings), all_mappings}}
+      {:ok, {endpoint_id, hd(interface_mappings), interface_mappings}}
     else
       {:ok, _endpoint_id} ->
         # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
         Logger.warning(
           "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
+            "interface #{inspect(interface_name)}. You should publish on " <>
             "the common prefix",
           tag: "invalid_path"
         )
@@ -404,7 +409,7 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, :not_found} ->
         Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}",
+            "interface #{inspect(interface_name)}",
           tag: "invalid_path"
         )
 
@@ -413,7 +418,7 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, :invalid_object_aggregation_path} ->
         Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
-            "interface #{inspect(interface_descriptor.name)}",
+            "interface #{inspect(interface_name)}",
           tag: "invalid_path"
         )
 
@@ -421,20 +426,49 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
-    received_path_depth = path_or_endpoint_depth(path)
+  defp check_all_object_aggregation_mappings_from_interface(interface_id, mappings) do
+    mapping_not_from_interface? = fn %Mapping{interface_id: mapping_interface_id} ->
+      interface_id != mapping_interface_id
+    end
 
-    Enum.reduce_while(guessed_endpoints, :ok, fn
-      endpoint_id, _acc ->
-        with {:ok, %Mapping{endpoint: endpoint}} <- Map.fetch(mappings, endpoint_id),
-             endpoint_depth when received_path_depth == endpoint_depth - 1 <-
-               path_or_endpoint_depth(endpoint) do
-          {:cont, :ok}
-        else
-          _ ->
-            {:halt, {:error, :invalid_object_aggregation_path}}
-        end
-    end)
+    case Enum.any?(mappings, mapping_not_from_interface?) do
+      false -> :ok
+      true -> {:error, :invalid_object_aggregation_path}
+    end
+  end
+
+  defp check_all_object_aggregation_mappings_found(
+         interface_name,
+         interface_mappings,
+         interface_endpoints
+       ) do
+    interface_mappings_ids = Map.keys(interface_mappings) |> MapSet.new()
+    interface_endpoints = interface_endpoints |> MapSet.new()
+
+    case MapSet.difference(interface_endpoints, interface_mappings_ids) do
+      @empty_mapset ->
+        :ok
+
+      not_found ->
+        not_found = MapSet.to_list(not_found)
+
+        "Expected endpoints not found for interface #{interface_name}: #{inspect(not_found)}"
+        |> Logger.warning(tag: "invalid_path")
+
+        {:error, :invalid_object_aggregation_path}
+    end
+  end
+
+  defp check_object_path_length(mapping, path) do
+    %Mapping{endpoint: endpoint} = mapping
+
+    path_tokens = String.split(path, "/")
+    endpoint_tokens = String.split(endpoint, "/")
+
+    case length(path_tokens) == length(endpoint_tokens) - 1 do
+      true -> :ok
+      false -> {:error, :invalid_object_aggregation_path}
+    end
   end
 
   defp object_retention([first | _rest] = _mappings) do
