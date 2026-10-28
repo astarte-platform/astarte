@@ -423,7 +423,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   def resend_all_properties(state) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
-    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, _}, {:ok, state_acc} ->
+    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, major_version},
+                                                              {:ok, state_acc} ->
       maybe_descriptor = Map.get(state_acc.interfaces, interface)
 
       with {:ok, interface_descriptor, new_state} <-
@@ -431,6 +432,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
         {:cont, {:ok, new_state}}
       else
+        {:error, :interface_loading_failed} ->
+          Logger.warning(
+            "Error while sending properties to device: #{inspect(:interface_loading_failed)} on interface #{interface}"
+          )
+
+          minor_version = interface_minor_version(state_acc, interface)
+
+          {:halt,
+           {:error,
+            {:interface_loading_failed, interface, major_version, minor_version}}}
+
         {:error, reason} = error ->
           Logger.warning(
             "Error while sending properties to device: #{inspect(reason)} on interface #{interface}"
@@ -439,6 +451,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
           {:halt, error}
       end
     end)
+  end
+
+  defp interface_minor_version(state, interface) do
+    case Queries.fetch_device_introspection_minors(state.realm, state.device_id) do
+      {:ok, minors} when is_map(minors) -> Map.get(minors, interface)
+      _ -> nil
+    end
   end
 
   defp resend_all_interface_properties(

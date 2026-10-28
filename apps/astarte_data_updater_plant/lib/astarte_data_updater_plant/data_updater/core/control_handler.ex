@@ -993,7 +993,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         {:ok, new_state}
 
-      {:error, :interface_loading_failed} ->
+      {:error, {:interface_loading_failed, interface_name, major_version, minor_version}} ->
         # Track interface loading failure
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :properties_resend],
@@ -1001,7 +1001,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: state.realm, result: "interface_loading_failed"}
         )
 
-        interface_loading_error(state, timestamp)
+        interface_loading_error(
+          state,
+          timestamp,
+          interface_name,
+          major_version,
+          minor_version
+        )
 
       {:error, :sending_properties_to_interface_failed} ->
         # Track interface send failure
@@ -1057,12 +1063,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.Error.handle_error(context, error, opts)
   end
 
-  defp interface_loading_error(state, timestamp) do
+  defp interface_loading_error(state, timestamp, interface_name, major_version, minor_version) do
     context = %{state: state, timestamp: timestamp}
+
+    interface_version =
+      case minor_version do
+        nil -> to_string(major_version)
+        minor -> "#{major_version}.#{minor}"
+      end
 
     error = %{
       message: "Cannot load interface while resending properties",
       logger_metadata: [tag: "interface_loading_failed"],
+      extra_error_metadata: %{
+        "interface" => interface_name,
+        "interface_version" => interface_version
+      },
       error_name: "interface_loading_failed",
       error: :interface_loading_failed
     }
