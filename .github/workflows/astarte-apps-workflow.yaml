@@ -100,14 +100,19 @@ jobs:
         working-directory: .
 
   authorization_model:
-    name: Authorization model tests
+    name: Authorization model JSON is up to date
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - run: >
-          docker run --rm -v "$PWD/apps/astarte_auth:/astarte_auth:ro"
-          openfga/cli:v0.8.2 model test --allow-external-files
-          --tests /astarte_auth/test/authorization_model.fga.yaml
+      # The astarte_auth tests load the JSON, so it must match the .fga.
+      - run: |
+          docker run --rm -v "$PWD/apps/astarte_auth/priv:/priv:ro" openfga/cli:v0.8.2 \
+            model transform --file /priv/authorization_model.fga | jq -S . > expected.json
+          jq -S . apps/astarte_auth/priv/authorization_model.json > actual.json
+          diff -u expected.json actual.json || {
+            echo "::error::authorization_model.json is out of date, regenerate it with: fga model transform --file priv/authorization_model.fga > priv/authorization_model.json"
+            exit 1
+          }
 
   astarte_appengine_api:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
