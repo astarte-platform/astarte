@@ -26,6 +26,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
 
   alias Astarte.Pairing.FDO.OwnerKey
   alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.PairingWeb.GraphQL.Resolvers.Introspection
   alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
@@ -72,6 +73,8 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
 
   def register_ownership_voucher(_parent, args, %{context: %{realm_name: realm}}) do
     params = %{
+      "hw_id" => args.hw_id,
+      "initial_introspection" => Introspection.to_map(Map.get(args, :initial_introspection)),
       "ownership_voucher" => args.ownership_voucher,
       "key_name" => args.key_name,
       "key_algorithm" => args.key_algorithm,
