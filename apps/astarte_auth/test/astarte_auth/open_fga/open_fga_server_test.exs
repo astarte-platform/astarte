@@ -21,9 +21,10 @@ defmodule Astarte.Auth.OpenFGA.ServerTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  import Astarte.Auth.Helpers.OpenFGA
+
   alias Astarte.Auth.Config
   alias Astarte.Auth.OpenFGA
-  alias Astarte.Auth.OpenFGA.Client
 
   @model %{
     schema_version: "1.1",
@@ -41,12 +42,8 @@ defmodule Astarte.Auth.OpenFGA.ServerTest do
 
   setup_all do
     store_id = create_store!(unique_store_name())
-
-    post!("/stores/#{store_id}/authorization-models", @model)
-
-    post!("/stores/#{store_id}/write", %{
-      writes: %{tuple_keys: [%{user: "user:alice", relation: "viewer", object: "realm:test"}]}
-    })
+    write_model!(store_id, @model)
+    write_tuples!(store_id, [%{user: "user:alice", relation: "viewer", object: "realm:test"}])
 
     %{store_id: store_id}
   end
@@ -92,23 +89,5 @@ defmodule Astarte.Auth.OpenFGA.ServerTest do
 
       assert OpenFGA.fetch_store_id(store_name) == {:error, :ambiguous}
     end
-  end
-
-  defp unique_store_name do
-    "astarte_auth_test_" <> Base.encode16(:crypto.strong_rand_bytes(6), case: :lower)
-  end
-
-  defp create_store!(store_name) do
-    %{"id" => store_id} = post!("/stores", %{name: store_name})
-    on_exit(fn -> Client.delete!("/stores/#{store_id}") end)
-    store_id
-  end
-
-  defp post!(url, body) do
-    %HTTPoison.Response{status_code: status, body: resp_body} =
-      Client.post!(url, Jason.encode!(body), [{"Content-Type", "application/json"}])
-
-    assert status in 200..299, "OpenFGA returned #{status}: #{resp_body}"
-    Jason.decode!(resp_body)
   end
 end

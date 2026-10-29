@@ -29,6 +29,7 @@ defmodule Astarte.Auth.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.20",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       dialyzer: [plt_add_apps: [:ex_unit]],
@@ -36,6 +37,9 @@ defmodule Astarte.Auth.MixProject do
       description: "Shared authentication and authorization code for Astarte services"
     ]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do

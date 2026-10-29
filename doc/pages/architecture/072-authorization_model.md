@@ -248,6 +248,11 @@ The authorization model is kept in the repository, at
 `apps/astarte_auth/priv/authorization_model.fga`, and applied to the OpenFGA store by the
 initialization container, so that it is reviewed like code.
 
+Next to it, `authorization_model.json` holds the same model in the JSON shape OpenFGA's API takes,
+which the `astarte_auth` tests load to check what the model allows. It is generated, and CI fails
+when it falls behind the `.fga`; regenerate it from `apps/astarte_auth` with
+`fga model transform --file priv/authorization_model.fga > priv/authorization_model.json`.
+
 ```text
 model
   schema 1.1
