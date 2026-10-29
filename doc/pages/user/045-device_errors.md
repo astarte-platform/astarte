@@ -29,7 +29,9 @@ interface with the same name and version but different contents.
 
 The target interface was not found in the database. Usually this means the interface is not
 installed in the realm, but the error can also derive from the database being temporarily
-unavailable.
+unavailable. During `/emptyCache` property resends, the device-error event includes `interface` and
+`interface_major_version` metadata for the affected introspected interface. The major version is
+reported because that is the version used to load the interface.
 
 ## `ambiguous_path`
 
