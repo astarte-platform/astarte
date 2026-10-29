@@ -425,23 +425,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
     Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, major_version},
                                                               {:ok, state_acc} ->
-      maybe_descriptor = Map.get(state_acc.interfaces, interface)
-
       with {:ok, interface_descriptor, new_state} <-
-             Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state_acc),
+             maybe_load_interface(state_acc, interface, major_version),
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
         {:cont, {:ok, new_state}}
       else
-        {:error, :interface_loading_failed} ->
+        {:error, {:interface_loading_failed, _, _}} = error ->
           Logger.warning(
             "Error while sending properties to device: #{inspect(:interface_loading_failed)} on interface #{interface}"
           )
 
-          minor_version = interface_minor_version(state_acc, interface)
-
-          {:halt,
-           {:error,
-            {:interface_loading_failed, interface, major_version, minor_version}}}
+          {:halt, error}
 
         {:error, reason} = error ->
           Logger.warning(
@@ -453,10 +447,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     end)
   end
 
-  defp interface_minor_version(state, interface) do
-    case Queries.fetch_device_introspection_minors(state.realm, state.device_id) do
-      {:ok, minors} when is_map(minors) -> Map.get(minors, interface)
-      _ -> nil
+  defp maybe_load_interface(state, interface, major_version) do
+    maybe_descriptor = Map.get(state.interfaces, interface)
+
+    case Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state) do
+      {:ok, interface_descriptor, new_state} ->
+        {:ok, interface_descriptor, new_state}
+
+      {:error, :interface_loading_failed} ->
+        {:error, {:interface_loading_failed, interface, major_version}}
     end
   end
 

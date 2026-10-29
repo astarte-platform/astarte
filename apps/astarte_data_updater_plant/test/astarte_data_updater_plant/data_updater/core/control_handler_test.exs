@@ -280,11 +280,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       interface_name = "com.example.Interface"
       major_version = 1
-      minor_version = 2
-
       expect(Core.Device, :resend_all_properties, fn _state ->
-        {:error,
-         {:interface_loading_failed, interface_name, major_version, minor_version}}
+        {:error, {:interface_loading_failed, interface_name, major_version}}
       end)
 
       expect(Core.Device, :ask_clean_session, fn _state, _timestamp -> {:ok, state} end)
@@ -295,7 +292,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                                                               _ts ->
         assert metadata == %{
                  "interface" => interface_name,
-                 "interface_version" => "1.2"
+                 "interface_major_version" => "1"
                }
 
         :ok
