@@ -18,15 +18,13 @@
 
 defmodule Astarte.Pairing.Cases.OwnerKeys do
   @moduledoc """
-  Gives the test module a realm holding a fixed set of owner keys, shared by
-  all of its tests: two ES256 keys and one ES384 key.
+  Gives the realm of `Astarte.Pairing.Cases.Data`, which the test module must
+  also use, a fixed set of owner keys shared by all of its tests: two ES256
+  keys and one ES384 key.
 
-  Owner keys live in OpenBao only, namespaced by realm, so each module gets a
-  realm of its own and can stay async.
-
-  The context holds `:realm`, `:resolution` (an Absinthe resolution for the
-  realm), `:namespace` (the ES256 keys' namespace) and `:expected_owner_keys`
-  (the realm's key names, grouped by key algorithm).
+  The context holds `:resolution` (an Absinthe resolution for the realm),
+  `:namespace` (the ES256 keys' namespace) and `:expected_owner_keys` (the
+  realm's key names, grouped by key algorithm).
   """
 
   use ExUnit.CaseTemplate
@@ -35,8 +33,7 @@ defmodule Astarte.Pairing.Cases.OwnerKeys do
 
   alias Astarte.Secrets
 
-  setup_all do
-    realm = "ownerkeys#{System.unique_integer([:positive])}"
+  setup_all %{realm_name: realm} do
     {:ok, es256} = Secrets.create_fdo_namespace(realm, :es256)
     {:ok, es384} = Secrets.create_fdo_namespace(realm, :es384)
 
@@ -47,7 +44,6 @@ defmodule Astarte.Pairing.Cases.OwnerKeys do
     on_exit(fn -> Enum.each([es256, es384], &delete_owner_keys/1) end)
 
     %{
-      realm: realm,
       resolution: %{context: %{realm_name: realm}},
       namespace: es256,
       expected_owner_keys: %{

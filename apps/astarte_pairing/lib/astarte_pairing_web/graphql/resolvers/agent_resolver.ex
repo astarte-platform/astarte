@@ -5,6 +5,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver do
 
   alias Astarte.Pairing.Agent
   alias Astarte.Pairing.Agent.DeviceRegistrationResponse
+  alias Astarte.PairingWeb.GraphQL.Resolvers.Introspection
 
   @doc """
   Registers a new device and returns the credentials_secret.
@@ -16,7 +17,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver do
     params =
       args
       |> Map.take([:hw_id, :initial_introspection])
-      |> Map.update(:initial_introspection, %{}, &introspection_map/1)
+      |> Map.update(:initial_introspection, %{}, &Introspection.to_map/1)
 
     with {:ok, %DeviceRegistrationResponse{} = response} <- Agent.register_device(realm, params) do
       {:ok, %{credentials_secret: response.credentials_secret}}
@@ -33,16 +34,5 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.AgentResolver do
     with :ok <- Agent.unregister_device(realm, hw_id) do
       {:ok, "Device unregistered successfully"}
     end
-  end
-
-  # GraphQL has no maps with arbitrary keys, so the introspection comes in as a
-  # list of entries; DeviceRegistrationRequest takes the REST API's map shape.
-  # Absinthe has already checked each entry against :introspection_entry_input.
-  defp introspection_map(nil), do: %{}
-
-  defp introspection_map(entries) do
-    Map.new(entries, fn %{interface: interface, major_version: major, minor_version: minor} ->
-      {interface, %{"major" => major, "minor" => minor}}
-    end)
   end
 end

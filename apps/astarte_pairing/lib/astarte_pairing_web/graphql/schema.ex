@@ -117,6 +117,12 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
 
     @desc "Register a device ownership voucher"
     field :register_ownership_voucher, :register_ownership_voucher_response do
+      arg :hw_id, non_null(:string),
+        description: "The Device ID to register the voucher's device as"
+
+      @desc "Optional initial introspection for the voucher's device"
+      arg :initial_introspection, list_of(non_null(:introspection_entry_input))
+
       arg :ownership_voucher, non_null(:string)
       arg :key_name, non_null(:string)
       arg :key_algorithm, non_null(:key_algorithm)
