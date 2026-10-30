@@ -23,14 +23,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   use Astarte.DataUpdaterPlant.Cases.Device
   use Astarte.DataUpdaterPlant.Cases.DataUpdater
   use ExUnitProperties
+  use Mimic
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Data
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataUpdaterPlant.DataQueryHelper
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
   alias Astarte.Secrets
   alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.Secrets.EncryptedMessages
@@ -436,6 +439,179 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
     end
   end
 
+  describe "property previous value retrieved from db" do
+    setup %{interfaces: interfaces} do
+      device_property_interface =
+        Enum.find(interfaces, &(&1.type == :properties and &1.ownership == :device))
+
+      encrypted_device_property_interface =
+        Enum.find(interfaces, &(&1.name == "test.EncryptedPropertiesInterface"))
+
+      %{
+        interface: device_property_interface,
+        encrypted_interface: encrypted_device_property_interface
+      }
+    end
+
+    test "matches incoming property value when stored non-encrypted", context do
+      %{
+        state: state,
+        interface: device_property_interface,
+        timestamp: timestamp,
+        start: start
+      } = context
+
+      %{
+        interface: interface_name,
+        path: path,
+        payload_value: property_value,
+        payload: payload
+      } = gen_context(state, device_property_interface) |> Enum.at(0)
+
+      # previous property value retrieved from db matches the incoming value
+      expect(Data, :fetch_property, fn _, _, _, _, _ -> {:ok, {property_value, nil}} end)
+
+      expect(Trigger, :execute_post_change_triggers, fn trigger_context ->
+        assert trigger_context.value == trigger_context.previous_value
+        :ok
+      end)
+
+      DataHandler.handle_data(state, interface_name, path, payload, timestamp, start)
+    end
+
+    test "is treated as nil when property is unset", context do
+      %{
+        state: state,
+        interface: device_property_interface,
+        timestamp: timestamp,
+        start: start
+      } = context
+
+      %{
+        interface: interface_name,
+        path: path,
+        payload: payload
+      } = gen_context(state, device_property_interface) |> Enum.at(0)
+
+      # property was previously unset
+      expect(Data, :fetch_property, fn _, _, _, _, _ -> {:error, :property_not_set} end)
+
+      expect(Trigger, :execute_post_change_triggers, fn trigger_context ->
+        assert trigger_context.previous_value == nil
+        :ok
+      end)
+
+      DataHandler.handle_data(state, interface_name, path, payload, timestamp, start)
+    end
+
+    test "matches incoming property value when stored encrypted", context do
+      %{
+        state: state,
+        encrypted_interface: device_property_interface,
+        timestamp: timestamp,
+        start: start,
+        current_dek: dek
+      } = context
+
+      shared_key = state.shared_secret
+
+      %{
+        interface: interface_name,
+        path: path,
+        payload_value: property_value,
+        payload: payload
+      } = gen_context(state, device_property_interface) |> Enum.at(0)
+
+      # simulate storage of previous property value encrypted
+      {:ok, encrypted_stored_property_value} =
+        :erlang.term_to_binary(property_value) |> Secrets.encrypt_with_dek(dek.plaintext)
+
+      # mimic retrieval of encrypted property along with DEK used to encrypt it (wrapped with KEK)
+      expect(Data, :fetch_property, fn _, _, _, _, _ ->
+        {:ok, {encrypted_stored_property_value, dek.ciphertext}}
+      end)
+
+      expect(Trigger, :execute_post_change_triggers, fn trigger_context ->
+        assert trigger_context.previous_value == property_value
+        assert trigger_context.value == trigger_context.previous_value
+        :ok
+      end)
+
+      encrypted_payload = payload |> EncryptedMessages.encrypt(shared_key)
+
+      DataHandler.handle_data(state, interface_name, path, encrypted_payload, timestamp, start)
+    end
+
+    test "detects change when incoming value differs from stored encrypted value", context do
+      %{
+        state: state,
+        encrypted_interface: device_property_interface,
+        timestamp: timestamp,
+        start: start,
+        current_dek: dek
+      } = context
+
+      shared_key = state.shared_secret
+
+      %{
+        interface: interface_name,
+        path: path,
+        payload: payload
+      } = gen_context(state, device_property_interface) |> Enum.at(0)
+
+      # mimic storage of previous property value encrypted (but different from the incoming value)
+      stored_property_value = :crypto.strong_rand_bytes(16)
+
+      {:ok, encrypted_stored_property_value} =
+        :erlang.term_to_binary(stored_property_value) |> Secrets.encrypt_with_dek(dek.plaintext)
+
+      expect(Data, :fetch_property, fn _, _, _, _, _ ->
+        {:ok, {encrypted_stored_property_value, dek.ciphertext}}
+      end)
+
+      expect(Trigger, :execute_post_change_triggers, fn trigger_context ->
+        assert trigger_context.previous_value == stored_property_value
+        assert trigger_context.value != trigger_context.previous_value
+        :ok
+      end)
+
+      encrypted_payload = payload |> EncryptedMessages.encrypt(shared_key)
+
+      DataHandler.handle_data(state, interface_name, path, encrypted_payload, timestamp, start)
+    end
+
+    test "is treated as nil when retrieved encrypted but its DEK could not be found", context do
+      %{
+        state: state,
+        encrypted_interface: device_property_interface,
+        timestamp: timestamp,
+        start: start
+      } = context
+
+      shared_key = state.shared_secret
+
+      %{
+        interface: interface_name,
+        path: path,
+        payload: payload
+      } = gen_context(state, device_property_interface) |> Enum.at(0)
+
+      # previous property value is set (encrypted), but its DEK is absent
+      expect(Data, :fetch_property, fn _, _, _, _, _ ->
+        {:ok, {:crypto.strong_rand_bytes(16), nil}}
+      end)
+
+      expect(Trigger, :execute_post_change_triggers, fn trigger_context ->
+        assert trigger_context.previous_value == nil
+        :ok
+      end)
+
+      encrypted_payload = payload |> EncryptedMessages.encrypt(shared_key)
+
+      DataHandler.handle_data(state, interface_name, path, encrypted_payload, timestamp, start)
+    end
+  end
+
   defp gen_context(state, interface) do
     gen all update <- valid_complete_mapping_update_for(interface),
             timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
@@ -450,6 +626,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
         state: state,
         interface: interface.name,
         path: update.path,
+        payload_value: update.value,
         payload: payload
       }
     end

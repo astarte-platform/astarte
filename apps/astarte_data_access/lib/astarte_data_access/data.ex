@@ -39,7 +39,7 @@ defmodule Astarte.DataAccess.Data do
           InterfaceDescriptor.t(),
           Mapping.t(),
           String.t()
-        ) :: {:ok, any} | {:error, atom}
+        ) :: {:ok, {any(), binary() | nil}} | {:error, atom()}
   def fetch_property(
         realm,
         device_id,
@@ -52,9 +52,15 @@ defmodule Astarte.DataAccess.Data do
     keyspace = Realm.keyspace_name(realm)
 
     value_column =
-      mapping.value_type
-      |> CQLUtils.type_to_db_column_name()
-      |> String.to_atom()
+      case mapping.encrypted do
+        true ->
+          :encryptedblob_value
+
+        _ ->
+          mapping.value_type
+          |> CQLUtils.type_to_db_column_name()
+          |> String.to_atom()
+      end
 
     device_id = UUID.cast!(device_id)
     interface_id = UUID.cast!(interface_descriptor.interface_id)
@@ -65,11 +71,15 @@ defmodule Astarte.DataAccess.Data do
     query =
       from s in interface_descriptor.storage,
         prefix: ^keyspace,
-        select: field(s, ^value_column)
+        select: {field(s, ^value_column), s.encrypted_dek}
 
     consistency = Consistency.device_info(:read)
 
-    Repo.fetch_by(query, fetch_clause, consistency: consistency, error: :property_not_set)
+    case Repo.fetch_by(query, fetch_clause, consistency: consistency) do
+      {:ok, {nil, _}} -> {:error, :property_not_set}
+      {:ok, result} -> {:ok, result}
+      {:error, :not_found} -> {:error, :property_not_set}
+    end
   end
 
   @spec path_exists?(

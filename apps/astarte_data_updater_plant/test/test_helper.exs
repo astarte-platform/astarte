@@ -19,6 +19,7 @@
 Mimic.copy(AMQP.Channel)
 Mimic.copy(Astarte.Core.Mapping.ValueType)
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Data)
 Mimic.copy(Astarte.DataAccess.Health)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Device)
