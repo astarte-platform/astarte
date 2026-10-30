@@ -19,7 +19,7 @@
 defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   @moduledoc """
   Absinthe middleware that authorizes GraphQL field resolution against
-  OpenFGA, unless authentication is disabled.
+  OpenFGA.
 
   It reads the identity and the realm from the Absinthe context built by
   `Astarte.Auth.GraphQL.Plug.Context`, and checks `relation` on the object
@@ -35,9 +35,9 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   `target` accepts:
 
   - `:realm` - checks against `realm:<realm from the context>`.
-  - `:device` - checks against `device:<the field's `hw_id` argument>`.
-  - `{type, arg}` - checks against `<type>:<the field's `arg` argument>`, for
-    any other object type in the authorization model, e.g.
+  - `:device` - checks against `device:<realm>/<the field's `hw_id` argument>`.
+  - `{type, arg}` - checks against `<type>:<realm>/<the field's `arg` argument>`,
+    for any other object type in the authorization model, e.g.
     `{:interface, :interface_name}`.
 
   Authorization fails closed: a field whose object cannot be identified (the
@@ -53,84 +53,65 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
 
   @impl Absinthe.Middleware
   def call(resolution, opts) do
-    if authentication_disabled?(resolution.context) do
-      resolution
-    else
-      do_authorize(resolution, opts)
+    relation = Keyword.fetch!(opts, :relation)
+    target = Keyword.fetch!(opts, :target)
+
+    case authorize(resolution, relation, target) do
+      :ok -> resolution
+      {:error, message} -> Absinthe.Resolution.put_result(resolution, {:error, message})
     end
   end
 
-  defp do_authorize(resolution, opts) do
+  defp authorize(resolution, relation, target) do
     context = resolution.context
-
-    relation = Keyword.fetch!(opts, :relation)
-    target = Keyword.fetch!(opts, :target)
 
     with {:ok, user_id} <- user_id(context),
          {:ok, realm_name} <- realm_name(context),
          {:ok, object} <- object(target, realm_name, resolution.arguments) do
-      Logger.debug("Authorizing user #{inspect(user_id)} for #{relation} on #{object}")
+      user = "user:#{realm_name}/#{user_id}"
+      Logger.debug("Authorizing #{user} for #{relation} on #{object}")
 
-      contextual_tuples = build_contextual_tuples(context, user_id, realm_name)
-
-      "user:#{user_id}"
-      |> OpenFGA.check(relation, object, contextual_tuples)
-      |> handle_check_result(resolution)
-    else
-      {:error, message} -> unauthorized(resolution, message)
+      user
+      |> OpenFGA.check(relation, object, contextual_tuples(context, user, realm_name, object))
+      |> check_result()
     end
   end
 
-  defp build_contextual_tuples(context, user_id, realm_name) do
-    # Estraiamo i ruoli dall'utente corrente nel context.
-    # Assumiamo che AuthGuardian o il mapping del JWT abbiano salvato un campo :roles
-    # come lista di stringhe: es. ["admin", "user"]
-    Enum.map(get_roles(context), fn role ->
-      %{
-        user: "user:#{user_id}",
-        relation: role,
-        object: "realm:#{realm_name}"
-      }
-    end)
+  defp contextual_tuples(context, user, realm_name, object) do
+    realm = "realm:#{realm_name}"
+    role_tuple = %{user: user, object: realm}
+
+    role_tuples =
+      context
+      |> get_roles()
+      |> Enum.map(&Map.put(role_tuple, :relation, &1))
+
+    if object == realm,
+      do: role_tuples,
+      else: role_tuples ++ [%{user: realm, relation: "realm", object: object}]
   end
 
   defp get_roles(context) do
     case Map.get(context, :current_user) do
       %{roles: roles} when is_list(roles) -> roles
-      %{"roles" => roles} when is_list(roles) -> roles
       _ -> []
     end
   end
 
-  defp handle_check_result(:ok, resolution), do: resolution
+  defp check_result(:ok), do: :ok
 
-  defp handle_check_result({:error, :forbidden}, resolution),
-    do: unauthorized(resolution, "Forbidden: OpenFGA denied access for this action")
+  defp check_result({:error, :forbidden}),
+    do: {:error, "Forbidden: OpenFGA denied access for this action"}
 
-  defp handle_check_result({:error, :store_not_configured}, resolution),
-    do: unauthorized(resolution, "Authorization unavailable: OpenFGA store not configured")
-
-  defp handle_check_result({:error, reason}, resolution) do
+  defp check_result({:error, reason}) do
     Logger.error("OpenFGA check failed: #{inspect(reason)}")
-    unauthorized(resolution, "Internal Server Error during authorization")
+    {:error, "Internal Server Error during authorization"}
   end
 
-  defp unauthorized(resolution, message),
-    do: Absinthe.Resolution.put_result(resolution, {:error, message})
-
-  # The context is built by Astarte.Auth.GraphQL.Plug.Context, which only sets
-  # this once it has read the service's own configuration. A context without it
-  # is one we didn't build, so enforce authorization rather than skip it.
-  defp authentication_disabled?(context),
-    do: Map.get(context, :authentication_disabled?, false)
-
-  # current_user is either the user struct Guardian loaded, or the raw JWT
-  # claims if it didn't. Anything else is rejected instead of guessing an
-  # identity.
+  # current_user is nil when there was no valid token
   defp user_id(context) do
     case Map.get(context, :current_user) do
       %{id: id} when not is_nil(id) -> {:ok, id}
-      %{"sub" => sub} when not is_nil(sub) -> {:ok, sub}
       _ -> {:error, "Unauthorized: Missing valid user session"}
     end
   end
@@ -149,15 +130,15 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   defp object(:device, realm_name, arguments),
     do: object({:device, :hw_id}, realm_name, arguments)
 
-  defp object({type, arg}, _realm_name, arguments) do
-    case Map.get(arguments, arg) do
-      nil ->
+  defp object({type, arg}, realm_name, arguments) do
+    case Map.fetch(arguments, arg) do
+      {:ok, id} when not is_nil(id) ->
+        {:ok, "#{type}:#{realm_name}/#{id}"}
+
+      _ ->
         Logger.warning("AuthorizeFGA: a #{inspect(type)}-target field was called without #{arg}")
 
         {:error, "Forbidden: OpenFGA denied access for this action"}
-
-      id ->
-        {:ok, "#{type}:#{id}"}
     end
   end
 end
