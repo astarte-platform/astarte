@@ -23,6 +23,10 @@ defmodule Astarte.Pairing.Helpers.FDO do
 
   import StreamData
 
+  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
@@ -30,6 +34,8 @@ defmodule Astarte.Pairing.Helpers.FDO do
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
   alias Astarte.FDO.Core.PublicKey
+  alias Astarte.Pairing.Helpers.Database
+  alias Astarte.Secrets
   alias COSE.Keys.ECC
   alias COSE.Messages.Sign1
 
@@ -145,6 +151,71 @@ defmodule Astarte.Pairing.Helpers.FDO do
       }
     ]
   }
+
+  # voucher signed for registrable_voucher_owner_key_pem/0
+  @registrable_voucher_owner_key_pem """
+  -----BEGIN EC PRIVATE KEY-----
+  MHcCAQEEIPKdthyV+2F5gPIqHyiQ9Wi1Y01r66/BbvnILFWehTRToAoGCCqGSM49
+  AwEHoUQDQgAEGwrCWU3M3/Cxk0jMB4TmyQEaXLp+tqX42GsmeZ+7jeEWjHLFmEYH
+  LC/GgcMr88CXA3/i64k0iiIMRRQ3osnV/A==
+  -----END EC PRIVATE KEY-----
+  """
+
+  @registrable_voucher_pem """
+  -----BEGIN OWNERSHIP VOUCHER-----
+  hRhlWL6GGGVQsfHY8DqfTPi0ayOpTPxm54GEggNDGR+SggJFRH8AAAGCBEMZH5KC
+  DEEBa3AyNTYtZGV2aWNlgwoBWFswWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQb
+  CsJZTczf8LGTSMwHhObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcD
+  f+LriTSKIgxFFDeiydX8gi9YINH8REeqEOOpCpH9Arx8yt1/2ZKICO5s8mo4AW2h
+  Gfz2ggVYIENgeEjaDkp0mbAiC/jro5IUx9j0jtTEUNLm8M74YleDgVkBHjCCARow
+  gcGgAwIBAgIDAeJAMAoGCCqGSM49BAMCMBYxFDASBgNVBAMMC1Rlc3QgRGV2aWNl
+  MB4XDTI0MDEwMTAwMDAwMFoXDTM0MDEwMTAwMDAwMFowFjEUMBIGA1UEAwwLVGVz
+  dCBEZXZpY2UwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQbCsJZTczf8LGTSMwH
+  hObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcDf+LriTSKIgxFFDei
+  ydX8MAoGCCqGSM49BAMCA0gAMEUCIF+IuxL2kt310Im+OjbA/lNNG73qUX1CH22i
+  5/WGPHz8AiEAuzPBY60mRQHyetxjA4Lx+Wkdm7NWWxzdfv+6uDhVhOiB0oRDoQEm
+  oFichIIvWCBSpkHIqibg9oEqb9tnSTB0ABsn9mji099pWZIcvH0WdoIvWCCLI3XG
+  98ZneM2FDlIJC7dH8MZSxltPfu4TkN7z6GIo1vaDCgNYTaUieCAWjHLFmEYHLC/G
+  gcMr88CXA3/i64k0iiIMRRQ3osnV/CF4IBsKwllNzN/wsZNIzAeE5skBGly6fral
+  +NhrJnmfu43hIAEBAgMmWEChODtvywnaQNZqZtAi+ukIDh06ZQxYk/BZ72qtX4Qt
+  KgRKDMZ26gaTvdOSYOiWl+hL0gCbdyhXp5dySgYsHYEn
+  -----END OWNERSHIP VOUCHER-----
+  """
+
+  @registrable_voucher_guid "b1f1d8f0-3a9f-4cf8-b46b-23a94cfc66e7"
+
+  def registrable_voucher_owner_key_pem, do: @registrable_voucher_owner_key_pem
+  def registrable_voucher_pem, do: @registrable_voucher_pem
+  def registrable_voucher_guid, do: @registrable_voucher_guid
+
+  @doc """
+  Deletes every owner key in a secrets store namespace.
+  """
+  def delete_owner_keys(namespace) do
+    {:ok, key_names} = Secrets.list_keys_names(namespace: namespace)
+
+    Enum.each(key_names, &delete_owner_key(&1, namespace))
+  end
+
+  @doc """
+  Deletes one owner key from a secrets store namespace.
+  """
+  def delete_owner_key(key_name, namespace) do
+    Secrets.enable_key_deletion(key_name, namespace: namespace)
+    Secrets.delete_key(key_name, namespace: namespace)
+  end
+
+  @doc """
+  Removes the registrable voucher, and the device it registered as
+  `device_id`, when the test exits.
+  """
+  def cleanup_registrable_voucher_on_exit(astarte_instance_id, realm_name, device_id) do
+    ExUnit.Callbacks.on_exit(fn ->
+      Database.setup_database_access(astarte_instance_id)
+      Repo.delete(%DeviceStruct{device_id: device_id}, prefix: Realm.keyspace_name(realm_name))
+      Queries.delete_ownership_voucher(UUID.string_to_binary!(@registrable_voucher_guid))
+    end)
+  end
 
   def sample_voucher, do: @sample_voucher
   def sample_cbor_voucher, do: @sample_request_rc.cbor_ownership_voucher

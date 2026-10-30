@@ -21,7 +21,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use OpenApiSpex.ControllerSpecs
 
   alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDOOperations
+  alias Astarte.Pairing.FDO
   alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher, as: OVApiSpec
   alias Astarte.PairingWeb.OwnershipVoucherView
@@ -213,7 +213,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   Returns `200 OK` with the owner public key PEM on success.
   """
   def register(conn, %{"data" => data, "realm_name" => realm_name}) do
-    with {:ok, resp} <- FDOOperations.register_ownership_voucher(data, realm_name) do
+    with {:ok, resp} <- FDO.OwnershipVoucher.register(data, realm_name) do
       json(conn, %{
         data: %{
           public_key: resp.public_key,
