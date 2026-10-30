@@ -1,14 +1,14 @@
 # Tests for the Astarte authorization model. Run them with:
 #
-#   ./astarte-fga.sh test
+#   fga model test --allow-external-files --tests test/authorization_model.fga.yaml
 #
 # They evaluate the model offline (no OpenFGA server and no Astarte cluster
 # needed), so they assert what the model *means*, which is the part most likely
-# to be wrong.
+# to be wrong. CI runs them in the authorization_model job.
 
 name: Astarte authorization model
 
-model_file: ./authorization_model.fga
+model_file: ../priv/authorization_model.fga
 
 tuples:
   # --- the cluster and two realms ----------------------------------------

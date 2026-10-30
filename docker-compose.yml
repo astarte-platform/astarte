@@ -77,10 +77,6 @@ services:
       context: .
       args:
         SERVICE: astarte_pairing
-    command: >
-      /bin/sh -c ". /shared/openfga.env && ./bin/astarte_pairing start"
-    volumes:
-      - openfga-shared:/shared:ro,z
     env_file:
       - ./.env
     environment:
@@ -92,10 +88,6 @@ services:
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
       ASTARTE_VAULT_URL: "http://openbao:8200"
-      # OpenFGA is a single cluster-wide service, configured through
-      # astarte_auth. ASTARTE_OPENFGA_STORE_ID is provisioned by
-      # the OpenFGA init container.
-      ASTARTE_OPENFGA_URL: "http://openfga:8080"
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:
@@ -319,16 +311,29 @@ services:
       - OPENFGA_DATASTORE_ENGINE=memory
       - OPENFGA_PLAYGROUND_ENABLED=true
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=openfga:8081"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   openfga-init:
-    image: alpine:latest
+    # the fga CLI image has no shell
+    build:
+      dockerfile_inline: |
+        FROM openfga/cli:v0.8.2 AS fga
+        FROM alpine:3
+        RUN apk add --no-cache jq
+        COPY --from=fga /fga /usr/local/bin/fga
     depends_on:
-      - openfga
+      openfga:
+        condition: service_healthy
+    env_file:
+      - ./.env
     volumes:
       - ./compose/openfga-init:/openfga-init:ro,z
-      - openfga-shared:/shared:z
-    command: >
-      /bin/sh -c "apk add --no-cache curl jq && /openfga-init/init.sh"
+      - ./apps/astarte_auth/priv/authorization_model.fga:/model/authorization_model.fga:ro,z
+    command: /openfga-init/init.sh
 
   # RabbitMQ
   rabbitmq:
@@ -412,7 +417,6 @@ volumes:
   vernemq-data:
   cfssl-data:
   fdo-rendezvous-data:
-  openfga-shared:
 
 networks:
   default:

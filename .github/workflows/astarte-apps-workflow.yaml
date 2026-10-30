@@ -99,6 +99,16 @@ jobs:
           MIX_HOME: ${{ runner.temp }}/.mix
         working-directory: .
 
+  authorization_model:
+    name: Authorization model tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - run: >
+          docker run --rm -v "$PWD/apps/astarte_auth:/astarte_auth:ro"
+          openfga/cli:v0.8.2 model test --allow-external-files
+          --tests /astarte_auth/test/authorization_model.fga.yaml
+
   astarte_appengine_api:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
     with:
