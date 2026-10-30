@@ -44,6 +44,8 @@ defmodule Astarte.PairingWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
+      # GraphQL is not part of the OpenAPI spec.
+      |> Enum.reject(&(&1.plug in [Absinthe.Plug, Absinthe.Plug.GraphiQL]))
       |> MapSet.new(&normalize_route/1)
 
     actual_operations =

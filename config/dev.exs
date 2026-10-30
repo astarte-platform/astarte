@@ -52,3 +52,6 @@ cassandra_port =
 
 config :astarte_data_access,
   xandra_nodes: "#{cassandra_host}:#{cassandra_port}"
+
+config :astarte_auth, :openfga, url: "http://localhost:8081"
+config :astarte_auth, :openfga_store_id, "STORE_TEST_12345"

@@ -19,6 +19,8 @@
 defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
 
+  alias Astarte.Auth.GraphQL.Plug.Context
+
   pipeline :realm_api do
     plug :accepts, ["json"]
     plug Astarte.PairingWeb.Plug.LogRealm
@@ -31,6 +33,24 @@ defmodule Astarte.PairingWeb.Router do
 
   pipeline :devices_api do
     plug Astarte.PairingWeb.Plug.LogHwId
+  end
+
+  # auth errors don't halt, the resolvers report them
+  pipeline :graphql do
+    plug Guardian.Plug.Pipeline,
+      otp_app: :astarte_pairing,
+      module: Astarte.PairingWeb.AuthGuardian,
+      error_handler: Context.ErrorHandler
+
+    plug Astarte.PairingWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Context
+  end
+
+  # no :accepts, clients may ask for application/graphql-response+json
+  pipeline :graphql_realm do
+    plug :put_format, "json"
+    plug Astarte.PairingWeb.Plug.VerifyRealmExists
   end
 
   pipeline :fdo do
@@ -103,6 +123,21 @@ defmodule Astarte.PairingWeb.Router do
       delete "/ownership_vouchers/:guid", OwnershipVoucherController, :delete_ownership_voucher
       post "/ownership_vouchers/:guid/to0", OwnershipVoucherController, :run_to0
     end
+  end
+
+  scope "/v1/graphql" do
+    pipe_through [:graphql_realm, :graphql]
+
+    forward "/", Absinthe.Plug, schema: Astarte.PairingWeb.GraphQL.Schema
+  end
+
+  # the playground has no astarte-realm header
+  scope "/v1" do
+    pipe_through [:graphql]
+
+    forward "/graphiql", Absinthe.Plug.GraphiQL,
+      schema: Astarte.PairingWeb.GraphQL.Schema,
+      interface: :playground
   end
 
   scope "/version", Astarte.PairingWeb do

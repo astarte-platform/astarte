@@ -21,6 +21,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
   This is a wrapper around `Guardian.Plug.VerifyHeader` that allows to recover
   the JWT public key dynamically using information contained in the connection
   """
+  alias Astarte.Core.Realm
   alias Astarte.Pairing.Auth
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
   alias JOSE.JWK
@@ -45,7 +46,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
   end
 
   defp get_secrets(conn) do
-    with %{"realm_name" => realm} <- conn.path_params,
+    with {:ok, realm} <- fetch_realm_name(conn),
          {:ok, [_pem | _] = public_key_pems} <- Auth.get_public_keys(realm) do
       for public_key_pem <- public_key_pems do
         JWK.from_pem(public_key_pem)
@@ -58,6 +59,16 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
           )
 
         []
+    end
+  end
+
+  # GraphQL requests have the realm in the astarte-realm header
+  defp fetch_realm_name(conn) do
+    with :error <- Map.fetch(conn.path_params, "realm_name") do
+      case Plug.Conn.get_req_header(conn, "astarte-realm") do
+        [realm | _] -> if Realm.valid_name?(realm), do: {:ok, realm}, else: :error
+        [] -> :error
+      end
     end
   end
 end

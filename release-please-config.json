@@ -19,6 +19,7 @@
         { "type": "generic", "path": "apps/astarte_realm_management/mix.exs" },
         { "type": "generic", "path": "apps/astarte_trigger_engine/mix.exs" },
         { "type": "generic", "path": "apps/astarte_adapters/mix.exs" },
+        { "type": "generic", "path": "apps/astarte_auth/mix.exs" },
         { "type": "generic", "path": "apps/astarte_config/mix.exs" },
         { "type": "generic", "path": "apps/astarte_core/mix.exs" },
         { "type": "generic", "path": "apps/astarte_data_access/mix.exs" },

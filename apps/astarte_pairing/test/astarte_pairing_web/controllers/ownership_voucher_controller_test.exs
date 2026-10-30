@@ -23,10 +23,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Device, as: DeviceQueries
-  alias Astarte.DataAccess.Devices.Device, as: DeviceStruct
   alias Astarte.DataAccess.FDO.Queries
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.TO0
   alias Astarte.Secrets
@@ -44,36 +41,11 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   @sample_key_name "owner_key"
 
-  @sample_private_key_pem """
-  -----BEGIN EC PRIVATE KEY-----
-  MHcCAQEEIPKdthyV+2F5gPIqHyiQ9Wi1Y01r66/BbvnILFWehTRToAoGCCqGSM49
-  AwEHoUQDQgAEGwrCWU3M3/Cxk0jMB4TmyQEaXLp+tqX42GsmeZ+7jeEWjHLFmEYH
-  LC/GgcMr88CXA3/i64k0iiIMRRQ3osnV/A==
-  -----END EC PRIVATE KEY-----
-  """
+  @sample_private_key_pem registrable_voucher_owner_key_pem()
 
-  @sample_ownership_voucher_pem """
-  -----BEGIN OWNERSHIP VOUCHER-----
-  hRhlWL6GGGVQsfHY8DqfTPi0ayOpTPxm54GEggNDGR+SggJFRH8AAAGCBEMZH5KC
-  DEEBa3AyNTYtZGV2aWNlgwoBWFswWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQb
-  CsJZTczf8LGTSMwHhObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcD
-  f+LriTSKIgxFFDeiydX8gi9YINH8REeqEOOpCpH9Arx8yt1/2ZKICO5s8mo4AW2h
-  Gfz2ggVYIENgeEjaDkp0mbAiC/jro5IUx9j0jtTEUNLm8M74YleDgVkBHjCCARow
-  gcGgAwIBAgIDAeJAMAoGCCqGSM49BAMCMBYxFDASBgNVBAMMC1Rlc3QgRGV2aWNl
-  MB4XDTI0MDEwMTAwMDAwMFoXDTM0MDEwMTAwMDAwMFowFjEUMBIGA1UEAwwLVGVz
-  dCBEZXZpY2UwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQbCsJZTczf8LGTSMwH
-  hObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcDf+LriTSKIgxFFDei
-  ydX8MAoGCCqGSM49BAMCA0gAMEUCIF+IuxL2kt310Im+OjbA/lNNG73qUX1CH22i
-  5/WGPHz8AiEAuzPBY60mRQHyetxjA4Lx+Wkdm7NWWxzdfv+6uDhVhOiB0oRDoQEm
-  oFichIIvWCBSpkHIqibg9oEqb9tnSTB0ABsn9mji099pWZIcvH0WdoIvWCCLI3XG
-  98ZneM2FDlIJC7dH8MZSxltPfu4TkN7z6GIo1vaDCgNYTaUieCAWjHLFmEYHLC/G
-  gcMr88CXA3/i64k0iiIMRRQ3osnV/CF4IBsKwllNzN/wsZNIzAeE5skBGly6fral
-  +NhrJnmfu43hIAEBAgMmWEChODtvywnaQNZqZtAi+ukIDh06ZQxYk/BZ72qtX4Qt
-  KgRKDMZ26gaTvdOSYOiWl+hL0gCbdyhXp5dySgYsHYEn
-  -----END OWNERSHIP VOUCHER-----
-  """
+  @sample_ownership_voucher_pem registrable_voucher_pem()
 
-  @sample_ownership_voucher_guid "b1f1d8f0-3a9f-4cf8-b46b-23a94cfc66e7"
+  @sample_ownership_voucher_guid registrable_voucher_guid()
 
   @sample_load_params %{
     data: %{
@@ -88,22 +60,13 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     realm_name = Map.fetch!(context, :realm_name)
     alg = Map.get(context, :key_algorithm, :es256)
     {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, alg)
-    on_exit(fn -> cleanup_fdo_namespace(namespace) end)
+    on_exit(fn -> delete_owner_keys(namespace) end)
 
     %{namespace: namespace}
   end
 
-  setup context do
-    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} = context
-
-    on_exit(fn ->
-      setup_database_access(astarte_instance_id)
-
-      %DeviceStruct{device_id: @sample_device_id}
-      |> Repo.delete(prefix: Realm.keyspace_name(realm_name))
-
-      Queries.delete_ownership_voucher(@sample_ownership_voucher_guid)
-    end)
+  setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+    cleanup_registrable_voucher_on_exit(astarte_instance_id, realm_name, @sample_device_id)
   end
 
   describe "/fdo/ownership_vouchers" do
@@ -610,14 +573,5 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     %{auth_conn: conn, realm_name: realm_name} = context
     path = ownership_voucher_path(conn, :list_ownership_vouchers, realm_name)
     %{path: path}
-  end
-
-  defp cleanup_fdo_namespace(namespace) do
-    {:ok, keys_to_delete} = Secrets.list_keys_names(namespace: namespace)
-
-    Enum.each(keys_to_delete, fn key ->
-      Secrets.enable_key_deletion(key, namespace: namespace)
-      Secrets.delete_key(key, namespace: namespace)
-    end)
   end
 end
