@@ -22,7 +22,8 @@ defmodule Astarte.TestSuite.Cases.Instance do
   use Astarte.TestSuite.Case,
     name: :instance,
     params: [
-      instance_cluster: [default: :xandra, type: :atom]
+      instance_cluster: [default: :xandra, type: :atom],
+      realm_default_replication: [default: nil, type: :map]
     ]
 
   alias Astarte.TestSuite.Fixtures.Instance, as: InstanceFixtures

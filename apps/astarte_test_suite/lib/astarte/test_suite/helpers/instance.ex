@@ -23,7 +23,9 @@ defmodule Astarte.TestSuite.Helpers.Instance do
   import Astarte.TestSuite.CaseContext, only: [put!: 5, put_fixture: 3]
 
   alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -42,9 +44,11 @@ defmodule Astarte.TestSuite.Helpers.Instance do
   end
 
   def data(%{instance_keyspace: instance_keyspace} = context) do
+    realm_default_replication = Map.get(context, :realm_default_replication)
     statement = create_keyspace_statement(instance_keyspace)
     Repo.query!(statement)
     :ok = Database.migrate()
+    :ok = persist_realm_default_replication(instance_keyspace, realm_default_replication)
 
     on_exit(fn ->
       cleanup_keyspace(instance_keyspace)
@@ -83,6 +87,21 @@ defmodule Astarte.TestSuite.Helpers.Instance do
       durable_writes = true;
     """
     |> String.trim()
+  end
+
+  defp persist_realm_default_replication(_instance_keyspace, nil), do: :ok
+
+  defp persist_realm_default_replication(instance_keyspace, realm_default_replication) do
+    KvStore.insert(
+      %{
+        group: "astarte",
+        key: "db_default_replication",
+        value: :erlang.term_to_binary(realm_default_replication),
+        value_type: :binary
+      },
+      prefix: instance_keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
   end
 
   defp cleanup_keyspace(keyspace) do

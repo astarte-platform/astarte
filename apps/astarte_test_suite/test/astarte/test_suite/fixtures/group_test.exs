@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,15 @@ defmodule Astarte.TestSuite.Fixtures.GroupTest do
 
   alias Astarte.TestSuite.Fixtures.Group, as: GroupFixtures
 
-  test "group fixture sets group flag" do
-    assert context().groups_ready?
+  describe "data/1" do
+    test "sets persistence state for an empty graph" do
+      context = context()
+
+      assert context.groups_ready?
+      assert context.group_database_results == []
+    end
   end
 
-  defp context do
-    {:ok, context} = GroupFixtures.data(%{devices_registered?: true, groups: [%{id: "group1"}]})
-    context
-  end
+  defp context,
+    do: GroupFixtures.data(%{devices: %{}, groups: %{}, interfaces: %{}}) |> elem(1)
 end
