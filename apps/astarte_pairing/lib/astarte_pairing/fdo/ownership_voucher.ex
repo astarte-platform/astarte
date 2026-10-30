@@ -16,10 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDOOperations do
+defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   @moduledoc """
-  Shared business logic for FDO operations, used by both the REST
-  controllers and the GraphQL resolvers.
+  Ownership voucher operations used by both the REST and the GraphQL API.
   """
 
   alias Astarte.FDO.OwnershipVoucher
@@ -32,9 +31,9 @@ defmodule Astarte.Pairing.FDOOperations do
   Validates a voucher registration request, claims ownership on the rendezvous
   server, persists the voucher and registers the device.
   """
-  @spec register_ownership_voucher(map(), String.t()) ::
+  @spec register(map(), String.t()) ::
           {:ok, %{public_key: String.t(), guid: binary()}} | {:error, term()}
-  def register_ownership_voucher(params, realm_name) do
+  def register(params, realm_name) do
     with {:ok, req} <- validate_request(params, realm_name),
          {:ok, expiry} <- claim_on_rendezvous(req),
          :ok <- store_voucher(realm_name, req, expiry),
@@ -86,10 +85,10 @@ defmodule Astarte.Pairing.FDOOperations do
   end
 
   defp log_unfinished_registration(realm_name, req, what, reason) do
-    Logger.error(
-      "Ownership was already claimed on the rendezvous server but #{what}: " <>
-        "realm=#{inspect(realm_name)} guid=#{inspect(req.device_guid)} reason=#{inspect(reason)}. " <>
-        "The voucher is claimed but the registration did not complete."
+    Logger.error("Ownership was already claimed on the rendezvous server but #{what}!",
+      realm: realm_name,
+      fdo_guid: UUID.binary_to_string!(req.device_guid),
+      reason: reason
     )
   end
 end

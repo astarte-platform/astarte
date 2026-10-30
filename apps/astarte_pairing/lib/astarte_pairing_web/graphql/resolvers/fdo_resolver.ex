@@ -23,7 +23,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
   """
 
   alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDOOperations
+  alias Astarte.Pairing.FDO
   alias Astarte.PairingWeb.ChangesetView
   alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets
@@ -109,7 +109,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
     }
 
     params
-    |> FDOOperations.register_ownership_voucher(realm)
+    |> FDO.OwnershipVoucher.register(realm)
     |> handle_register_ownership_voucher()
   end
 

@@ -20,7 +20,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
   use ExUnit.Case
   use Mimic
 
-  alias Astarte.Pairing.FDOOperations
+  alias Astarte.Pairing.FDO
   alias Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver
   alias Astarte.Secrets.Core
   alias Astarte.Secrets.Key
@@ -107,7 +107,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
     test "returns the public key and guid on success" do
       raw_guid = UUID.uuid4(:raw)
 
-      expect(FDOOperations, :register_ownership_voucher, fn _params, "testrealm" ->
+      expect(FDO.OwnershipVoucher, :register, fn _params, "testrealm" ->
         {:ok, %{public_key: "PEM", guid: raw_guid}}
       end)
 
@@ -121,7 +121,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
         |> Ecto.Changeset.change()
         |> Ecto.Changeset.add_error(:key_name, "does not exist in secrets store")
 
-      expect(FDOOperations, :register_ownership_voucher, fn _params, "testrealm" ->
+      expect(FDO.OwnershipVoucher, :register, fn _params, "testrealm" ->
         {:error, changeset}
       end)
 
@@ -130,7 +130,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
     end
 
     test "passes through a non-changeset error unchanged" do
-      expect(FDOOperations, :register_ownership_voucher, fn _params, "testrealm" ->
+      expect(FDO.OwnershipVoucher, :register, fn _params, "testrealm" ->
         {:error, :timeout}
       end)
 
