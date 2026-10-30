@@ -45,7 +45,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
   end
 
   defp get_secrets(conn) do
-    with realm when is_binary(realm) <- realm_name(conn),
+    with {:ok, realm} <- fetch_realm_name(conn),
          {:ok, [_pem | _] = public_key_pems} <- Auth.get_public_keys(realm) do
       for public_key_pem <- public_key_pems do
         JWK.from_pem(public_key_pem)
@@ -61,11 +61,14 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
     end
   end
 
-  # The realm can either come from `conn.assigns` (set by
-  # Astarte.Auth.GraphQL.Plug.Context, which doesn't go through regular
-  # Phoenix routing) or from `conn.path_params` (set by the router for
-  # REST requests).
-  defp realm_name(conn) do
-    conn.assigns[:realm_name] || Map.get(conn.path_params, "realm_name")
+  # REST requests carry the realm in the path, GraphQL requests in the
+  # `astarte-realm` header.
+  defp fetch_realm_name(conn) do
+    with :error <- Map.fetch(conn.path_params, "realm_name") do
+      case Plug.Conn.get_req_header(conn, "astarte-realm") do
+        [realm | _] -> {:ok, realm}
+        [] -> :error
+      end
+    end
   end
 end
