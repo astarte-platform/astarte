@@ -27,10 +27,23 @@ defmodule Astarte.Auth.Config do
 
   use Astarte.Config, env_app: "ASTARTE"
 
-  url_env(:openfga, :astarte_auth, :openfga, default_port: 8080, env_app: "ASTARTE")
+  alias Astarte.Auth.Config.OpenFGAStoreBinding
 
-  @envdoc "The OpenFGA store id to use for authorization checks. When unset, every authorization check fails."
+  url_env :openfga, :astarte_auth, :openfga, default_port: 8080, env_app: "ASTARTE"
+
+  @envdoc """
+  The OpenFGA store id. If unset, it is looked up by `ASTARTE_OPENFGA_STORE_NAME`.
+  """
   app_env :openfga_store_id, :astarte_auth, :openfga_store_id,
     os_env: "ASTARTE_OPENFGA_STORE_ID",
+    type: :binary,
+    required: true,
+    binding_order: [:system, :config, OpenFGAStoreBinding]
+
+  @envdoc """
+  The OpenFGA store name, used when `ASTARTE_OPENFGA_STORE_ID` is unset.
+  """
+  app_env :openfga_store_name, :astarte_auth, :openfga_store_name,
+    os_env: "ASTARTE_OPENFGA_STORE_NAME",
     type: :binary
 end

@@ -33,24 +33,16 @@ defmodule Astarte.Auth.OpenFGA do
 
   Returns `:ok` if the check is allowed, `{:error, :forbidden}` if OpenFGA
   explicitly denied it, or `{:error, reason}` if the check itself couldn't
-  be completed: no store is configured, the request failed, OpenFGA returned
-  an unexpected HTTP status, or its response body wasn't the shape we expect.
+  be completed: the request failed, OpenFGA returned an unexpected HTTP
+  status, or its response body wasn't the shape we expect.
+
+  The store id is assumed to be configured: services call
+  `Astarte.Auth.Config.validate!/0` when they start.
   """
   @spec check(String.t(), String.t(), String.t(), list(map())) ::
           :ok | {:error, :forbidden} | {:error, term()}
   def check(user, relation, object, contextual_tuples \\ []) do
-    case Config.openfga_store_id!() do
-      store_id when store_id in [nil, ""] ->
-        Logger.error("OpenFGA store id is not configured")
-        {:error, :store_not_configured}
-
-      store_id ->
-        do_check(store_id, user, relation, object, contextual_tuples)
-    end
-  end
-
-  defp do_check(store_id, user, relation, object, contextual_tuples) do
-    url = "/stores/#{store_id}/check"
+    url = "/stores/#{Config.openfga_store_id!()}/check"
 
     body_map = %{
       tuple_key: %{user: user, relation: relation, object: object}
@@ -78,6 +70,34 @@ defmodule Astarte.Auth.OpenFGA do
       {:error, %HTTPoison.Error{reason: reason}} ->
         Logger.error("OpenFGA request failed: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  @doc """
+  Returns the id of the only store called `name`.
+  """
+  @spec fetch_store_id(String.t()) :: {:ok, String.t()} | {:error, term()}
+  def fetch_store_id(name) do
+    case Client.get("/stores?" <> URI.encode_query(%{name: name})) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        handle_stores_response(resp_body)
+
+      {:ok, %HTTPoison.Response{status_code: status, body: resp_body}} ->
+        Logger.warning("OpenFGA store lookup returned status #{status}: #{inspect(resp_body)}")
+        {:error, {:unexpected_status, status}}
+
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        Logger.error("OpenFGA request failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp handle_stores_response(resp_body) do
+    case Jason.decode(resp_body) do
+      {:ok, %{"stores" => [%{"id" => store_id}]}} -> {:ok, store_id}
+      {:ok, %{"stores" => []}} -> {:error, :not_found}
+      {:ok, %{"stores" => [_, _ | _]}} -> {:error, :ambiguous}
+      _ -> {:error, :unexpected_response}
     end
   end
 

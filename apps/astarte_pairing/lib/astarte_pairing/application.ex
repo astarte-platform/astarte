@@ -20,6 +20,7 @@ defmodule Astarte.Pairing.Application do
   @moduledoc false
   use Application
 
+  alias Astarte.Auth.Config, as: AuthConfig
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.Config
   alias Astarte.PairingWeb.Endpoint
@@ -40,6 +41,7 @@ defmodule Astarte.Pairing.Application do
     Logger.info("Starting application v#{@app_version}.", tag: "pairing_start")
 
     DataAccessConfig.validate!()
+    AuthConfig.validate!()
     Config.validate!()
     Config.init!()
 
