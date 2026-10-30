@@ -11,17 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Generate `device_empty_cache_received` trigger events when a device sends `/emptyCache`
 - [astarte_vmq_plugin] Expose a new /healtz endpoint to check whether the AMQP connection toward RabbitMQ instance is ok and all the expected Mississippi EventsProducer workers are running.
-- [auth] Initialize the `auth` library, holding the authentication and authorization code shared by
-  every Astarte service: OpenFGA relationship checks, the `AuthorizeFGA` Absinthe middleware, and the
-  plug that builds the Absinthe context from the request's JWT.
 
 ### Changed
 
 - [astarte_vmq_plugin] Pin vernemq to 2.2.0
-- [auth] OpenFGA is configured once for the whole cluster, in the `auth` library, instead of once per
-  service. `ASTARTE_PAIRING_OPENFGA_URL` becomes `ASTARTE_OPENFGA_URL` (with the usual `_SCHEME`,
-  `_HOST`, `_PORT`, `_PATH`, `_QUERY`, `_FRAGMENT` and `_SSL_*` component variables), and
-  `ASTARTE_PAIRING_OPENFGA_STORE_ID` becomes `ASTARTE_OPENFGA_STORE_ID`.
 
 ## [1.4.0-rc.6] - 2026-09-28
 
