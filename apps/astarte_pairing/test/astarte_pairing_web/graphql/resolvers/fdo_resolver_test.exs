@@ -17,83 +17,115 @@
 #
 
 defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use Mimic
 
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO
   alias Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver
-  alias Astarte.Secrets.Core
+  alias Astarte.Secrets
   alias Astarte.Secrets.Key
-  alias Astarte.Secrets.OwnerKeyInitialization
 
   @context %{context: %{realm_name: "testrealm"}}
 
-  describe "list_owner_keys/3 without a key_algorithm arg" do
-    test "queries every asymmetric algorithm Secrets.Core knows about" do
-      expected_algorithms = Core.asymmetric_key_algorithms()
+  # Owner keys live in OpenBao only, namespaced by realm, so each test gets a
+  # realm of its own and the module can stay async.
+  defp owner_keys(_context) do
+    realm = "fdoresolver#{System.unique_integer([:positive])}"
+    {:ok, es256} = Secrets.create_fdo_namespace(realm, :es256)
+    {:ok, es384} = Secrets.create_fdo_namespace(realm, :es384)
 
-      expect(Core, :get_keys, fn "testrealm", algorithms ->
-        assert algorithms == expected_algorithms
-        {:ok, %{}}
-      end)
+    {:ok, _} = Secrets.create_keypair("owner_key_a", :es256, namespace: es256)
+    {:ok, _} = Secrets.create_keypair("owner_key_b", :es256, namespace: es256)
+    {:ok, _} = Secrets.create_keypair("owner_key_c", :es384, namespace: es384)
 
-      assert FdoResolver.list_owner_keys(nil, %{}, @context) == {:ok, %{}}
+    on_exit(fn -> Enum.each([es256, es384], &delete_keys/1) end)
+
+    %{
+      resolution: %{context: %{realm_name: realm}},
+      realm: realm,
+      namespace: es256,
+      expected_owner_keys: %{
+        es256: ["owner_key_a", "owner_key_b"],
+        es384: ["owner_key_c"],
+        rs256: [],
+        rs384: []
+      }
+    }
+  end
+
+  defp delete_keys(namespace) do
+    {:ok, key_names} = Secrets.list_keys_names(namespace: namespace)
+
+    Enum.each(key_names, fn key_name ->
+      Secrets.enable_key_deletion(key_name, namespace: namespace)
+      Secrets.delete_key(key_name, namespace: namespace)
+    end)
+  end
+
+  describe "list_owner_keys/3" do
+    setup :owner_keys
+
+    test "lists the realm's keys for every algorithm", context do
+      assert FdoResolver.list_owner_keys(nil, %{}, context.resolution) ==
+               {:ok, context.expected_owner_keys}
+    end
+
+    test "lists only the keys of the requested algorithm", context do
+      assert FdoResolver.list_owner_keys(nil, %{key_algorithm: "ecdsa-p256"}, context.resolution) ==
+               {:ok, Map.take(context.expected_owner_keys, [:es256])}
     end
   end
 
   describe "get_owner_key/3" do
-    test "returns the key when the algorithm is valid and the key exists" do
-      expect(Core, :string_to_key_type, fn "ecdsa-p256" -> {:ok, :es256} end)
+    setup :owner_keys
 
-      expect(Core, :find_key, fn "testrealm", "mykey", :es256 ->
-        {:ok, %Key{name: "mykey", public_pem: "PEM"}}
-      end)
+    test "returns the key's public PEM", context do
+      {:ok, %Key{public_pem: public_pem}} =
+        Secrets.get_key("owner_key_a", namespace: context.namespace)
 
-      args = %{key_algorithm: "ecdsa-p256", key_name: "mykey"}
+      args = %{key_algorithm: "ecdsa-p256", key_name: "owner_key_a"}
 
-      assert FdoResolver.get_owner_key(nil, args, @context) ==
-               {:ok, %{key_name: "mykey", public_key: "PEM"}}
+      assert FdoResolver.get_owner_key(nil, args, context.resolution) ==
+               {:ok, %{key_name: "owner_key_a", public_key: public_pem}}
     end
 
-    test "returns an error without calling find_key when the algorithm is invalid" do
-      expect(Core, :string_to_key_type, fn "bogus" -> :error end)
-      reject(&Core.find_key/3)
+    test "returns an error when the algorithm is invalid", context do
+      args = %{key_algorithm: "bogus", key_name: "owner_key_a"}
 
-      args = %{key_algorithm: "bogus", key_name: "mykey"}
-
-      assert FdoResolver.get_owner_key(nil, args, @context) == {:error, "Invalid key algorithm"}
+      assert FdoResolver.get_owner_key(nil, args, context.resolution) ==
+               {:error, "Invalid key algorithm"}
     end
 
-    test "returns an error when the key doesn't exist" do
-      expect(Core, :string_to_key_type, fn "ecdsa-p256" -> {:ok, :es256} end)
-      expect(Core, :find_key, fn "testrealm", "missing", :es256 -> :not_found end)
-
+    test "returns an error when the key doesn't exist", context do
       args = %{key_algorithm: "ecdsa-p256", key_name: "missing"}
 
-      assert FdoResolver.get_owner_key(nil, args, @context) == {:error, "Key not found"}
+      assert FdoResolver.get_owner_key(nil, args, context.resolution) == {:error, "Key not found"}
     end
   end
 
   describe "create_or_upload_owner_key/3" do
-    test "returns the changeset error without calling create_or_upload when options are invalid" do
-      reject(&OwnerKeyInitialization.create_or_upload/2)
+    setup :owner_keys
 
+    test "creates the key and returns its public PEM", context do
+      args = %{action: "create", key_name: "new_key", key_algorithm: "ecdsa-p256"}
+
+      assert {:ok, public_pem} =
+               FdoResolver.create_or_upload_owner_key(nil, args, context.resolution)
+
+      assert {:ok, %Key{public_pem: ^public_pem}} =
+               Secrets.get_key("new_key", namespace: context.namespace)
+    end
+
+    test "returns the validation error and creates nothing when options are invalid", context do
       # :key_name is required and missing.
       args = %{action: "create", key_algorithm: "ecdsa-p256"}
 
       assert {:error, "Validation failed: " <> _} =
-               FdoResolver.create_or_upload_owner_key(nil, args, @context)
-    end
+               FdoResolver.create_or_upload_owner_key(nil, args, context.resolution)
 
-    test "returns the response when options are valid and creation succeeds" do
-      expect(OwnerKeyInitialization, :create_or_upload, fn options, "testrealm" ->
-        assert options.key_name == "mykey"
-        {:ok, "created"}
-      end)
-
-      args = %{action: "create", key_name: "mykey", key_algorithm: "ecdsa-p256"}
-
-      assert FdoResolver.create_or_upload_owner_key(nil, args, @context) == {:ok, "created"}
+      assert {:ok, ["owner_key_a", "owner_key_b"]} =
+               Secrets.list_keys_names(namespace: context.namespace)
     end
   end
 
@@ -135,6 +167,32 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolverTest do
       end)
 
       assert FdoResolver.register_ownership_voucher(nil, @args, @context) == {:error, :timeout}
+    end
+  end
+
+  describe "delete_ownership_voucher/3" do
+    @guid "2b0e0b8f-5c55-4ffb-8a4f-0c3a1e6d7f21"
+
+    test "deletes the voucher by its binary GUID and returns the GUID it was given" do
+      binary_guid = UUID.string_to_binary!(@guid)
+
+      expect(OwnershipVoucher, :delete, fn "testrealm", ^binary_guid -> :ok end)
+
+      assert FdoResolver.delete_ownership_voucher(nil, %{guid: @guid}, @context) == {:ok, @guid}
+    end
+
+    test "reports a GUID that isn't a UUID as not found, without deleting anything" do
+      reject(&OwnershipVoucher.delete/2)
+
+      assert FdoResolver.delete_ownership_voucher(nil, %{guid: "not-a-guid"}, @context) ==
+               {:error, "Failed to delete voucher: :not_found"}
+    end
+
+    test "reports why the deletion failed" do
+      expect(OwnershipVoucher, :delete, fn _realm, _guid -> {:error, :not_found} end)
+
+      assert FdoResolver.delete_ownership_voucher(nil, %{guid: @guid}, @context) ==
+               {:error, "Failed to delete voucher: :not_found"}
     end
   end
 end

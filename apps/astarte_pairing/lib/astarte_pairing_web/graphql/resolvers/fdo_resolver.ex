@@ -140,9 +140,23 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FdoResolver do
   end
 
   def delete_ownership_voucher(_parent, %{guid: guid}, %{context: %{realm_name: realm}}) do
-    case OwnershipVoucher.delete(realm, guid) do
-      :ok -> {:ok, true}
+    case delete_voucher(realm, guid) do
+      :ok -> {:ok, guid}
       {:error, reason} -> {:error, "Failed to delete voucher: #{inspect(reason)}"}
+    end
+  end
+
+  # Vouchers are stored by their binary GUID, while clients see its string form.
+  defp delete_voucher(realm, guid) do
+    with {:ok, binary_guid} <- dump_guid(guid) do
+      OwnershipVoucher.delete(realm, binary_guid)
+    end
+  end
+
+  defp dump_guid(guid) do
+    case Ecto.UUID.dump(guid) do
+      {:ok, _binary_guid} = ok -> ok
+      :error -> {:error, :not_found}
     end
   end
 end

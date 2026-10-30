@@ -129,8 +129,8 @@ defmodule Astarte.PairingWeb.GraphQL.Schema do
       resolve &FdoResolver.register_ownership_voucher/3
     end
 
-    @desc "Delete a device ownership voucher"
-    field :delete_ownership_voucher, :boolean do
+    @desc "Delete a device ownership voucher, returning the GUID of the deleted voucher"
+    field :delete_ownership_voucher, :string do
       arg :guid, non_null(:string)
 
       middleware AuthorizeFGA, relation: "can_manage_fdo", target: :realm
