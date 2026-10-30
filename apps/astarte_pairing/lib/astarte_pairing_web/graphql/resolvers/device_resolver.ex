@@ -12,12 +12,8 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
   """
   def get_device(_parent, %{hw_id: hw_id}, %{context: context}) do
     with_device_context(context, fn realm, secret ->
-      case Info.get_device_info(realm, hw_id, secret) do
-        {:ok, device_info} ->
-          {:ok, format_device_response(hw_id, device_info)}
-
-        {:error, reason} ->
-          {:error, "Failed to retrieve the device: #{inspect(reason)}"}
+      with {:ok, device_info} <- Info.get_device_info(realm, hw_id, secret) do
+        {:ok, format_device_response(hw_id, device_info)}
       end
     end)
   end
@@ -31,12 +27,9 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
       device_ip = Map.get(context, :remote_ip, "127.0.0.1")
       params = %{csr: csr}
 
-      case Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
-        {:ok, %{client_crt: client_crt}} ->
-          {:ok, %{client_crt: client_crt}}
-
-        {:error, reason} ->
-          {:error, "Failed to generate the certificate: #{inspect(reason)}"}
+      with {:ok, %{client_crt: client_crt}} <-
+             Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
+        {:ok, %{client_crt: client_crt}}
       end
     end)
   end
@@ -48,19 +41,15 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.DeviceResolver do
     with_device_context(context, fn realm, secret ->
       params = %{client_crt: client_crt}
 
-      case Credentials.verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
-        {:ok, status} ->
-          {:ok,
-           %{
-             valid: status.valid,
-             timestamp: status.timestamp,
-             until: status.until,
-             cause: if(status.cause, do: to_string(status.cause), else: nil),
-             details: status.details
-           }}
-
-        {:error, reason} ->
-          {:error, "Failed to verify the certificate: #{inspect(reason)}"}
+      with {:ok, status} <- Credentials.verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
+        {:ok,
+         %{
+           valid: status.valid,
+           timestamp: status.timestamp,
+           until: status.until,
+           cause: if(status.cause, do: to_string(status.cause), else: nil),
+           details: status.details
+         }}
       end
     end)
   end
