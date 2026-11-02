@@ -141,8 +141,8 @@ Identifies a mapping for an interface. A mapping must consist at least of an end
 | **explicit_timestamp**        | `boolean` | Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams.                                                                                                                                                                                                                                                   | No, default: `false`        |
 | **retention**                 | `string`  | Useful only with datastream. Defines whether the sent data should be discarded if the transport is temporarily uncapable of delivering it (discard) or should be kept in a cache in memory (volatile) or on disk (stored), and guaranteed to be delivered in the timeframe defined by the expiry. discard by default.                                                                                                                                    | No, default: `"discard"`    |
 | **expiry**                    | `integer` | Useful when retention is stored. Defines after how many seconds a specific data entry should be kept before giving up and erasing it from the persistent cache. A value <= 0 means the persistent cache never expires, and is the default.                                                                                                                                                                                                               | No, default: `0`            |
-| **database_retention_policy** | `string`  | Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl.                                                                                                                                                                                                                                                                                                          | No, default: `"no_ttl"`     |
-| **database_retention_ttl**    | `integer` | Useful when database_retention_policy is `"use_ttl"`. Defines how many seconds a specific data entry should be kept before erasing it from the database.                                                                                                                                                                                                                                                                                                 | No                          |
+| **database_retention_policy** | `string`  | Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl. With `"no_ttl"` data can still expire if the realm maximum storage retention is set.                                                                                                                                                                                                                     | No, default: `"no_ttl"`     |
+| **database_retention_ttl**    | `integer` | Useful when database_retention_policy is `"use_ttl"`. Defines the maximum amount of seconds a specific data entry is kept before erasing it from the database. A lower realm maximum storage retention takes precedence.                                                                                                                                                                                                                                 | No                          |
 | **allow_unset**               | `boolean` | Used only with properties. Used with producers, it generates a method to unset the property. Used with consumers, it generates code to call an unset method when an empty payload is received.                                                                                                                                                                                                                                                           | No, default: `false`        |
 | **description**               | `string`  | An optional description of the mapping.                                                                                                                                                                                                                                                                                                                                                                                                                  | No                          |
 | **doc**                       | `string`  | A string containing documentation that will be injected in the generated client code.                                                                                                                                                                                                                                                                                                                                                                    | No                          |
@@ -234,15 +234,17 @@ never expires, and is the default.
 ### astarte.mapping.schema.database_retention_policy
 
 Useful only with datastream. Defines whether data is expired from the database after a given time to
-live interval. When `"no_ttl"` is used data are not expired.
+live interval. When `"no_ttl"` is used the mapping does not request an expiry, but data can still be
+expired by the realm maximum storage retention, if one is set.
 
 - **Type**: `string`
 - **Required**: No
 
 ### astarte.mapping.schema.database_retention_ttl
 
-Useful when database_retention_policy is `"use_ttl"`. Defines how many seconds a specific data entry
-should be kept before erasing it from the database.
+Useful when database_retention_policy is `"use_ttl"`. Defines the maximum amount of seconds a
+specific data entry is kept before erasing it from the database. When the realm maximum storage
+retention is set and is lower than this value, the realm maximum wins.
 
 - **Type**: `integer`
 - **Required**: No

@@ -327,7 +327,40 @@ transferred and indexed. The following properties can be set at mapping level.
 - `database_retention_policy`: Useful only with datastream. Defines whether data should expire
   from the database after a given interval. Valid values are: no_ttl and use_ttl.
 - `database_retention_ttl`: Useful when database_retention_policy is `"use_ttl"`. Defines how many
-  seconds a specific data entry should be kept before erasing it from the database.
+  seconds a specific data entry should be kept before erasing it from the database. This is an
+  upper bound, not a guarantee: see [Database retention and the realm maximum
+  TTL](#database-retention-and-the-realm-maximum-ttl).
+
+### Database retention and the realm maximum TTL
+
+The TTL that Astarte actually applies to a stored value depends on both the mapping's
+`database_retention_policy`/`database_retention_ttl` and on the realm-level
+`datastream_maximum_storage_retention` setting, which can be set per realm through the
+Housekeeping API. Whenever the realm maximum is set, the lower of the two values wins:
+
+| `database_retention_policy` | Realm maximum TTL unset  | Realm maximum TTL set                        |
+| --------------------------- | ------------------------ | -------------------------------------------- |
+| `no_ttl` (default)          | Data never expires       | Data expires after the realm maximum TTL     |
+| `use_ttl`                   | `database_retention_ttl` | `min(database_retention_ttl, realm maximum)` |
+
+Two consequences are worth highlighting:
+
+- `no_ttl` does not guarantee that data is kept forever. It only means that the mapping itself does
+  not request an expiry; if the realm has a maximum storage retention, that value is applied to the
+  data anyway.
+- `database_retention_ttl` is the _longest_ a data entry can live, not the exact lifetime. A realm
+  maximum lower than `database_retention_ttl` takes precedence, so data expires earlier than the
+  interface requests.
+
+The cap is applied wherever data is stored, both by Data Updater Plant for data published by
+devices and by AppEngine for data pushed to server owned interfaces, so the two paths agree. A
+realm maximum of `0` means no limit, the same as leaving it unset.
+
+Interfaces are not rejected at install time when their `database_retention_ttl` exceeds the realm
+maximum: the interface is installed with the declared value and the cap is applied when data is
+written. This means the same interface can be deployed unchanged across realms with different
+retention limits, and that changing the realm maximum takes effect on newly stored data without
+reinstalling any interface.
 
 ## Best practices
 

@@ -140,6 +140,14 @@ Includes changes from v1.3.4
 - [astarte_vmq_plugin] Update VerneMQ to 2.0.1
 - [astarte_vmq_plugin] Use mississippi as AMQP publisher
 
+## [1.3.6] - 2026-10-28
+
+### Fixed
+
+- [astarte_realm_management] Installing an interface no longer fails when a mapping declares a
+  `database_retention_ttl` higher than the realm `datastream_maximum_storage_retention`. The realm
+  maximum is still enforced when data is stored, so the effective TTL is the lower of the two.
+
 ## [1.3.5] - 2026-10-05
 
 ### Fixed

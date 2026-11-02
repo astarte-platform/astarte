@@ -237,10 +237,14 @@ defmodule Astarte.RealmManagement.InterfacesTest do
       assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
-    test "fails when a mapping higher database_retention_ttl than the maximum", %{realm: realm} do
+    test "succeeds when a mapping has a higher database_retention_ttl than the realm maximum", %{
+      realm: realm
+    } do
+      # The realm maximum is not enforced at install time: Data Updater Plant caps
+      # the effective TTL of every stored value to the realm maximum when writing.
       insert_datastream_maximum_storage_retention!(realm, 1)
 
-      iface_with_invalid_mappings = %{
+      iface_with_higher_ttl = %{
         @valid_attrs
         | "mappings" => [
             %{
@@ -253,8 +257,13 @@ defmodule Astarte.RealmManagement.InterfacesTest do
           "type" => "datastream"
       }
 
-      assert {:error, :maximum_database_retention_exceeded} =
-               Interfaces.install_interface(realm, iface_with_invalid_mappings)
+      assert {:ok, %Interface{}} = Interfaces.install_interface(realm, iface_with_higher_ttl)
+
+      # The declared ttl is stored unchanged.
+      assert {:ok, %{mappings: [mapping]}} =
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
+
+      assert %{database_retention_policy: :use_ttl, database_retention_ttl: 60} = mapping
 
       keyspace = Realm.keyspace_name(realm)
 
