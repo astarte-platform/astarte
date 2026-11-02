@@ -196,6 +196,11 @@ Actions are triggered by a matching condition. An Action defines how the event s
 outer world (e.g. an http POST on a certain URL). In addition, most actions have a Payload, which
 carries the body of the event.
 
+Astarte does not natively implement application-level encryption for trigger payloads, meaning that
+payload content is always generated in plaintext (even when it originates from endpoints
+marked as `encrypted`). To ensure data confidentiality in transit, protection needs to be enforced
+at transport level by configuring secure delivery channels (e.g. AMQP or HTTP over TLS).
+
 ### HTTP Actions
 
 Payloads are most of the time represented as text, and Astarte provides several ways to generate
