@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 Mimic.copy(AMQP.Basic)
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.TriggerEngine.Config)
 Mimic.copy(Astarte.TriggerEngine.Health)
 Mimic.copy(HTTPoison)
 

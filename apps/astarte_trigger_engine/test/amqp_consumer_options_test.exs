@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,62 +19,53 @@
 defmodule Astarte.TriggerEngine.AMQPConsumerOptionsTest do
   alias Astarte.TriggerEngine.Config
   use ExUnit.Case, async: true
+  use Mimic
 
   describe "amqp_consumer_options when ssl is enabled" do
     test "no ca_cert is set" do
-      Config.put_amqp_consumer_ssl_enabled(true)
+      Mimic.stub(Config, :amqp_consumer_ssl_enabled!, fn -> true end)
 
       ssl_options =
         Config.amqp_consumer_options!()
         |> Keyword.fetch!(:ssl_options)
 
-      assert cacertfile: CAStore.file_path() in ssl_options
-
-      Config.reload_amqp_consumer_ssl_enabled()
+      assert {:cacertfile, CAStore.file_path()} in ssl_options
     end
 
     test "ca_cert is set" do
       ca_cert_path = "/the/path/to/ca_cert.pem"
-      Config.put_amqp_consumer_ssl_enabled(true)
-      Config.put_amqp_consumer_ssl_ca_file(ca_cert_path)
+      Mimic.stub(Config, :amqp_consumer_ssl_enabled!, fn -> true end)
+      Mimic.stub(Config, :amqp_consumer_ssl_ca_file!, fn -> ca_cert_path end)
 
       ssl_options =
         Config.amqp_consumer_options!()
         |> Keyword.fetch!(:ssl_options)
 
-      assert cacertfile: ca_cert_path in ssl_options
-
-      Config.reload_amqp_consumer_ssl_enabled()
-      Config.reload_amqp_consumer_ssl_ca_file()
+      assert {:cacertfile, ca_cert_path} in ssl_options
     end
   end
 
   test "server name indication is disabled" do
-    Config.put_amqp_consumer_ssl_enabled(true)
-    Config.put_amqp_consumer_ssl_disable_sni(true)
+    Mimic.stub(Config, :amqp_consumer_ssl_enabled!, fn -> true end)
+    Mimic.stub(Config, :amqp_consumer_ssl_disable_sni!, fn -> true end)
 
     ssl_options =
       Config.amqp_consumer_options!()
       |> Keyword.fetch!(:ssl_options)
 
-    assert server_name_indication: :disable in ssl_options
-
-    Config.reload_amqp_consumer_ssl_enabled()
-    Config.reload_amqp_consumer_ssl_disable_sni()
+    assert {:server_name_indication, :disable} in ssl_options
   end
 
   test "server name indication is enabled" do
-    Config.put_amqp_consumer_ssl_enabled(true)
-    Config.put_amqp_consumer_ssl_disable_sni(true)
+    Mimic.stub(Config, :amqp_consumer_ssl_enabled!, fn -> true end)
+    Mimic.stub(Config, :amqp_consumer_ssl_disable_sni!, fn -> false end)
 
     ssl_options =
       Config.amqp_consumer_options!()
       |> Keyword.fetch!(:ssl_options)
 
-    assert server_name_indication: Config.amqp_consumer_host!() in ssl_options
-
-    Config.reload_amqp_consumer_ssl_enabled()
-    Config.reload_amqp_consumer_ssl_disable_sni()
+    sni = to_charlist(Config.amqp_consumer_host!())
+    assert {:server_name_indication, sni} in ssl_options
   end
 
   test "ca_cert is ignored when ssl is disabled" do
