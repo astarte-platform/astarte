@@ -209,11 +209,6 @@ defmodule Astarte.DataAccess.FDO.Queries do
     update_session(guid, updates)
   end
 
-  def session_update_device_id(guid, device_id) do
-    updates = [device_id: device_id]
-    update_session(guid, updates)
-  end
-
   def session_add_device_service_info(guid, service_info) do
     updates = [device_service_info: service_info]
     update_session(guid, updates)

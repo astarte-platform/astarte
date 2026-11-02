@@ -33,36 +33,21 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
 
-  defp register_unconfirmed_device(realm, hardware_id) do
+  defp add_unconfirmed_credentials(realm_name, device_id) do
     hash = :crypto.strong_rand_bytes(32) |> Base.encode64()
+    Device.add_unconfirmed_credentials(realm_name, device_id, hash)
 
-    with {:ok, device_id} <- CoreDevice.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, _device} <-
-           Device.register(realm, device_id, hardware_id, nil),
-         :ok <- Device.add_unconfirmed_credentials(realm, device_id, hash) do
-      :ok
-    else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    hash
   end
 
-  setup %{realm: realm_name, session: session} do
+  setup context do
+    %{realm: realm_name, session: session, device_id: device_id} = context
     setup_dv_nonce = :crypto.strong_rand_bytes(16)
-    device_id = CoreDevice.random_device_id()
+    done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+    {:ok, session_with_setup_nonce} = Session.add_setup_dv_nonce(session, setup_dv_nonce)
+    hash = add_unconfirmed_credentials(realm_name, device_id)
 
-    with {:ok, session_with_setup_nonce} <-
-           Session.add_setup_dv_nonce(session, setup_dv_nonce),
-         {:ok, session_with_device_id} <-
-           Session.add_device_id(session_with_setup_nonce, device_id) do
-      encoded_device_id = CoreDevice.encode_device_id(device_id)
-      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
-      register_unconfirmed_device(realm_name, encoded_device_id)
-      %{session: session_with_device_id, done_msg: done_msg}
-    end
+    %{session: session_with_setup_nonce, done_msg: done_msg, credentials_secret_hash: hash}
   end
 
   describe "done/3" do
