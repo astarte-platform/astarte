@@ -148,17 +148,6 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
       assert fetched.setup_dv_nonce == nonce
     end
 
-    test "session_update_device_id", context do
-      %{realm_name: realm_name} = context
-      guid = random_guid()
-      device_id = :crypto.strong_rand_bytes(16)
-
-      assert :ok = Queries.store_session(%TO2Session{guid: guid, realm: realm_name})
-      assert :ok = Queries.session_update_device_id(guid, device_id)
-      assert {:ok, fetched} = Queries.fetch_session(guid)
-      assert fetched.device_id == device_id
-    end
-
     test "add_session_max_owner_service_info_size", context do
       %{realm_name: realm_name} = context
       guid = random_guid()
