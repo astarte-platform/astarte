@@ -41,7 +41,8 @@ config :logger, :console,
     :interface_major,
     :trigger_name,
     :policy_name,
-    :reason
+    :reason,
+    :ignored_roles
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
