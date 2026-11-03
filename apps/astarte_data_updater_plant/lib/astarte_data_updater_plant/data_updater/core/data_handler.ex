@@ -83,7 +83,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           do: value_timestamp,
           else: div(timestamp, 10_000)
 
-      previous_value = get_previous_value(context, interface_descriptor, mapping)
+      previous_value =
+        get_previous_value_and_dek(context, interface_descriptor, mapping)
+        |> maybe_decrypt_stored_value(mapping.encrypted, state.realm)
 
       realm_max_ttl = context.state.datastream_maximum_storage_retention
 
@@ -176,17 +178,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  defp get_previous_value(context, interface_descriptor, mapping)
+  # return previous property value along with the DEK used to encrypt it (or nil if not encrypted)
+  defp get_previous_value_and_dek(context, interface_descriptor, mapping)
        when interface_descriptor.type == :properties do
     %{state: state, path: path} = context
 
     case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
-      {:ok, property_value} -> property_value
-      _ -> nil
+      {:ok, {property_value, dek}} -> {property_value, dek}
+      _ -> {nil, nil}
     end
   end
 
-  defp get_previous_value(_, _, _), do: nil
+  defp get_previous_value_and_dek(_, _, _), do: {nil, nil}
 
   defp handle_result({:error, :unset_not_allowed}, context, _start) do
     error = %{
@@ -468,6 +471,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
         # TODO consider whether to make it a soft error, and do not disconnect the device
         Core.Error.handle_error(context, error, ask_clean_session: true)
+    end
+  end
+
+  # if the retrieved value from db is in encrypted form decrypt it, otherwise return it as-is;
+  # intended only for properties data
+  defp maybe_decrypt_stored_value({nil, _dek}, _encrypted?, _realm) do
+    nil
+  end
+
+  defp maybe_decrypt_stored_value({value, _dek}, false, _realm) do
+    value
+  end
+
+  # should never happen but let's be defensive
+  defp maybe_decrypt_stored_value({value, nil}, true, _realm) when not is_nil(value) do
+    Logger.warning(
+      "Attempting to decrypt stored data failed due to missing decryption key",
+      tag: "stored_data_decryption_error"
+    )
+
+    nil
+  end
+
+  defp maybe_decrypt_stored_value({value, ciphertext_dek}, true, realm) do
+    # need to decrypt
+    with {:ok, dek} <- Secrets.decrypt_with_kek(realm, ciphertext_dek),
+         {:ok, decrypted_value} <- Secrets.decrypt_with_dek(value, dek) do
+      :erlang.binary_to_term(decrypted_value)
+    else
+      _ ->
+        Logger.warning(
+          "Issue encountered while attempting to decrypt stored data value",
+          tag: "stored_data_decryption_error"
+        )
+
+        nil
     end
   end
 

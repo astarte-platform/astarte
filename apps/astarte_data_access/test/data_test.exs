@@ -61,38 +61,96 @@ defmodule Astarte.DataAccess.Data.XandraTest do
              {:ok, false}
   end
 
-  test "fetch property value on a certain interface", %{realm_name: realm_name} do
-    {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+  describe "fetch property value on a certain interface" do
+    setup %{realm_name: realm_name} do
+      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
-    {:ok, descriptor} =
-      Interface.fetch_interface_descriptor(realm_name, "com.test.LCDMonitor", 1)
+      {:ok, descriptor} =
+        Interface.fetch_interface_descriptor(realm_name, "com.test.LCDMonitor", 1)
 
-    %InterfaceDescriptor{interface_id: interface_id} = descriptor
+      %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(realm_name, interface_id)
+      {:ok, mappings} = Mappings.fetch_interface_mappings_map(realm_name, interface_id)
 
-    mapping =
-      mappings
-      |> Map.values()
-      |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
+      mapping =
+        mappings
+        |> Map.values()
+        |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
 
-    assert Data.fetch_property(
-             realm_name,
-             device_id,
-             descriptor,
-             mapping,
-             "/weekSchedule/3/stop"
-           ) ==
-             {:ok, 16}
+      encrypted_mapping =
+        mappings
+        |> Map.values()
+        |> Enum.find(fn mapping -> mapping.endpoint == "/encrypted_pixel" end)
 
-    assert Data.fetch_property(
-             realm_name,
-             device_id,
-             descriptor,
-             mapping,
-             "/weekSchedule/9/stop"
-           ) ==
-             {:error, :property_not_set}
+      %{
+        device_id: device_id,
+        descriptor: descriptor,
+        mapping: mapping,
+        encrypted_mapping: encrypted_mapping
+      }
+    end
+
+    test "returns the property if set", %{
+      realm_name: realm_name,
+      device_id: device_id,
+      descriptor: descriptor,
+      mapping: mapping
+    } do
+      assert Data.fetch_property(
+               realm_name,
+               device_id,
+               descriptor,
+               mapping,
+               "/weekSchedule/3/stop"
+             ) ==
+               {:ok, {16, nil}}
+    end
+
+    test "returns error if the property is not set", %{
+      realm_name: realm_name,
+      device_id: device_id,
+      descriptor: descriptor,
+      mapping: mapping
+    } do
+      # row is absent
+      assert Data.fetch_property(
+               realm_name,
+               device_id,
+               descriptor,
+               mapping,
+               "/weekSchedule/9/stop"
+             ) ==
+               {:error, :property_not_set}
+
+      # property value is set to null
+      assert Data.fetch_property(
+               realm_name,
+               device_id,
+               descriptor,
+               mapping,
+               "/weekSchedule/5/stop"
+             ) ==
+               {:error, :property_not_set}
+    end
+
+    test "returns the encrypted property along with its DEK if the mapping is encrypted",
+         %{
+           realm_name: realm_name,
+           device_id: device_id,
+           descriptor: descriptor,
+           encrypted_mapping: encrypted_mapping
+         } do
+      assert {:ok, {value, dek}} =
+               Data.fetch_property(
+                 realm_name,
+                 device_id,
+                 descriptor,
+                 encrypted_mapping,
+                 "/encrypted_pixel"
+               )
+
+      assert is_binary(value) and is_binary(dek)
+    end
   end
 
   test "fetch last path update", %{realm_name: realm_name} do
