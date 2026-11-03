@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ defmodule Astarte.TriggerEngine.Config do
   """
 
   use Skogsra
+
+  alias Astarte.TriggerEngine.Config
 
   @envdoc "Host for the AMQP consumer connection"
   app_env :amqp_consumer_host, :astarte_trigger_engine, :amqp_consumer_host,
@@ -127,7 +129,7 @@ defmodule Astarte.TriggerEngine.Config do
           :astarte_realm_management,
           :database_events_handling_method,
           os_env: "DATABASE_EVENTS_HANDLING_METHOD",
-          type: Astarte.TriggerEngine.Config.TelemetryType,
+          type: Config.TelemetryType,
           default: :expose
 
   @doc """
@@ -151,18 +153,18 @@ defmodule Astarte.TriggerEngine.Config do
   @spec amqp_consumer_options!() :: [options]
   def amqp_consumer_options! do
     [
-      host: amqp_consumer_host!(),
-      port: amqp_consumer_port!(),
-      username: amqp_consumer_username!(),
-      password: amqp_consumer_password!(),
-      virtual_host: amqp_consumer_virtual_host!(),
-      channels: events_consumer_channels_per_connection_number!()
+      host: Config.amqp_consumer_host!(),
+      port: Config.amqp_consumer_port!(),
+      username: Config.amqp_consumer_username!(),
+      password: Config.amqp_consumer_password!(),
+      virtual_host: Config.amqp_consumer_virtual_host!(),
+      channels: Config.events_consumer_channels_per_connection_number!()
     ]
     |> populate_ssl_options()
   end
 
   defp populate_ssl_options(options) do
-    if amqp_consumer_ssl_enabled!() do
+    if Config.amqp_consumer_ssl_enabled!() do
       ssl_options = build_ssl_options()
       Keyword.put(options, :ssl_options, ssl_options)
     else
@@ -172,7 +174,7 @@ defmodule Astarte.TriggerEngine.Config do
 
   defp build_ssl_options do
     [
-      cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
+      cacertfile: Config.amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
       depth: 10
     ]
@@ -180,10 +182,10 @@ defmodule Astarte.TriggerEngine.Config do
   end
 
   defp populate_sni(ssl_options) do
-    if amqp_consumer_ssl_disable_sni!() do
+    if Config.amqp_consumer_ssl_disable_sni!() do
       Keyword.put(ssl_options, :server_name_indication, :disable)
     else
-      server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
+      server_name = Config.amqp_consumer_ssl_custom_sni!() || Config.amqp_consumer_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
   end
