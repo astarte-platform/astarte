@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   use Astarte.RealmManagement.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
+  use Mimic
 
   alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.Helpers.Database
@@ -47,14 +48,12 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   @invalid_pubkey_attrs %{"jwt_public_key_pem" => "invalid"}
   @malformed_pubkey_attrs %{"jwt_public_key_pem" => @malformed_pubkey}
 
-  setup_all do
+  setup do
     # Disable the auth since we will mess with the public key
-    Config.put_disable_authentication(true)
+    Config
+    |> stub(:authentication_disabled?, fn -> true end)
 
-    on_exit(fn ->
-      # Restore auth on exit
-      Config.reload_disable_authentication()
-    end)
+    :ok
   end
 
   setup %{conn: conn, realm: realm, jwt_public_key: key} do

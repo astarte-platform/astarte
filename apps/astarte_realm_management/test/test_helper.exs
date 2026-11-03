@@ -22,6 +22,7 @@ modules = [
   Astarte.DataAccess.Repo,
   Astarte.Events.Triggers,
   Astarte.Events.TriggersHandler,
+  Astarte.RealmManagement.Config,
   Astarte.RealmManagement.DeviceRemoval.Scheduler,
   Astarte.RealmManagement.Devices,
   Astarte.RealmManagement.Devices.Queries,
