@@ -27,6 +27,7 @@ COPY apps/astarte_fdo/mix.exs ./apps/astarte_fdo/mix.exs
 COPY apps/astarte_rpc/mix.exs ./apps/astarte_rpc/mix.exs
 COPY apps/astarte_secrets/mix.exs ./apps/astarte_secrets/mix.exs
 COPY apps/astarte_events/mix.exs ./apps/astarte_events/mix.exs
+COPY apps/astarte_auth/mix.exs ./apps/astarte_auth/mix.exs
 COPY apps/astarte_config/mix.exs ./apps/astarte_config/mix.exs
 COPY apps/astarte_data_access/mix.exs ./apps/astarte_data_access/mix.exs
 COPY apps/astarte_generators/mix.exs ./apps/astarte_generators/mix.exs
@@ -39,6 +40,7 @@ COPY apps/astarte_adapters apps/astarte_adapters
 COPY apps/astarte_rpc apps/astarte_rpc
 COPY apps/astarte_secrets apps/astarte_secrets
 COPY apps/astarte_events apps/astarte_events
+COPY apps/astarte_auth apps/astarte_auth
 COPY apps/astarte_config apps/astarte_config
 COPY apps/astarte_data_access apps/astarte_data_access
 COPY apps/astarte_fdo_core apps/astarte_fdo_core

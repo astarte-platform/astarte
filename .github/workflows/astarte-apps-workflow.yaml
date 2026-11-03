@@ -104,6 +104,11 @@ jobs:
     with:
       app: "astarte_appengine_api"
     secrets: inherit
+  astarte_auth:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_auth"
+    secrets: inherit
   astarte_data_updater_plant:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
     with:
