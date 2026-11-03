@@ -37,8 +37,9 @@ defmodule Astarte.Secrets.Core do
   # RFC 5649 AES Key Wrap with Padding magic constant
   @aes_kwp_magic <<0xA6, 0x59, 0x59, 0xA6>>
 
-  # OpenBao refuses to create a namespace that another request is already
-  # creating, so concurrent creations of a shared parent make all but one fail
+  # OpenBao marks a namespace as tainted while creation is in progress and
+  # refuses concurrent creation requests for the same namespace, so concurrent
+  # creations of a shared parent require retrying until creation completes
   @namespace_retry_attempts 10
   @namespace_retry_interval_ms 100
 
@@ -567,8 +568,21 @@ defmodule Astarte.Secrets.Core do
     options = [namespace: base_namespace]
 
     case Client.get("/v1/sys/namespaces/#{new_namespace}", headers, options) do
-      {:ok, %HTTPoison.Response{status_code: 200}} ->
-        :ok
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} = response ->
+        case parse_data_key(body, "tainted") do
+          {:ok, false} ->
+            :ok
+
+          {:ok, true} ->
+            retry(
+              &ensure_namespace_created(base_namespace, new_namespace, &1),
+              attempts_left,
+              response
+            )
+
+          error ->
+            error
+        end
 
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         create_namespace(base_namespace, new_namespace, attempts_left)
@@ -579,7 +593,6 @@ defmodule Astarte.Secrets.Core do
   end
 
   defp create_namespace(base_namespace, new_namespace, attempts_left) do
-    # check if namespace already exists; if not, attempt to create it
     headers = []
     options = [namespace: base_namespace]
 
@@ -588,15 +601,19 @@ defmodule Astarte.Secrets.Core do
         :ok
 
       {:ok, %HTTPoison.Response{status_code: 400}} = error ->
-        if attempts_left > 1 do
-          Process.sleep(@namespace_retry_interval_ms)
-          ensure_namespace_created(base_namespace, new_namespace, attempts_left - 1)
-        else
-          {:error, error}
-        end
+        retry(&create_namespace(base_namespace, new_namespace, &1), attempts_left, error)
 
       error ->
         {:error, error}
+    end
+  end
+
+  defp retry(retry_fun, attempts_left, error) do
+    if attempts_left > 1 do
+      Process.sleep(@namespace_retry_interval_ms)
+      retry_fun.(attempts_left - 1)
+    else
+      {:error, error}
     end
   end
 

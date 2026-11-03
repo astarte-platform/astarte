@@ -49,7 +49,7 @@ defmodule Astarte.DataUpdaterPlant.Cases.Data do
   setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
     setup_instance(astarte_instance_id, [realm])
     Vhost.create_vhost(realm)
-    Secrets.create_realm_kek(realm)
+    {:ok, _} = Secrets.create_realm_kek(realm)
     %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
 

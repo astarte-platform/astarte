@@ -15,4 +15,11 @@ Astarte.Secrets.Config.init()
 Astarte.Secrets.Core.create_nested_namespace(["fdo_owner_keys", "default_instance"])
 Astarte.Secrets.Core.create_nested_namespace(["fdo_owner_keys", "instance"])
 
+Astarte.Secrets.Core.create_nested_namespace([
+  "astarte_encrypted_messages_kek",
+  "default_instance"
+])
+
+Astarte.Secrets.Core.create_nested_namespace(["astarte_encrypted_messages_kek", "instance"])
+
 ExUnit.start(capture_log: true)

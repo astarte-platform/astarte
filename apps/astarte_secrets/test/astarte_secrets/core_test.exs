@@ -166,15 +166,30 @@ defmodule Astarte.Secrets.CoreTest do
       Client
       |> expect(:get, fn _url, _headers, _opts -> response(404) end)
       |> expect(:post, fn _url, _body, _headers, _opts -> response(400) end)
-      |> expect(:get, fn _url, _headers, _opts -> response(200) end)
+      |> expect(:post, fn _url, _body, _headers, _opts -> response(200) end)
 
       assert {:ok, _namespace} = Core.create_nested_namespace(["ns"])
     end
 
-    test "stops retrying after the maximum number of attempts" do
+    test "retries while the namespace is tainted" do
+      Client
+      |> expect(:get, fn _url, _headers, _opts -> namespace_response(tainted: true) end)
+      |> expect(:get, fn _url, _headers, _opts -> namespace_response(tainted: false) end)
+
+      assert {:ok, _namespace} = Core.create_nested_namespace(["ns"])
+    end
+
+    test "stops retrying after the maximum number of attempts when creation is rejected" do
       Client
       |> stub(:get, fn _url, _headers, _opts -> response(404) end)
       |> expect(:post, 10, fn _url, _body, _headers, _opts -> response(400) end)
+
+      assert {:error, :namespace_creation_error} = Core.create_nested_namespace(["ns"])
+    end
+
+    test "stops retrying after the maximum number of attempts when namespace remains tainted" do
+      Client
+      |> expect(:get, 10, fn _url, _headers, _opts -> namespace_response(tainted: true) end)
 
       assert {:error, :namespace_creation_error} = Core.create_nested_namespace(["ns"])
     end
@@ -185,6 +200,11 @@ defmodule Astarte.Secrets.CoreTest do
       |> expect(:post, fn _url, _body, _headers, _opts -> response(403, "permission denied") end)
 
       assert {:error, :namespace_creation_error} = Core.create_nested_namespace(["ns"])
+    end
+
+    defp namespace_response(tainted: tainted) do
+      body = Jason.encode!(%{"data" => %{"tainted" => tainted}})
+      response(200, body)
     end
 
     defp response(status_code, body \\ "") do
