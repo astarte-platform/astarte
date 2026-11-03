@@ -69,6 +69,11 @@ jobs:
           --tmpfs /var/lib/fdo
           --restart on-failure
         command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
+      openfga:
+        image: openfga/openfga:v1.22.0
+        ports:
+          - 8081:8080
+        command: run
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
