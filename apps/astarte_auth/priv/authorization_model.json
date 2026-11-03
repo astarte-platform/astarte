@@ -1,0 +1,512 @@
+{
+  "schema_version": "1.1",
+  "type_definitions": [
+    { "type": "user" },
+    {
+      "metadata": {
+        "relations": {
+          "member": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] }
+        }
+      },
+      "relations": { "member": { "this": {} } },
+      "type": "team"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "admin": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "can_create_realm": {},
+          "can_list_realms": {},
+          "can_read_cluster_config": {},
+          "observer": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] }
+        }
+      },
+      "relations": {
+        "admin": { "this": {} },
+        "can_create_realm": { "computedUserset": { "relation": "admin" } },
+        "can_list_realms": { "computedUserset": { "relation": "observer" } },
+        "can_read_cluster_config": { "computedUserset": { "relation": "observer" } },
+        "observer": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } }
+      },
+      "type": "cluster"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "admin": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "can_create_device_group": {},
+          "can_create_trigger": {},
+          "can_create_trigger_policy": {},
+          "can_delete_realm": {},
+          "can_install_interface": {},
+          "can_join_room": {},
+          "can_list_device_groups": {},
+          "can_list_devices": {},
+          "can_list_interfaces": {},
+          "can_list_trigger_policies": {},
+          "can_list_triggers": {},
+          "can_manage_fdo": {},
+          "can_read_fdo": {},
+          "can_read_realm": {},
+          "can_read_realm_config": {},
+          "can_read_stats": {},
+          "can_register_device": {},
+          "can_update_realm": {},
+          "can_update_realm_config": {},
+          "can_watch": {},
+          "data_reader": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "data_writer": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "fdo_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "fdo_viewer": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "fleet_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "interface_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "observer": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "parent": { "directly_related_user_types": [{ "type": "cluster" }] },
+          "trigger_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          }
+        }
+      },
+      "relations": {
+        "admin": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "parent" } } }
+            ]
+          }
+        },
+        "can_create_device_group": { "computedUserset": { "relation": "fleet_manager" } },
+        "can_create_trigger": { "computedUserset": { "relation": "trigger_manager" } },
+        "can_create_trigger_policy": { "computedUserset": { "relation": "trigger_manager" } },
+        "can_delete_realm": {
+          "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "parent" } }
+        },
+        "can_install_interface": { "computedUserset": { "relation": "interface_manager" } },
+        "can_join_room": { "computedUserset": { "relation": "data_reader" } },
+        "can_list_device_groups": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } }
+            ]
+          }
+        },
+        "can_list_devices": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } }
+            ]
+          }
+        },
+        "can_list_interfaces": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } }
+            ]
+          }
+        },
+        "can_list_trigger_policies": { "computedUserset": { "relation": "observer" } },
+        "can_list_triggers": { "computedUserset": { "relation": "observer" } },
+        "can_manage_fdo": { "computedUserset": { "relation": "fdo_manager" } },
+        "can_read_fdo": { "computedUserset": { "relation": "fdo_viewer" } },
+        "can_read_realm": { "computedUserset": { "relation": "observer" } },
+        "can_read_realm_config": { "computedUserset": { "relation": "observer" } },
+        "can_read_stats": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } }
+            ]
+          }
+        },
+        "can_register_device": { "computedUserset": { "relation": "fleet_manager" } },
+        "can_update_realm": {
+          "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "parent" } }
+        },
+        "can_update_realm_config": { "computedUserset": { "relation": "admin" } },
+        "can_watch": { "computedUserset": { "relation": "data_reader" } },
+        "data_reader": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "data_writer" } },
+              { "computedUserset": { "relation": "observer" } }
+            ]
+          }
+        },
+        "data_writer": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } },
+        "fdo_manager": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } },
+        "fdo_viewer": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "fdo_manager" } }] } },
+        "fleet_manager": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } },
+        "interface_manager": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } },
+        "observer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "admin" } },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "observer" },
+                  "tupleset": { "relation": "parent" }
+                }
+              }
+            ]
+          }
+        },
+        "parent": { "this": {} },
+        "trigger_manager": { "union": { "child": [{ "this": {} }, { "computedUserset": { "relation": "admin" } }] } }
+      },
+      "type": "realm"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "can_read": {},
+          "can_update": {},
+          "data_reader": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "data_writer": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "fleet_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "observer": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "realm": { "directly_related_user_types": [{ "type": "realm" }] }
+        }
+      },
+      "relations": {
+        "can_read": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } }
+            ]
+          }
+        },
+        "can_update": { "computedUserset": { "relation": "fleet_manager" } },
+        "data_reader": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "data_writer" } },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_reader" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "data_writer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_writer" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "fleet_manager": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "fleet_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "observer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+              }
+            ]
+          }
+        },
+        "realm": { "this": {} }
+      },
+      "type": "device_group"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "admin": {},
+          "can_delete": {},
+          "can_read": {},
+          "can_read_data": {},
+          "can_unregister": {},
+          "can_update": {},
+          "can_watch": {},
+          "can_write_data": {},
+          "data_reader": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "data_writer": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "fleet_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "group": { "directly_related_user_types": [{ "type": "device_group" }] },
+          "observer": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "realm": { "directly_related_user_types": [{ "type": "realm" }] }
+        }
+      },
+      "relations": {
+        "admin": {
+          "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "realm" } }
+        },
+        "can_delete": { "computedUserset": { "relation": "admin" } },
+        "can_read": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "fleet_manager" } }
+            ]
+          }
+        },
+        "can_read_data": { "computedUserset": { "relation": "data_reader" } },
+        "can_unregister": { "computedUserset": { "relation": "fleet_manager" } },
+        "can_update": { "computedUserset": { "relation": "fleet_manager" } },
+        "can_watch": { "computedUserset": { "relation": "data_reader" } },
+        "can_write_data": { "computedUserset": { "relation": "data_writer" } },
+        "data_reader": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "data_writer" } },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_reader" },
+                  "tupleset": { "relation": "realm" }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_reader" },
+                  "tupleset": { "relation": "group" }
+                }
+              }
+            ]
+          }
+        },
+        "data_writer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_writer" },
+                  "tupleset": { "relation": "realm" }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_writer" },
+                  "tupleset": { "relation": "group" }
+                }
+              }
+            ]
+          }
+        },
+        "fleet_manager": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "fleet_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "fleet_manager" },
+                  "tupleset": { "relation": "group" }
+                }
+              }
+            ]
+          }
+        },
+        "group": { "this": {} },
+        "observer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+              },
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "group" } }
+              }
+            ]
+          }
+        },
+        "realm": { "this": {} }
+      },
+      "type": "device"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "can_delete": {},
+          "can_read": {},
+          "can_read_data": {},
+          "can_update": {},
+          "can_write_data": {},
+          "data_reader": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "data_writer": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "interface_manager": {
+            "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }]
+          },
+          "observer": { "directly_related_user_types": [{ "type": "user" }, { "relation": "member", "type": "team" }] },
+          "realm": { "directly_related_user_types": [{ "type": "realm" }] }
+        }
+      },
+      "relations": {
+        "can_delete": { "computedUserset": { "relation": "interface_manager" } },
+        "can_read": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "interface_manager" } }
+            ]
+          }
+        },
+        "can_read_data": { "computedUserset": { "relation": "data_reader" } },
+        "can_update": { "computedUserset": { "relation": "interface_manager" } },
+        "can_write_data": { "computedUserset": { "relation": "data_writer" } },
+        "data_reader": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "data_writer" } },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_reader" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "data_writer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "data_writer" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "interface_manager": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "interface_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
+        },
+        "observer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+              }
+            ]
+          }
+        },
+        "realm": { "this": {} }
+      },
+      "type": "interface"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "can_delete": {},
+          "can_read": {},
+          "realm": { "directly_related_user_types": [{ "type": "realm" }] }
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": { "relation": "trigger_manager" },
+            "tupleset": { "relation": "realm" }
+          }
+        },
+        "can_read": {
+          "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+        },
+        "realm": { "this": {} }
+      },
+      "type": "trigger"
+    },
+    {
+      "metadata": {
+        "relations": {
+          "can_delete": {},
+          "can_read": {},
+          "realm": { "directly_related_user_types": [{ "type": "realm" }] }
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": { "relation": "trigger_manager" },
+            "tupleset": { "relation": "realm" }
+          }
+        },
+        "can_read": {
+          "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+        },
+        "realm": { "this": {} }
+      },
+      "type": "trigger_policy"
+    }
+  ]
+}
