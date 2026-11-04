@@ -20,13 +20,10 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
   use OpenApiSpex.ControllerSpecs
 
-  alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.FDO.OwnershipVoucher.LoadRequest
-  alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.ApiSpec.Schemas.OwnershipVoucher, as: OVApiSpec
   alias Astarte.PairingWeb.OwnershipVoucherView
-  alias Astarte.Secrets.Core, as: SecretsCore
   alias OpenApiSpex.MediaType
   alias OpenApiSpex.Response
   alias OpenApiSpex.Schema
@@ -214,26 +211,11 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   Returns `200 OK` with the owner public key PEM on success.
   """
   def register(conn, %{"data" => data, "realm_name" => realm_name}) do
-    with {:ok, req} <-
-           LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
-           |> Ecto.Changeset.apply_action(:insert),
-         {:ok, expiry} <-
-           OwnershipVoucher.claim_on_rendezvous(
-             req.device_guid,
-             req.decoded_ownership_voucher,
-             req.extracted_owner_key
-           ),
-         :ok <- LoadRequest.store_voucher(req, expiry),
-         opts = [
-           initial_introspection: req.initial_introspection,
-           with_credentials?: false,
-           fdo_guid: req.device_guid
-         ],
-         {:ok, nil} <- Engine.register_device(realm_name, req.hw_id, opts) do
+    with {:ok, resp} <- OwnershipVoucher.register(data, realm_name) do
       json(conn, %{
         data: %{
-          public_key: req.extracted_owner_key.public_pem,
-          guid: UUID.binary_to_string!(req.device_guid)
+          public_key: resp.public_key,
+          guid: UUID.binary_to_string!(resp.guid)
         }
       })
     end
@@ -255,9 +237,8 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   Returns `204 No Content` on success, `404 Not Found` if the GUID is unknown (in the realm).
   """
-  def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
-    with {:ok, guid} <- decode_guid(guid_str),
-         :ok <- OwnershipVoucher.delete(realm_name, guid) do
+  def delete_ownership_voucher(conn, %{"realm_name" => realm_name, "guid" => guid}) do
+    with :ok <- OwnershipVoucher.delete(realm_name, guid) do
       send_resp(conn, :no_content, "")
     end
   end
@@ -269,9 +250,8 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   Returns `200 OK` with the new expiry, `404 Not Found` if the GUID is unknown
   (in the realm), `409 Conflict` if Device Onboard already completed for it.
   """
-  def run_to0(conn, %{"realm_name" => realm_name, "guid" => guid_str}) do
-    with {:ok, guid} <- decode_guid(guid_str),
-         {:ok, expiry} <- OwnershipVoucher.run_to0(realm_name, guid) do
+  def run_to0(conn, %{"realm_name" => realm_name, "guid" => guid}) do
+    with {:ok, expiry} <- OwnershipVoucher.run_to0(realm_name, guid) do
       json(conn, %{data: %{expiry: expiry}})
     end
   end
@@ -284,9 +264,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   """
   def owner_keys_for_voucher(conn, %{"data" => data, "realm_name" => realm_name}) do
     with {:ok, pem} <- ensure_ownership_voucher_parameter(data),
-         {:ok, voucher} <- OwnershipVoucher.decode_binary_voucher(pem),
-         key_algorithm = OwnershipVoucher.key_algorithm(voucher),
-         {:ok, keys_map} <- SecretsCore.get_keys(realm_name, key_algorithm) do
+         {:ok, keys_map} <- OwnershipVoucher.compatible_owner_keys(realm_name, pem) do
       json(conn, %{data: keys_map})
     end
   end
@@ -300,12 +278,5 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   defp assign_fdo_guid(conn, _opts) do
     assign(conn, :fdo_guid, conn.params["guid"])
-  end
-
-  defp decode_guid(guid_str) do
-    case Ecto.UUID.dump(guid_str) do
-      {:ok, _} = ok -> ok
-      :error -> {:error, :not_found}
-    end
   end
 end

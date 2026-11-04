@@ -47,6 +47,13 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:"404_device_not_found")
   end
 
+  def call(conn, {:error, :key_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"404")
+  end
+
   def call(conn, {:error, :device_already_registered}) do
     conn
     |> put_status(:unprocessable_entity)
@@ -84,6 +91,27 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> put_status(:unprocessable_entity)
     |> put_view(Astarte.PairingWeb.ErrorView)
     |> render(:unprocessable_key)
+  end
+
+  def call(conn, {:error, :invalid_key_algorithm}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:unprocessable_key)
+  end
+
+  def call(conn, {:error, :invalid_ownership_voucher}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"422")
+  end
+
+  def call(conn, {:error, :owner_keys_unavailable}) do
+    conn
+    |> put_status(:internal_server_error)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:"500")
   end
 
   # A key with the same name has already been imported in OpenBao
