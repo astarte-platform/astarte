@@ -85,8 +85,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
         openbao_namespace: namespace
       } = context
 
-      on_exit(fn -> cleanup_keys(namespace) end)
-
       public_key_created =
         conn
         |> post(path, payload)
@@ -154,8 +152,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
         openbao_namespace: namespace
       } = context
 
-      on_exit(fn -> cleanup_keys(namespace) end)
-
       conn
       |> post(path, payload)
       |> response(200)
@@ -175,8 +171,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
         upload_key_payload: payload,
         openbao_namespace: namespace
       } = context
-
-      on_exit(fn -> cleanup_keys(namespace) end)
 
       payload_duplicated_key =
         update_in(payload, [:data, :key_name], fn _ -> "duplicated_key" end)
@@ -203,8 +197,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
         openbao_namespace: namespace,
         list_path: path
       } = context
-
-      on_exit(fn -> cleanup_keys(namespace) end)
 
       keys =
         conn
@@ -249,6 +241,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
 
     {:ok, namespace_es256} = Secrets.create_fdo_namespace(realm_name, :es256)
 
+    on_exit(fn -> cleanup_keys(namespace_es256) end)
+
     %{
       owner_key_path: owner_key_path,
       create_key_payload: create_key_payload,
@@ -262,6 +256,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     list_path = owner_key_path(conn, :list_keys, realm_name)
 
     {:ok, namespace_es256} = Secrets.create_fdo_namespace(realm_name, :es256)
+
+    on_exit(fn -> cleanup_keys(namespace_es256) end)
 
     [
       %{

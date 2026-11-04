@@ -42,7 +42,8 @@ config :logger, :console,
     :trigger_name,
     :policy_name,
     :reason,
-    :ignored_roles
+    :ignored_roles,
+    :fdo_guid
   ]
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
