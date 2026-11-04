@@ -32,9 +32,10 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
 
   setup_all %{realm_name: realm_name} do
     {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, :es256)
+    on_exit(fn -> delete_owner_keys(namespace) end)
+
     {:ok, owner_key} = COSE.Keys.from_pem(registrable_voucher_owner_key_pem())
     :ok = Secrets.import_key(@key_name, :es256, owner_key, namespace: namespace)
-    on_exit(fn -> delete_owner_keys(namespace) end)
 
     :ok
   end
