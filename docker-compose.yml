@@ -303,6 +303,35 @@ services:
       - "traefik.http.routers.https-fdo-rendezvous.service=fdo-rendezvous"
       - "traefik.http.services.fdo-rendezvous.loadbalancer.server.port=8041"
 
+  openfga:
+    image: openfga/openfga:v1.22.0
+    command: run
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=memory
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=openfga:8081"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  openfga-init:
+    build:
+      dockerfile_inline: |
+        FROM openfga/cli:v0.8.2 AS fga
+        FROM alpine:3
+        RUN apk add --no-cache jq
+        COPY --from=fga /fga /usr/local/bin/fga
+    depends_on:
+      openfga:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    volumes:
+      - ./compose/openfga-init:/openfga-init:ro,z
+      - ./apps/astarte_auth/priv/authorization_model.fga:/model/authorization_model.fga:ro,z
+    command: /openfga-init/init.sh
+
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:4.3.1-management
