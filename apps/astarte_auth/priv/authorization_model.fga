@@ -69,19 +69,19 @@ type realm
     define can_read_realm_config: observer
     define can_update_realm_config: admin
 
-    define can_list_interfaces: observer or data_reader
+    define can_list_interfaces: observer or data_reader or interface_manager or trigger_manager
     define can_install_interface: interface_manager
 
-    define can_list_triggers: observer
+    define can_list_triggers: observer or trigger_manager
     define can_create_trigger: trigger_manager
-    define can_list_trigger_policies: observer
+    define can_list_trigger_policies: observer or trigger_manager
     define can_create_trigger_policy: trigger_manager
 
     define can_register_device: fleet_manager
-    define can_list_devices: observer or data_reader
+    define can_list_devices: observer or data_reader or fleet_manager
     define can_read_stats: observer or data_reader
 
-    define can_list_device_groups: observer or data_reader
+    define can_list_device_groups: observer or data_reader or fleet_manager
     define can_create_device_group: fleet_manager
 
     define can_read_fdo: fdo_viewer
@@ -100,7 +100,7 @@ type device_group
     define observer: [user, team#member] or observer from realm
     define data_reader: [user, team#member] or data_writer or data_reader from realm
 
-    define can_read: observer or data_reader
+    define can_read: observer or data_reader or fleet_manager
     define can_update: fleet_manager
 
 type device
@@ -134,7 +134,7 @@ type interface
     define observer: [user, team#member] or observer from realm
     define data_reader: [user, team#member] or data_writer or data_reader from realm
 
-    define can_read: observer or data_reader or interface_manager
+    define can_read: observer or data_reader or interface_manager or trigger_manager from realm
     define can_update: interface_manager
     define can_delete: interface_manager
     define can_read_data: data_reader
@@ -143,11 +143,11 @@ type interface
 type trigger
   relations
     define realm: [realm]
-    define can_read: observer from realm
+    define can_read: observer from realm or trigger_manager from realm
     define can_delete: trigger_manager from realm
 
 type trigger_policy
   relations
     define realm: [realm]
-    define can_read: observer from realm
+    define can_read: observer from realm or trigger_manager from realm
     define can_delete: trigger_manager from realm

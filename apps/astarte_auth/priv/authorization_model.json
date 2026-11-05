@@ -100,7 +100,8 @@
           "union": {
             "child": [
               { "computedUserset": { "relation": "observer" } },
-              { "computedUserset": { "relation": "data_reader" } }
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "fleet_manager" } }
             ]
           }
         },
@@ -108,7 +109,8 @@
           "union": {
             "child": [
               { "computedUserset": { "relation": "observer" } },
-              { "computedUserset": { "relation": "data_reader" } }
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "fleet_manager" } }
             ]
           }
         },
@@ -116,12 +118,28 @@
           "union": {
             "child": [
               { "computedUserset": { "relation": "observer" } },
-              { "computedUserset": { "relation": "data_reader" } }
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "interface_manager" } },
+              { "computedUserset": { "relation": "trigger_manager" } }
             ]
           }
         },
-        "can_list_trigger_policies": { "computedUserset": { "relation": "observer" } },
-        "can_list_triggers": { "computedUserset": { "relation": "observer" } },
+        "can_list_trigger_policies": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "trigger_manager" } }
+            ]
+          }
+        },
+        "can_list_triggers": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "observer" } },
+              { "computedUserset": { "relation": "trigger_manager" } }
+            ]
+          }
+        },
         "can_manage_fdo": { "computedUserset": { "relation": "fdo_manager" } },
         "can_read_fdo": { "computedUserset": { "relation": "fdo_viewer" } },
         "can_read_realm": { "computedUserset": { "relation": "observer" } },
@@ -196,7 +214,8 @@
           "union": {
             "child": [
               { "computedUserset": { "relation": "observer" } },
-              { "computedUserset": { "relation": "data_reader" } }
+              { "computedUserset": { "relation": "data_reader" } },
+              { "computedUserset": { "relation": "fleet_manager" } }
             ]
           }
         },
@@ -403,7 +422,13 @@
             "child": [
               { "computedUserset": { "relation": "observer" } },
               { "computedUserset": { "relation": "data_reader" } },
-              { "computedUserset": { "relation": "interface_manager" } }
+              { "computedUserset": { "relation": "interface_manager" } },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "trigger_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
             ]
           }
         },
@@ -480,7 +505,19 @@
           }
         },
         "can_read": {
-          "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "trigger_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
         },
         "realm": { "this": {} }
       },
@@ -502,7 +539,19 @@
           }
         },
         "can_read": {
-          "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": { "computedUserset": { "relation": "observer" }, "tupleset": { "relation": "realm" } }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": { "relation": "trigger_manager" },
+                  "tupleset": { "relation": "realm" }
+                }
+              }
+            ]
+          }
         },
         "realm": { "this": {} }
       },

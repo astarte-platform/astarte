@@ -36,6 +36,9 @@ defmodule Astarte.Auth.AuthorizationModelTest do
     {"user:_cluster/cluster_admin", "admin", "cluster:astarte"},
     {"user:testrealm/realm_admin", "admin", "realm:testrealm"},
     {"user:testrealm/fleet_manager", "fleet_manager", "realm:testrealm"},
+    {"user:testrealm/interface_manager", "interface_manager", "realm:testrealm"},
+    {"user:testrealm/trigger_manager", "trigger_manager", "realm:testrealm"},
+    {"user:testrealm/line4_fleet_manager", "fleet_manager", "device_group:testrealm/line4"},
     {"user:testrealm/line4_writer", "data_writer", "device_group:testrealm/line4"},
     {"user:testrealm/interface_writer", "data_writer", "interface:testrealm/com.my.Commands"},
     {"user:testrealm/fdo_viewer", "fdo_viewer", "realm:testrealm"},
@@ -253,6 +256,69 @@ defmodule Astarte.Auth.AuthorizationModelTest do
     assert_relations("user:testrealm/user_without_grants", "cluster:astarte", %{
       can_create_realm: false,
       can_list_realms: false
+    })
+  end
+
+  test "the fleet manager reads the fleet it manages, but not the devices' data" do
+    assert_relations("user:testrealm/fleet_manager", "realm:testrealm", %{
+      can_list_devices: true,
+      can_list_device_groups: true
+    })
+
+    assert_relations("user:testrealm/fleet_manager", "device_group:testrealm/line4", %{
+      can_read: true
+    })
+
+    assert_relations("user:testrealm/fleet_manager", "device:testrealm/dev1", %{
+      can_read: true,
+      can_read_data: false,
+      can_write_data: false
+    })
+  end
+
+  test "a device group's fleet manager reads that group, not the realm's fleet" do
+    assert_relations("user:testrealm/line4_fleet_manager", "device_group:testrealm/line4", %{
+      can_read: true
+    })
+
+    assert_relations("user:testrealm/line4_fleet_manager", "realm:testrealm", %{
+      can_list_devices: false,
+      can_list_device_groups: false
+    })
+  end
+
+  test "the interface manager lists the interfaces it manages, but reads no data" do
+    assert_relations("user:testrealm/interface_manager", "realm:testrealm", %{
+      can_list_interfaces: true
+    })
+
+    assert_relations("user:testrealm/interface_manager", "interface:testrealm/com.my.Commands", %{
+      can_read: true,
+      can_read_data: false
+    })
+  end
+
+  test "the trigger manager reads triggers, policies and interfaces, but no data" do
+    assert_relations("user:testrealm/trigger_manager", "realm:testrealm", %{
+      can_list_triggers: true,
+      can_list_trigger_policies: true,
+      can_list_interfaces: true
+    })
+
+    assert_relations("user:testrealm/trigger_manager", "trigger:testrealm/connection", %{
+      can_read: true,
+      can_delete: true
+    })
+
+    assert_relations("user:testrealm/trigger_manager", "trigger_policy:testrealm/retry", %{
+      can_read: true,
+      can_delete: true
+    })
+
+    assert_relations("user:testrealm/trigger_manager", "interface:testrealm/com.my.Commands", %{
+      can_read: true,
+      can_update: false,
+      can_read_data: false
     })
   end
 
