@@ -131,6 +131,8 @@ services:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
+      openfga-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       scylla:
