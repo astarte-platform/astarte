@@ -27,19 +27,7 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
   end
 
   def gen_jwt_token(authorization_paths) do
-    jwk =
-      Application.get_env(:astarte_appengine_api, :test_priv_key)
-      |> JOSE.JWK.from_map()
-
-    {:ok, jwt, _claims} =
-      %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(
-        %{a_aea: authorization_paths},
-        secret: jwk,
-        allowed_algos: ["RS256"]
-      )
-
-    jwt
+    sign(%{a_aea: authorization_paths})
   end
 
   def gen_jwt_token_with_wrong_signature(authorization_paths) do
@@ -57,17 +45,17 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
   end
 
   def gen_channels_jwt_token(authorization_paths) do
+    sign(%{a_ch: authorization_paths})
+  end
+
+  defp sign(claims, user_id \\ "testuser") do
     jwk =
       Application.get_env(:astarte_appengine_api, :test_priv_key)
       |> JOSE.JWK.from_map()
 
     {:ok, jwt, _claims} =
-      %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(
-        %{a_ch: authorization_paths},
-        secret: jwk,
-        allowed_algos: ["RS256"]
-      )
+      %User{id: user_id}
+      |> AuthGuardian.encode_and_sign(claims, secret: jwk, allowed_algos: ["RS256"])
 
     jwt
   end
