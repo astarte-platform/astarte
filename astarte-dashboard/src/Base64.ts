@@ -64,3 +64,16 @@ export function urlSafeBase64ToByteArray(base64string: string): number[] {
   }
   return [];
 }
+
+export function isValidDeviceId(deviceId: string): boolean {
+  if (!/^[A-Za-z0-9_-]{22}$/.test(deviceId)) {
+    return false;
+  }
+
+  const bytes = urlSafeBase64ToByteArray(deviceId);
+  return (
+    bytes.length === 17 &&
+    bytes[16] === 0 &&
+    byteArrayToUrlSafeBase64(bytes.slice(0, 16)) === deviceId
+  );
+}
