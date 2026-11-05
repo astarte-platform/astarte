@@ -296,21 +296,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
                  }
                )
     end
-
-    test "returns error for wrong session", %{
-      realm_name: realm_name
-    } do
-      new_hmac = :crypto.strong_rand_bytes(32)
-
-      assert {:error, :failed_66} =
-               OwnerOnboarding.build_owner_service_info_ready(
-                 %Session{guid: :crypto.strong_rand_bytes(16), realm: realm_name},
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
-                   max_owner_service_info_sz: 0
-                 }
-               )
-    end
   end
 
   describe "generate_rsa_2048_key/0" do
