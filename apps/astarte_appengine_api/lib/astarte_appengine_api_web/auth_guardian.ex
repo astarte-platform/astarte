@@ -32,7 +32,8 @@ defmodule Astarte.AppEngine.APIWeb.AuthGuardian do
     {:ok,
      %User{
        id: claims["sub"],
-       authorizations: Map.get(claims, "a_aea", [])
+       authorizations: Map.get(claims, "a_aea", []),
+       roles: Map.get(claims, "roles", [])
      }}
   end
 end
