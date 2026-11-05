@@ -36,6 +36,7 @@ defmodule Astarte.AppEngine.API.Application do
   # for more information on OTP Applications
   def start(_type, _args) do
     alias Astarte.AppEngine.API.Config
+    alias Astarte.Auth.Config, as: AuthConfig
     alias Astarte.DataAccess.Config, as: DataAccessConfig
 
     # make amqp supervisors logs less verbose
@@ -47,6 +48,7 @@ defmodule Astarte.AppEngine.API.Application do
     Logger.info("Starting application v#{@app_version}.", tag: "appengine_api_start")
 
     DataAccessConfig.validate!()
+    AuthConfig.validate!()
     Config.validate!()
     SecretsConfig.init()
 

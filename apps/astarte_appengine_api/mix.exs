@@ -68,6 +68,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:astarte_auth, in_umbrella: true},
       {:astarte_core, in_umbrella: true},
       {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false},
       {:amqp, "~> 4.1"},
