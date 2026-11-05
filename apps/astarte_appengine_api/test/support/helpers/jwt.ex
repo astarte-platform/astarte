@@ -21,9 +21,19 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
   """
   alias Astarte.AppEngine.API.Auth.User
   alias Astarte.AppEngine.APIWeb.AuthGuardian
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
   def public_key_pem do
     Application.get_env(:astarte_appengine_api, :test_pub_key_pem)
+  end
+
+  def install_public_key!(realm_name) do
+    :ok =
+      KvStore.insert(
+        %{group: "auth", key: "jwt_public_key_pem", value: public_key_pem()},
+        prefix: Realm.keyspace_name(realm_name)
+      )
   end
 
   def gen_jwt_token(authorization_paths) do

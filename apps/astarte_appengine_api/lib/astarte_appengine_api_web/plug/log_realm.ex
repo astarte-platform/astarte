@@ -20,12 +20,14 @@ defmodule Astarte.AppEngine.APIWeb.Plug.LogRealm do
   @moduledoc """
   Plug that injects the realm name into the Logger metadata
   """
+  alias Astarte.AppEngine.APIWeb.RealmName
+
   def init(opts) do
     opts
   end
 
   def call(conn, _opts) do
-    with %{"realm_name" => realm} <- conn.path_params do
+    with {:ok, realm} <- RealmName.fetch(conn) do
       Logger.metadata(realm: realm)
     end
 

@@ -9,8 +9,11 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
 
   alias Astarte.AppEngine.API.Auth
   alias Astarte.AppEngine.APIWeb.FallbackController
+  alias Astarte.AppEngine.APIWeb.RealmName
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
   alias JOSE.JWK
+
+  @no_key_errors [:missing_realm, :realm_not_found, :invalid_realm_name, :public_key_not_found]
 
   def init(opts) do
     GuardianVerifyHeader.init(opts)
@@ -24,21 +27,26 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
         GuardianVerifyHeader.call(conn, merged_opts)
 
       error ->
-        Logger.error("Couldn't get JWT public key PEM: #{inspect(error)}.",
-          tag: "get_jwt_secret_error"
-        )
-
-        conn
-        |> FallbackController.call(error)
-        |> halt()
+        handle_secret_error(conn, error, Keyword.get(opts, :halt, true))
     end
   end
 
   def fetch_secret(conn) do
-    %{"realm_name" => realm} = conn.path_params
-
-    with {:ok, public_key} <- Auth.fetch_public_key(realm) do
+    with {:ok, realm} <- RealmName.fetch(conn),
+         {:ok, public_key} <- Auth.fetch_public_key(realm) do
       {:ok, JWK.from_pem(public_key)}
     end
+  end
+
+  defp handle_secret_error(conn, {:error, reason}, false) when reason in @no_key_errors, do: conn
+
+  defp handle_secret_error(conn, error, _halt) do
+    Logger.error("Couldn't get JWT public key PEM: #{inspect(error)}.",
+      tag: "get_jwt_secret_error"
+    )
+
+    conn
+    |> FallbackController.call(error)
+    |> halt()
   end
 end
