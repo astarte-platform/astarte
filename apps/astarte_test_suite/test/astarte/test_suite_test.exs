@@ -93,6 +93,37 @@ defmodule Astarte.TestSuiteTest do
 
   test "planner exposes graph keys" do
     assert :group in Astarte.TestSuite.graph_keys()
+    assert :policy in Astarte.TestSuite.graph_keys()
+    assert :trigger in Astarte.TestSuite.graph_keys()
+    assert :simple_trigger in Astarte.TestSuite.graph_keys()
+  end
+
+  test "planner deduces policy ancestors" do
+    assert Astarte.TestSuite.plan!(policy: true).load_order == [
+             :common,
+             :instance,
+             :realm,
+             :policy
+           ]
+  end
+
+  test "planner deduces trigger ancestors" do
+    assert Astarte.TestSuite.plan!(trigger: true).load_order == [
+             :common,
+             :instance,
+             :realm,
+             :trigger
+           ]
+  end
+
+  test "planner deduces simple trigger ancestors" do
+    assert Astarte.TestSuite.plan!(simple_trigger: true).load_order == [
+             :common,
+             :instance,
+             :realm,
+             :trigger,
+             :simple_trigger
+           ]
   end
 
   test "planner accepts empty configuration" do
@@ -226,7 +257,10 @@ defmodule Astarte.TestSuiteTest do
   test "case-level validation succeeds for group parameters" do
     assert Map.take(
              GroupCase.normalize_config!([group_number: 4], %{
-               devices: %{"device" => {%{name: "device"}, "interface"}}
+               devices: %{
+                 "AAAAAAAAAAAAAAAAAAAAAA" =>
+                   {%{device_id: <<0::128>>, encoded_id: "AAAAAAAAAAAAAAAAAAAAAA"}, "interface"}
+               }
              }),
              [:group_name, :group_number]
            ) ==
