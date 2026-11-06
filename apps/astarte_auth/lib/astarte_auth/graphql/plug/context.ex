@@ -57,7 +57,7 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   @impl Plug
   def call(conn, _opts) do
     context = %{
-      realm_name: conn |> get_req_header("astarte-realm") |> find_realm_name(),
+      realm_name: realm_name(conn),
       current_user: Guardian.Plug.current_resource(conn),
       auth_token: conn |> get_req_header("authorization") |> find_bearer_token(),
       remote_ip: conn.remote_ip |> :inet_parse.ntoa() |> to_string()
@@ -66,11 +66,29 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
     Absinthe.Plug.put_options(conn, context: context)
   end
 
-  defp find_realm_name([realm_name | _]) do
-    if Realm.valid_name?(realm_name), do: realm_name
+  @doc """
+  Fetches the realm name from the `astarte-realm` request header.
+  """
+  @spec fetch_realm_name(Plug.Conn.t()) ::
+          {:ok, String.t()} | {:error, :missing_realm | :invalid_realm_name}
+  def fetch_realm_name(conn) do
+    conn
+    |> get_req_header("astarte-realm")
+    |> fetch_valid_realm_name()
   end
 
-  defp find_realm_name([]), do: nil
+  defp realm_name(conn) do
+    case fetch_realm_name(conn) do
+      {:ok, realm_name} -> realm_name
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp fetch_valid_realm_name([realm_name | _]) do
+    if Realm.valid_name?(realm_name), do: {:ok, realm_name}, else: {:error, :invalid_realm_name}
+  end
+
+  defp fetch_valid_realm_name([]), do: {:error, :missing_realm}
 
   defp find_bearer_token(auth_headers) do
     Enum.find_value(auth_headers, fn auth_header ->

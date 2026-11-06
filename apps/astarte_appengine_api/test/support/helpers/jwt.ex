@@ -21,25 +21,27 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
   """
   alias Astarte.AppEngine.API.Auth.User
   alias Astarte.AppEngine.APIWeb.AuthGuardian
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
   def public_key_pem do
     Application.get_env(:astarte_appengine_api, :test_pub_key_pem)
   end
 
-  def gen_jwt_token(authorization_paths) do
-    jwk =
-      Application.get_env(:astarte_appengine_api, :test_priv_key)
-      |> JOSE.JWK.from_map()
-
-    {:ok, jwt, _claims} =
-      %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(
-        %{a_aea: authorization_paths},
-        secret: jwk,
-        allowed_algos: ["RS256"]
+  def install_public_key!(realm_name) do
+    :ok =
+      KvStore.insert(
+        %{group: "auth", key: "jwt_public_key_pem", value: public_key_pem()},
+        prefix: Realm.keyspace_name(realm_name)
       )
+  end
 
-    jwt
+  def gen_jwt_token(authorization_paths) do
+    sign(%{a_aea: authorization_paths})
+  end
+
+  def gen_jwt_token_with_roles(roles, user_id \\ "testuser") do
+    sign(%{roles: roles}, user_id)
   end
 
   def gen_jwt_token_with_wrong_signature(authorization_paths) do
@@ -57,17 +59,17 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
   end
 
   def gen_channels_jwt_token(authorization_paths) do
+    sign(%{a_ch: authorization_paths})
+  end
+
+  defp sign(claims, user_id \\ "testuser") do
     jwk =
       Application.get_env(:astarte_appengine_api, :test_priv_key)
       |> JOSE.JWK.from_map()
 
     {:ok, jwt, _claims} =
-      %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(
-        %{a_ch: authorization_paths},
-        secret: jwk,
-        allowed_algos: ["RS256"]
-      )
+      %User{id: user_id}
+      |> AuthGuardian.encode_and_sign(claims, secret: jwk, allowed_algos: ["RS256"])
 
     jwt
   end

@@ -83,4 +83,22 @@ defmodule Astarte.Auth.GraphQL.Plug.ContextTest do
 
     assert %{remote_ip: "127.0.0.1"} = context(conn)
   end
+
+  describe "fetch_realm_name/1" do
+    test "returns the realm in the astarte-realm header" do
+      conn = conn(:post, "/graphql") |> put_req_header("astarte-realm", "testrealm")
+
+      assert Context.fetch_realm_name(conn) == {:ok, "testrealm"}
+    end
+
+    test "fails when the header is missing" do
+      assert Context.fetch_realm_name(conn(:post, "/graphql")) == {:error, :missing_realm}
+    end
+
+    test "fails when the header is not a valid realm name" do
+      conn = conn(:post, "/graphql") |> put_req_header("astarte-realm", "Bad!")
+
+      assert Context.fetch_realm_name(conn) == {:error, :invalid_realm_name}
+    end
+  end
 end

@@ -33,14 +33,16 @@ a pull request saves everyone some precious review time!
 
 ## 🧑‍🔬 Test
 
-to test ae you need a running instance of rabbitmq and a cassandra-compatible
-database, (we suggest scylla)
+to test ae you need a running instance of rabbitmq, OpenFGA and a
+cassandra-compatible database, (we suggest scylla)
 
 ```shell
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
+docker run --rm -d -p 8081:8080 --name openfga openfga/openfga:v1.22.0 run
 ```
 
-by default `CASSANDRA_NODES` environment variable map to `localhost`, so that
+by default `CASSANDRA_NODES` and `ASTARTE_OPENFGA_URL` environment variables map
+to `localhost`, so that
 
 ```shell
 mix test
@@ -50,5 +52,5 @@ just works. In more complex scenarios you might need to tell to astarte where
 these resources are located.
 
 ```shell
-CASSANDRA_NODES=localhost mix test
+CASSANDRA_NODES=localhost ASTARTE_OPENFGA_URL=http://localhost:8081 mix test
 ```
