@@ -44,6 +44,27 @@ defmodule Astarte.Pairing.Helpers.Device do
     :datetimearray
   ]
 
+  @csr """
+  -----BEGIN CERTIFICATE REQUEST-----
+   MIICijCCAXICAQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUx
+  ITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDCCASIwDQYJKoZIhvcN
+  AQEBBQADggEPADCCAQoCggEBAKwr1LhhCG3JTPIt+4ZeRxgTiY0Zuh2cm1o+7O7Y
+  Tdj98exqx5de/dEbgZcQZxrkTRfDJgToZQ+6hECH/jOq5NvoY9E3lZKUaFuJNjeQ
+  raPWZYhvTDGQmoazlVTwjQP5MoPAxJAOPiG7DO9ocUEbwx6a0V6oqQHObK+zK4wI
+  3YWZpexeg0l0B/ZXVRctDw6XLZGOHvBjDrBmY6AK1mbetF+c4MEQxQ0fnDjdFvtr
+  iuRRNAvd3QKgAjYHujgzW30Lavb2oCFXTDhew7GFBLkHe6WhMwG9mEvAkRpqPsIO
+  mhH/mw+oGbOcj4iQJ5bgVGRCi4JZzzsV/Gb23wyD/124uVECAwEAAaAAMA0GCSqG
+  SIb3DQEBCwUAA4IBAQBBfa5NEqhcm7ejN1q5xvJw5T1WLeFW2B4yuLeMvw3PyLiJ
+  6bsRtZn3gc+lbzuNW1TOvrxTqyx1nNHsFdkCdZBStGmP4DQQ2fAXobejLb0CYq5J
+  /cNZdjnh+8SZI047x4u5NdpZOAAq3qI8dE5w3bw29LTQwGbfP6Qw1mor/iJ6JwOD
+  JTdfNzZkGCLFQSQqyQzb8eYcV+qmKVMEN4xKClG8VoYPWgUqz5QlI+j2O1Hdffoe
+  wJvFUdkJfKjiEYTGx8xFSf1KrR+DQxLKuLChNCeyL1TfTIFscUh4HFr50R1/L8j8
+  Em1TFZhRyNMRR0udWk9cpEBqNs18xjqsBfqs529h
+  -----END CERTIFICATE REQUEST-----
+  """
+
+  def csr, do: @csr
+
   def insert_interface_cleanly(realm_name, interface) do
     keyspace = Realm.keyspace_name(realm_name)
     interface_db = %Interface{name: interface.name, major_version: interface.major_version}

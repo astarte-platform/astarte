@@ -35,9 +35,10 @@ docker run --rm  -d -p 5672:5672 -p 15672:15672 --name rabbit rabbitmq:3.12.0-ma
 docker run --rm -d --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
 docker run --rm -d -p 8200:8200 --name openbao openbao/openbao:latest server -dev -dev-root-token-id=astarte_token
 docker run --rm -d -p 8041:8041 --name rendezvous astarte/go-fdo-server:ade68cda47-20251128 --log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/tmp/rendezvous.db"
+docker run --rm -d -p 8081:8081 --name openfga openfga/openfga run
 ```
 
-by default `CASSANDRA_NODES` and `CFSSL_API_URL` environment variables map to localhost, so that
+by default `CASSANDRA_NODES`, `CFSSL_API_URL`, and `ASTARTE_OPENFGA_URL` environment variables map to localhost, so that
 
 ```shell
 mix test
@@ -47,7 +48,7 @@ just works. In more complex scenarios you might need to tell to astarte where
 these resources are located.
 
 ```shell
-CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test
+CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 ASTARTE_OPENFGA_URL=http://localhost:8081 mix test
 ```
 
 # Test FDO

@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.Config do
   This module contains functions to access the configuration
   """
 
-  use Skogsra
+  use Astarte.Config, env_app: "ASTARTE_PAIRING"
 
   alias Astarte.FDO.Config, as: FDOConfig
   alias Astarte.Pairing.CFSSLCredentials

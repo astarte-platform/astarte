@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.Auth.User do
   @enforce_keys [:id]
   defstruct [
     :id,
-    :authorizations
+    :authorizations,
+    :roles
   ]
 end
