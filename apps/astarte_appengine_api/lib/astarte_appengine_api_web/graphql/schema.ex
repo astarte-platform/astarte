@@ -26,12 +26,32 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
 
   use Absinthe.Schema
 
+  alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.StatsResolver
   alias Astarte.Auth.GraphQL.Middleware.AuthorizeFGA
+  alias Astarte.Auth.GraphQL.Middleware.HandleErrors
 
+  import_types Absinthe.Type.Custom
+  import_types Astarte.AppEngine.APIWeb.GraphQL.Types.DeviceTypes
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.StatsTypes
 
+  @impl Absinthe.Schema
+  def middleware(middleware, _field, %{identifier: identifier})
+      when identifier in [:query, :mutation],
+      do: middleware ++ [HandleErrors]
+
+  def middleware(middleware, _field, _object), do: middleware
+
   query do
+    @desc "A device of the realm"
+    field :device, :device do
+      arg :device_id, non_null(:string)
+
+      middleware AuthorizeFGA, relation: "can_read", target: {:device, :device_id}
+
+      resolve &DeviceResolver.get_device/3
+    end
+
     @desc "Device count statistics of the realm"
     field :devices_stats, :devices_stats do
       middleware AuthorizeFGA, relation: "can_read_stats", target: :realm
