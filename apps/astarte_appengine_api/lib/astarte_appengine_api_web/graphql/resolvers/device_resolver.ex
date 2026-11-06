@@ -25,4 +25,8 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver do
   def get_device(_parent, %{device_id: device_id}, %{context: %{realm_name: realm_name}}) do
     Device.get_device_status!(realm_name, device_id)
   end
+
+  def list_devices(_parent, args, %{context: %{realm_name: realm_name}}) do
+    Device.list_devices!(realm_name, Map.put(args, :details, true))
+  end
 end

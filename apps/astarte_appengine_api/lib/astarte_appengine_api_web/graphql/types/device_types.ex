@@ -22,6 +22,8 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Types.DeviceTypes do
 
   use Absinthe.Schema.Notation
 
+  alias Absinthe.Blueprint.Input
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
 
   @desc "A key and its value"
@@ -116,6 +118,38 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Types.DeviceTypes do
     @desc "Whether the device is being deleted"
     field :deletion_in_progress, non_null(:boolean)
   end
+
+  @desc "A page of devices"
+  object :device_page do
+    @desc "The devices of the page"
+    field :devices, non_null(list_of(non_null(:device)))
+
+    @desc "The token of the next page, null on the last one"
+    field :next_token, :page_token do
+      resolve fn %DevicesList{last_token: last_token}, _args, _resolution ->
+        {:ok, last_token}
+      end
+    end
+  end
+
+  @desc """
+  The position of a page in a list of devices. It is a 64-bit integer, larger
+  than a GraphQL Int can hold, so it is written as a string.
+  """
+  scalar :page_token do
+    parse &parse_page_token/1
+    serialize &Integer.to_string/1
+  end
+
+  defp parse_page_token(%Input.String{value: value}) do
+    case Integer.parse(value) do
+      {token, ""} -> {:ok, token}
+      _ -> :error
+    end
+  end
+
+  defp parse_page_token(%Input.Null{}), do: {:ok, nil}
+  defp parse_page_token(_input), do: :error
 
   defp interface_infos(introspection),
     do: Enum.map(introspection, fn {name, info} -> %{info | name: name} end)

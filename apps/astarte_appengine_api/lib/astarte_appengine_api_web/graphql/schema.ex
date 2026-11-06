@@ -26,6 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
 
   use Absinthe.Schema
 
+  alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.StatsResolver
   alias Astarte.Auth.GraphQL.Middleware.AuthorizeFGA
@@ -50,6 +51,16 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
       middleware AuthorizeFGA, relation: "can_read", target: {:device, :device_id}
 
       resolve &DeviceResolver.get_device/3
+    end
+
+    @desc "A page of the devices of the realm"
+    field :devices, :device_page do
+      arg :limit, non_null(:integer), default_value: %DevicesListOptions{}.limit
+      arg :from_token, :page_token
+
+      middleware AuthorizeFGA, relation: "can_list_devices", target: :realm
+
+      resolve &DeviceResolver.list_devices/3
     end
 
     @desc "Device count statistics of the realm"
