@@ -7,6 +7,8 @@ Authentication and authorization code shared by every Astarte service:
   resolution through those checks.
 - `Astarte.Auth.GraphQL.Plug.Context` - plug that builds the Absinthe context the middleware reads,
   from the identity the service's own Guardian plugs loaded.
+- `Astarte.Auth.Plug.FetchRealmName` - plug that assigns the realm a request refers to, from its
+  path or its `astarte-realm` header.
 
 OpenFGA is a single cluster-wide service, so its URL and store id are configured once, in this
 library (`Astarte.Auth.Config`), rather than per service. The store itself is provisioned

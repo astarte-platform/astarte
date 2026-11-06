@@ -19,13 +19,12 @@
 defmodule Astarte.Auth.GraphQL.Plug.Context do
   @moduledoc """
   Builds the Absinthe context read by `Astarte.Auth.GraphQL.Middleware.AuthorizeFGA`
-  and the resolvers. The service's Guardian plugs must run before it, without
-  halting.
+  and the resolvers. `Astarte.Auth.Plug.FetchRealmName` and the service's Guardian
+  plugs must run before it, the Guardian ones without halting.
 
   The context holds:
 
-  - `:realm_name` - the `astarte-realm` request header, or `nil` if it is missing
-    or not a valid realm name.
+  - `:realm_name` - the realm `Astarte.Auth.Plug.FetchRealmName` assigned, or `nil`.
   - `:current_user` - the resource Guardian loaded, or `nil`.
   - `:auth_token` - the raw bearer token, or `nil`.
   - `:remote_ip` - the caller's IP address.
@@ -34,8 +33,6 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   @behaviour Plug
 
   import Plug.Conn
-
-  alias Astarte.Core.Realm
 
   @bearer_regex ~r/^bearer:?\s+(.+)$/i
 
@@ -57,7 +54,7 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
   @impl Plug
   def call(conn, _opts) do
     context = %{
-      realm_name: conn |> get_req_header("astarte-realm") |> find_realm_name(),
+      realm_name: conn.assigns.realm_name,
       current_user: Guardian.Plug.current_resource(conn),
       auth_token: conn |> get_req_header("authorization") |> find_bearer_token(),
       remote_ip: conn.remote_ip |> :inet_parse.ntoa() |> to_string()
@@ -65,12 +62,6 @@ defmodule Astarte.Auth.GraphQL.Plug.Context do
 
     Absinthe.Plug.put_options(conn, context: context)
   end
-
-  defp find_realm_name([realm_name | _]) do
-    if Realm.valid_name?(realm_name), do: realm_name
-  end
-
-  defp find_realm_name([]), do: nil
 
   defp find_bearer_token(auth_headers) do
     Enum.find_value(auth_headers, fn auth_header ->
