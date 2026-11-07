@@ -223,15 +223,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   end
 
   describe "resend_all_properties/1" do
-    test "returns error when interface cache miss occurs", %{state: state} do
-      # Simulate a cache miss
+    test "returns the interface major version when interface cache miss occurs", %{state: state} do
+      interface_name = "com.example.Interface"
+      major_version = 1
+      state = %{state | introspection: %{interface_name => major_version}}
+
       Mimic.expect(Core.Interface, :maybe_handle_cache_miss, fn _maybe_descriptor,
-                                                                _interface,
+                                                                ^interface_name,
                                                                 _state_acc ->
         {:error, :interface_loading_failed}
       end)
 
-      assert {:error, :interface_loading_failed} ==
+      assert {:error, {:interface_loading_failed, interface_name, major_version}} ==
                Core.Device.resend_all_properties(state)
     end
 
