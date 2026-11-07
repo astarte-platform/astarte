@@ -430,13 +430,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
         {:cont, {:ok, new_state}}
       else
-        {:error, {:interface_loading_failed, _, _}} = error ->
-          Logger.warning(
-            "Error while sending properties to device: #{inspect(:interface_loading_failed)} on interface #{interface}"
-          )
-
-          {:halt, error}
-
         {:error, reason} = error ->
           Logger.warning(
             "Error while sending properties to device: #{inspect(reason)} on interface #{interface}"
