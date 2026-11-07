@@ -280,6 +280,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       interface_name = "com.example.Interface"
       major_version = 1
+
       expect(Core.Device, :resend_all_properties, fn _state ->
         {:error, {:interface_loading_failed, interface_name, major_version}}
       end)

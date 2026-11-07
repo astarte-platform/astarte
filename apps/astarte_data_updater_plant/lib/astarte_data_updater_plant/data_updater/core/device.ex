@@ -424,7 +424,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
     Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, major_version},
-                                                              {:ok, state_acc} ->
+                                                            {:ok, state_acc} ->
       with {:ok, interface_descriptor, new_state} <-
              maybe_load_interface(state_acc, interface, major_version),
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
