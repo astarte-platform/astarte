@@ -1,3 +1,4 @@
+Mimic.copy(Astarte.AppEngine.API.Auth)
 Mimic.copy(Astarte.AppEngine.API.Device)
 Mimic.copy(Astarte.AppEngine.API.Health)
 Mimic.copy(Astarte.DataAccess.Config)

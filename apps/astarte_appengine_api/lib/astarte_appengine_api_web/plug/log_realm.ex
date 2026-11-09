@@ -25,9 +25,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.LogRealm do
   end
 
   def call(conn, _opts) do
-    with %{"realm_name" => realm} <- conn.path_params do
-      Logger.metadata(realm: realm)
-    end
+    Logger.metadata(realm: conn.assigns.realm_name)
 
     conn
   end
