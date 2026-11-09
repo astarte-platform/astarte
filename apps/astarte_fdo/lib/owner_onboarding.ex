@@ -215,8 +215,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
           max_owner_service_info_sz: max_owner_service_info_sz
         }
       ) do
-    with {:ok, _} <- Queries.fetch_session(session.guid),
-         {:ok, session} <-
+    with {:ok, session} <-
            Session.add_max_owner_service_info_size(
              session,
              max_owner_service_info_sz
