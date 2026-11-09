@@ -18,7 +18,23 @@
 defmodule Astarte.AppEngine.APIWeb.Router do
   use Astarte.AppEngine.APIWeb, :router
   alias Astarte.AppEngine.APIWeb.Plug.LogRealm
+  alias Astarte.Auth.GraphQL.Plug.Context
   alias Astarte.Auth.Plug.FetchRealmName
+
+  # auth errors don't halt, AuthorizeFGA reports them on each field
+  pipeline :graphql do
+    plug FetchRealmName
+    plug LogRealm
+
+    plug Guardian.Plug.Pipeline,
+      otp_app: :astarte_appengine_api,
+      module: Astarte.AppEngine.APIWeb.AuthGuardian,
+      error_handler: Context.ErrorHandler
+
+    plug Astarte.AppEngine.APIWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Context
+  end
 
   pipeline :realm_api do
     plug :accepts, ["json"]
@@ -174,6 +190,13 @@ defmodule Astarte.AppEngine.APIWeb.Router do
         end
       end
     end
+  end
+
+  # after the realm routes, so that a realm named graphql keeps its REST API
+  scope "/v1/graphql" do
+    pipe_through :graphql
+
+    forward "/", Absinthe.Plug, schema: Astarte.AppEngine.APIWeb.GraphQL.Schema
   end
 
   scope "/swagger" do

@@ -49,6 +49,7 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpecTest do
       Router.__routes__()
       |> MapSet.new(&normalize_route/1)
       |> Enum.reject(&ignore_swagger_route/1)
+      |> Enum.reject(&ignore_graphql_route/1)
       |> MapSet.new()
 
     actual_operations =
@@ -71,6 +72,11 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpecTest do
 
   defp ignore_swagger_route({path, _verb}) do
     String.starts_with?(path, "/swagger")
+  end
+
+  # GraphQL describes itself through its own schema
+  defp ignore_graphql_route({path, _verb}) do
+    String.starts_with?(path, "/graphql")
   end
 
   defp normalize_route(route) do

@@ -40,6 +40,10 @@ defmodule Astarte.AppEngine.API.Helpers.JWT do
     sign(%{a_aea: authorization_paths})
   end
 
+  def gen_jwt_token_with_roles(roles, user_id \\ "testuser") do
+    sign(%{roles: roles}, user_id)
+  end
+
   def gen_jwt_token_with_wrong_signature(authorization_paths) do
     valid_token = gen_jwt_token(authorization_paths)
 
