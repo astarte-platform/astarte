@@ -122,8 +122,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
+      interface_name = "com.example.Interface"
+      major_version = 1
+
       expect(Core.Device, :resend_all_properties, fn _state ->
-        {:error, :interface_loading_failed}
+        {:error, {:interface_loading_failed, interface_name, major_version}}
       end)
 
       expect(MessageTracker, :discard, fn ^message_tracker, ^message_id -> :ok end)
@@ -131,7 +134,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       expect(Core.Trigger, :execute_device_error_triggers, fn _state,
                                                               "interface_loading_failed",
+                                                              metadata,
                                                               _ts ->
+        assert metadata == %{
+                 "interface" => interface_name,
+                 "interface_major_version" => "1"
+               }
+
         :ok
       end)
 
