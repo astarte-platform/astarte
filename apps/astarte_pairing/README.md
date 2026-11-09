@@ -38,6 +38,12 @@ docker run --rm -d -p 8041:8041 --name rendezvous astarte/go-fdo-server:ade68cda
 docker run --rm -d -p 8081:8081 --name openfga openfga/openfga run
 ```
 
+Alternatively, from the repository root, you can start the platform using `docker compose` in development mode:
+
+```shell
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+```
+
 by default `CASSANDRA_NODES`, `CFSSL_API_URL`, and `ASTARTE_OPENFGA_URL` environment variables map to localhost, so that
 
 ```shell

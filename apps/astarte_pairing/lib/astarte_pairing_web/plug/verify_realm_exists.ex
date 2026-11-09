@@ -32,16 +32,9 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
   end
 
   def call(conn, _opts) do
-    case realm_name(conn) do
+    case conn.assigns[:realm_name] do
       nil -> forbidden(conn)
       realm_name -> verify_realm_exists(conn, realm_name)
-    end
-  end
-
-  # GraphQL requests have the realm in the astarte-realm header
-  defp realm_name(conn) do
-    with nil <- conn.path_params["realm_name"] do
-      conn |> get_req_header("astarte-realm") |> List.first()
     end
   end
 
@@ -50,7 +43,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
       {:ok, true} ->
         Logger.metadata(realm: realm_name)
 
-        assign(conn, :realm_name, realm_name)
+        conn
 
       {:ok, false} ->
         Logger.warning("Realm #{realm_name} does not exist.",

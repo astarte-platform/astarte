@@ -33,12 +33,18 @@ defmodule Astarte.PairingWeb.GraphQL.Middleware.HandleErrorsTest do
     assert handle(errors) == errors
   end
 
-  test "turns a changeset into a validation error carrying its field errors" do
+  setup_all do
     changeset =
       {%{}, %{key_name: :string}}
       |> Ecto.Changeset.cast(%{}, [:key_name])
       |> Ecto.Changeset.validate_required(:key_name)
 
+    %{changeset: changeset}
+  end
+
+  test "turns a changeset into a validation error carrying its field errors", %{
+    changeset: changeset
+  } do
     assert handle([changeset]) == [
              %{message: "Validation failed", details: %{key_name: ["can't be blank"]}}
            ]

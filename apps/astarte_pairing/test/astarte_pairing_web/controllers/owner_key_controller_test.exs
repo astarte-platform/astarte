@@ -168,8 +168,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       %{
         auth_conn: conn,
         owner_key_path: path,
-        upload_key_payload: payload,
-        openbao_namespace: namespace
+        upload_key_payload: payload
       } = context
 
       payload_duplicated_key =
@@ -194,7 +193,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     test "list 4 keys in p256 group", context do
       %{
         auth_conn: conn,
-        openbao_namespace: namespace,
         list_path: path
       } = context
 

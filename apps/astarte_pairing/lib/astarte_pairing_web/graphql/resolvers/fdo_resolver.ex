@@ -62,12 +62,7 @@ defmodule Astarte.PairingWeb.GraphQL.Resolvers.FDOResolver do
 
   def list_ownership_vouchers(_parent, _args, %{context: %{realm_name: realm}}) do
     with {:ok, vouchers} <- OwnershipVoucher.list(realm) do
-      formatted_vouchers =
-        Enum.map(vouchers, fn voucher ->
-          OwnershipVoucherView.render("ownership_voucher.json", %{ownership_voucher: voucher})
-        end)
-
-      {:ok, formatted_vouchers}
+      {:ok, Phoenix.View.render_many(vouchers, OwnershipVoucherView, "ownership_voucher.json")}
     end
   end
 

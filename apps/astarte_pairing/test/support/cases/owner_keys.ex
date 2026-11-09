@@ -37,11 +37,12 @@ defmodule Astarte.Pairing.Cases.OwnerKeys do
     {:ok, es256} = Secrets.create_fdo_namespace(realm, :es256)
     {:ok, es384} = Secrets.create_fdo_namespace(realm, :es384)
 
+    Enum.each([es256, es384], &delete_owner_keys/1)
+    on_exit(fn -> Enum.each([es256, es384], &delete_owner_keys/1) end)
+
     {:ok, _} = Secrets.create_keypair("owner_key_a", :es256, namespace: es256)
     {:ok, _} = Secrets.create_keypair("owner_key_b", :es256, namespace: es256)
     {:ok, _} = Secrets.create_keypair("owner_key_c", :es384, namespace: es384)
-
-    on_exit(fn -> Enum.each([es256, es384], &delete_owner_keys/1) end)
 
     %{
       resolution: %{context: %{realm_name: realm}},

@@ -20,9 +20,11 @@ defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
 
   alias Astarte.Auth.GraphQL.Plug.Context
+  alias Astarte.Auth.Plug.FetchRealmName
 
   pipeline :realm_api do
     plug :accepts, ["json"]
+    plug FetchRealmName
     plug Astarte.PairingWeb.Plug.LogRealm
     plug Astarte.PairingWeb.Plug.VerifyRealmExists
   end
@@ -37,6 +39,8 @@ defmodule Astarte.PairingWeb.Router do
 
   # auth errors don't halt, the resolvers report them
   pipeline :graphql do
+    plug FetchRealmName
+
     plug Guardian.Plug.Pipeline,
       otp_app: :astarte_pairing,
       module: Astarte.PairingWeb.AuthGuardian,
@@ -50,6 +54,7 @@ defmodule Astarte.PairingWeb.Router do
   # no :accepts, clients may ask for application/graphql-response+json
   pipeline :graphql_realm do
     plug :put_format, "json"
+    plug FetchRealmName
     plug Astarte.PairingWeb.Plug.VerifyRealmExists
   end
 

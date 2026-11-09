@@ -223,12 +223,8 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "key_algorithm" => key_algorithm,
         "key_name" => key_name
       }) do
-    case OwnerKey.fetch(realm_name, key_algorithm, key_name) do
-      {:ok, key} ->
-        json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
-
-      {:error, reason} ->
-        {:error, reason}
+    with {:ok, key} <- OwnerKey.fetch(realm_name, key_algorithm, key_name) do
+      json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
     end
   end
 end

@@ -45,13 +45,13 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
     GuardianVerifyHeader.call(conn, merged_opts)
   end
 
-  defp get_secrets(conn) do
-    with {:ok, realm} <- fetch_realm_name(conn),
-         {:ok, [_pem | _] = public_key_pems} <- Auth.get_public_keys(realm) do
-      for public_key_pem <- public_key_pems do
-        JWK.from_pem(public_key_pem)
-      end
-    else
+  defp get_secrets(%Plug.Conn{assigns: %{realm_name: realm}}) when is_binary(realm) do
+    case Auth.get_public_keys(realm) do
+      {:ok, [_pem | _] = public_key_pems} ->
+        for public_key_pem <- public_key_pems do
+          JWK.from_pem(public_key_pem)
+        end
+
       error ->
         _ =
           Logger.error("Couldn't get JWT public key PEM: #{inspect(error)}.",
@@ -62,17 +62,5 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
     end
   end
 
-  # GraphQL requests have the realm in the astarte-realm header
-  defp fetch_realm_name(conn) do
-    with nil <- conn.assigns[:realm_name],
-         :error <- Map.fetch(conn.path_params, "realm_name") do
-      conn |> Plug.Conn.get_req_header("astarte-realm") |> fetch_realm_name_from_header()
-    else
-      {:ok, realm} -> {:ok, realm}
-      realm when is_binary(realm) -> {:ok, realm}
-    end
-  end
-
-  defp fetch_realm_name_from_header([realm | _]), do: {:ok, realm}
-  defp fetch_realm_name_from_header([]), do: :error
+  defp get_secrets(%Plug.Conn{assigns: %{realm_name: nil}}), do: []
 end

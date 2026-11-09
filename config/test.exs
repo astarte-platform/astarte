@@ -226,5 +226,7 @@ config :astarte_vmq_plugin, :queue_prefix, "test_data_queue_"
 config :astarte_vmq_plugin, :registry_mfa, {Astarte.VMQ.Plugin.MockVerne, :get_functions, []}
 config :astarte_vmq_plugin, :vernemq_api, MockVerneMQ.API
 
+config :astarte_pairing, dev_routes: true
+
 config :ex_unit,
   timeout: 120_000

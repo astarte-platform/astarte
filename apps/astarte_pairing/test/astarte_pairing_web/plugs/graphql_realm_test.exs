@@ -34,7 +34,7 @@ defmodule Astarte.PairingWeb.GraphQLRealmTest do
     end
 
     test "is forbidden for an invalid realm name, without crashing", %{conn: conn} do
-      expect(Queries, :realm_existing?, fn "Bad!" -> {:ok, false} end)
+      reject(&Queries.realm_existing?/1)
 
       conn =
         conn

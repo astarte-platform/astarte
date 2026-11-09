@@ -94,8 +94,15 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   end
 
   defp validate_request(params, realm_name) do
+    params =
+      if Enum.any?(Map.keys(params), &is_atom/1) do
+        Map.put(params, :realm_name, realm_name)
+      else
+        Map.put(params, "realm_name", realm_name)
+      end
+
     %LoadRequest{}
-    |> LoadRequest.changeset(Map.put(params, "realm_name", realm_name))
+    |> LoadRequest.changeset(params)
     |> Ecto.Changeset.apply_action(:insert)
   end
 

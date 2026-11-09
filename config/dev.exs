@@ -28,7 +28,7 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint,
   check_origin: false,
   watchers: []
 
-config :astarte_pairing, dev_routes: false
+config :astarte_pairing, dev_routes: true
 
 config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 config :astarte_pairing, :cfssl_url, "http://localhost:8888"

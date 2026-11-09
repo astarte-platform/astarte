@@ -5,6 +5,8 @@ services:
       args:
         BUILD_ENV: dev
     command:
+      - "sh"
+      - "-c"
       - |
           set -e
           mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
@@ -19,9 +21,7 @@ services:
       target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-          mix run --no-halt
+    command: mix run --no-halt
     develop:
       watch:
         - path: apps/astarte_realm_management/lib
@@ -31,9 +31,7 @@ services:
       target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-          mix run --no-halt
+    command: mix run --no-halt
     develop:
       watch:
         - path: apps/astarte_pairing/lib
@@ -43,9 +41,7 @@ services:
       target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-          mix phx.server
+    command: mix phx.server
     develop:
       watch:
         - path: apps/astarte_appengine_api/lib
@@ -56,9 +52,7 @@ services:
       target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-          mix run --no-halt
+    command: mix run --no-halt
     develop:
       watch:
         - path: apps/astarte_data_updater_plant/lib
@@ -68,9 +62,7 @@ services:
       target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-          mix run --no-halt
+    command: mix run --no-halt
     develop:
       watch:
         - path: apps/astarte_trigger_engine/lib
