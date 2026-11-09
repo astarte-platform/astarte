@@ -984,9 +984,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(realm_name, device_id, :object, interface_row, opts) do
-    explicit_timestamp =
-      Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
-
     do_get_interface_values!(
       realm_name,
       device_id,
@@ -995,7 +992,7 @@ defmodule Astarte.AppEngine.API.Device do
       interface_row,
       nil,
       "/",
-      %{opts | explicit_timestamp: explicit_timestamp}
+      opts
     )
   end
 
