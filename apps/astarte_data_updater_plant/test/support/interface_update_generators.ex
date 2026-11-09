@@ -354,8 +354,8 @@ defmodule Astarte.InterfaceUpdateGenerators do
     datetime =
       one_of([
         TimestampGenerator.timestamp(),
-        TimestampGenerator.timestamp()
-        |> map(&DateTime.from_unix!/1)
+        TimestampGenerator.timestamp(unit: :millisecond)
+        |> map(&DateTime.from_unix!(&1, :millisecond))
       ])
 
     binaryblob =
