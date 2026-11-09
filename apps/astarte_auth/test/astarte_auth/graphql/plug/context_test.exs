@@ -24,32 +24,32 @@ defmodule Astarte.Auth.GraphQL.Plug.ContextTest do
 
   alias Astarte.Auth.GraphQL.Plug.Context
 
-  defp call(headers, current_user \\ nil) do
+  defp call(headers, realm_name \\ nil, current_user \\ nil) do
     headers
     |> Enum.reduce(conn(:post, "/graphql"), fn {name, value}, conn ->
       put_req_header(conn, name, value)
     end)
+    |> assign(:realm_name, realm_name)
     |> Guardian.Plug.put_current_resource(current_user)
     |> Context.call(Context.init([]))
   end
 
   defp context(conn), do: conn.private[:absinthe][:context]
 
-  test "builds a context with the loaded user and the request's realm" do
+  test "builds a context with the loaded user and the assigned realm" do
     user = %{id: "testuser", roles: ["fdo_manager"]}
 
-    conn = call([{"astarte-realm", "testrealm"}], user)
+    conn = call([], "testrealm", user)
 
     assert %{realm_name: "testrealm", current_user: ^user} = context(conn)
   end
 
-  test "has no realm when the astarte-realm header is missing or not a valid realm name" do
+  test "has no realm when the request names none" do
     assert %{realm_name: nil} = context(call([]))
-    assert %{realm_name: nil} = context(call([{"astarte-realm", "Bad!"}]))
   end
 
   test "has no current user when Guardian didn't load one" do
-    conn = call([{"authorization", "Bearer not-a-jwt"}, {"astarte-realm", "testrealm"}])
+    conn = call([{"authorization", "Bearer not-a-jwt"}], "testrealm")
 
     assert %{current_user: nil, realm_name: "testrealm"} = context(conn)
   end
