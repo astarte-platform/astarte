@@ -32,43 +32,6 @@ defmodule Astarte.Events.Triggers.Queries do
 
   @type trigger_id() :: Astarte.DataAccess.UUID.t()
 
-  def retrieve_policy_name(realm_name, trigger_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    trigger_id =
-      trigger_id
-      |> UUID.binary_to_string!()
-
-    opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.domain_model(:read),
-      error: :policy_not_found
-    ]
-
-    KvStore.fetch_value("trigger_to_policy", trigger_id, :binary, opts)
-  end
-
-  @spec get_policy_name(String.t(), trigger_id()) :: nil | String.t()
-  def get_policy_name(realm_name, parent_trigger_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    KvStore.fetch_value(
-      "trigger_to_policy",
-      UUID.binary_to_string!(parent_trigger_id),
-      :binary,
-      opts
-    )
-    |> case do
-      {:ok, policy} -> policy
-      {:error, :not_found} -> nil
-    end
-  end
-
   @spec get_policy_name_map(String.t(), [trigger_id()]) :: %{trigger_id() => String.t()}
   def get_policy_name_map(realm_name, trigger_ids) do
     keyspace_name = Realm.keyspace_name(realm_name)

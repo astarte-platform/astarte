@@ -466,10 +466,6 @@ defmodule Astarte.Events.Triggers.Core do
     Queries.get_policy_name_map(realm_name, trigger_ids)
   end
 
-  def get_trigger_policy(realm_name, trigger_target) do
-    Queries.get_policy_name(realm_name, trigger_target.parent_trigger_id)
-  end
-
   @spec cache_trigger_id_to_policy_names(fetch_triggers_data(), String.t(), [
           deserialized_simple_trigger()
         ]) :: fetch_triggers_data()
