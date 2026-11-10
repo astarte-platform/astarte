@@ -54,7 +54,7 @@ defmodule Astarte.Pairing.Engine do
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, device} <- DataAccessDevice.fetch_with_unconfirmed_status(realm, device_id),
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
          {:credentials_inhibited?, false} <-
