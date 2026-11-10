@@ -44,5 +44,26 @@ defmodule Astarte.Core.Generators.Mapping.PayloadTest do
         assert %{v: ^value} = payload
       end
     end
+
+    property "uses millisecond precision for timestamps" do
+      check all payload <- payload(),
+                Map.has_key?(payload, :t) do
+        assert %DateTime{microsecond: {_, 3}} = payload.t
+      end
+    end
+
+    property "uses millisecond precision for datetime payloads" do
+      check all payload <- payload(type: :datetime) do
+        assert %DateTime{microsecond: {_, 3}} = payload.v
+      end
+    end
+
+    property "uses millisecond precision for datetimearray payloads" do
+      check all payload <- payload(type: :datetimearray) do
+        for value <- payload.v do
+          assert %DateTime{microsecond: {_, 3}} = value
+        end
+      end
+    end
   end
 end

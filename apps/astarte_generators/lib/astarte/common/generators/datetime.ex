@@ -24,17 +24,19 @@ defmodule Astarte.Common.Generators.DateTime do
 
   import Astarte.Common.Generators.Timestamp
 
-  @ref_unit :microsecond
+  @default_unit :microsecond
 
   @doc false
-  @spec date_time_min_default :: DateTime.t()
-  def date_time_min_default,
-    do: timestamp_min_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
+  @spec date_time_min_default() :: DateTime.t()
+  @spec date_time_min_default(unit :: atom()) :: DateTime.t()
+  def date_time_min_default(unit \\ @default_unit),
+    do: timestamp_min_default(unit) |> DateTime.from_unix!(unit)
 
   @doc false
-  @spec date_time_max_default :: DateTime.t()
-  def date_time_max_default,
-    do: timestamp_max_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
+  @spec date_time_max_default() :: DateTime.t()
+  @spec date_time_max_default(unit :: atom()) :: DateTime.t()
+  def date_time_max_default(unit \\ @default_unit),
+    do: timestamp_max_default(unit) |> DateTime.from_unix!(unit)
 
   @doc """
   Generates a random DateTime from min to max (see Timestamp generator)
@@ -42,13 +44,14 @@ defmodule Astarte.Common.Generators.DateTime do
   @spec date_time() :: StreamData.t(DateTime.t())
   @spec date_time(params :: keyword()) :: StreamData.t(DateTime.t())
   def date_time(params \\ []) do
-    params gen all min <- constant(date_time_min_default()),
-                   max <- constant(date_time_max_default()),
-                   min = DateTime.to_unix(min, @ref_unit),
-                   max = DateTime.to_unix(max, @ref_unit),
+    params gen all unit <- constant(@default_unit),
+                   min <- constant(date_time_min_default(unit)),
+                   max <- constant(date_time_max_default(unit)),
+                   min = DateTime.to_unix(min, unit),
+                   max = DateTime.to_unix(max, unit),
                    date_time <-
-                     timestamp(min: min, max: max, unit: @ref_unit)
-                     |> map(&DateTime.from_unix!(&1, @ref_unit)),
+                     timestamp(min: min, max: max, unit: unit)
+                     |> map(&DateTime.from_unix!(&1, unit)),
                    params: params,
                    exclude: [:date_time] do
       date_time

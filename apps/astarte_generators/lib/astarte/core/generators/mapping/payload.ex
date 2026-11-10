@@ -38,6 +38,6 @@ defmodule Astarte.Core.Generators.Mapping.Payload do
     end
   end
 
-  defp timestamp, do: one_of([nil, date_time()])
+  defp timestamp, do: one_of([nil, date_time(unit: :millisecond)])
   defp metadata, do: one_of([nil, map_of(string(:ascii), string(:ascii))])
 end
