@@ -37,6 +37,12 @@ defmodule Astarte.Common.Generators.DateTimeTest do
       end
     end
 
+    property "generates DateTimes with the given precision" do
+      check all date_time <- date_time(unit: :millisecond) do
+        assert %DateTime{microsecond: {_, 3}} = date_time
+      end
+    end
+
     property "valid DateTime using min" do
       check all from <- date_time() |> filter(&DateTime.after?(&1, date_time_min_default())),
                 to <- date_time(min: from) do
