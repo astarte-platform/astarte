@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ defmodule Astarte.TestSuite.Cases.AuthConn do
     name: :auth_conn,
     params: [
       jwt: [type: :binary],
-      claim: [type: :map]
+      claim: [type: :map],
+      jwt_public_key_module: [default: nil, type: :atom],
+      jwt_public_key_pem: [default: nil, type: :binary]
     ]
 
   alias Astarte.TestSuite.Fixtures.AuthConn, as: AuthConnFixtures
@@ -31,4 +33,6 @@ defmodule Astarte.TestSuite.Cases.AuthConn do
   setup_all [
     {AuthConnFixtures, :setup}
   ]
+
+  setup {AuthConnFixtures, :bind}
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,4 +23,7 @@ defmodule Astarte.TestSuite.Fixtures.AuthConn do
 
   @spec setup(map()) :: map()
   def setup(context), do: AuthConnHelper.setup(context)
+
+  @spec bind(map()) :: :ok
+  def bind(context), do: AuthConnHelper.bind(context)
 end

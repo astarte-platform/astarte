@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,14 @@ defmodule Astarte.TestSuite.Fixtures.DeviceTest do
 
   alias Astarte.TestSuite.Fixtures.Device, as: DeviceFixtures
 
-  test "device fixture sets registration flag" do
-    assert context().devices_registered?
+  describe "data/1" do
+    test "sets registration state for an empty graph" do
+      context = context()
+
+      assert context.devices_registered?
+      assert context.device_database_results == []
+    end
   end
 
-  defp context do
-    {:ok, context} = DeviceFixtures.data(%{interfaces_registered?: true, devices: []})
-    context
-  end
+  defp context, do: DeviceFixtures.data(%{interfaces: %{}, devices: %{}}) |> elem(1)
 end
