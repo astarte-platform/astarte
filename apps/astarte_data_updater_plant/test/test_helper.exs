@@ -19,6 +19,7 @@
 Mimic.copy(Astarte.Core.Mapping.ValueType)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataAccess.Health)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Device)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Error)
