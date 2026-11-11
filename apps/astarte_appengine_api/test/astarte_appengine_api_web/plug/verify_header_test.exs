@@ -26,7 +26,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeaderTest do
   alias Astarte.AppEngine.APIWeb.AuthGuardian
   alias Astarte.AppEngine.APIWeb.Plug.VerifyHeader
   alias Astarte.Auth.GraphQL.Plug.Context
-  alias Astarte.Auth.Plug.FetchRealmName
+  alias Astarte.Auth.GraphQL.Plug.RequireRealmHeader
+  alias Astarte.Auth.Plug.RequireRealmPathParam
   alias Guardian.Plug.Pipeline
 
   setup_all %{realm_name: realm_name} do
@@ -49,7 +50,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeaderTest do
         conn
         |> Map.put(:path_params, %{"realm_name" => realm_name})
         |> put_req_header("astarte-realm", "otherrealm")
-        |> verify()
+        |> verify(RequireRealmPathParam)
 
       refute conn.halted
       assert %{"sub" => "testuser"} = Guardian.Plug.current_claims(conn)
@@ -59,7 +60,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeaderTest do
       conn =
         conn
         |> Map.put(:path_params, %{"realm_name" => "nosuchrealm"})
-        |> verify()
+        |> verify(RequireRealmPathParam)
 
       assert conn.halted
       assert conn.status == 401
@@ -72,7 +73,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeaderTest do
       conn =
         conn
         |> put_req_header("astarte-realm", realm_name)
-        |> verify(halt: false)
+        |> verify(RequireRealmHeader, halt: false)
 
       refute conn.halted
       assert %{"sub" => "testuser"} = Guardian.Plug.current_claims(conn)
@@ -103,28 +104,18 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeaderTest do
       |> put_req_header("astarte-realm", realm_name)
       |> assert_unauthenticated()
     end
-
-    test "leaves unauthenticated a request without the header", %{conn: conn} do
-      assert_unauthenticated(conn)
-    end
-
-    test "leaves unauthenticated a request with an invalid realm name", %{conn: conn} do
-      conn
-      |> put_req_header("astarte-realm", "Not;A;Realm")
-      |> assert_unauthenticated()
-    end
   end
 
   defp assert_unauthenticated(conn) do
-    conn = verify(conn, halt: false)
+    conn = verify(conn, RequireRealmHeader, halt: false)
 
     refute conn.halted
     assert Guardian.Plug.current_claims(conn) == nil
   end
 
-  defp verify(conn, opts \\ []) do
+  defp verify(conn, realm_plug, opts \\ []) do
     conn
-    |> FetchRealmName.call(FetchRealmName.init([]))
+    |> realm_plug.call(realm_plug.init([]))
     |> Pipeline.call(module: AuthGuardian, error_handler: Context.ErrorHandler)
     |> VerifyHeader.call(VerifyHeader.init(opts))
   end

@@ -108,14 +108,24 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.DevicesStatsTest do
       conn |> authenticated(token) |> query() |> assert_error(@unauthorized)
     end
 
-    test "no realm is unauthorized", %{conn: conn} do
+    test "no realm ends the request with a GraphQL error", %{conn: conn} do
       token = JWT.gen_jwt_token_with_roles(["observer"])
 
-      conn
-      |> delete_req_header("astarte-realm")
-      |> authenticated(token)
-      |> query()
-      |> assert_error(@unauthorized)
+      assert %{"errors" => [%{"message" => "Missing the astarte-realm header"}]} ==
+               conn
+               |> delete_req_header("astarte-realm")
+               |> authenticated(token)
+               |> query()
+    end
+
+    test "an invalid realm name ends the request with a GraphQL error", %{conn: conn} do
+      token = JWT.gen_jwt_token_with_roles(["observer"])
+
+      assert %{"errors" => [%{"message" => "Invalid realm name in the astarte-realm header"}]} ==
+               conn
+               |> put_req_header("astarte-realm", "Not;A;Realm")
+               |> authenticated(token)
+               |> query()
     end
 
     test "a realm that doesn't exist is unauthorized", %{conn: conn} do

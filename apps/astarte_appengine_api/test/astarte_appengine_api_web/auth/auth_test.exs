@@ -31,6 +31,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @fake_valid_auth_path "devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@escaped_interface}#{@path}"
   @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{@path}"
   @invalid_realm_request_path "/v1/noneexistant/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
+  @invalid_realm_name_request_path "/v1/Not_A_Realm/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
   @other_device_id "OTHERDEVICEAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
   @other_device_auth_path "devices/#{@other_device_id}/interfaces/#{@escaped_interface}#{@path}"
 
@@ -67,6 +68,18 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         |> get(@invalid_realm_request_path)
 
       assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+
+    test "invalid realm name returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_all_access_token()}"
+        )
+        |> get(@invalid_realm_name_request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid realm name"
     end
 
     test "all access token returns the data", %{conn: conn} do

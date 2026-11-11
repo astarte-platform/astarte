@@ -19,11 +19,12 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   use Astarte.AppEngine.APIWeb, :router
   alias Astarte.AppEngine.APIWeb.Plug.LogRealm
   alias Astarte.Auth.GraphQL.Plug.Context
-  alias Astarte.Auth.Plug.FetchRealmName
+  alias Astarte.Auth.GraphQL.Plug.RequireRealmHeader
+  alias Astarte.Auth.Plug.RequireRealmPathParam
 
   # auth errors don't halt, AuthorizeFGA reports them on each field
   pipeline :graphql do
-    plug FetchRealmName
+    plug RequireRealmHeader
     plug LogRealm
 
     plug Guardian.Plug.Pipeline,
@@ -38,7 +39,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
 
   pipeline :realm_api do
     plug :accepts, ["json"]
-    plug FetchRealmName
+    plug RequireRealmPathParam
     plug LogRealm
     plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
   end

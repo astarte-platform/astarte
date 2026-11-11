@@ -12,7 +12,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
   alias JOSE.JWK
 
-  @no_key_errors [:missing_realm, :realm_not_found, :public_key_not_found]
+  @no_key_errors [:realm_not_found, :public_key_not_found]
 
   def init(opts) do
     GuardianVerifyHeader.init(opts)
@@ -29,8 +29,6 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
         handle_secret_error(conn, error, Keyword.get(opts, :halt, true))
     end
   end
-
-  def fetch_secret(%Plug.Conn{assigns: %{realm_name: nil}}), do: {:error, :missing_realm}
 
   def fetch_secret(conn) do
     with {:ok, public_key} <- Auth.fetch_public_key(conn.assigns.realm_name) do
