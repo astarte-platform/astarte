@@ -52,6 +52,8 @@ pub enum Variant {
     CustomDeviceDatastream,
     #[cfg_attr(feature = "clap", clap(name = "overflow"))]
     DeviceDatastreamOverflow,
+    #[cfg_attr(feature = "clap", clap(name = "encrypted"))]
+    EncryptedDeviceDatastream,
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +78,9 @@ impl Variant {
             Variant::CustomDeviceDatastream => CustomDeviceDatastream::run(channel, client).await,
             Variant::DeviceDatastreamOverflow => {
                 DeviceDatastreamOverflow::run(channel, client).await
+            }
+            Variant::EncryptedDeviceDatastream => {
+                EncryptedDeviceDatastream::run(channel, client).await
             }
         }
     }
@@ -165,6 +170,19 @@ impl CheckRunner for CustomDeviceDatastream {
         validate_individual::<Self>(channel, client).await
     }
 }
+pub struct EncryptedDeviceDatastream {}
+
+impl InterfaceData for EncryptedDeviceDatastream {
+    fn interface() -> String {
+        "org.astarte-platform.e2e.EncryptedDeviceDatastream".to_string()
+    }
+}
+
+impl CheckRunner for EncryptedDeviceDatastream {
+    async fn run(channel: &mut Room, client: &mut AstarteClient) -> eyre::Result<()> {
+        validate_individual::<Self>(channel, client).await
+    }
+}
 
 pub async fn validate_individual<T>(
     channel: &mut Room,
@@ -197,6 +215,7 @@ pub async fn check(channel: &mut Room, client: &mut AstarteClient) -> eyre::Resu
     validate_individual::<DeviceDatastream>(channel, client).await?;
     validate_individual::<DeviceDatastreamOverflow>(channel, client).await?;
     validate_individual::<CustomDeviceDatastream>(channel, client).await?;
+    validate_individual::<EncryptedDeviceDatastream>(channel, client).await?;
 
     Ok(())
 }

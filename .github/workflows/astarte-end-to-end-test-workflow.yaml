@@ -233,6 +233,16 @@ jobs:
       - name: Install e2e test interfaces
         run: |
           ./astartectl realm-management interfaces sync --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM -y tools/astarte-e2e-next/astarte-e2e/interfaces/**.json
+      # workaround needed until astartectl supports interfaces with encrypted mappings
+      - name: Install interfaces with curl
+        run: |
+          INTERFACE_FILE=tools/astarte-e2e-next/astarte-e2e/interfaces/workaround/org.astarte-platform.e2e.EncryptedDeviceDatastream.json
+          jq '{data: .}' "$INTERFACE_FILE" |
+            curl --fail-with-body -sS -X POST \
+              "http://api.astarte.localhost/realmmanagement/v1/$E2E_REALM/interfaces?async_operation=false" \
+              -H "Authorization: Bearer $E2E_JWT" \
+              -H "Content-Type: application/json" \
+              --data-binary @-
       - name: Register device
         run: |
           DEVICE_ID=$(./astartectl utils device-id generate-random)
@@ -250,12 +260,15 @@ jobs:
           E2E_IGNORE_SSL_ERRORS: true
           E2E_CHECK_INTERVAL_SECONDS: 5
           E2E_CHECK_REPETITIONS: 5
+          RUST_LOG: astarte_e2e=info,astarte_device_sdk=info
         run: |
           docker run \
            --env-file=<(env | grep '^E2E_') \
+           -e RUST_LOG \
            --network astarte \
            --hostname "$E2E_HOST" \
-           astarte-e2e-next-test
+           astarte-e2e-next-test \
+           cargo e2e -- --nocapture
       - name: Check Docker
         if: ${{ failure() }}
         run: docker compose logs
@@ -312,6 +325,16 @@ jobs:
       - name: Install e2e test interfaces
         run: |
           ./astartectl realm-management interfaces sync --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM -y tools/astarte-e2e-next/astarte-e2e/interfaces/**.json
+      # workaround needed until astartectl supports interfaces with encrypted mappings
+      - name: Install interfaces with curl
+        run: |
+          INTERFACE_FILE=tools/astarte-e2e-next/astarte-e2e/interfaces/workaround/org.astarte-platform.e2e.EncryptedDeviceDatastream.json
+          jq '{data: .}' "$INTERFACE_FILE" |
+            curl --fail-with-body -sS -X POST \
+              "http://api.astarte.localhost/realmmanagement/v1/$E2E_REALM/interfaces?async_operation=false" \
+              -H "Authorization: Bearer $E2E_JWT" \
+              -H "Content-Type: application/json" \
+              --data-binary @-
       - name: Register device
         run: |
           DEVICE_ID=$(./astartectl utils device-id generate-random)
