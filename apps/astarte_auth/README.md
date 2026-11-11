@@ -7,6 +7,10 @@ Authentication and authorization code shared by every Astarte service:
   resolution through those checks.
 - `Astarte.Auth.GraphQL.Plug.Context` - plug that builds the Absinthe context the middleware reads,
   from the identity the service's own Guardian plugs loaded.
+- `Astarte.Auth.GraphQL.Plug.RequireRealmHeader` - plug that assigns the realm of a GraphQL
+  request from its `astarte-realm` header, or ends the request with a GraphQL error.
+- `Astarte.Auth.Plug.RequireRealmPathParam` - plug that assigns the realm of a REST request from
+  its `realm_name` path parameter, or ends the request with a 401.
 - `Astarte.Auth.Plug.FetchRealmName` - plug that assigns the realm a request refers to, from its
   path or its `astarte-realm` header.
 

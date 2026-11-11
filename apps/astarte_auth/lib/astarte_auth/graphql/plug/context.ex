@@ -19,12 +19,15 @@
 defmodule Astarte.Auth.GraphQL.Plug.Context do
   @moduledoc """
   Builds the Absinthe context read by `Astarte.Auth.GraphQL.Middleware.AuthorizeFGA`
-  and the resolvers. `Astarte.Auth.Plug.FetchRealmName` and the service's Guardian
-  plugs must run before it, with the Guardian ones running without halting.
+  and the resolvers. A plug assigning `:realm_name`,
+  `Astarte.Auth.GraphQL.Plug.RequireRealmHeader` or `Astarte.Auth.Plug.FetchRealmName`,
+  and the service's Guardian plugs must run before it, with the Guardian ones running
+  without halting.
 
   The context holds:
 
-  - `:realm_name` - the realm `Astarte.Auth.Plug.FetchRealmName` assigned, or `nil`.
+  - `:realm_name` - the realm that plug assigned: always one with `RequireRealmHeader`,
+    `nil` with `FetchRealmName` when the request names none.
   - `:current_user` - the resource Guardian loaded, or `nil`.
   - `:auth_token` - the raw bearer token, or `nil`.
   - `:remote_ip` - the caller's IP address.
