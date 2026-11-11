@@ -26,6 +26,9 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   use GenServer
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataUpdater.DeletionScheduler
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -35,7 +38,7 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   # TODO expose this via config
   @reconciliation_timeout :timer.minutes(5)
   def start_link(_args) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(DeletionScheduler, [])
   end
 
   def init(_args) do
@@ -66,10 +69,8 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   end
 
   defp retrieve_devices_to_delete! do
-    realms = Queries.retrieve_realms!()
-
-    for %{"realm_name" => realm_name} <- realms,
-        %{"device_id" => device_id} <-
+    for %Realm{realm_name: realm_name} <- Queries.retrieve_realms!(),
+        %DeletionInProgress{device_id: device_id} <-
           Queries.retrieve_devices_waiting_to_start_deletion!(realm_name),
         encoded_device_id = Device.encode_device_id(device_id),
         should_handle_data_from_device?(realm_name, encoded_device_id) do
