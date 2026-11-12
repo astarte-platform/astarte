@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyRealmExistsTest do
       conn =
         conn
         |> Plug.Conn.put_private(:phoenix_format, "json")
-        |> Map.put(:path_params, %{"realm_name" => realm_name})
+        |> Plug.Conn.assign(:realm_name, realm_name)
 
       {:ok, conn: conn}
     end
@@ -48,7 +48,7 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyRealmExistsTest do
     end
 
     test "returns 403 Forbidden and halts when realm does not exist", %{conn: conn} do
-      conn = Map.put(conn, :path_params, %{"realm_name" => "nonexistentrealm"})
+      conn = Plug.Conn.assign(conn, :realm_name, "nonexistentrealm")
 
       result = VerifyRealmExists.call(conn, VerifyRealmExists.init([]))
 

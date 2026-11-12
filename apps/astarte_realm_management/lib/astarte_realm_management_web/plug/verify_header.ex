@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,24 +30,26 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyHeader do
     GuardianVerifyHeader.init(opts)
   end
 
-  def call(conn, opts) do
+  def call(%{assigns: %{realm_name: realm_name}} = conn, opts) when is_binary(realm_name) do
     secret =
-      case fetch_secret(conn) do
+      case fetch_secret(realm_name) do
         {:ok, secret} -> secret
         {:error, _reason} -> nil
       end
 
+    opts_list = if is_map(opts), do: Map.to_list(opts), else: opts
+
     merged_opts =
-      opts
+      opts_list
       |> Keyword.merge(secret: secret)
 
     GuardianVerifyHeader.call(conn, merged_opts)
   end
 
-  defp fetch_secret(conn) do
-    with %{"realm_name" => realm} <- conn.path_params,
-         {:ok, public_key_pem} <- Auth.fetch_public_key(realm) do
-      {:ok, JWK.from_pem(public_key_pem)}
+  defp fetch_secret(realm) do
+    case Auth.fetch_public_key(realm) do
+      {:ok, public_key_pem} -> {:ok, JWK.from_pem(public_key_pem)}
+      _ -> {:error, :not_found}
     end
   end
 end
