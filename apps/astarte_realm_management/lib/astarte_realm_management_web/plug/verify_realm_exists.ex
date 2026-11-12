@@ -32,37 +32,47 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyRealmExists do
   end
 
   def call(conn, _opts) do
-    realm_name = conn.path_params["realm_name"]
+    realm_name = conn.assigns[:realm_name] || conn.path_params["realm_name"]
 
-    case Queries.realm_existing?(realm_name) do
-      {:ok, true} ->
-        Logger.metadata(realm: realm_name)
+    if is_nil(realm_name) do
+      Logger.warning("Realm name is missing.", tag: "realm_not_found")
 
-        conn
+      conn
+      |> put_status(:forbidden)
+      |> put_view(Astarte.RealmManagementWeb.ErrorView)
+      |> render(:"403")
+      |> halt()
+    else
+      case Queries.realm_existing?(realm_name) do
+        {:ok, true} ->
+          Logger.metadata(realm: realm_name)
 
-      {:ok, false} ->
-        Logger.warning("Realm #{realm_name} does not exist.",
-          tag: "realm_not_found",
-          realm: realm_name
-        )
+          conn
 
-        conn
-        |> put_status(:forbidden)
-        |> put_view(Astarte.RealmManagementWeb.ErrorView)
-        |> render(:"403")
-        |> halt()
+        {:ok, false} ->
+          Logger.warning("Realm #{realm_name} does not exist.",
+            tag: "realm_not_found",
+            realm: realm_name
+          )
 
-      {:error, reason} ->
-        Logger.error("Error checking if realm exists: #{inspect(reason)}.",
-          tag: "realm_check_error",
-          realm: realm_name
-        )
+          conn
+          |> put_status(:forbidden)
+          |> put_view(Astarte.RealmManagementWeb.ErrorView)
+          |> render(:"403")
+          |> halt()
 
-        conn
-        |> put_status(:service_unavailable)
-        |> put_view(Astarte.RealmManagementWeb.ErrorView)
-        |> render(:"503")
-        |> halt()
+        {:error, reason} ->
+          Logger.error("Error checking if realm exists: #{inspect(reason)}.",
+            tag: "realm_check_error",
+            realm: realm_name
+          )
+
+          conn
+          |> put_status(:service_unavailable)
+          |> put_view(Astarte.RealmManagementWeb.ErrorView)
+          |> render(:"503")
+          |> halt()
+      end
     end
   end
 end
