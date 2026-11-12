@@ -26,11 +26,12 @@ a pull request saves everyone some precious review time!
 
 ## 🧑‍🔬 Test
 
-to test rm you need a running instance of rabbitmq and a cassandra-compatible
-database, (we suggest scylla)
+to test rm you need a running instance of rabbitmq, a cassandra-compatible
+database (we suggest scylla), and an OpenFGA server.
 
 ```shell
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
+docker run --rm -d -p 8081:8080 --name openfga openfga/openfga run
 ```
 
 by default `CASSANDRA_NODES` environment variable map to `localhost`, so that
