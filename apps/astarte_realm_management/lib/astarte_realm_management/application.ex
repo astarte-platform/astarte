@@ -24,6 +24,7 @@ defmodule Astarte.RealmManagement.Application do
   """
   use Application
 
+  alias Astarte.Auth.Config, as: AuthConfig
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.DeviceRemoval.Scheduler
@@ -43,6 +44,7 @@ defmodule Astarte.RealmManagement.Application do
 
     Logger.info("Starting application v#{@app_version}.", tag: "realm_management_start")
     Config.validate!()
+    AuthConfig.validate!()
     DataAccessConfig.validate!()
 
     trigger_types = [:DEVICE_DELETION_STARTED, :DEVICE_DELETION_FINISHED]

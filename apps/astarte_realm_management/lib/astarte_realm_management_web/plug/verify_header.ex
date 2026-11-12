@@ -37,17 +37,26 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyHeader do
         {:error, _reason} -> nil
       end
 
+    opts_list = if is_map(opts), do: Map.to_list(opts), else: opts
+
     merged_opts =
-      opts
+      opts_list
       |> Keyword.merge(secret: secret)
 
     GuardianVerifyHeader.call(conn, merged_opts)
   end
 
   defp fetch_secret(conn) do
-    with %{"realm_name" => realm} <- conn.path_params,
+    with realm when is_binary(realm) <- realm_name(conn),
          {:ok, public_key_pem} <- Auth.fetch_public_key(realm) do
       {:ok, JWK.from_pem(public_key_pem)}
+    else
+      _ -> {:error, :not_found}
     end
+  end
+
+  defp realm_name(conn) do
+    conn.assigns[:realm_name] || Map.get(conn.path_params, "realm_name") ||
+      conn |> Plug.Conn.get_req_header("astarte-realm") |> List.first()
   end
 end
