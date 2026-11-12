@@ -10,8 +10,9 @@ use crate::{
     config::Config, config::DeviceConfig, device_client, interfaces::AstarteClient, room::Room,
 };
 use astarte_device_sdk::AstarteData::Integer;
-use astarte_device_sdk::{
-    EventLoop, pairing::api::registration::generate_random_uuid, transport::mqtt::Credential,
+use astarte_device_sdk::Connection as _;
+use astarte_device_sdk::transport::mqtt::{
+    Credential, pairing::registration::generate_random_uuid,
 };
 
 #[cfg(feature = "clap")]
@@ -88,8 +89,10 @@ impl ConnectionBuilder {
     /// through the pairing API using the JWT as pairing token.
     #[cfg(feature = "clap")]
     pub fn new_random() -> eyre::Result<Self> {
+        let config = Config::try_parse().unwrap_or_else(|_| Config::parse_from(["astarte_e2e"]));
+
         Ok(Self {
-            config: Config::try_parse()?,
+            config,
             device_id: generate_random_uuid(),
             credentials_secret: None,
             receive_interface_data: true,
