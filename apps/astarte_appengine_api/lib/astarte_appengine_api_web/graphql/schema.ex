@@ -53,6 +53,15 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
       resolve &DeviceResolver.get_device/3
     end
 
+    @desc "A device of the realm, by one of its aliases"
+    field :device_by_alias, :device do
+      arg :alias, non_null(:string)
+
+      middleware AuthorizeFGA, relation: "can_list_devices", target: :realm
+
+      resolve &DeviceResolver.get_device_by_alias/3
+    end
+
     @desc "A page of the devices of the realm"
     field :devices, :device_page do
       arg :limit, non_null(:integer), default_value: %DevicesListOptions{}.limit

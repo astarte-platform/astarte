@@ -21,9 +21,16 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver do
   """
 
   alias Astarte.AppEngine.API.Device
+  alias Astarte.Core.Device, as: CoreDevice
 
   def get_device(_parent, %{device_id: device_id}, %{context: %{realm_name: realm_name}}) do
     Device.get_device_status!(realm_name, device_id)
+  end
+
+  def get_device_by_alias(_parent, %{alias: device_alias}, %{context: %{realm_name: realm_name}}) do
+    with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias) do
+      Device.get_device_status!(realm_name, CoreDevice.encode_device_id(device_id))
+    end
   end
 
   def list_devices(_parent, args, %{context: %{realm_name: realm_name}}) do
