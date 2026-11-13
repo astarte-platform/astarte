@@ -51,6 +51,8 @@ services:
     environment:
       ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
     depends_on:
+      openfga-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       scylla:

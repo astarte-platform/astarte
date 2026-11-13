@@ -61,4 +61,39 @@ defmodule Astarte.RealmManagementWeb.Router do
   scope "/version", Astarte.RealmManagementWeb do
     get "/", VersionController, :show
   end
+
+  pipeline :graphql do
+    plug Astarte.Auth.Plug.FetchRealmName
+
+    plug Guardian.Plug.Pipeline,
+      otp_app: :astarte_realm_management,
+      module: Astarte.RealmManagementWeb.AuthGuardian,
+      error_handler: Astarte.Auth.GraphQL.Plug.Context.ErrorHandler
+
+    plug Astarte.RealmManagementWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Astarte.Auth.GraphQL.Plug.Context
+  end
+
+  pipeline :graphql_realm do
+    plug :put_format, "json"
+    plug Astarte.Auth.Plug.FetchRealmName
+    plug Astarte.RealmManagementWeb.Plug.VerifyRealmExists
+  end
+
+  scope "/v1/graphql" do
+    pipe_through [:graphql_realm, :graphql]
+
+    forward "/", Absinthe.Plug, schema: Astarte.RealmManagementWeb.GraphQL.Schema
+  end
+
+  if Application.compile_env(:astarte_realm_management, :dev_routes) do
+    scope "/v1" do
+      pipe_through [:graphql]
+
+      forward "/graphiql", Absinthe.Plug.GraphiQL,
+        schema: Astarte.RealmManagementWeb.GraphQL.Schema,
+        interface: :playground
+    end
+  end
 end
