@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolverTest do
   use Mimic
 
   alias Astarte.RealmManagement.Helpers.Database
+  alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core
   alias Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolver
 
@@ -71,7 +72,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolverTest do
 
   describe "get_interface/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, valid_attrs, async: false)
+      Interfaces.install_interface(realm_name, valid_attrs, async: false)
       :ok
     end
 
@@ -113,7 +114,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolverTest do
 
   describe "list_interfaces/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, valid_attrs, async: false)
+      Interfaces.install_interface(realm_name, valid_attrs, async: false)
       :ok
     end
 
@@ -125,7 +126,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolverTest do
 
   describe "update_interface/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, valid_attrs, async: false)
+      Interfaces.install_interface(realm_name, valid_attrs, async: false)
       :ok
     end
 
@@ -145,7 +146,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.InterfaceResolverTest do
 
   describe "delete_interface_draft/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, valid_attrs, async: false)
+      Interfaces.install_interface(realm_name, valid_attrs, async: false)
       :ok
     end
 

@@ -20,6 +20,8 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
   use Astarte.RealmManagement.Cases.Data, async: true
   use Mimic
 
+  alias Astarte.RealmManagement.Helpers.Database
+  alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Triggers
   alias Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolver
 
@@ -66,12 +68,12 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
     }
 
     on_exit(fn ->
-      Astarte.RealmManagement.Helpers.Database.setup_database_access(astarte_instance_id)
+      Database.setup_database_access(astarte_instance_id)
       # Cleanup after tests
       try do
         with {:ok, trigger} <-
-               Astarte.RealmManagement.Triggers.get_trigger(realm_name, @trigger_name) do
-          Astarte.RealmManagement.Triggers.delete_trigger(realm_name, trigger)
+               Triggers.get_trigger(realm_name, @trigger_name) do
+          Triggers.delete_trigger(realm_name, trigger)
         end
       rescue
         _ -> :ok
@@ -83,9 +85,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "install_trigger/3" do
     setup %{realm_name: realm_name, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       :ok
     end
@@ -100,9 +100,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "get_trigger/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
@@ -123,9 +121,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "list_triggers/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
@@ -139,9 +135,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "delete_trigger/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
