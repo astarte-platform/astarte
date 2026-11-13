@@ -71,9 +71,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "install_trigger/3" do
     setup %{realm_name: realm_name, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       :ok
     end
@@ -170,9 +168,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "get_trigger/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
@@ -193,9 +189,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "list_triggers/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
@@ -209,9 +203,7 @@ defmodule Astarte.RealmManagementWeb.GraphQL.Resolvers.TriggerResolverTest do
 
   describe "delete_trigger/3" do
     setup %{realm_name: realm_name, valid_attrs: valid_attrs, interface_attrs: interface_attrs} do
-      Astarte.RealmManagement.Interfaces.install_interface(realm_name, interface_attrs,
-        async: false
-      )
+      Interfaces.install_interface(realm_name, interface_attrs, async: false)
 
       Triggers.create_trigger(realm_name, valid_attrs)
       :ok
