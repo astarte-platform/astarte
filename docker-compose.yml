@@ -13,10 +13,13 @@ services:
       ASTARTE_EVENTS_AMQP_MANAGEMENT_USERNAME: "guest"
       ASTARTE_EVENTS_AMQP_MANAGEMENT_PASSWORD: "guest"
       ASTARTE_VAULT_URL: "http://openbao:8200"
+      ASTARTE_OPENFGA_URL: "http://openfga:8080"
     volumes:
       - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure
     depends_on:
+      openfga-init:
+        condition: service_completed_successfully
       openbao:
         condition: service_healthy
       rabbitmq:

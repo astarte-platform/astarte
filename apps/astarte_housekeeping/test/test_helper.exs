@@ -17,6 +17,7 @@
 #
 
 modules = [
+  Astarte.Auth.OpenFGA,
   Astarte.DataAccess.Config,
   Astarte.DataAccess.Database,
   Astarte.DataAccess.Health,

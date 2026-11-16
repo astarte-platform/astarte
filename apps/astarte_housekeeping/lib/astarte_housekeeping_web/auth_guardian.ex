@@ -30,7 +30,8 @@ defmodule Astarte.HousekeepingWeb.AuthGuardian do
     {:ok,
      %User{
        id: claims["sub"],
-       authorizations: Map.get(claims, "a_ha", [])
+       authorizations: Map.get(claims, "a_ha", []),
+       roles: Map.get(claims, "roles", [])
      }}
   end
 end

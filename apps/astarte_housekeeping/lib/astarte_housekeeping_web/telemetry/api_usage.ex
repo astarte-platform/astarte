@@ -22,7 +22,12 @@ defmodule Astarte.HousekeepingWeb.Telemetry.APIUsage do
   @api_prefix "v1"
 
   def handle_event([:bandit, :request, :stop], measurements, metadata, _config) do
-    %{req_body_length: req_body_length, resp_body_length: resp_body_length} = measurements
+    req_body_length =
+      Map.get(measurements, :req_body_length) || Map.get(measurements, :req_body_bytes, 0)
+
+    resp_body_length =
+      Map.get(measurements, :resp_body_length) || Map.get(measurements, :resp_body_bytes, 0)
+
     %{req: %{path: path}} = metadata
 
     # Offload to a task to isolate execution time and failure

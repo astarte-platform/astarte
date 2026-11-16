@@ -70,6 +70,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp deps do
     [
       {:astarte_core, in_umbrella: true},
+      {:astarte_auth, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
@@ -99,7 +100,9 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 3.0", override: true},
       {:hackney, "~> 4.0", override: true},
-      {:tzdata, github: "lau/tzdata", override: true}
+      {:tzdata, github: "lau/tzdata", override: true},
+      {:absinthe, "~> 1.7"},
+      {:absinthe_plug, "~> 1.5"}
     ]
   end
 end
