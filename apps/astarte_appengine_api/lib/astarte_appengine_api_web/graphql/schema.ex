@@ -35,6 +35,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
 
   import_types Absinthe.Type.Custom
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.DeviceTypes
+  import_types Astarte.AppEngine.APIWeb.GraphQL.Types.GroupTypes
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.StatsTypes
 
   @impl Absinthe.Schema
@@ -76,6 +77,15 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
       middleware AuthorizeFGA, relation: "can_list_device_groups", target: :realm
 
       resolve &GroupResolver.list_groups/3
+    end
+
+    @desc "A device group of the realm"
+    field :group, :device_group do
+      arg :name, non_null(:string)
+
+      middleware AuthorizeFGA, relation: "can_read", target: {:device_group, :name}
+
+      resolve &GroupResolver.get_group/3
     end
   end
 end

@@ -25,4 +25,8 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver do
   def list_groups(_parent, _args, %{context: %{realm_name: realm_name}}) do
     {:ok, Groups.list_groups(realm_name)}
   end
+
+  def get_group(_parent, %{name: name}, %{context: %{realm_name: realm_name}}) do
+    Groups.get_group(realm_name, name)
+  end
 end
