@@ -58,10 +58,12 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
   @model_path :astarte_auth |> :code.priv_dir() |> Path.join("authorization_model.json")
   @external_resource @model_path
 
-  @realm_relations @model_path
-                   |> File.read!()
-                   |> Jason.decode!()
-                   |> Map.fetch!("type_definitions")
+  @model_definitions @model_path
+                     |> File.read!()
+                     |> Jason.decode!()
+                     |> Map.fetch!("type_definitions")
+
+  @realm_relations @model_definitions
                    |> Enum.find(&(&1["type"] == "realm"))
                    |> get_in(["metadata", "relations"])
 
@@ -70,6 +72,16 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
                    %{"type" => "user"} <- types,
                    into: MapSet.new(),
                    do: relation
+
+  @cluster_relations @model_definitions
+                     |> Enum.find(&(&1["type"] == "cluster"))
+                     |> get_in(["metadata", "relations"])
+
+  # the cluster relations a user can be assigned directly
+  @cluster_roles for {relation, %{"directly_related_user_types" => types}} <- @cluster_relations,
+                     %{"type" => "user"} <- types,
+                     into: MapSet.new(),
+                     do: relation
 
   @impl Absinthe.Middleware
   def call(resolution, opts) do
@@ -86,29 +98,69 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
     context = resolution.context
 
     with {:ok, user_id} <- user_id(context),
-         {:ok, realm_name} <- realm_name(context),
-         {:ok, user} <- user(realm_name, user_id),
-         {:ok, object} <- object(target, realm_name, resolution.arguments) do
+         {:ok, realm_name_opt} <- realm_name(context),
+         {:ok, user} <- user(realm_name_opt, user_id),
+         {:ok, object} <- object(target, realm_name_opt, resolution.arguments) do
       Logger.debug("Authorizing #{user} for #{relation} on #{object}")
 
       user
-      |> OpenFGA.check(relation, object, contextual_tuples(context, user, realm_name, object))
+      |> OpenFGA.check(relation, object, contextual_tuples(context, user, realm_name_opt, object))
       |> check_result()
     end
   end
 
-  defp contextual_tuples(context, user, realm_name, object) do
-    realm = "realm:#{realm_name}"
-    role_tuple = %{user: user, object: realm}
+  defp contextual_tuples(context, user, realm_name_opt, object) do
+    cond do
+      object == "cluster:astarte" ->
+        cluster_tuple = %{user: user, object: object}
 
-    role_tuples =
-      context
-      |> get_roles()
-      |> Enum.map(&Map.put(role_tuple, :relation, &1))
+        context
+        |> get_cluster_roles()
+        |> Enum.map(&Map.put(cluster_tuple, :relation, &1))
 
-    if object == realm,
-      do: role_tuples,
-      else: role_tuples ++ [%{user: realm, relation: "realm", object: object}]
+      is_nil(realm_name_opt) and String.starts_with?(object, "realm:") ->
+        # We are addressing a realm object but have no realm context (Housekeeping).
+        # We assign cluster roles to cluster:astarte and link the realm to cluster:astarte.
+        cluster_role_tuples =
+          context
+          |> get_cluster_roles()
+          |> Enum.map(&%{user: user, relation: &1, object: "cluster:astarte"})
+
+        cluster_role_tuples ++ [%{user: "cluster:astarte", relation: "parent", object: object}]
+
+      true ->
+        realm = "realm:#{realm_name_opt}"
+        role_tuple = %{user: user, object: realm}
+
+        role_tuples =
+          context
+          |> get_roles()
+          |> Enum.map(&Map.put(role_tuple, :relation, &1))
+
+        if object == realm,
+          do: role_tuples,
+          else: role_tuples ++ [%{user: realm, relation: "realm", object: object}]
+    end
+  end
+
+  defp get_cluster_roles(context) do
+    case Map.get(context, :current_user) do
+      %{roles: roles} when is_list(roles) -> cluster_roles(roles)
+      _ -> []
+    end
+  end
+
+  defp cluster_roles(roles) do
+    roles = MapSet.new(roles)
+    ignored = MapSet.difference(roles, @cluster_roles)
+
+    if MapSet.size(ignored) > 0 do
+      Logger.debug("AuthorizeFGA: ignoring cluster roles the model doesn't define",
+        ignored_roles: inspect(MapSet.to_list(ignored))
+      )
+    end
+
+    roles |> MapSet.intersection(@cluster_roles) |> MapSet.to_list()
   end
 
   defp get_roles(context) do
@@ -149,34 +201,47 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
     end
   end
 
-  # Every Astarte GraphQL request is realm-scoped, so a request without a realm
-  # is rejected whatever its target object is.
   defp realm_name(context) do
-    case Map.get(context, :realm_name) do
-      nil -> {:error, "Unauthorized: Missing realm context"}
-      realm_name -> {:ok, realm_name}
-    end
+    {:ok, Map.get(context, :realm_name)}
   end
 
-  defp user(realm_name, user_id) do
-    with :error <- qualified_name(:user, realm_name, user_id, @max_user_length) do
+  defp user(realm_name_opt, user_id) do
+    # OpenFGA model uses `_cluster` as the realm namespace for cluster-scoped users
+    realm = realm_name_opt || "_cluster"
+
+    with :error <- qualified_name(:user, realm, user_id, @max_user_length) do
       Logger.warning(
-        "AuthorizeFGA: a token of realm #{realm_name} has an invalid sub: #{inspect(user_id)}"
+        "AuthorizeFGA: a token of realm #{realm} has an invalid sub: #{inspect(user_id)}"
       )
 
       {:error, "Unauthorized: invalid user identity"}
     end
   end
 
-  defp object(:realm, realm_name, _arguments), do: {:ok, "realm:#{realm_name}"}
+  defp object(:cluster, _realm_name_opt, _arguments), do: {:ok, "cluster:astarte"}
 
-  defp object(:device, realm_name, arguments),
-    do: object({:device, :hw_id}, realm_name, arguments)
+  defp object(:realm, realm_name_opt, _arguments) do
+    if is_nil(realm_name_opt) do
+      {:error, "Unauthorized: Missing realm context"}
+    else
+      {:ok, "realm:#{realm_name_opt}"}
+    end
+  end
 
-  defp object({type, arg}, realm_name, arguments) do
+  defp object(:device, realm_name_opt, arguments),
+    do: object({:device, :hw_id}, realm_name_opt, arguments)
+
+  defp object({type, arg}, realm_name_opt, arguments) do
     case Map.fetch(arguments, arg) do
+      {:ok, id} when not is_nil(id) and type == :realm ->
+        # For realm target by argument, we don't need realm_name_opt context
+        named_object(type, arg, id, nil)
+
+      {:ok, id} when not is_nil(id) and is_nil(realm_name_opt) ->
+        {:error, "Unauthorized: Missing realm context"}
+
       {:ok, id} when not is_nil(id) ->
-        named_object(type, arg, id, realm_name)
+        named_object(type, arg, id, realm_name_opt)
 
       _ ->
         Logger.warning("AuthorizeFGA: a #{inspect(type)}-target field was called without #{arg}")
@@ -185,8 +250,8 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
     end
   end
 
-  defp named_object(type, arg, id, realm_name) do
-    with :error <- qualified_object(type, realm_name, id) do
+  defp named_object(type, arg, id, realm_name_opt) do
+    with :error <- qualified_object(type, realm_name_opt, id) do
       Logger.debug("AuthorizeFGA: invalid #{arg}: #{inspect(id)}")
 
       {:error, "Invalid argument: #{arg}"}
@@ -203,6 +268,14 @@ defmodule Astarte.Auth.GraphQL.Middleware.AuthorizeFGA do
       {:error, _reason} ->
         :error
     end
+  end
+
+  defp qualified_object(:realm, _realm_name_opt, id) when is_binary(id) do
+    name = "realm:#{id}"
+
+    if Regex.match?(@valid_id, id) and String.length(name) <= @max_object_length,
+      do: {:ok, name},
+      else: :error
   end
 
   defp qualified_object(type, realm_name, id),
