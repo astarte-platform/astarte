@@ -38,9 +38,10 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.GroupTypes
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.StatsTypes
 
+  # the fields of a group return domain errors too
   @impl Absinthe.Schema
   def middleware(middleware, _field, %{identifier: identifier})
-      when identifier in [:query, :mutation],
+      when identifier in [:query, :mutation, :device_group],
       do: middleware ++ [HandleErrors]
 
   def middleware(middleware, _field, _object), do: middleware

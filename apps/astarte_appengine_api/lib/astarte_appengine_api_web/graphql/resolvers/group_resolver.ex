@@ -20,7 +20,9 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver do
   Absinthe resolvers for the device groups.
   """
 
+  alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.DataAccess.Groups.Group
 
   def list_groups(_parent, _args, %{context: %{realm_name: realm_name}}) do
     {:ok, Groups.list_groups(realm_name)}
@@ -28,5 +30,17 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver do
 
   def get_group(_parent, %{name: name}, %{context: %{realm_name: realm_name}}) do
     Groups.get_group(realm_name, name)
+  end
+
+  def list_devices(%Group{group_name: group_name}, args, %{context: %{realm_name: realm_name}}) do
+    Groups.list_detailed_devices(realm_name, group_name, Map.put(args, :details, true))
+  end
+
+  def get_device(%Group{group_name: group_name}, %{device_id: device_id}, %{
+        context: %{realm_name: realm_name}
+      }) do
+    with :ok <- Groups.ensure_device_in_group(realm_name, group_name, device_id) do
+      Device.get_device_status!(realm_name, device_id)
+    end
   end
 end

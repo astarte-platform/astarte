@@ -22,13 +22,31 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Types.GroupTypes do
 
   use Absinthe.Schema.Notation
 
+  alias Astarte.AppEngine.API.Device.DevicesListOptions
+  alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver
   alias Astarte.DataAccess.Groups.Group
 
+  # the group query authorizes these fields: a role on the group reads its devices
   @desc "A device group of the realm"
   object :device_group do
     @desc "The name of the group"
     field :name, non_null(:string) do
       resolve fn %Group{group_name: group_name}, _args, _resolution -> {:ok, group_name} end
+    end
+
+    @desc "A page of the devices of the group"
+    field :devices, :device_page do
+      arg :limit, non_null(:integer), default_value: %DevicesListOptions{}.limit
+      arg :from_token, :page_token
+
+      resolve &GroupResolver.list_devices/3
+    end
+
+    @desc "A device of the group"
+    field :device, :device do
+      arg :device_id, non_null(:string)
+
+      resolve &GroupResolver.get_device/3
     end
   end
 end
