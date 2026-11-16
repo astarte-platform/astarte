@@ -117,8 +117,12 @@ defmodule Astarte.AppEngine.API.Groups do
     Queries.remove_device(realm_name, group_name, device_id)
   end
 
-  def check_device_in_group(realm_name, group_name, device_id) do
-    Queries.check_device_in_group(realm_name, group_name, device_id)
+  def ensure_device_in_group(realm_name, group_name, device_id) do
+    case Queries.check_device_in_group(realm_name, group_name, device_id) do
+      {:ok, true} -> :ok
+      {:ok, false} -> {:error, :device_not_found}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   defp check_group_does_not_exist(realm_name, group_name) do

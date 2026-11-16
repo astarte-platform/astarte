@@ -28,17 +28,20 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
 
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver
+  alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.StatsResolver
   alias Astarte.Auth.GraphQL.Middleware.AuthorizeFGA
   alias Astarte.Auth.GraphQL.Middleware.HandleErrors
 
   import_types Absinthe.Type.Custom
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.DeviceTypes
+  import_types Astarte.AppEngine.APIWeb.GraphQL.Types.GroupTypes
   import_types Astarte.AppEngine.APIWeb.GraphQL.Types.StatsTypes
 
+  # the fields of a group return domain errors too
   @impl Absinthe.Schema
   def middleware(middleware, _field, %{identifier: identifier})
-      when identifier in [:query, :mutation],
+      when identifier in [:query, :mutation, :device_group],
       do: middleware ++ [HandleErrors]
 
   def middleware(middleware, _field, _object), do: middleware
@@ -68,6 +71,22 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
       middleware AuthorizeFGA, relation: "can_read_stats", target: :realm
 
       resolve &StatsResolver.get_devices_stats/3
+    end
+
+    @desc "The names of the device groups of the realm"
+    field :groups, list_of(non_null(:string)) do
+      middleware AuthorizeFGA, relation: "can_list_device_groups", target: :realm
+
+      resolve &GroupResolver.list_groups/3
+    end
+
+    @desc "A device group of the realm"
+    field :group, :device_group do
+      arg :name, non_null(:string)
+
+      middleware AuthorizeFGA, relation: "can_read", target: {:device_group, :name}
+
+      resolve &GroupResolver.get_group/3
     end
   end
 end
