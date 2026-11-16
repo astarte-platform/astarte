@@ -28,6 +28,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
 
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.DeviceResolver
+  alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.GroupResolver
   alias Astarte.AppEngine.APIWeb.GraphQL.Resolvers.StatsResolver
   alias Astarte.Auth.GraphQL.Middleware.AuthorizeFGA
   alias Astarte.Auth.GraphQL.Middleware.HandleErrors
@@ -68,6 +69,13 @@ defmodule Astarte.AppEngine.APIWeb.GraphQL.Schema do
       middleware AuthorizeFGA, relation: "can_read_stats", target: :realm
 
       resolve &StatsResolver.get_devices_stats/3
+    end
+
+    @desc "The names of the device groups of the realm"
+    field :groups, list_of(non_null(:string)) do
+      middleware AuthorizeFGA, relation: "can_list_device_groups", target: :realm
+
+      resolve &GroupResolver.list_groups/3
     end
   end
 end
