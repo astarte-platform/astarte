@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,6 +92,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
     {:discard, error_atom, state, {:continue, continue_arg}}
   end
 
+  # Only data messages carry this flag, other handlers don't set it
+  defp encrypted_payload?(context), do: Map.get(context, :encrypted_payload?, false)
+
   def continue_error(context, error, opts) do
     %{
       state: state,
@@ -127,7 +130,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
       metadata = %{
         "interface" => interface != "",
         "path" => path != "",
-        "base64_payload" => payload != nil
+        "base64_payload" => payload != nil and not encrypted_payload?(context)
       }
 
       error_metadata =

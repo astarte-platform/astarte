@@ -51,6 +51,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface: interface,
       path: path,
       payload: payload,
+      encrypted_payload?: false,
       timestamp: timestamp,
       hardware_id: hw_id,
       value_timestamp: nil,
@@ -67,10 +68,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     with :ok <- validate_interface(context),
          :ok <- validate_path(context),
          {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
+         {:ok, context} <- check_payload_encryption(context, interface_descriptor),
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, {mapping, current_interface_mappings}} <-
            resolve_path(context, interface_descriptor),
-         {:ok, context} <- maybe_decrypt_payload(context, interface_descriptor),
+         {:ok, context} <- maybe_decrypt_payload(context),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
          :ok <-
            validate_value(
@@ -403,8 +405,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   # if the interface contains encrypted endpoints assume that the payload is CBOR-encrypted,
   # and otherwise is a plain BSON. Put back in context map the (maybe) decrypted payload
-  defp maybe_decrypt_payload(context, interface_descriptor) do
-    case payload_encryption_enabled?(context, interface_descriptor) do
+  defp maybe_decrypt_payload(context) do
+    case context.encrypted_payload? do
       false ->
         {:ok, context}
 
@@ -416,13 +418,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  # check if interface on which data is currently received requires payload decryption
-  defp payload_encryption_enabled?(context, interface_descriptor) do
+  # check if interface on which data is currently received requires payload decryption:
+  # the flag drives the decryption and keeps the payload out of later error logs and reports
+  defp check_payload_encryption(context, interface_descriptor) do
     current_data_interface_id = interface_descriptor |> Map.get(:interface_id)
 
-    Enum.any?(context.state.mappings, fn {_, mapping} ->
-      mapping.interface_id == current_data_interface_id and mapping.encrypted
-    end)
+    encrypted_payload? =
+      Enum.any?(context.state.mappings, fn {_, mapping} ->
+        mapping.interface_id == current_data_interface_id and mapping.encrypted
+      end)
+
+    {:ok, %{context | encrypted_payload?: encrypted_payload?}}
   end
 
   defp ensure_shared_key_established(context) do
@@ -518,7 +524,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     with {:error, :undecodable_bson_payload} <- decoding do
       error = %{
         message:
-          "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          "Invalid BSON base64-encoded payload: #{printable_payload(context)} sent to #{interface}#{path}.",
         logger_metadata: [tag: "undecodable_bson_payload"],
         error_name: "undecodable_bson_payload",
         error: :undecodable_bson_payload
@@ -585,11 +591,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp can_write_on_interface?(_context, :device), do: :ok
 
   defp can_write_on_interface?(context, :server) do
-    %{interface: interface, path: path, payload: payload, timestamp: timestamp} = context
+    %{interface: interface, path: path, timestamp: timestamp} = context
 
     message =
       "Tried to write on server owned interface: #{interface} on " <>
-        "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}."
+        "path: #{path}, base64-encoded payload: #{printable_payload(context)}, timestamp: #{inspect(timestamp)}."
 
     tag = "write_on_server_owned_interface"
 
@@ -606,7 +612,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp validate_value_type(context, mappings, value) do
-    %{interface: interface, path: path, payload: payload} = context
+    %{interface: interface, path: path} = context
 
     validation = validate_value_type(mappings, value)
 
@@ -614,7 +620,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       {:error, :unexpected_value_type} ->
         error = %{
           message:
-            "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+            "Received invalid value: #{printable_payload(context)} sent to #{interface}#{path}.",
           logger_metadata: [tag: "unexpected_value_type"],
           error_name: "unexpected_value_type",
           error: :unexpected_value_type
@@ -625,7 +631,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       {:error, :unexpected_object_key} ->
         error = %{
           message:
-            "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+            "Received object with unexpected key #{inspect(unexpected_key(mappings, value))}, object base64 is: #{printable_payload(context)} sent to #{interface}#{path}.",
           logger_metadata: [tag: "unexpected_object_key"],
           error_name: "unexpected_object_key",
           error: :unexpected_value_type
@@ -636,7 +642,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       {:error, :value_size_exceeded} ->
         error = %{
           message:
-            "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+            "Received huge base64-encoded payload: #{printable_payload(context)} sent to #{interface}#{path}.",
           logger_metadata: [tag: "value_size_exceeded"],
           error_name: "value_size_exceeded",
           error: :value_size_exceeded
@@ -647,6 +653,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       :ok ->
         :ok
     end
+  end
+
+  # On encrypted interfaces the payload is either the ciphertext or the decrypted data
+  defp printable_payload(context),
+    do: printable(context.encrypted_payload?, inspect(Base.encode64(context.payload)))
+
+  defp printable(true, _value), do: "[redacted]"
+  defp printable(false, value), do: value
+
+  defp unexpected_key(mappings_by_key, object) do
+    object
+    |> Map.keys()
+    |> Enum.find(&(not Map.has_key?(mappings_by_key, &1)))
   end
 
   # TODO: We need tests for this function
@@ -697,10 +716,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           {:halt, {:error, reason}}
 
         :error ->
-          Logger.warning("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
-            tag: "unexpected_object_key"
-          )
-
           {:halt, {:error, :unexpected_object_key}}
       end
     end)

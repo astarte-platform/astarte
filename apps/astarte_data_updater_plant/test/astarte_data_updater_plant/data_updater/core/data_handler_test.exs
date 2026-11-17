@@ -34,6 +34,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
+  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Secrets
   alias Astarte.Secrets.DataEncryptionKeyCache, as: DEKCache
   alias Astarte.Secrets.EncryptedMessages
@@ -320,6 +321,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerTest do
         )
 
       state = %{state | encrypted_endpoints_key: established}
+
+      assert {:ack, :ok, _, _} = handle_encrypted_property(context, state)
+    end
+  end
+
+  describe "payloads on encrypted endpoints" do
+    @tag interface_aggregation: :individual
+    test "reach incoming data triggers decrypted", context do
+      %{state: state, payload_value: payload_value} = context
+
+      expect(TriggersHandler, :incoming_data, fn trigger_context ->
+        assert Cyanide.decode!(trigger_context.payload) == %{"v" => payload_value}
+        :ok
+      end)
 
       assert {:ack, :ok, _, _} = handle_encrypted_property(context, state)
     end
