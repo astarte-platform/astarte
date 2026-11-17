@@ -110,18 +110,20 @@ defmodule Astarte.VMQ.Plugin do
     end
   end
 
+  # disconnect client without MQTT session persistence
   def on_client_gone({_mountpoint, client_id}) do
     timestamp = now_us_x10_timestamp()
 
     get_connection_synchronizer_process!(client_id)
-    |> Synchronizer.handle_disconnection(timestamp)
+    |> Synchronizer.handle_disconnection(timestamp, x_astarte_clean_mqtt_session: true)
   end
 
+  # disconnect client with MQTT session persistence
   def on_client_offline({_mountpoint, client_id}) do
     timestamp = now_us_x10_timestamp()
 
     get_connection_synchronizer_process!(client_id)
-    |> Synchronizer.handle_disconnection(timestamp)
+    |> Synchronizer.handle_disconnection(timestamp, x_astarte_clean_mqtt_session: false)
   end
 
   def on_register({ip_addr, _port}, {_mountpoint, client_id}, _username) do

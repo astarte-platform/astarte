@@ -281,7 +281,7 @@ defmodule Astarte.VMQ.Plugin.Test2 do
     end
 
     @tag :on_client_gone
-    test "on_client_gone generates a disconnection message", %{
+    test "on_client_gone generates a disconnection message requesting to clean the session", %{
       realm_name: realm,
       device_id: device_id
     } do
@@ -297,17 +297,19 @@ defmodule Astarte.VMQ.Plugin.Test2 do
                "x_astarte_vmqamqp_proto_ver" => 1,
                "x_astarte_msg_type" => "disconnection",
                "x_astarte_realm" => ^realm,
-               "x_astarte_device_id" => ^device_id
+               "x_astarte_device_id" => ^device_id,
+               "x_astarte_clean_mqtt_session" => true
              } = amqp_headers_to_map(headers)
 
       assert String.starts_with?(message_id, message_id_prefix(realm, device_id, timestamp))
     end
 
     @tag :on_client_offline
-    test "on_client_offline generates a disconnection message", %{
-      realm_name: realm,
-      device_id: device_id
-    } do
+    test "on_client_offline generates a disconnection message requesting not to clean the session",
+         %{
+           realm_name: realm,
+           device_id: device_id
+         } do
       Plugin.on_client_offline({:dontcare, "#{realm}/#{device_id}"})
 
       assert_receive {:amqp_msg, "",
@@ -320,7 +322,8 @@ defmodule Astarte.VMQ.Plugin.Test2 do
                "x_astarte_vmqamqp_proto_ver" => 1,
                "x_astarte_msg_type" => "disconnection",
                "x_astarte_realm" => ^realm,
-               "x_astarte_device_id" => ^device_id
+               "x_astarte_device_id" => ^device_id,
+               "x_astarte_clean_mqtt_session" => false
              } = amqp_headers_to_map(headers)
 
       assert String.starts_with?(message_id, message_id_prefix(realm, device_id, timestamp))
