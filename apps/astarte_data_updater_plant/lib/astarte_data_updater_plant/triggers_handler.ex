@@ -136,7 +136,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       value_timestamp: timestamp,
       state: state,
       value: value,
-      payload: bson_value,
+      bson_payload: bson_value,
       path: path
     } = context
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,6 +77,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     path: @path,
     value: @value,
     payload: @bson_value,
+    bson_payload: @bson_value,
     value_timestamp: nil,
     state: %State{
       realm: @realm,
