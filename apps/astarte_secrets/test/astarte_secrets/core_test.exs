@@ -28,6 +28,7 @@ defmodule Astarte.Secrets.CoreTest do
   alias COSE.Keys.RSA
 
   import Astarte.Secrets.Helpers.EncryptionKey
+  import ExUnit.CaptureLog
   import Astarte.Secrets.Helpers.Namespace
 
   describe "namespace_tokens/3" do
@@ -877,6 +878,40 @@ defmodule Astarte.Secrets.CoreTest do
       assert :error = Core.get_key(missing_key_name, namespace)
       assert {:ok, ciphertext} = Core.encrypt(missing_key_name, "secret", opts)
       assert {:ok, "secret"} = Core.decrypt(missing_key_name, ciphertext, opts)
+    end
+  end
+
+  describe "HTTP errors" do
+    @missing_namespace "missing/namespace"
+    @plaintext "FAKE-SHARED-SECRET-NOT-A-REAL-KEY"
+
+    setup do
+      %{
+        token: Config.vault_token!(),
+        opts: [namespace: @missing_namespace]
+      }
+    end
+
+    test "don't log the plaintext sent for encryption, nor the token", %{token: token, opts: opts} do
+      log = capture_log(fn -> assert :error = Core.encrypt("a-key", @plaintext, opts) end)
+
+      refute log =~ Base.encode64(@plaintext)
+      refute log =~ token
+    end
+
+    test "don't log the token", %{token: token, opts: opts} do
+      log =
+        capture_log(fn ->
+          assert :error = Core.decrypt("a-key", "vault:v1:ZmFrZQ==", opts)
+          assert :error = Core.generate_dek("a-key", @missing_namespace)
+          assert :error = Secrets.unwrap_dek("a-key", "vault:v1:ZmFrZQ==", @missing_namespace)
+          assert :error = Core.get_key("a-key", @missing_namespace)
+          assert :error = Core.mount_transit_engine(@missing_namespace)
+          assert :error = Secrets.rotate("a-key", @missing_namespace)
+          assert :error = Secrets.delete_key("a-key", opts)
+        end)
+
+      refute log =~ token
     end
   end
 end
