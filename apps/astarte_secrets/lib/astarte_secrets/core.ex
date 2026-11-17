@@ -178,7 +178,7 @@ defmodule Astarte.Secrets.Core do
     else
       error ->
         Logger.error(
-          "Failed to generate DEK with key #{kek_key_name} in namespace #{namespace}: #{inspect(error)}"
+          "Failed to generate DEK with key #{kek_key_name} in namespace #{namespace}: #{format_http_error(error)}"
         )
 
         :error
@@ -215,7 +215,7 @@ defmodule Astarte.Secrets.Core do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while creating key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while creating key #{key_name}: #{format_http_error(error_resp)}"
         )
 
         :error
@@ -231,7 +231,10 @@ defmodule Astarte.Secrets.Core do
         end
 
       error_resp ->
-        Logger.error("Encountered HTTP error while fetching wrapping key: #{inspect(error_resp)}")
+        Logger.error(
+          "Encountered HTTP error while fetching wrapping key: #{format_http_error(error_resp)}"
+        )
+
         :error
     end
   end
@@ -296,13 +299,16 @@ defmodule Astarte.Secrets.Core do
         if body =~ "import path cannot be used with an existing key" do
           {:error, :key_already_imported}
         else
-          Logger.error("Encountered HTTP error while importing key #{key_name}: #{inspect(resp)}")
+          Logger.error(
+            "Encountered HTTP error while importing key #{key_name}: #{format_http_error(resp)}"
+          )
+
           {:error, :key_import_failed}
         end
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while importing key #{key_name}: #{format_http_error(error_resp)}"
         )
 
         {:error, :key_import_failed}
@@ -381,7 +387,7 @@ defmodule Astarte.Secrets.Core do
         :error
 
       error_resp ->
-        "Encountered HTTP error while getting key #{key_name}: #{inspect(error_resp)}"
+        "Encountered HTTP error while getting key #{key_name}: #{format_http_error(error_resp)}"
         |> Logger.error()
 
         :error
@@ -409,7 +415,9 @@ defmodule Astarte.Secrets.Core do
         {:ok, []}
 
       error_resp ->
-        Logger.error("Encountered HTTP error while getting keys list: #{inspect(error_resp)}")
+        Logger.error(
+          "Encountered HTTP error while getting keys list: #{format_http_error(error_resp)}"
+        )
 
         :error
     end
@@ -455,7 +463,7 @@ defmodule Astarte.Secrets.Core do
           {:cont, {:ok, new_base_namespace}}
 
         {:error, error} ->
-          "Error creating new namespace #{new_namespace} on #{base_namespace}: #{inspect(error)}"
+          "Error creating new namespace #{new_namespace} on #{base_namespace}: #{format_http_error(error)}"
           |> Logger.error()
 
           {:halt, {:error, :namespace_creation_error}}
@@ -476,7 +484,7 @@ defmodule Astarte.Secrets.Core do
         if body =~ "already in use at transit" do
           :ok
         else
-          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(resp)}"
+          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{format_http_error(resp)}"
           |> Logger.error()
 
           :error
@@ -484,7 +492,7 @@ defmodule Astarte.Secrets.Core do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(error_resp)}"
+          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{format_http_error(error_resp)}"
         )
 
         :error
@@ -496,6 +504,16 @@ defmodule Astarte.Secrets.Core do
       fetch_data_key(data, key)
     end
   end
+
+  @doc false
+  @spec format_http_error(term()) :: String.t()
+  def format_http_error({:ok, %Response{status_code: status_code, body: body}}),
+    do: "status #{status_code}, body: #{inspect(body)}"
+
+  def format_http_error({:error, %HTTPoison.Error{reason: reason}}), do: inspect(reason)
+
+  def format_http_error({:error, {:invalid_response_body, _body}}), do: "invalid response body"
+  def format_http_error(other), do: inspect(other)
 
   def parse_json_data(json_str) do
     with {:ok, map} when is_map(map) <- Jason.decode(json_str),
@@ -540,7 +558,7 @@ defmodule Astarte.Secrets.Core do
         {:ok, []}
 
       error ->
-        Logger.warning("Error while listing namespaces: #{inspect(error)}")
+        Logger.warning("Error while listing namespaces: #{format_http_error(error)}")
         error
     end
   end
@@ -636,7 +654,10 @@ defmodule Astarte.Secrets.Core do
       {:ok, signature}
     else
       error ->
-        Logger.error("Failed to sign payload or decode Vault response: #{inspect(error)}")
+        Logger.error(
+          "Failed to sign payload or decode Vault response: #{format_http_error(error)}"
+        )
+
         :error
     end
   end
@@ -779,7 +800,7 @@ defmodule Astarte.Secrets.Core do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while encrypting with key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while encrypting with key #{key_name}: #{format_http_error(error_resp)}"
         )
 
         :error
@@ -809,7 +830,7 @@ defmodule Astarte.Secrets.Core do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while decrypting with key #{key_name}: #{format_http_error(error_resp)}"
         )
 
         :error
