@@ -82,6 +82,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
 
   @type data_triggers_type :: %{data_trigger_key => [DataTrigger.t()]}
 
+  @derive {Inspect, except: [:encrypted_endpoints_key, :shared_secret]}
+
   typedstruct do
     @typedoc "State struct"
 

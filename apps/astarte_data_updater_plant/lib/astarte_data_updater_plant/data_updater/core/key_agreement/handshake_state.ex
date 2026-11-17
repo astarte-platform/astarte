@@ -118,11 +118,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   # Fallback for invalid protocol steps
   def transition(current_state, event) do
     Logger.warning(
-      "Handshake: tried to transition with event #{inspect(event)} from state #{inspect(current_state)}"
+      "Handshake: tried to transition with event #{inspect(event_name(event))} from state #{inspect(state_name(current_state))}"
     )
 
     {:error, :unprocessable_entity, "invalid transition"}
   end
+
+  @spec state_name(t()) :: :uninitialized | :handshake_started | :established | :failed
+  def state_name(:uninitialized), do: :uninitialized
+  def state_name({:handshake_started, _data}), do: :handshake_started
+  def state_name({:established, _data}), do: :established
+  def state_name({:failed, _reason}), do: :failed
+
+  defp event_name({event, _payload}) when is_atom(event), do: event
+  defp event_name(event) when is_atom(event), do: event
+  defp event_name(_event), do: :unknown
 
   @doc """
   Unconditionally moves to the `{:failed, reason}` state.
