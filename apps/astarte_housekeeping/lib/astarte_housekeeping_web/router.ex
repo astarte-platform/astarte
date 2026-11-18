@@ -24,6 +24,19 @@ defmodule Astarte.HousekeepingWeb.Router do
     plug Astarte.HousekeepingWeb.Plug.AuthorizePath
   end
 
+  pipeline :graphql do
+    plug Astarte.Auth.Plug.FetchRealmName
+
+    plug Guardian.Plug.Pipeline,
+      otp_app: :astarte_housekeeping,
+      module: Astarte.HousekeepingWeb.AuthGuardian,
+      error_handler: Astarte.Auth.GraphQL.Plug.Context.ErrorHandler
+
+    plug Astarte.HousekeepingWeb.Plug.VerifyHeader, halt: false
+    plug Guardian.Plug.LoadResource, allow_blank: true, halt: false
+    plug Astarte.Auth.GraphQL.Plug.Context
+  end
+
   scope "/v1", Astarte.HousekeepingWeb do
     pipe_through :api
 
@@ -35,6 +48,16 @@ defmodule Astarte.HousekeepingWeb.Router do
       param: "realm_name"
 
     patch "/realms/:realm_name", RealmController, :update
+  end
+
+  scope "/v1" do
+    pipe_through [:graphql]
+
+    forward "/graphql", Absinthe.Plug, schema: Astarte.HousekeepingWeb.GraphQL.Schema
+
+    forward "/graphiql", Absinthe.Plug.GraphiQL,
+      schema: Astarte.HousekeepingWeb.GraphQL.Schema,
+      interface: :playground
   end
 
   scope "/version", Astarte.HousekeepingWeb do

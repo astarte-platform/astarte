@@ -44,6 +44,7 @@ defmodule Astarte.HousekeepingWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
+      |> Enum.reject(&String.starts_with?(&1.path, ["/v1/graphql", "/v1/graphiql"]))
       |> MapSet.new(&normalize_route/1)
 
     actual_operations =

@@ -35,7 +35,8 @@ defmodule Astarte.RealmManagementWeb.AuthGuardian do
     {:ok,
      %User{
        id: claims["sub"],
-       authorizations: Map.get(claims, "a_rma", [])
+       authorizations: Map.get(claims, "a_rma", []),
+       roles: Map.get(claims, "roles", [])
      }}
   end
 end
