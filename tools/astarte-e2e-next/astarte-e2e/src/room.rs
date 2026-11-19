@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tokio::task::JoinSet;
 use tracing::{error, trace};
+use uuid::Uuid;
 
 use crate::{
     astarte_event::{
@@ -65,6 +66,8 @@ pub struct Room {
 }
 
 impl Room {
+    /// Open a new room for the device, unique even across multiple rooms for
+    /// the same device.
     pub async fn open(
         astarte_config: &AstarteConfig,
         device_id: &str,
@@ -90,7 +93,8 @@ impl Room {
 
         let client = Arc::new(client);
 
-        let name = format!("rooms:{realm}:e2e_test_{device_id}");
+        let id = Uuid::now_v7().simple();
+        let name = format!("rooms:{realm}:e2e_test_{device_id}_{id}");
 
         let rx = spawn_channel_recv(&client, tasks, cancel);
 

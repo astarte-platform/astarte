@@ -202,6 +202,13 @@ pub struct Config {
 }
 
 impl Config {
+    /// Parse the config from the environment only, ignoring the command line
+    /// arguments.
+    #[cfg(feature = "clap")]
+    pub fn from_env() -> Result<Self, clap::Error> {
+        Self::try_parse_from(std::env::args_os().take(1))
+    }
+
     pub fn api_client(&self) -> eyre::Result<ApiClient> {
         let device_id = self.device.device_id.clone().ok_or_else(|| {
             eyre!("missing device id, pass --device-id <DEVICE_ID> or set E2E_DEVICE_ID")
