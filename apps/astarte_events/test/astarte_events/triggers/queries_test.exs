@@ -27,54 +27,6 @@ defmodule Astarte.Events.Triggers.QueriesTests do
 
   setup :verify_on_exit!
 
-  describe "retrieve_policy_name/2" do
-    setup context do
-      %{realm_name: realm_name} = context
-
-      custom_policy = "custom_policy_#{System.unique_integer([:positive])}"
-
-      simple_trigger = install_simple_trigger(realm_name)
-
-      install_trigger_policy_link(realm_name, simple_trigger.simple_trigger_id, custom_policy)
-
-      {:ok, realm_name: realm_name, simple_trigger: simple_trigger, custom_policy: custom_policy}
-    end
-
-    test "returns policy name for existing trigger", %{
-      realm_name: realm,
-      simple_trigger: simple_trigger,
-      custom_policy: custom_policy
-    } do
-      {:ok, policy} = Queries.retrieve_policy_name(realm, simple_trigger.simple_trigger_id)
-
-      assert custom_policy == policy
-    end
-  end
-
-  describe "get_policy_name/2" do
-    setup context do
-      %{realm_name: realm_name} = context
-
-      custom_policy = "custom_policy_#{System.unique_integer([:positive])}"
-
-      simple_trigger = install_simple_trigger(realm_name)
-
-      install_trigger_policy_link(realm_name, simple_trigger.simple_trigger_id, custom_policy)
-
-      {:ok, realm_name: realm_name, simple_trigger: simple_trigger, custom_policy: custom_policy}
-    end
-
-    test "returns policy name for existing trigger", %{
-      realm_name: realm,
-      simple_trigger: simple_trigger,
-      custom_policy: custom_policy
-    } do
-      policy = Queries.get_policy_name(realm, simple_trigger.simple_trigger_id)
-
-      assert custom_policy == policy
-    end
-  end
-
   describe "get_policy_name_map/2" do
     setup context do
       %{realm_name: realm_name} = context
