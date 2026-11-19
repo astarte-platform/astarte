@@ -57,5 +57,19 @@ defmodule Astarte.Core.Generators.Mapping.ValueTypeTest do
         assert validate_value(value_type, value)
       end
     end
+
+    property "generates millisecond precision datetimes" do
+      check all value <- value_from_type(:datetime) do
+        assert %DateTime{microsecond: {_, 3}} = value
+      end
+    end
+
+    property "generates millisecond precision datetimes for datetimearray" do
+      check all values <- value_from_type(:datetimearray) do
+        for value <- values do
+          assert %DateTime{microsecond: {_, 3}} = value
+        end
+      end
+    end
   end
 end
