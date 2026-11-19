@@ -37,6 +37,7 @@ tracing.workspace = true
 insta = { workspace = true, features = ["json"] }
 prost-build = "0.14.4"
 tempfile.workspace = true
+test-log = { version = "0.2", default-features = false, features = ["trace"] }
 tracing-subscriber.workspace = true
 
 [[test]]

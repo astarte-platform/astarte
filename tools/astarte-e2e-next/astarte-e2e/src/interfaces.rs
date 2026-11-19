@@ -1,12 +1,11 @@
-pub type AstarteClient = DeviceClient<Mqtt<SqliteStore, PairingApi>>;
+pub type AstarteClient = DeviceClient<Mqtt, SqliteStore>;
 
 use crate::astarte::ApiClient;
 use crate::{base64_decode, timestamp_from_rfc3339};
 use astarte_device_sdk::DeviceClient;
 use astarte_device_sdk::aggregate::AstarteObject;
 use astarte_device_sdk::astarte_interfaces::Interface;
-use astarte_device_sdk::pairing::api::PairingApi;
-use astarte_device_sdk::prelude::DynamicIntrospection;
+use astarte_device_sdk::prelude::DeviceIntrospection;
 use astarte_device_sdk::store::SqliteStore;
 use astarte_device_sdk::transport::mqtt::Mqtt;
 use astarte_device_sdk::types::AstarteData;
