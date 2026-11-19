@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,10 +25,27 @@ defmodule Astarte.TestSuite.Helpers.AuthConn do
 
   @spec setup(map()) :: map()
   def setup(%{conn: conn, jwt: jwt} = context) do
-    conn = Conn.put_req_header(conn, "authorization", "bearer #{jwt}")
+    auth_conn = Conn.put_req_header(conn, "authorization", "bearer #{jwt}")
 
     context
-    |> Map.put(:conn, conn)
+    |> Map.put(:auth_conn, auth_conn)
     |> put_fixture(:auth_conn, %{auth_conn_setup?: true})
+  end
+
+  @spec bind(map()) :: :ok
+  def bind(%{jwt_public_key_module: nil, jwt_public_key_pem: nil}), do: :ok
+
+  def bind(%{jwt_public_key_module: nil}), do: raise_incomplete_public_key_configuration!()
+  def bind(%{jwt_public_key_pem: nil}), do: raise_incomplete_public_key_configuration!()
+
+  def bind(%{jwt_public_key_module: module, jwt_public_key_pem: public_key_pem}) do
+    Mimic.set_mimic_private()
+    Mimic.stub(module, :jwt_public_key_pem, fn -> {:ok, public_key_pem} end)
+    :ok
+  end
+
+  defp raise_incomplete_public_key_configuration! do
+    raise ArgumentError,
+          ":auth_conn expects :jwt_public_key_module and :jwt_public_key_pem to be configured together"
   end
 end

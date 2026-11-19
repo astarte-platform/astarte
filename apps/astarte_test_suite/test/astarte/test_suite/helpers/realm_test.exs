@@ -19,69 +19,72 @@
 defmodule Astarte.TestSuite.Helpers.RealmTest do
   use ExUnit.Case, async: true
 
+  import Ecto.Query
+  import Astarte.Core.Realm, only: [valid_name?: 1]
+
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
+
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
   alias Astarte.TestSuite.Helpers.Realm, as: RealmHelper
 
-  @tag :integration
-  test "realm helper sets realms flag" do
-    assert context().realms_ready?
+  describe "data/1" do
+    @tag :integration
+    test "persists and migrates every realm" do
+      context = context()
+      realm_names = Map.keys(context.realms)
+
+      assert context.realms_ready?
+      assert length(context.realm_keyspaces) == 2
+      assert Enum.all?(realm_names, &(&1 in RealmData.list_realm_names()))
+      assert Enum.all?(realm_names, &Database.realm_initialized?/1)
+
+      for realm_name <- realm_names do
+        keyspace = RealmData.keyspace_name(realm_name)
+
+        realm =
+          RealmData
+          |> where([realm], realm.realm_name == ^realm_name)
+          |> Repo.one!(prefix: context.instance_keyspace)
+
+        assert realm.device_registration_limit == 10
+
+        assert KvStore.fetch_value("auth", "jwt_public_key_pem", :string, prefix: keyspace) ==
+                 {:ok, "public key"}
+
+        assert KvStore.fetch_value(
+                 "realm_config",
+                 "datastream_maximum_storage_retention",
+                 :integer,
+                 prefix: keyspace
+               ) == {:ok, 20}
+      end
+    end
   end
 
-  @tag :integration
-  test "realm helper creates one keyspace for each realm" do
-    assert context().realm_keyspaces |> length() == 2
+  describe "realms/1" do
+    test "creates canonical graph realms" do
+      assert RealmHelper.realms(realm_context()).realms == %{
+               "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"},
+               "realm2" => {%{id: "realm2", name: "realm2", instance_id: "astarte1"}, "astarte1"}
+             }
+    end
   end
 
-  @tag :integration
-  test "realm helper creates database statements for each realm" do
-    assert context().realm_database_statements |> length() == 20
-  end
+  describe "realm_names/1" do
+    test "creates the requested valid and unique names" do
+      realm_names =
+        RealmHelper.realm_names(%{
+          realm_number: 100,
+          instances: %{"instance1" => {"instance1", nil}}
+        })
 
-  @tag :integration
-  test "realm helper creates realm keyspace SQL" do
-    context = context()
-
-    assert context.realm_database_statements |> hd() =~
-             "CREATE KEYSPACE IF NOT EXISTS #{hd(context.realm_keyspaces)}"
-  end
-
-  @tag :integration
-  test "realm helper inserts realm into the instance keyspace" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 1) =~
-             "INSERT INTO #{context.instance_keyspace}.realms"
-  end
-
-  @tag :integration
-  test "realm helper creates devices table SQL" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 2) =~
-             "CREATE TABLE IF NOT EXISTS #{hd(context.realm_keyspaces)}.devices"
-  end
-
-  @tag :integration
-  test "realm helper creates interfaces table SQL" do
-    context = context()
-
-    assert Enum.at(context.realm_database_statements, 9) =~
-             "CREATE TABLE IF NOT EXISTS #{hd(context.realm_keyspaces)}.interfaces"
-  end
-
-  test "realm helper creates canonical graph realms" do
-    assert RealmHelper.realms(realm_context()).realms == %{
-             "realm1" => {%{id: "realm1", name: "realm1", instance_id: "astarte1"}, "astarte1"},
-             "realm2" => {%{id: "realm2", name: "realm2", instance_id: "astarte1"}, "astarte1"}
-           }
-  end
-
-  test "realm helper creates the requested names" do
-    assert RealmHelper.realm_names(%{
-             realm_number: 2,
-             instances: %{"instance1" => {"instance1", nil}}
-           })
-           |> length() == 2
+      assert length(realm_names) == 100
+      assert length(Enum.uniq(realm_names)) == 100
+      assert Enum.all?(realm_names, &valid_name?/1)
+    end
   end
 
   defp context do
@@ -93,6 +96,9 @@ defmodule Astarte.TestSuite.Helpers.RealmTest do
     context
     |> Map.merge(%{
       instance_database_ready?: true,
+      realm_public_key_pem: "public key",
+      realm_device_registration_limit: 10,
+      realm_datastream_maximum_storage_retention: 20,
       realms: %{
         first_realm => {%{id: first_realm, instance_id: instance_id}, instance_id},
         second_realm => {%{id: second_realm, instance_id: instance_id}, instance_id}

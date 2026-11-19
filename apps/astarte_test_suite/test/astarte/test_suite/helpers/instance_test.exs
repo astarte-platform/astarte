@@ -21,6 +21,7 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
 
   alias Astarte.DataAccess.Config
   alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.TestSuite.Helpers.Instance, as: InstanceHelper
 
   describe "instance setup" do
@@ -60,6 +61,13 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
       assert context.instance_database_ready?
       assert context.instance_keyspaces == [context.instance_keyspace]
       assert Database.astarte_initialized?()
+
+      assert KvStore.fetch_value(
+               "astarte",
+               "db_default_replication",
+               :binary,
+               prefix: context.instance_keyspace
+             ) == {:ok, :erlang.term_to_binary(context.realm_default_replication)}
     end
 
     @tag :integration
@@ -72,5 +80,10 @@ defmodule Astarte.TestSuite.Helpers.InstanceTest do
     end
   end
 
-  defp migrated_context, do: %{} |> InstanceHelper.setup() |> InstanceHelper.data()
+  defp migrated_context do
+    %{}
+    |> InstanceHelper.setup()
+    |> Map.put(:realm_default_replication, %{strategy: :simple, replication_factor: 1})
+    |> InstanceHelper.data()
+  end
 end

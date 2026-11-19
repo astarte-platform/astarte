@@ -20,8 +20,6 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   use ExUnit.Case, async: false
   use Mimic
 
-  import Ecto.Changeset, only: [apply_action!: 2]
-
   import Astarte.Core.Generators.Interface, only: [interface: 0]
   import Astarte.TestSuite.CaseContext, only: [put!: 5]
 
@@ -36,10 +34,12 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   setup do
     Repo
     |> stub(:query!, fn _statement -> :ok end)
-    |> stub(:insert!, fn changeset, _opts -> apply_action!(changeset, :insert) end)
+    |> stub(:insert!, &insert!/2)
     |> stub(:safe_delete_all, fn _query, _opts -> {:ok, 0} end)
 
-    stub(Database, :migrate, fn -> :ok end)
+    Database
+    |> stub(:migrate, fn -> :ok end)
+    |> stub(:migrate_realm, fn _realm_name -> :ok end)
 
     :ok
   end
@@ -56,13 +56,11 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
     test "realm helper records database work" do
       %{
         realms_ready?: realms_ready?,
-        realm_keyspaces: realm_keyspaces,
-        realm_database_statements: realm_database_statements
+        realm_keyspaces: realm_keyspaces
       } = realm_context()
 
       assert realms_ready?
       assert length(realm_keyspaces) == 2
-      assert length(realm_database_statements) == 20
     end
 
     test "interface helper records persistence work" do
@@ -120,4 +118,9 @@ defmodule Astarte.TestSuite.Helpers.DatabaseTest do
   defp unique_realm_id do
     "realm" <> Integer.to_string(System.unique_integer([:positive]))
   end
+
+  defp insert!(%Ecto.Changeset{} = changeset, _opts),
+    do: Ecto.Changeset.apply_action!(changeset, :insert)
+
+  defp insert!(data, _opts), do: data
 end

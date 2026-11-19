@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,47 +21,39 @@ defmodule Astarte.TestSuite.Cases.GroupTest do
 
   alias Astarte.TestSuite.Cases.Group, as: GroupCase
 
-  test "normalizes group defaults" do
-    assert Map.take(GroupCase.normalize_config!([], device_context()), [
-             :group_number,
-             :group_name
-           ]) == %{
-             group_number: 1,
-             group_name: "group-1"
-           }
-  end
+  describe "normalize_config!/2" do
+    test "normalizes group defaults" do
+      context = GroupCase.normalize_config!([], device_context())
 
-  test "normalizes group configuration with derived default" do
-    assert Map.take(GroupCase.normalize_config!([group_number: 4], device_context()), [
-             :group_number,
-             :group_name
-           ]) ==
-             %{
-               group_number: 4,
-               group_name: "group-4"
-             }
-  end
+      assert context.group_number == 1
+      assert context.group_name == "group-1"
+      assert map_size(context.groups) == 1
+    end
 
-  test "keeps explicit group name" do
-    assert Map.take(
-             GroupCase.normalize_config!(
-               [group_number: 4, group_name: "custom"],
-               device_context()
-             ),
-             [
-               :group_number,
-               :group_name
-             ]
-           ) == %{
-             group_number: 4,
-             group_name: "custom"
-           }
+    test "normalizes group configuration with derived default" do
+      context = GroupCase.normalize_config!([group_number: 4], device_context())
+
+      assert context.group_number == 4
+      assert context.group_name == "group-4"
+    end
+
+    test "keeps explicit group name" do
+      context =
+        GroupCase.normalize_config!(
+          [group_number: 4, group_name: "custom"],
+          device_context()
+        )
+
+      assert context.group_number == 4
+      assert context.group_name == "custom"
+    end
   end
 
   defp device_context do
     %{
       devices: %{
-        "device" => {%{name: "device"}, "interface"}
+        "AAAAAAAAAAAAAAAAAAAAAA" =>
+          {%{device_id: <<0::128>>, encoded_id: "AAAAAAAAAAAAAAAAAAAAAA"}, "interface"}
       }
     }
   end
