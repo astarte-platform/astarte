@@ -75,3 +75,6 @@ services:
       watch:
         - path: apps/astarte_trigger_engine/lib
           action: rebuild
+  scylla:
+    ports:
+      - "9042:9042"
