@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,12 +32,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.Secrets.EncryptedMessages
   alias COSE.Keys.Symmetric
 
   import Astarte.DataUpdaterPlant.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
+  import ExUnit.CaptureLog
 
   setup_all %{realm_name: realm_name, device: device, interfaces: interfaces} do
     state = dump_state(realm_name, device.encoded_id)
@@ -555,6 +557,46 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                       ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :key_agreement_error}}
     end
 
+    test "encrypted payloads in every non-established key state, without crashing",
+         context do
+      %{
+        state: state,
+        interfaces_encrypted_endpoints: interfaces
+      } = context
+
+      %{interface: interface, path: path, payload: payload} =
+        gen_context(state, interfaces)
+        |> Enum.at(0)
+
+      init_exchange = InitExchange.new(0)
+
+      key_states = [
+        :uninitialized,
+        {:handshake_started, %{key_type: init_exchange.key_type, init_exchange: init_exchange}},
+        {:failed, :invalid_argument}
+      ]
+
+      for key_state <- key_states do
+        Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+        |> expect(:disconnect, fn %{client_id: _client_id, discard_state: _discard_state} ->
+          :ok
+        end)
+
+        state = %{state | encrypted_endpoints_key: key_state}
+        timestamp = System.system_time(:microsecond) * 10
+
+        assert {:discard, :key_agreement_error, _, _} =
+                 DataHandler.handle_data(
+                   state,
+                   interface,
+                   path,
+                   payload,
+                   timestamp,
+                   System.monotonic_time()
+                 )
+      end
+    end
+
     test "issues during decryption phase when receiving encrypted payloads", context do
       %{
         state: state,
@@ -606,6 +648,106 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
       assert_receive {[:astarte, :data_updater_plant, :encrypted_message_handling_failure],
                       ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :decryption_error}}
     end
+  end
+
+  describe "handle_data/6 errors on encrypted endpoints" do
+    @confidential "FAKE-CONFIDENTIAL-VALUE"
+
+    test "don't log or report the payload", context do
+      %{state: state, interfaces_encrypted_endpoints: interfaces} = context
+      assert interfaces != []
+
+      for interface <- interfaces,
+          plaintext_payload <- invalid_plaintext_payloads(interface) do
+        encrypted_payload = EncryptedMessages.encrypt(plaintext_payload, state.shared_secret)
+        {log, metadata} = handle_invalid_payload(state, interface, encrypted_payload)
+
+        for leaked <- [
+              @confidential,
+              Base.encode64(plaintext_payload),
+              Base.encode64(encrypted_payload)
+            ] do
+          refute log =~ leaked
+        end
+
+        refute Map.has_key?(metadata, "base64_payload")
+      end
+    end
+
+    test "don't log or report a payload that can't be decrypted", context do
+      %{state: state, interfaces_encrypted_endpoints: interfaces} = context
+      other_key = %Symmetric{state.shared_secret | k: :crypto.strong_rand_bytes(32)}
+      payload = EncryptedMessages.encrypt(@confidential, other_key)
+
+      for interface <- interfaces do
+        {log, metadata} = handle_invalid_payload(state, interface, payload)
+
+        refute log =~ Base.encode64(payload)
+        refute Map.has_key?(metadata, "base64_payload")
+      end
+    end
+  end
+
+  describe "handle_data/6 errors on plaintext endpoints" do
+    test "report the payload", context do
+      %{state: state, interfaces: interfaces, interfaces_encrypted_endpoints: encrypted} = context
+      plaintext_interfaces = interfaces -- encrypted
+      assert plaintext_interfaces != []
+
+      for interface <- plaintext_interfaces,
+          payload <- invalid_plaintext_payloads(interface) do
+        {_log, metadata} = handle_invalid_payload(state, interface, payload)
+
+        assert metadata["base64_payload"] == Base.encode64(payload)
+      end
+    end
+  end
+
+  defp handle_invalid_payload(state, interface, payload) do
+    %{path: path} =
+      gen_context(state, [interface])
+      |> Enum.at(0)
+
+    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> stub(:disconnect, fn _args -> :ok end)
+
+    test_pid = self()
+
+    Core.Trigger
+    |> expect(:execute_device_error_triggers, fn _state, _name, metadata, _timestamp ->
+      send(test_pid, {:error_metadata, metadata})
+      :ok
+    end)
+
+    timestamp = System.system_time(:microsecond) * 10
+
+    log =
+      capture_log(fn ->
+        assert {:discard, _reason, _state, {:continue, {:handle_error, ctx, error, opts}}} =
+                 DataHandler.handle_data(
+                   state,
+                   interface.name,
+                   path,
+                   payload,
+                   timestamp,
+                   System.monotonic_time()
+                 )
+
+        Core.Error.continue_error(ctx, error, opts)
+      end)
+
+    assert_receive {:error_metadata, metadata}
+    {log, metadata}
+  end
+
+  defp invalid_plaintext_payloads(interface) do
+    wrong_value =
+      case interface.aggregation do
+        :object -> %{"notAMapping" => @confidential}
+        _individual -> %{"notAnIndividualValue" => @confidential}
+      end
+
+    [@confidential, Cyanide.encode!(%{"v" => wrong_value})]
   end
 
   defp discard_error(context, error), do: {:discard, error.error, context.state}

@@ -137,7 +137,7 @@ defmodule Astarte.Secrets do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while enabling key deletion for key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while enabling key deletion for key #{key_name}: #{Core.format_http_error(error_resp)}"
         )
 
         :error
@@ -154,7 +154,7 @@ defmodule Astarte.Secrets do
 
       error_resp ->
         Logger.error(
-          "Encountered HTTP error while deleting key #{key_name}: #{inspect(error_resp)}"
+          "Encountered HTTP error while deleting key #{key_name}: #{Core.format_http_error(error_resp)}"
         )
 
         :error
@@ -234,7 +234,7 @@ defmodule Astarte.Secrets do
     else
       reason ->
         Logger.error(
-          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{Core.format_http_error(reason)}"
         )
 
         :error
@@ -373,7 +373,7 @@ defmodule Astarte.Secrets do
       {:ok, key}
     else
       error ->
-        "Error while rotating key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        "Error while rotating key #{key_name} in namespace #{namespace}: #{Core.format_http_error(error)}"
         |> Logger.error()
 
         :error

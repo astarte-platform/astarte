@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,6 +85,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
   defp build_context(state, interface_name, interface_major, value_type, path, value) do
     hw_id = Device.encode_device_id(state.device_id)
     state = add_interface(state, interface_name, interface_major, path, value_type)
+    payload = Cyanide.encode!(%{"value" => value})
 
     context = %{
       hardware_id: hw_id,
@@ -92,7 +93,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       path: path,
       interface_id: CQLUtils.interface_id(interface_name, interface_major),
       endpoint_id: CQLUtils.endpoint_id(interface_name, interface_major, path),
-      payload: Cyanide.encode!(%{"value" => value}),
+      payload: payload,
+      bson_payload: payload,
       value: value,
       value_timestamp: 1_600_000_000_000_000,
       state: state
@@ -243,6 +245,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
         value: value,
         value_timestamp: timestamp,
         payload: payload,
+        bson_payload: payload,
         state: state
       }
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -50,6 +51,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface: interface,
       path: path,
       payload: payload,
+      bson_payload: nil,
       timestamp: timestamp,
       hardware_id: hw_id,
       value_timestamp: nil,
@@ -405,12 +407,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp maybe_decrypt_payload(context, interface_descriptor) do
     case payload_encryption_enabled?(context, interface_descriptor) do
       false ->
-        {:ok, context}
+        {:ok, %{context | bson_payload: context.payload}}
 
       true ->
         with :ok <- ensure_shared_key_established(context),
              {:ok, decrypted_payload} <- decrypt_cbor_payload(context) do
-          {:ok, %{context | payload: decrypted_payload}}
+          {:ok, %{context | bson_payload: decrypted_payload}}
         end
     end
   end
@@ -432,7 +434,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       status ->
         error = %{
           message:
-            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: device shared key not established. Current key agreement status: #{status}.",
+            "Failed to decode incoming encrypted message for device #{context.hardware_id} in realm #{context.state.realm}: device shared key not established. Current key agreement status: #{inspect(HandshakeState.state_name(status))}.",
           logger_metadata: [tag: "key_agreement_error"],
           error_name: "key_agreement_error",
           error: :key_agreement_error
@@ -511,13 +513,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp decode_bson_payload(context) do
-    %{payload: payload, timestamp: timestamp, interface: interface, path: path} = context
-    decoding = PayloadsDecoder.decode_bson_payload(payload, timestamp)
+    %{bson_payload: bson_payload, timestamp: timestamp, interface: interface, path: path} =
+      context
+
+    decoding = PayloadsDecoder.decode_bson_payload(bson_payload, timestamp)
 
     with {:error, :undecodable_bson_payload} <- decoding do
       error = %{
         message:
-          "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          "Invalid BSON base64-encoded payload: #{printable_payload(context)} sent to #{interface}#{path}.",
         logger_metadata: [tag: "undecodable_bson_payload"],
         error_name: "undecodable_bson_payload",
         error: :undecodable_bson_payload
@@ -584,11 +588,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp can_write_on_interface?(_context, :device), do: :ok
 
   defp can_write_on_interface?(context, :server) do
-    %{interface: interface, path: path, payload: payload, timestamp: timestamp} = context
+    %{interface: interface, path: path, timestamp: timestamp} = context
 
     message =
       "Tried to write on server owned interface: #{interface} on " <>
-        "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}."
+        "path: #{path}, base64-encoded payload: #{printable_payload(context)}, timestamp: #{inspect(timestamp)}."
 
     tag = "write_on_server_owned_interface"
 
@@ -605,15 +609,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp validate_value_type(context, mappings, value) do
-    %{interface: interface, path: path, payload: payload} = context
+    %{interface: interface, path: path} = context
+    logged_payload = printable_payload(context)
 
     validation = validate_value_type(mappings, value)
 
     case validation do
       {:error, :unexpected_value_type} ->
         error = %{
-          message:
-            "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          message: "Received invalid value: #{logged_payload} sent to #{interface}#{path}.",
           logger_metadata: [tag: "unexpected_value_type"],
           error_name: "unexpected_value_type",
           error: :unexpected_value_type
@@ -622,9 +626,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         Core.Error.handle_error(context, error)
 
       {:error, :unexpected_object_key} ->
+        Logger.warning(
+          "Unexpected key #{inspect(unexpected_key(mappings, value))} in object #{printable(context, inspect(value))}.",
+          tag: "unexpected_object_key"
+        )
+
         error = %{
           message:
-            "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+            "Received object with unexpected key, object base64 is: #{logged_payload} sent to #{interface}#{path}.",
           logger_metadata: [tag: "unexpected_object_key"],
           error_name: "unexpected_object_key",
           error: :unexpected_value_type
@@ -635,7 +644,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       {:error, :value_size_exceeded} ->
         error = %{
           message:
-            "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+            "Received huge base64-encoded payload: #{logged_payload} sent to #{interface}#{path}.",
           logger_metadata: [tag: "value_size_exceeded"],
           error_name: "value_size_exceeded",
           error: :value_size_exceeded
@@ -646,6 +655,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       :ok ->
         :ok
     end
+  end
+
+  @spec encrypted_payload?(map()) :: boolean()
+  def encrypted_payload?(%{state: state, interface: interface} = context) do
+    case Map.fetch(state.interfaces, interface) do
+      {:ok, interface_descriptor} -> payload_encryption_enabled?(context, interface_descriptor)
+      :error -> false
+    end
+  end
+
+  def encrypted_payload?(_context), do: false
+
+  defp printable_payload(context), do: printable(context, inspect(Base.encode64(context.payload)))
+
+  defp printable(context, printable_value) do
+    if encrypted_payload?(context), do: "[redacted]", else: printable_value
+  end
+
+  defp unexpected_key(mappings_by_key, object) do
+    object
+    |> Map.keys()
+    |> Enum.find(&(not Map.has_key?(mappings_by_key, &1)))
   end
 
   # TODO: We need tests for this function
@@ -696,10 +727,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           {:halt, {:error, reason}}
 
         :error ->
-          Logger.warning("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
-            tag: "unexpected_object_key"
-          )
-
           {:halt, {:error, :unexpected_object_key}}
       end
     end)
