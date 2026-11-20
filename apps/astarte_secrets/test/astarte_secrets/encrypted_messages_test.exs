@@ -104,12 +104,11 @@ defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
 
       cbor_binary = EncryptedMessages.encrypt(plaintext, symmetric_key_correct)
 
-      # A wrong key makes Encrypt0.decrypt return :error
       assert {:error, :decryption_failed} =
                EncryptedMessages.decrypt(cbor_binary, symmetric_key_wrong)
     end
 
-    test "raises an error when decrypting with an invalid key size" do
+    test "returns an error when decrypting with an invalid key size" do
       plaintext = "test_data"
       valid_key = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
       # 24 bytes is unsupported
@@ -117,10 +116,8 @@ defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
 
       cbor_binary = EncryptedMessages.encrypt(plaintext, valid_key)
 
-      # Passing an invalid key size to the underlying Erlang crypto will raise an ErlangError
-      assert_raise ErlangError, fn ->
-        EncryptedMessages.decrypt(cbor_binary, invalid_key)
-      end
+      assert {:error, :decryption_failed} =
+               EncryptedMessages.decrypt(cbor_binary, invalid_key)
     end
 
     test "returns an error when decrypt arguments are not binaries" do
