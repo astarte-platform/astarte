@@ -122,3 +122,12 @@ defmodule Astarte.RealmManagement.Triggers.Trigger do
     ~r/^(?!@).+$/
   end
 end
+
+defimpl Jason.Encoder, for: Astarte.RealmManagement.Triggers.Trigger do
+  def encode(value, opts) do
+    value
+    |> Map.from_struct()
+    |> Map.drop([:__meta__, :trigger_uuid, :simple_triggers_uuids])
+    |> Jason.Encode.map(opts)
+  end
+end

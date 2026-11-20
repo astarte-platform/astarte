@@ -43,7 +43,6 @@ defmodule Astarte.Core.Triggers.Policy do
     :prefetch_count
   ]
 
-  @derive Jason.Encoder
   @primary_key false
   typed_embedded_schema do
     field :name
@@ -163,5 +162,14 @@ defmodule Astarte.Core.Triggers.Policy do
       prefetch_count: prefetch_count,
       error_handlers: Enum.map(error_handlers, &Handler.to_handler_proto/1)
     }
+  end
+end
+
+defimpl Jason.Encoder, for: Astarte.Core.Triggers.Policy do
+  def encode(value, opts) do
+    value
+    |> Map.from_struct()
+    |> Map.drop([:__meta__])
+    |> Jason.Encode.map(opts)
   end
 end

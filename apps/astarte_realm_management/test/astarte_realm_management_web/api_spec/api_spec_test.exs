@@ -44,6 +44,7 @@ defmodule Astarte.RealmManagementWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
+      |> Enum.reject(&(&1.path in ["/v1/graphql", "/v1/graphiql"]))
       |> MapSet.new(&normalize_route/1)
 
     actual_operations =

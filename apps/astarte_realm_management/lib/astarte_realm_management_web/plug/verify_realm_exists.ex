@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,9 +31,7 @@ defmodule Astarte.RealmManagementWeb.Plug.VerifyRealmExists do
     opts
   end
 
-  def call(conn, _opts) do
-    realm_name = conn.path_params["realm_name"]
-
+  def call(%{assigns: %{realm_name: realm_name}} = conn, _opts) when is_binary(realm_name) do
     case Queries.realm_existing?(realm_name) do
       {:ok, true} ->
         Logger.metadata(realm: realm_name)
