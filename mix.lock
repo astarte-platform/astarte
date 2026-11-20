@@ -14,7 +14,7 @@
   "comeonin": {:hex, :comeonin, "5.5.1", "5113e5f3800799787de08a6e0db307133850e635d34e9fab23c70b6501669510", [:mix], [], "hexpm", "65aac8f19938145377cee73973f192c5645873dcf550a8a6b18187d17c13ccdb"},
   "con_cache": {:hex, :con_cache, "1.1.1", "9f47a68dfef5ac3bbff8ce2c499869dbc5ba889dadde6ac4aff8eb78ddaf6d82", [:mix], [{:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "1def4d1bec296564c75b5bbc60a19f2b5649d81bfa345a2febcc6ae380e8ae15"},
   "cors_plug": {:hex, :cors_plug, "2.0.3", "316f806d10316e6d10f09473f19052d20ba0a0ce2a1d910ddf57d663dac402ae", [:mix], [{:plug, "~> 1.8", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm", "ee4ae1418e6ce117fc42c2ba3e6cbdca4e95ecd2fe59a05ec6884ca16d469aea"},
-  "cose": {:git, "https://github.com/secomind/cose-elixir.git", "1f6520ca9b1ea7ee87b47d5419d758fe0b07bca1", []},
+  "cose": {:git, "https://github.com/secomind/cose-elixir.git", "196adb13a486f4d832aa11351cd278267e8adae9", []},
   "cowboy": {:hex, :cowboy, "2.18.0", "bff388eb4d6356cb3f88c26e65b515976bf04b401b805d31550c3e60eba8fe18", [:make, :rebar3], [{:cowlib, ">= 2.19.0 and < 3.0.0", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, ">= 1.8.0 and < 3.0.0", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm", "62d0b26abcf455054972b0da242389c69d5982ce5914afb8c344517f667b9600"},
   "cowlib": {:hex, :cowlib, "2.20.0", "bb525377ba634cd6d68bac7bff5d98571f738806139d335daca827717c5dc172", [:make, :rebar3], [], "hexpm", "7d41a0dd2c093041ff3779ac5fe8a1585a68ec7cb2dd1de0536bdd2452fd7ba1"},
   "credentials_obfuscation": {:hex, :credentials_obfuscation, "3.5.0", "61e282adfb4439486b3994faaec69543c7ee6cc7e70c6340e8853fd9deaf8219", [:rebar3], [], "hexpm", "843adbe3246861ce0f1a0fa3222f384834eb31defd8d6b9cba7afd2977c957bc"},

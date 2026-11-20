@@ -18,6 +18,9 @@
 
 defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
   use ExUnit.Case
+
+  import ExUnit.CaptureLog
+
   alias Astarte.Secrets.EncryptedMessages
   alias COSE.Keys.Symmetric
   alias COSE.Messages.Encrypt0
@@ -104,12 +107,11 @@ defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
 
       cbor_binary = EncryptedMessages.encrypt(plaintext, symmetric_key_correct)
 
-      # A wrong key makes Encrypt0.decrypt return :error
       assert {:error, :decryption_failed} =
                EncryptedMessages.decrypt(cbor_binary, symmetric_key_wrong)
     end
 
-    test "raises an error when decrypting with an invalid key size" do
+    test "returns an error when decrypting with an invalid key size" do
       plaintext = "test_data"
       valid_key = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
       # 24 bytes is unsupported
@@ -117,10 +119,8 @@ defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
 
       cbor_binary = EncryptedMessages.encrypt(plaintext, valid_key)
 
-      # Passing an invalid key size to the underlying Erlang crypto will raise an ErlangError
-      assert_raise ErlangError, fn ->
-        EncryptedMessages.decrypt(cbor_binary, invalid_key)
-      end
+      assert {:error, :decryption_failed} =
+               EncryptedMessages.decrypt(cbor_binary, invalid_key)
     end
 
     test "returns an error when decrypt arguments are not binaries" do
@@ -128,5 +128,59 @@ defmodule Astarte.EncryptedMessages.EncryptedMessagesTest do
 
       assert {:error, :decryption_failed} = EncryptedMessages.decrypt(nil, symmetric_key)
     end
+  end
+
+  describe "decrypt/2 with a malformed message" do
+    setup do
+      key = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+      iv = :crypto.strong_rand_bytes(12)
+
+      message =
+        "malformed_message_payload"
+        |> Encrypt0.build(%{alg: key.alg}, %{iv: COSE.tag_as_byte(iv)})
+        |> Encrypt0.encrypt(key.alg, key, iv)
+
+      %{key: key, message: message}
+    end
+
+    test "returns an error when the IV is missing", %{key: key, message: message} do
+      %{message | uhdr: %{}}
+      |> Encrypt0.encode_cbor()
+      |> assert_malformed_message(key)
+    end
+
+    test "returns an error when the IV is zero-length", %{key: key, message: message} do
+      %{message | uhdr: %{iv: COSE.tag_as_byte(<<>>)}}
+      |> Encrypt0.encode_cbor()
+      |> assert_malformed_message(key)
+    end
+
+    test "returns an error when the ciphertext is shorter than 16 bytes", context do
+      %{key: key, message: message} = context
+      short_ciphertext = binary_part(message.ciphertext.value, 0, 15)
+
+      %{message | ciphertext: COSE.tag_as_byte(short_ciphertext)}
+      |> Encrypt0.encode_cbor()
+      |> assert_malformed_message(key)
+    end
+
+    test "returns an error when the unprotected header is not a map", context do
+      %{key: key, message: message} = context
+      %CBOR.Tag{value: [phdr, uhdr, ciphertext]} = encoded = Encrypt0.encode(message)
+
+      %{encoded | value: [phdr, COSE.tag_as_byte(CBOR.encode(uhdr)), ciphertext]}
+      |> CBOR.encode()
+      |> assert_malformed_message(key)
+    end
+  end
+
+  defp assert_malformed_message(cbor_binary, key) do
+    log =
+      capture_log(fn ->
+        assert {:error, :decryption_failed} = EncryptedMessages.decrypt(cbor_binary, key)
+      end)
+
+    refute log =~ inspect(key.k)
+    refute String.contains?(log, key.k)
   end
 end
