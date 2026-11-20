@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::time::Duration;
 
 use crate::amqp_trigger_consumer::AMQPTriggerConsumer;
@@ -10,25 +11,35 @@ use crate::{
     config::Config, config::DeviceConfig, device_client, interfaces::AstarteClient, room::Room,
 };
 use astarte_device_sdk::AstarteData::Integer;
+use astarte_device_sdk::client::ClientConnection;
+use astarte_device_sdk::pairing::api::{CERTIFICATE_FILE, CREDENTIAL_FILE};
 use astarte_device_sdk::{
     EventLoop, pairing::api::registration::generate_random_uuid, transport::mqtt::Credential,
 };
 
-#[cfg(feature = "clap")]
-use clap::Parser;
-
-use eyre::{Context, OptionExt};
+use eyre::{Context, OptionExt, ensure};
+use reqwest::Url;
 use tempfile::TempDir;
 use tokio::sync::broadcast::Sender;
-use tokio::task::JoinSet;
+use tokio::sync::oneshot;
+use tokio::task::{JoinHandle, JoinSet};
+use uuid::Uuid;
 
 /// Connection to an Astarte instance for scenarios that use both the
 /// server-side room channel and a registered device.
+///
+/// The device can be disconnected and connected again, keeping the same store
+/// (credentials secret and certificate), room and triggers.
 pub struct Connection {
-    _store: TempDir,
+    config: Config,
+    device_id: String,
+    credential: Credential,
+    pairing_url: Url,
+    store: TempDir,
     pub channel: Room,
     pub client: AstarteClient,
-    _amqp_trigger_consumer: AMQPTriggerConsumer,
+    amqp_trigger_consumer: AMQPTriggerConsumer,
+    device: Option<DeviceTask>,
     tx_cancel: Sender<()>,
     _tasks: JoinSet<eyre::Result<()>>,
 }
@@ -45,12 +56,105 @@ impl Connection {
     pub fn new_random() -> eyre::Result<ConnectionBuilder> {
         ConnectionBuilder::new_random()
     }
+
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    /// Credentials secret of the device, either the given one or the one
+    /// obtained by registering the device.
+    pub async fn credentials_secret(&self) -> eyre::Result<String> {
+        match &self.credential {
+            Credential::Secret { credentials_secret } => Ok(credentials_secret.clone()),
+            Credential::ParingToken { .. } => {
+                tokio::fs::read_to_string(self.store.path().join(CREDENTIAL_FILE))
+                    .await
+                    .wrap_err("couldn't read the credentials secret")
+            }
+        }
+    }
+
+    /// Certificate currently stored by the device.
+    pub async fn certificate_pem(&self) -> eyre::Result<String> {
+        tokio::fs::read_to_string(self.store.path().join(CERTIFICATE_FILE))
+            .await
+            .wrap_err("couldn't read the certificate")
+    }
+
+    /// Pairing URL used by the next [`Connection::connect_device`].
+    pub fn set_pairing_url(&mut self, pairing_url: Url) {
+        self.pairing_url = pairing_url;
+    }
+
+    /// Discard the device connected events received so far.
+    pub async fn purge_device_events(&mut self) -> eyre::Result<()> {
+        self.amqp_trigger_consumer.purge().await
+    }
+
+    /// Connect the device and wait for the next device connected event.
+    pub async fn connect_device(&mut self) -> eyre::Result<()> {
+        ensure!(self.device.is_none(), "the device is already running");
+
+        let (client, device) = spawn_device(
+            &self.config,
+            &self.device_id,
+            self.credential.clone(),
+            self.pairing_url.clone(),
+            self.store.path(),
+        )
+        .await?;
+
+        self.client = client;
+        self.device = Some(device);
+
+        self.wait_device_connected().await
+    }
+
+    /// Stop the device, cleanly disconnecting it if it connected.
+    pub async fn disconnect_device(&mut self) -> eyre::Result<()> {
+        let Some(DeviceTask {
+            cancel,
+            handle,
+            connected,
+        }) = self.device.take()
+        else {
+            return Ok(());
+        };
+
+        if connected {
+            self.client
+                .disconnect()
+                .await
+                .wrap_err("couldn't disconnect the device")?;
+        } else {
+            drop(cancel);
+        }
+
+        handle.await.wrap_err("device task panicked")?
+    }
+
+    async fn wait_device_connected(&mut self) -> eyre::Result<()> {
+        self.amqp_trigger_consumer.next_device_connected().await?;
+
+        if let Some(device) = &mut self.device {
+            device.connected = true;
+        }
+
+        Ok(())
+    }
 }
 
 impl Drop for Connection {
     fn drop(&mut self) {
         let _ = self.tx_cancel.send(());
     }
+}
+
+/// Event loop of the device, stopped when the cancel sender is used or dropped.
+struct DeviceTask {
+    cancel: oneshot::Sender<()>,
+    handle: JoinHandle<eyre::Result<()>>,
+    connected: bool,
 }
 
 pub struct ConnectionBuilder {
@@ -62,6 +166,18 @@ pub struct ConnectionBuilder {
 }
 
 impl ConnectionBuilder {
+    /// Build a connection with the given device id, registered through the
+    /// pairing API using the JWT as pairing token.
+    pub fn new(config: Config, device_id: String) -> Self {
+        Self {
+            config,
+            device_id,
+            credentials_secret: None,
+            receive_interface_data: true,
+            volatile_triggers: vec![],
+        }
+    }
+
     /// Build a connection with the configured device id, registered
     /// through the pairing API using the JWT as pairing token or using
     /// the given credentials secret.
@@ -76,11 +192,8 @@ impl ConnectionBuilder {
         config.astarte.jwt_required()?;
 
         Ok(Self {
-            config,
-            device_id,
             credentials_secret,
-            receive_interface_data: true,
-            volatile_triggers: vec![],
+            ..Self::new(config, device_id)
         })
     }
 
@@ -88,13 +201,15 @@ impl ConnectionBuilder {
     /// through the pairing API using the JWT as pairing token.
     #[cfg(feature = "clap")]
     pub fn new_random() -> eyre::Result<Self> {
-        Ok(Self {
-            config: Config::try_parse()?,
-            device_id: generate_random_uuid(),
-            credentials_secret: None,
-            receive_interface_data: true,
-            volatile_triggers: vec![],
-        })
+        Ok(Self::new(Config::from_env()?, generate_random_uuid()))
+    }
+
+    /// Authenticate the device with the credentials secret instead of
+    /// registering it.
+    pub fn credentials_secret(mut self, credentials_secret: String) -> Self {
+        self.credentials_secret = Some(credentials_secret);
+
+        self
     }
 
     pub async fn connect(self) -> eyre::Result<Connection> {
@@ -115,18 +230,14 @@ impl ConnectionBuilder {
             },
         };
 
+        let pairing_url = config.astarte.pairing_url()?;
+
         let store = TempDir::new().wrap_err("couldn't create the device store directory")?;
 
-        let (tx_cancel, mut cancel) = tokio::sync::broadcast::channel::<()>(2);
+        let (tx_cancel, cancel) = tokio::sync::broadcast::channel::<()>(2);
         let mut tasks = JoinSet::<eyre::Result<()>>::new();
 
-        let mut channel = Room::open(
-            &config.astarte,
-            &device_id,
-            &mut tasks,
-            cancel.resubscribe(),
-        )
-        .await?;
+        let mut channel = Room::open(&config.astarte, &device_id, &mut tasks, cancel).await?;
 
         channel.join().await?;
 
@@ -140,10 +251,11 @@ impl ConnectionBuilder {
             config.astarte.realm, exchange_device_id
         );
 
-        let device_connected = format!("device-connected-{device_id}");
+        // Unique across the realm, even for multiple connections of the same device
+        let device_connected = format!("device-connected-{device_id}-{}", Uuid::now_v7().simple());
         let routing_key = device_connected.clone();
 
-        let mut amqp_trigger_consumer =
+        let amqp_trigger_consumer =
             AMQPTriggerConsumer::new(&config.amqp, &config.astarte.realm, &exchange, &routing_key)
                 .await?;
 
@@ -171,41 +283,76 @@ impl ConnectionBuilder {
             .install_trigger(&device_connected_trigger)
             .await?;
 
-        let (client, connection) = device_client(
-            &config.astarte.realm,
+        let (client, device) = spawn_device(
+            &config,
             &device_id,
-            credential,
-            config.astarte.pairing_url()?,
-            &store,
-            config.astarte.ignore_ssl,
+            credential.clone(),
+            pairing_url.clone(),
+            store.path(),
         )
-        .await
-        .wrap_err("couldn't connect the device")?;
+        .await?;
 
-        tasks.spawn(async move {
-            tokio::select! {
-                res = cancel.recv() => res.wrap_err("couldn't cancel handle events")?,
-                res = connection.handle_events() => res.wrap_err("handle events errored")?,
-            }
-
-            Ok(())
-        });
-
-        amqp_trigger_consumer.next_device_connected().await?;
-
-        for trigger in volatile_triggers {
-            channel.watch(trigger).await?;
-        }
-
-        Ok(Connection {
-            _store: store,
+        let mut connection = Connection {
+            config,
+            device_id,
+            credential,
+            pairing_url,
+            store,
             channel,
             client,
-            _amqp_trigger_consumer: amqp_trigger_consumer,
+            amqp_trigger_consumer,
+            device: Some(device),
             tx_cancel,
             _tasks: tasks,
-        })
+        };
+
+        connection.wait_device_connected().await?;
+
+        for trigger in volatile_triggers {
+            connection.channel.watch(trigger).await?;
+        }
+
+        Ok(connection)
     }
+}
+
+async fn spawn_device(
+    config: &Config,
+    device_id: &str,
+    credential: Credential,
+    pairing_url: Url,
+    store: &Path,
+) -> eyre::Result<(AstarteClient, DeviceTask)> {
+    let (client, connection) = device_client(
+        &config.astarte.realm,
+        device_id,
+        credential,
+        pairing_url,
+        &store,
+        config.astarte.ignore_ssl,
+    )
+    .await
+    .wrap_err("couldn't connect the device")?;
+
+    let (cancel, rx_cancel) = oneshot::channel::<()>();
+
+    let handle = tokio::spawn(async move {
+        tokio::select! {
+            _ = rx_cancel => {}
+            res = connection.handle_events() => res.wrap_err("handle events errored")?,
+        }
+
+        Ok(())
+    });
+
+    Ok((
+        client,
+        DeviceTask {
+            cancel,
+            handle,
+            connected: false,
+        },
+    ))
 }
 
 fn all_interface_data_trigger(device_id: &str) -> TransitiveTrigger {

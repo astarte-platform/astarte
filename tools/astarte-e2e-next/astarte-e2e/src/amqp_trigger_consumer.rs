@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use eyre::eyre;
 use lapin::{
     Channel, Connection, ConnectionProperties, Consumer,
     options::{
         BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
-        QueueDeclareOptions,
+        QueueDeclareOptions, QueuePurgeOptions,
     },
     types::FieldTable,
 };
@@ -15,9 +17,13 @@ use crate::{
     config::AmqpConfig,
 };
 
+/// How long the consumer must stay idle for a purge to be considered complete
+const PURGE_IDLE: Duration = Duration::from_millis(500);
+
 pub struct AMQPTriggerConsumer {
     _conn: Connection,
-    _channel: Channel,
+    channel: Channel,
+    queue: String,
     consumer: Consumer,
 }
 
@@ -74,9 +80,29 @@ impl AMQPTriggerConsumer {
 
         Ok(Self {
             _conn: conn,
-            _channel: channel,
+            channel,
+            queue: queue_name.to_string(),
             consumer,
         })
+    }
+
+    /// Discard all the events received so far.
+    ///
+    /// Without a prefetch limit the messages are pushed to the consumer as soon
+    /// as they are published, so purging the queue is not enough: the ones
+    /// already delivered are acked and dropped until the consumer is idle.
+    pub async fn purge(&mut self) -> eyre::Result<()> {
+        self.channel
+            .queue_purge(self.queue.as_str().into(), QueuePurgeOptions::default())
+            .await?;
+
+        while let Ok(delivery) = tokio::time::timeout(PURGE_IDLE, self.consumer.next()).await {
+            let delivery = delivery.ok_or_else(|| eyre!("AMQP consumer stream closed"))??;
+
+            delivery.ack(BasicAckOptions::default()).await?;
+        }
+
+        Ok(())
     }
 
     pub async fn next_device_connected(&mut self) -> eyre::Result<DeviceConnectedEvent> {
