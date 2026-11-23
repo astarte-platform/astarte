@@ -26,6 +26,7 @@ color-eyre = "0.6.5"
 eyre = "0.6.12"
 insta = "1.48.0"
 lapin = "4.10.0"
+mockito = "1.7.2"
 phoenix-chan = "0.4.4"
 prost = "0.14.4"
 reqwest = { version = "0.13.1", features = ["json"] }
@@ -39,3 +40,4 @@ tokio = { version = "1.49.0", features = ["full"] }
 tokio-stream = "0.1.19"
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
+uuid = { version = "1.24.0", features = ["v7"] }

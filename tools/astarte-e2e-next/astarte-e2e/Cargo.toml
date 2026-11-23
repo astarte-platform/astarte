@@ -20,6 +20,7 @@ clap = { workspace = true, features = ["derive", "env"], optional = true }
 color-eyre.workspace = true
 eyre.workspace = true
 lapin.workspace = true
+mockito.workspace = true
 phoenix-chan.workspace = true
 prost.workspace = true
 reqwest = { workspace = true, features = ["json"] }
@@ -32,6 +33,7 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tokio-stream.workspace = true
 tracing.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 insta = { workspace = true, features = ["json"] }

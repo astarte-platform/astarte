@@ -8,6 +8,7 @@ pub mod config;
 pub mod device_room;
 pub mod event_serde;
 pub mod interfaces;
+pub mod mock_pairing;
 pub mod room;
 pub mod scenarios;
 mod tls;

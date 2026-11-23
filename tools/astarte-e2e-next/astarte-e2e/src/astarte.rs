@@ -214,6 +214,61 @@ impl ApiClient {
 
         Ok(())
     }
+
+    fn pairing_device_url(&self, rest: &str) -> eyre::Result<Url> {
+        let path = format!("v1/{}/devices/{}{}", self.realm, self.device_id, rest);
+        let url = self.pairing_url.join(&path)?;
+
+        Ok(url)
+    }
+
+    /// Raw response body of the device info from pairing, containing the
+    /// broker URL.
+    ///
+    /// Authenticated as the device with its credentials secret.
+    pub async fn pairing_device_info(&self, credentials_secret: &str) -> eyre::Result<Value> {
+        let url = self.pairing_device_url("")?;
+
+        let res = self
+            .client
+            .get(url.clone())
+            .bearer_auth(credentials_secret)
+            .send()
+            .await?;
+        let res = check_response(&url, res).await?;
+
+        Ok(res.json().await?)
+    }
+
+    /// Authenticated as the device with its credentials secret.
+    pub async fn verify_certificate(
+        &self,
+        credentials_secret: &str,
+        client_crt: &str,
+    ) -> eyre::Result<CertificateStatus> {
+        let url = self.pairing_device_url("/protocols/astarte_mqtt_v1/credentials/verify")?;
+
+        let body = serde_json::json!({ "data": { "client_crt": client_crt } });
+        let res = self
+            .client
+            .post(url.clone())
+            .bearer_auth(credentials_secret)
+            .json(&body)
+            .send()
+            .await?;
+        let res = check_response(&url, res).await?;
+
+        let payload: ApiData<CertificateStatus> = res.json().await?;
+
+        Ok(payload.data)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CertificateStatus {
+    pub valid: bool,
+    #[serde(default)]
+    pub cause: Option<String>,
 }
 
 pub fn convert_type_to_json(data: &AstarteData) -> serde_json::Value {
