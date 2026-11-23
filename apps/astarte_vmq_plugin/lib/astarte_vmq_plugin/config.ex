@@ -207,11 +207,7 @@ defmodule Astarte.VMQ.Plugin.Config do
 
   def xandra_options! do
     # TODO handle SNI
-    keepalive =
-      case Application.get_env(:astarte_vmq_plugin, :cassandra_enable_keepalive, "true") do
-        "true" -> true
-        _ -> false
-      end
+    keepalive = Application.get_env(:astarte_vmq_plugin, :cassandra_enable_keepalive, true)
 
     transport_options =
       xandra_ssl_options()
