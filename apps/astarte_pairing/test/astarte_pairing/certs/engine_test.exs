@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -360,5 +360,42 @@ defmodule Astarte.Pairing.EngineTest do
       assert device.cert_aki == second_aki
       assert device.cert_serial == second_serial
     end
+  end
+
+  describe "verify_credentials" do
+    setup %{confirmed_device: %{encoded_id: hw_id, credentials_secret: secret}, realm: realm} do
+      first_certificate = issue_certificate!(realm, hw_id, secret)
+      %{hw_id: hw_id, secret: secret, first_certificate: first_certificate}
+    end
+
+    test "accepts the last issued certificate", ctx do
+      assert {:ok, %{valid: true}} =
+               verify(ctx.realm, ctx.hw_id, ctx.secret, ctx.first_certificate)
+    end
+
+    test "reports a superseded certificate as revoked", ctx do
+      _second_certificate = issue_certificate!(ctx.realm, ctx.hw_id, ctx.secret)
+
+      assert {:ok, %{valid: false, reason: :revoked}} =
+               verify(ctx.realm, ctx.hw_id, ctx.secret, ctx.first_certificate)
+    end
+  end
+
+  defp issue_certificate!(realm, hw_id, secret) do
+    {:ok, %{client_crt: certificate}} =
+      Engine.get_credentials(
+        @astarte_protocol,
+        @astarte_credentials_params,
+        realm,
+        hw_id,
+        secret,
+        @valid_ip
+      )
+
+    certificate
+  end
+
+  defp verify(realm, hw_id, secret, certificate) do
+    Engine.verify_credentials(@astarte_protocol, %{client_crt: certificate}, realm, hw_id, secret)
   end
 end

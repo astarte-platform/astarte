@@ -23,6 +23,8 @@ defmodule Astarte.PairingWeb.DeviceControllerTest do
 
   import Astarte.Pairing.Helpers.Device
 
+  alias CFXXL.CertUtils
+
   @secret "supersecret"
 
   @ca_cert """
@@ -224,6 +226,11 @@ defmodule Astarte.PairingWeb.DeviceControllerTest do
 
     setup %{conn: conn, realm_name: realm_name, device: device} do
       update_credentials_secret!(realm_name, device.id, @secret)
+
+      update_device!(realm_name, device.id,
+        cert_serial: CertUtils.serial_number!(@client_crt),
+        cert_aki: CertUtils.authority_key_identifier!(@client_crt)
+      )
 
       conn =
         conn

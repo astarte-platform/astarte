@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
+  alias CFXXL.CertUtils
 
   require Logger
 
@@ -261,7 +262,9 @@ defmodule Astarte.Pairing.Engine do
          {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(secret, device.credentials_secret)} do
-      CertVerifier.verify(client_crt, Config.ca_cert!())
+      client_crt
+      |> CertVerifier.verify(Config.ca_cert!())
+      |> reject_superseded(client_crt, device)
     else
       {:authorized?, false} ->
         {:error, :forbidden}
@@ -278,6 +281,18 @@ defmodule Astarte.Pairing.Engine do
 
     {:error, :unknown_protocol}
   end
+
+  # Only the last issued certificate is valid, older ones have been superseded
+  defp reject_superseded({:ok, %{valid: true} = status}, client_crt, device) do
+    if CertUtils.serial_number!(client_crt) == device.cert_serial and
+         CertUtils.authority_key_identifier!(client_crt) == device.cert_aki do
+      {:ok, status}
+    else
+      {:ok, %{valid: false, timestamp: status.timestamp, reason: :revoked}}
+    end
+  end
+
+  defp reject_superseded(result, _client_crt, _device), do: result
 
   defp device_status_string(device) do
     # The device is pending until the first credendtial request
