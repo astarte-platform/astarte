@@ -42,6 +42,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :previous_interfaces, {:array, :map}
     field :groups, {:array, :string}
     field :deletion_in_progress, :boolean, default: false
+    field :shared_secret, Ecto.Enum, values: [:established, :not_established]
   end
 
   @doc false
@@ -80,9 +81,19 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
           exchanged_msgs_by_interface,
           exchanged_bytes_by_interface
         ),
-      groups: Map.keys(groups_map || %{})
+      groups: Map.keys(groups_map || %{}),
+      shared_secret: shared_secret_status(row.shared_secret)
     }
   end
+
+  @doc """
+  Tells whether a device and Astarte have derived a shared secret through key agreement, given
+  the `shared_secret` column of the device row.
+
+  This only reports that a secret was derived, not whether it is still valid.
+  """
+  def shared_secret_status(nil), do: :not_established
+  def shared_secret_status(_shared_secret), do: :established
 
   # Helper for actual introspection
   defp build_introspection(row, msgs_map, bytes_map) do

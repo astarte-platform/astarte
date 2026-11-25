@@ -20,8 +20,11 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Device.Queries
   alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.AppEngine.API.Helpers.JWT, as: JWTTestHelper
+  alias Astarte.Core.Device, as: CoreDevice
+  alias COSE.Keys.Symmetric
 
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %{
@@ -84,7 +87,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "total_received_msgs" => 45_000,
     "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [],
-    "deletion_in_progress" => false
+    "deletion_in_progress" => false,
+    "shared_secret" => "not_established"
   }
 
   setup_all do
@@ -122,6 +126,23 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
         )
 
       assert json_response(conn, 200)["data"] == @expected_device_status
+    end
+
+    test "get device_status reports a not established shared secret", %{conn: conn} do
+      conn = get(conn, device_status_path(conn, :show, "autotestrealm", @expected_device_id))
+
+      assert json_response(conn, 200)["data"]["shared_secret"] == "not_established"
+    end
+
+    test "get device_status reports an established shared secret", %{conn: conn} do
+      {:ok, device_id} = CoreDevice.decode_device_id(@expected_device_id)
+      shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+      :ok = Queries.save_shared_secret("autotestrealm", device_id, shared_secret)
+
+      conn = get(conn, device_status_path(conn, :show, "autotestrealm", @expected_device_id))
+
+      assert json_response(conn, 200)["data"] ==
+               Map.put(@expected_device_status, "shared_secret", "established")
     end
 
     test "get device_status with invalid device id", %{conn: conn} do

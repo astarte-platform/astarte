@@ -95,7 +95,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "total_received_msgs" => 45_000,
     "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [@group_name],
-    "deletion_in_progress" => false
+    "deletion_in_progress" => false,
+    "shared_secret" => "not_established"
   }
 
   setup_all do

@@ -121,6 +121,12 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpec.Schemas.DeviceStatus do
       deletion_in_progress: %Schema{
         type: :boolean,
         description: "True if the device is currently being deleted, false otherwise."
+      },
+      shared_secret: %Schema{
+        type: :string,
+        enum: ["established", "not_established"],
+        description:
+          "Whether the device and Astarte have derived a shared secret through key agreement, used for encrypted endpoints. It reports only that a secret was derived, not whether it is still valid."
       }
     },
     example: %{
@@ -166,7 +172,8 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpec.Schemas.DeviceStatus do
           exchanged_bytes: 102
         }
       ],
-      deletion_in_progress: false
+      deletion_in_progress: false,
+      shared_secret: "established"
     }
   })
 end

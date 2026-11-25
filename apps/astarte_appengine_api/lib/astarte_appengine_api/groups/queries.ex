@@ -190,7 +190,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           exchanged_msgs_by_interface: d.exchanged_msgs_by_interface,
           exchanged_bytes_by_interface: d.exchanged_bytes_by_interface,
           old_introspection: d.old_introspection,
-          attributes: d.attributes
+          attributes: d.attributes,
+          shared_secret: d.shared_secret
         },
         where: ^from_previous_token,
         where: fragment("? CONTAINS KEY ?", d.groups, ^group_name)
