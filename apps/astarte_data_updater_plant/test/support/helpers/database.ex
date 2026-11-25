@@ -220,6 +220,7 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
     introspection = Keyword.get(opts, :introspection, %{})
     groups = Keyword.get(opts, :groups, [])
     groups_map = for group <- groups, do: {group, UUID.uuid1()}
+    shared_secret = Keyword.get(opts, :shared_secret, nil)
 
     %Device{}
     |> Ecto.Changeset.change(%{
@@ -232,7 +233,8 @@ defmodule Astarte.DataUpdaterPlant.Helpers.Database do
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       introspection: introspection,
-      groups: groups_map
+      groups: groups_map,
+      shared_secret: shared_secret
     })
     |> Repo.insert(prefix: keyspace_name)
   end

@@ -159,10 +159,14 @@ defmodule Astarte.DataUpdaterPlant.Helpers.DataUpdater do
     :ok = ensure_publish(value, publish_opts, realm, device_id)
   end
 
-  def handle_disconnection(realm, encoded_device_id, timestamp) do
+  def handle_disconnection(realm, encoded_device_id, timestamp, clean_session \\ false) do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    headers = headers_fixture(realm, encoded_device_id, x_astarte_msg_type: "disconnection")
+    headers =
+      headers_fixture(realm, encoded_device_id,
+        x_astarte_msg_type: "disconnection",
+        x_astarte_clean_mqtt_session: clean_session
+      )
 
     publish_opts = [
       headers: headers,

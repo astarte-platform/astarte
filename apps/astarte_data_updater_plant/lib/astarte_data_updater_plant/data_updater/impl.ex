@@ -38,6 +38,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @interface_header "x_astarte_interface"
   @path_header "x_astarte_path"
   @control_path_header "x_astarte_control_path"
+  @clean_session_header "x_astarte_clean_mqtt_session"
 
   @impl true
   def init(sharding_key) do
@@ -78,8 +79,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     handle_connection(state, ip_address, timestamp)
   end
 
-  defp do_handle_message("disconnection", _payload, _headers, _message_id, timestamp, state) do
-    handle_disconnection(state, timestamp)
+  defp do_handle_message("disconnection", _payload, headers, _message_id, timestamp, state) do
+    %{@clean_session_header => clean_session} = headers
+    handle_disconnection(state, clean_session, timestamp)
   end
 
   defp do_handle_message("heartbeat", _payload, _headers, _message_id, timestamp, state) do
@@ -191,14 +193,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ack, :ok, new_state}
   end
 
-  def handle_disconnection(state, timestamp) do
+  def handle_disconnection(state, clean_session, timestamp) do
     new_state =
       state
       |> TimeBasedActions.execute_time_based_actions(timestamp)
-      |> Core.Device.set_device_disconnected(timestamp)
+      |> Core.Device.set_device_disconnected(clean_session, timestamp)
       |> Map.put(:last_seen_message, timestamp)
 
-    Logger.info("Device disconnected.", tag: "device_disconnected")
+    clean_session_log =
+      if clean_session, do: "MQTT session cleaned.", else: "MQTT session preserved."
+
+    Logger.info("Device disconnected. #{clean_session_log}", tag: "device_disconnected")
 
     {:ack, :ok, new_state}
   end

@@ -36,6 +36,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   import ExUnit.CaptureLog
   import Ecto.Query
@@ -478,6 +480,122 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
 
       assert :ok = Queries.ack_start_device_deletion(realm_name, device_id)
       assert {:ok, false} = Queries.check_device_deletion_in_progress(realm_name, device_id)
+    end
+  end
+
+  describe "device shared secret" do
+    setup context do
+      %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} = context
+      device_id = Device.random_device_id()
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        remove_device(device_id, realm_name)
+      end)
+
+      insert_device(device_id, realm_name)
+
+      key = :crypto.strong_rand_bytes(32)
+      {:ok, encrypted_key} = Secrets.encrypt_with_kek(realm_name, key)
+      shared_secret = %Symmetric{k: encrypted_key, alg: :aes_256_gcm}
+
+      :ok = Queries.save_shared_secret(realm_name, device_id, shared_secret)
+
+      %{device_id: device_id, original_key: key, shared_secret: shared_secret}
+    end
+
+    test "can be saved on DB", context do
+      %{
+        realm_name: realm_name,
+        astarte_instance_id: astarte_instance_id,
+        original_key: key,
+        shared_secret: shared_secret
+      } = context
+
+      another_device_id = Device.random_device_id()
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        remove_device(another_device_id, realm_name)
+      end)
+
+      insert_device(another_device_id, realm_name)
+
+      # save secret in DB at device row
+      assert :ok == Queries.save_shared_secret(realm_name, another_device_id, shared_secret)
+
+      assert %{
+               shared_secret: %Symmetric{k: ^key},
+               encrypted_endpoints_key: {:established, %{shared_secret: ^key}}
+             } = Queries.get_device_status(realm_name, another_device_id)
+
+      # idempotency
+      assert :ok == Queries.save_shared_secret(realm_name, another_device_id, shared_secret)
+
+      assert %{
+               shared_secret: %Symmetric{k: ^key},
+               encrypted_endpoints_key: {:established, %{shared_secret: ^key}}
+             } = Queries.get_device_status(realm_name, another_device_id)
+    end
+
+    test "can be cleared from DB", context do
+      %{realm_name: realm_name, device_id: device_id} = context
+
+      # reset secret at device row
+      assert :ok == Queries.reset_shared_secret(realm_name, device_id)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, device_id)
+
+      # idempotency
+      assert :ok == Queries.reset_shared_secret(realm_name, device_id)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, device_id)
+    end
+
+    test "is preserved in DB if the device is disconnected without clearing the session",
+         context do
+      %{realm_name: realm_name, device_id: device_id, original_key: key} = context
+
+      clean_session = false
+
+      Queries.set_device_disconnected!(
+        realm_name,
+        device_id,
+        DateTime.utc_now(),
+        0,
+        0,
+        %{},
+        %{},
+        clean_session
+      )
+
+      assert %{
+               shared_secret: %Symmetric{k: ^key},
+               encrypted_endpoints_key: {:established, %{shared_secret: ^key}}
+             } =
+               Queries.get_device_status(realm_name, device_id)
+    end
+
+    test "is cleared from DB if the device is disconnected clearing the session", context do
+      %{realm_name: realm_name, device_id: device_id} = context
+
+      clean_session = true
+
+      Queries.set_device_disconnected!(
+        realm_name,
+        device_id,
+        DateTime.utc_now(),
+        0,
+        0,
+        %{},
+        %{},
+        clean_session
+      )
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, device_id)
     end
   end
 

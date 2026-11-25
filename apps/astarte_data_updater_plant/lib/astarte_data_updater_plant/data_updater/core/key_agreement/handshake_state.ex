@@ -137,8 +137,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.HandshakeState 
   @doc """
   Unconditionally moves to the `{:failed, reason}` state.
   """
-  @spec fail(t(), term()) :: t()
-  def fail(_current_state, reason) do
+  @spec fail(term()) :: t()
+  def fail(reason) do
     {:failed, reason}
   end
 end

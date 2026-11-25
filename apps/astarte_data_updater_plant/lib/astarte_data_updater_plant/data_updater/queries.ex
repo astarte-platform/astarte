@@ -337,7 +337,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         total_received_msgs,
         total_received_bytes,
         interface_exchanged_msgs,
-        interface_exchanged_bytes
+        interface_exchanged_bytes,
+        clean_session \\ false
       ) do
     keyspace_name = Realm.keyspace_name(realm)
     timestamp_ms = Ecto.Type.cast!(:utc_datetime_usec, timestamp_ms)
@@ -352,6 +353,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         exchanged_bytes_by_interface: interface_exchanged_bytes,
         exchanged_msgs_by_interface: interface_exchanged_msgs
       )
+      |> maybe_reset_shared_secret(clean_session)
 
     opts = [
       prefix: keyspace_name,
@@ -770,7 +772,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       %Device{device_id: device_id}
       |> Ecto.Changeset.change(%{shared_secret: shared_secret})
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false
+    ]
 
     case Repo.safe_update(changeset, opts) do
       {:ok, _device} ->
@@ -784,6 +790,45 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         )
 
         {:error, reason}
+    end
+  end
+
+  def reset_shared_secret(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change()
+      # `change/2` skips values that already match the (empty) struct, so the
+      # shared_secret has to be forced in to actually be written as null
+      |> Ecto.Changeset.force_change(:shared_secret, nil)
+
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false
+    ]
+
+    case Repo.safe_update(changeset, opts) do
+      {:ok, _device} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot reset shared secret for device #{CoreDevice.encode_device_id(device_id)}: #{inspect(reason)}",
+          realm: realm,
+          tag: "reset_shared_secret_fail"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp maybe_reset_shared_secret(changeset, clean_session) do
+    if clean_session do
+      changeset |> Ecto.Changeset.change() |> Ecto.Changeset.force_change(:shared_secret, nil)
+    else
+      changeset
     end
   end
 end

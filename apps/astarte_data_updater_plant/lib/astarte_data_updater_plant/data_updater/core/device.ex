@@ -325,10 +325,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     %State{realm: realm, device_id: device_id} = state
 
     encoded_device_id = Device.encode_device_id(device_id)
+    clean_session = true
 
     with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
          :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = set_device_disconnected(state, timestamp)
+      new_state = set_device_disconnected(state, clean_session, timestamp)
 
       Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
 
@@ -350,8 +351,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   @doc """
   Sets a device as disconnected, this does not foce device disconnection, but
   rather informs other astarte components that a device has been disconnected.
+  It takes into account whether the MQTT session needs to be cleaned or preserved.
   """
-  def set_device_disconnected(%State{} = state, timestamp) do
+  def set_device_disconnected(%State{} = state, clean_session, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
@@ -361,18 +363,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       state.total_received_msgs,
       state.total_received_bytes,
       state.interface_exchanged_msgs,
-      state.interface_exchanged_bytes
+      state.interface_exchanged_bytes,
+      clean_session
     )
 
     maybe_execute_device_disconnected_trigger(state, timestamp_ms)
 
     %{state | connected: false}
-    |> reset_encrypted_endpoints_key()
+    |> maybe_reset_shared_secret(clean_session)
   end
 
-  defp reset_encrypted_endpoints_key(state) do
-    {:ok, key_state} = HandshakeState.transition(state.encrypted_endpoints_key, :reset)
-    %{state | encrypted_endpoints_key: key_state}
+  defp maybe_reset_shared_secret(state, clean_session) do
+    if clean_session do
+      {:ok, key_state} = HandshakeState.transition(state.encrypted_endpoints_key, :reset)
+      %{state | encrypted_endpoints_key: key_state, shared_secret: nil}
+    else
+      state
+    end
   end
 
   defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok

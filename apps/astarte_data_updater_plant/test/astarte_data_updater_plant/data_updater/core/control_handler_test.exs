@@ -43,6 +43,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Secrets
   alias COSE.Keys.Symmetric
 
   setup do
@@ -76,7 +77,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     %{telemetry_handler_ref: telemetry_handler_ref}
   end
 
-  setup_all %{state: state} do
+  setup_all %{state: state, realm_name: realm_name} do
     uninitialized_key_state = %{
       state
       | encrypted_endpoints_key: :uninitialized,
@@ -149,6 +150,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
     # SecretHash payloads
     shared_secret = :crypto.strong_rand_bytes(32)
+
+    shared_secret_in_state = %Symmetric{
+      k: shared_secret,
+      alg: :aes_256_gcm
+    }
+
+    {:ok, encrypted_secret} = Secrets.encrypt_with_kek(realm_name, shared_secret)
+
+    shared_secret_in_db = %Symmetric{
+      k: encrypted_secret,
+      alg: :aes_256_gcm
+    }
+
     valid_secret_hash = SecretHash.new(1, shared_secret)
     valid_secret_hash_payload = SecretHash.cbor_encode(valid_secret_hash)
 
@@ -170,6 +184,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       invalid_exchange_resp_payload: invalid_exchange_resp_payload,
       invalid_cose_key_exchange_resp_payload: invalid_cose_key_exchange_resp_payload,
       shared_secret: shared_secret,
+      shared_secret_in_state: shared_secret_in_state,
+      shared_secret_in_db: shared_secret_in_db,
       valid_secret_hash_payload: valid_secret_hash_payload,
       invalid_secret_hash_payload: invalid_secret_hash_payload
     }
@@ -357,6 +373,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
+
+    test "resets the shared secret saved in state", context do
+      %{state: state} = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      key = :crypto.strong_rand_bytes(32)
+
+      shared_secret = %Symmetric{
+        k: key,
+        alg: :aes_256_gcm
+      }
+
+      state_with_key = %{
+        state
+        | encrypted_endpoints_key: {:established, %{shared_secret: key}},
+          shared_secret: shared_secret
+      }
+
+      assert {:ack, _result, new_state} =
+               ControlHandler.handle_control(state_with_key, "/emptyCache", "", 0)
+
+      assert %{encrypted_endpoints_key: :uninitialized, shared_secret: nil} = new_state
+    end
   end
 
   describe "/producer/properties" do
@@ -465,6 +507,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert new_state.shared_secret == %Symmetric{alg: :aes_256_gcm, k: secret}
 
+      # ensure shared secret has been written to db
       assert %{shared_secret: %Symmetric{alg: :aes_256_gcm, k: ^secret}} =
                Queries.get_device_status(state.realm, state.device_id)
 
@@ -770,6 +813,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                end)
 
       assert log =~ "[keyAgreement/1] Processing failed: :invalid_argument - invalid payload"
+
       assert {:failed, :invalid_argument} = new_state.encrypted_endpoints_key
       assert new_state.total_received_msgs == state.total_received_msgs + 1
 
@@ -806,6 +850,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert log =~ "[keyAgreement/1] Processing failed: :invalid_argument - invalid COSE key"
       assert {:failed, :invalid_argument} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
     end
 
     test "sends ExchangeFailed and transitions to :failed when the key type does not match",
@@ -843,6 +888,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                "[keyAgreement/1] Processing failed: :unprocessable_entity - unsupported key type"
 
       assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
     end
 
     test "sends ExchangeFailed and transitions to :failed when the keys are of mismatched suites",
@@ -879,6 +925,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                "[keyAgreement/1] Processing failed: :unprocessable_entity - unsupported or mismatched key"
 
       assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
     end
 
     test "sends ExchangeFailed with a generic message when derivation fails for an unexpected reason",
@@ -919,6 +966,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                "[keyAgreement/1] Processing failed: :unprocessable_entity - key derivation failed"
 
       assert {:failed, :unprocessable_entity} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
     end
 
     test "sends ExchangeFailed with a generic message when the handshake state transition unexpectedly fails",
@@ -962,6 +1010,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                "[keyAgreement/1] Processing failed: :internal_server_error - unexpected error"
 
       assert {:failed, :internal_server_error} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
     end
   end
 
@@ -1054,7 +1103,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       established_key_state =
         {:established, %{shared_secret: context.shared_secret}}
 
-      established_state = %{context.state | encrypted_endpoints_key: established_key_state}
+      established_state = %{
+        context.state
+        | encrypted_endpoints_key: established_key_state,
+          shared_secret: %Symmetric{
+            k: context.shared_secret,
+            alg: :aes_256_gcm
+          }
+      }
 
       %{established_state: established_state}
     end
@@ -1182,7 +1238,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
-      assert {{:ack, :ok, ^state}, log} =
+      assert {{:ack, :ok, new_state}, log} =
                with_log(fn ->
                  ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
                end)
@@ -1191,6 +1247,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
                        ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :hash_mismatch}}
+
+      # key has been reset
+      assert new_state.encrypted_endpoints_key == :uninitialized
+      assert new_state.shared_secret == nil
     end
 
     test "logs when the device is offline and cannot receive the ExchangeFailed notification",
@@ -1204,13 +1264,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         {:ok, %{local_matches: 0, remote_matches: 0}}
       end)
 
-      assert {{:ack, :ok, ^state}, log} =
+      assert {{:ack, :ok, new_state}, log} =
                with_log(fn ->
                  ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
                end)
 
       assert log =~ "Could not deliver ExchangeFailed"
       assert log =~ "device session not found"
+
+      assert new_state.encrypted_endpoints_key == :uninitialized
+      assert new_state.shared_secret == nil
     end
 
     test "logs when publishing the ExchangeFailed notification fails", context do
@@ -1223,13 +1286,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
         {:error, :transport_failure}
       end)
 
-      assert {{:ack, :ok, ^state}, log} =
+      assert {{:ack, :ok, new_state}, log} =
                with_log(fn ->
                  ControlHandler.handle_control(state, "/keyAgreement/2", payload, 0)
                end)
 
       assert log =~ "Could not deliver ExchangeFailed"
       assert log =~ ":transport_failure"
+
+      assert new_state.encrypted_endpoints_key == :uninitialized
+      assert new_state.shared_secret == nil
     end
 
     test "sends ExchangeFailed when no shared secret has been established yet", context do
@@ -1401,6 +1467,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       # Ensure it correctly transitioned to the failed state with the exact reason
       assert {:failed, :hash_mismatch} = new_state.encrypted_endpoints_key
+      assert new_state.shared_secret == nil
+
       assert new_state.total_received_msgs == state.total_received_msgs + 1
 
       assert new_state.total_received_bytes ==
@@ -1410,6 +1478,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert_received {[:astarte, :data_updater_plant, :device_key_agreement, :failed],
                        ^telemetry_handler_ref, %{}, %{realm: ^realm, reason: :hash_mismatch}}
+    end
+
+    test "resets the shared secret if already established", context do
+      %{
+        state: state,
+        valid_exchange_failed_payload: payload
+      } = context
+
+      # mock an established shared secret
+      key = :crypto.strong_rand_bytes(32)
+
+      shared_secret = %Symmetric{
+        k: key,
+        alg: :aes_256_gcm
+      }
+
+      state_with_key = %{
+        state
+        | encrypted_endpoints_key: {:established, %{shared_secret: key}},
+          shared_secret: shared_secret
+      }
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state_with_key, "/keyAgreement/4", payload, 0)
+
+      # secret has been cleared
+      assert new_state.encrypted_endpoints_key == {:failed, :hash_mismatch}
+      assert new_state.shared_secret == nil
     end
 
     test "discards the message if discard_messages is set", context do
@@ -1437,6 +1533,150 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
                ControlHandler.handle_control(state, "/keyAgreement/4", payload, 0)
 
       assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+  end
+
+  describe "device shared secret DB cleanup" do
+    setup %{
+      realm_name: realm_name,
+      astarte_instance_id: astarte_instance_id,
+      state: state,
+      shared_secret: shared_secret,
+      shared_secret_in_state: shared_secret_in_state,
+      shared_secret_in_db: shared_secret_in_db
+    } do
+      device_id = Astarte.Core.Device.random_device_id()
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        remove_device(device_id, realm_name)
+      end)
+
+      insert_device(device_id, realm_name, shared_secret: shared_secret_in_db)
+
+      device_state_with_key = %{
+        state
+        | device_id: device_id,
+          introspection: %{},
+          interfaces: %{},
+          interface_ids_to_name: %{},
+          interfaces_by_expiry: [],
+          mappings: %{},
+          encrypted_endpoints_key: HandshakeState.restore(shared_secret),
+          shared_secret: shared_secret_in_state
+      }
+
+      %{state: device_state_with_key}
+    end
+
+    test "is triggered upon receiving an emptyCache message", context do
+      %{
+        realm_name: realm_name,
+        state: state
+      } = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {:ack, :ok, _state} = ControlHandler.handle_control(state, "/emptyCache", "", 0)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, state.device_id)
+    end
+
+    test "is triggered when a InitExchange procedure fails", context do
+      %{
+        realm_name: realm_name,
+        state: state,
+        p256_exchange_resp_payload: payload
+      } = context
+
+      state = %{
+        state
+        | encrypted_endpoints_key:
+            {:handshake_started,
+             %{
+               key_type: :ecdh_p256_hkdf_sha256_aes_256_gcm,
+               init_exchange: %{}
+             }}
+      }
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      expect(SharedSecret, :derive, fn _, _ ->
+        {:error, :unprocessable_entity, "Long live Astarte Open Source!"}
+      end)
+
+      assert {:ack, :ok, _state} =
+               ControlHandler.handle_control(state, "/keyAgreement/1", payload, 0)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, state.device_id)
+    end
+
+    test "is triggered when hash mismatch is detected", context do
+      %{
+        realm_name: realm_name,
+        state: state,
+        invalid_secret_hash_payload: invalid_hash_payload
+      } = context
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {:ack, :ok, _state} =
+               ControlHandler.handle_control(state, "/keyAgreement/2", invalid_hash_payload, 0)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, state.device_id)
+    end
+
+    test "is triggered upon receiving a ExchangeFailed message", context do
+      %{
+        realm_name: realm_name,
+        state: state
+      } = context
+
+      {:ok, exchange_failed_msg} = ExchangeFailed.new(0, :internal_server_error, "random failure")
+      exchange_failed_payload = ExchangeFailed.cbor_encode(exchange_failed_msg)
+
+      assert {:ack, :ok, _state} =
+               ControlHandler.handle_control(state, "/keyAgreement/4", exchange_failed_payload, 0)
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, state.device_id)
+    end
+
+    test "may generate an error upon DB operation failure but device does not get disconnected",
+         context do
+      %{
+        realm_name: realm_name,
+        state: state
+      } = context
+
+      %{shared_secret: original_secret} =
+        Queries.get_device_status(realm_name, state.device_id)
+
+      refute original_secret == nil
+
+      Mox.expect(ClientMock, :publish, fn _data ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      expect(Queries, :reset_shared_secret, fn _realm_name, _device_id ->
+        {:error, :db_error}
+      end)
+
+      reject(&Core.Device.ask_clean_session/2)
+
+      assert {:ack, :ok, _state} = ControlHandler.handle_control(state, "/emptyCache", "", 0)
+
+      assert %{shared_secret: ^original_secret} =
+               Queries.get_device_status(realm_name, state.device_id)
     end
   end
 end
