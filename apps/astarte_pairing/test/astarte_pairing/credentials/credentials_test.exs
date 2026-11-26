@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ defmodule Astarte.Pairing.CredentialsTest do
   import Astarte.Pairing.Helpers.Device
 
   alias Astarte.Pairing.Credentials
+  alias CFXXL.CertUtils
 
   @device_ip "2.3.4.5"
   @secret "valid"
@@ -121,7 +122,12 @@ defmodule Astarte.Pairing.CredentialsTest do
   setup [:set_credentials_secret, :set_ca_cert]
 
   def set_credentials_secret(ctx) do
-    update_device!(ctx.realm_name, ctx.device.id, inhibit_credentials_request: false)
+    update_device!(ctx.realm_name, ctx.device.id,
+      inhibit_credentials_request: false,
+      cert_serial: CertUtils.serial_number!(@client_crt),
+      cert_aki: CertUtils.authority_key_identifier!(@client_crt)
+    )
+
     update_credentials_secret!(ctx.realm_name, ctx.device.id, @secret)
 
     :ok
@@ -311,6 +317,40 @@ defmodule Astarte.Pairing.CredentialsTest do
                  device.encoded_id,
                  @secret,
                  @self_signed_crt_attrs
+               )
+    end
+
+    test "returns REVOKED for a superseded certificate", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
+
+      update_device!(realm_name, device.id, cert_serial: "1234")
+
+      assert {:ok, %CredentialsStatus{valid: false, cause: :REVOKED, until: nil}} =
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @valid_attrs
+               )
+    end
+
+    test "returns REVOKED when no certificate is known for the device", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
+
+      update_device!(realm_name, device.id, cert_serial: nil, cert_aki: nil)
+
+      assert {:ok, %CredentialsStatus{valid: false, cause: :REVOKED, until: nil}} =
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @valid_attrs
                )
     end
 
