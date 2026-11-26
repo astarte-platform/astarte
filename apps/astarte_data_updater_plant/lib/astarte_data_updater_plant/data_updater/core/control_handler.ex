@@ -25,7 +25,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -427,20 +426,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       )
 
       topic = "interface_installed:#{state.realm}:#{interface_name}:#{major_version}"
-      pid = self()
 
-      Task.start(fn ->
-        Phoenix.PubSub.subscribe(Astarte.DataUpdaterPlant.PubSub, topic)
-        ref = Process.monitor(pid)
-
-        receive do
-          :interface_installed ->
-            DataUpdater.handle_signal(pid, :disconnect_device)
-
-          {:DOWN, ^ref, :process, ^pid, _reason} ->
-            :ok
-        end
-      end)
+      Phoenix.PubSub.subscribe(Astarte.DataUpdaterPlant.PubSub, topic)
     end
   end
 
