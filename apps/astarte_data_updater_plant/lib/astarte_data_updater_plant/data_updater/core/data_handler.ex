@@ -283,6 +283,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           error_name: "interface_loading_failed"
         }
 
+        Core.Error.handle_error(context, error, ask_clean_session: false)
+
+      {:error, :interface_not_in_introspection} ->
+        # Track interface cache miss
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache_miss],
+          %{},
+          %{realm: state.realm, interface: interface, result: "failed"}
+        )
+
+        error = %{
+          message: "Interface not in introspection: #{interface}.",
+          logger_metadata: [tag: "interface_not_in_introspection"],
+          error_name: "interface_not_in_introspection"
+        }
+
         Core.Error.handle_error(context, error)
 
       {:ok, descriptor, state} ->

@@ -166,6 +166,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   end
 
   @impl GenServer
+  def handle_cast({:handle_signal, signal}, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
+    new_state = Impl.handle_signal(signal, state)
+    {:noreply, new_state, timeout}
+  end
+
+  @impl GenServer
   def handle_call(
         {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target},
         _from,
@@ -214,6 +222,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
     {result, new_state} = Impl.start_device_deletion(state, timestamp)
     {:reply, result, new_state, timeout}
+  end
+
+  @impl GenServer
+  def handle_info(:interface_installed, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
+    new_state = Impl.handle_signal(:disconnect_device, state)
+    {:noreply, new_state, timeout}
   end
 
   @impl GenServer

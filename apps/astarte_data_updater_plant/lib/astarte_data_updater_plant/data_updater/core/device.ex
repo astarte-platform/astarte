@@ -416,13 +416,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   def resend_all_properties(state) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
-    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, major_version},
-                                                            {:ok, state_acc} ->
+    Enum.reduce_while(state.introspection, {:ok, state, []}, fn {interface, major_version},
+                                                                {:ok, state_acc,
+                                                                 missing_interfaces} ->
       with {:ok, interface_descriptor, new_state} <-
              maybe_load_interface(state_acc, interface, major_version),
            :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
-        {:cont, {:ok, new_state}}
+        {:cont, {:ok, new_state, missing_interfaces}}
       else
+        {:error, {:interface_loading_failed, ^interface, ^major_version}} ->
+          {:cont, {:ok, state_acc, [{interface, major_version} | missing_interfaces]}}
+
         {:error, reason} = error ->
           Logger.warning(
             "Error while sending properties to device: #{inspect(reason)} on interface #{interface}"
@@ -440,7 +444,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       {:ok, interface_descriptor, new_state} ->
         {:ok, interface_descriptor, new_state}
 
-      {:error, :interface_loading_failed} ->
+      {:error, reason}
+      when reason in [:interface_loading_failed, :interface_not_in_introspection] ->
         {:error, {:interface_loading_failed, interface, major_version}}
     end
   end

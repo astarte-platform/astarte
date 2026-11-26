@@ -137,8 +137,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     maybe_descriptor = Map.get(state.interfaces, interface_name)
 
     case Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface_name, state) do
-      {:ok, _interface_descriptor, _new_state} = ok -> ok
-      {:error, :interface_loading_failed} -> {:error, :interface_not_found}
+      {:ok, _interface_descriptor, _new_state} = ok ->
+        ok
+
+      {:error, reason}
+      when reason in [:interface_loading_failed, :interface_not_in_introspection] ->
+        {:error, :interface_not_found}
     end
   end
 

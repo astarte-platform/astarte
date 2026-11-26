@@ -148,6 +148,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
   end
 
+  def handle_signal(:disconnect_device, state) do
+    timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
+    new_state
+  end
+
   defdelegate handle_capabilities(state, capabilities, message_id, timestamp),
     to: Core.CapabilitiesHandler
 

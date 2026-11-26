@@ -37,6 +37,7 @@ const deviceErrorNames = [
   'device_session_not_found',
   'resend_interface_properties_failed',
   'empty_cache_error',
+  'interface_not_in_introspection',
 ] as const;
 
 type DeviceErrorName = (typeof deviceErrorNames)[number];

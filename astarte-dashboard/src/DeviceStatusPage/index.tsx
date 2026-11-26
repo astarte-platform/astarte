@@ -17,10 +17,11 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Col, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { Col, Container, Form, Row, Spinner, Alert } from 'react-bootstrap';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import type { AstarteDevice } from 'astarte-client';
+import { AstarteDeviceErrorEvent } from 'astarte-client';
 import BackButton from '../ui/BackButton';
 import Empty from '../components/Empty';
 import WaitForData from '../components/WaitForData';
@@ -160,8 +161,21 @@ const DeviceStatusPage = (): React.ReactElement => {
   const groupsFetcher = useFetch(() => astarte.client.getGroupList());
   const [devicePageAlers, devicePageAlersController] = useAlerts();
   const [activeModal, setActiveModal] = useState<PageModal | null>(null);
+  const [missingInterfaceEvents, setMissingInterfaceEvents] = useState<Map<string, AstarteDeviceErrorEvent>>(new Map());
   const [confirmString, setConfirmString] = useState('');
   const canDelete = confirmString === deviceId;
+
+  const handleDeviceError = useCallback((event: AstarteDeviceErrorEvent) => {
+    if (event.errorName === 'interface_loading_failed' || event.errorName === 'invalid_introspection' || event.errorName === 'interface_not_in_introspection') {
+      setMissingInterfaceEvents((prev) => {
+        const newMap = new Map(prev);
+        if (event.metadata && typeof event.metadata['interface'] === 'string') {
+          newMap.set(event.metadata['interface'], event);
+        }
+        return newMap;
+      });
+    }
+  }, []);
 
   const unjoinedGroups = useMemo(() => {
     if (deviceFetcher.status === 'ok' && groupsFetcher.status === 'ok') {
@@ -333,6 +347,7 @@ const DeviceStatusPage = (): React.ReactElement => {
 
           return (
             <Row>
+
               <DeviceInfoCard
                 device={device}
                 onInhibitCredentialsClick={() => inhibitDeviceCredentialsRequests(true)}
@@ -414,7 +429,40 @@ const DeviceStatusPage = (): React.ReactElement => {
                 <ExchangedBytesCard astarte={astarte.client} device={device} />
               )}
               <DeviceStatusEventsCard device={device} />
-              <DeviceLiveEventsCard astarte={astarte.client} deviceId={device.id} />
+              {missingInterfaceEvents.size > 0 && (
+                <Col xs={12} className="mb-4">
+                  <Alert variant="warning" onClose={() => setMissingInterfaceEvents(new Map())} dismissible>
+                    <Alert.Heading>Interface loading failed</Alert.Heading>
+                    <p>
+                      The device tried to use the following interfaces that are not installed in this realm:
+                    </p>
+                    <ul>
+                      {Array.from(missingInterfaceEvents.values()).map((event) => (
+                        <li key={event.metadata!['interface'] as string}>
+                          <strong>{event.metadata!['interface']}</strong>
+                          {event.metadata!['interface_major_version'] != null && (
+                            <> (major version <strong>{event.metadata!['interface_major_version']}</strong>)</>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <hr />
+                    <div className="d-flex justify-content-end">
+                      <Link
+                        to={`/interfaces/new`}
+                        className="btn btn-warning"
+                      >
+                        Install Interfaces
+                      </Link>
+                    </div>
+                  </Alert>
+                </Col>
+              )}
+              <DeviceLiveEventsCard
+                astarte={astarte.client}
+                deviceId={device.id}
+                onDeviceError={handleDeviceError}
+              />
             </Row>
           );
         }}

@@ -57,6 +57,26 @@ defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
     end
   end
 
+  property ":interface_installed request gets handled by the Core module", %{
+    rpc_server: rpc_server
+  } do
+    check all realm_name <- binary(),
+              interface_name <- binary(),
+              interface_major <- integer() do
+      Astarte.DataUpdaterPlant.RPC.Server.Core
+      |> allow(self(), rpc_server)
+      |> expect(:interface_installed, fn ^realm_name, ^interface_name, ^interface_major ->
+        :ok
+      end)
+
+      assert :ok =
+               GenServer.call(
+                 rpc_server,
+                 {:interface_installed, {realm_name, interface_name, interface_major}}
+               )
+    end
+  end
+
   defp answer, do: one_of([oks(), errors()])
 
   defp oks do

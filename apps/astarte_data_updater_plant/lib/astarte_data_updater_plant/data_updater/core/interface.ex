@@ -71,7 +71,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
     else
       # Known errors. TODO: handle specific cases (e.g. ask for new introspection etc.)
       {:error, :interface_not_in_introspection} ->
-        {:error, :interface_loading_failed}
+        {:error, :interface_not_in_introspection}
 
       {:error, :device_not_found} ->
         {:error, :interface_loading_failed}
