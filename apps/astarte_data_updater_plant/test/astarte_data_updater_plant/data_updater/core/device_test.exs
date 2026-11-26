@@ -235,7 +235,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
         {:error, :interface_loading_failed}
       end)
 
-      assert {:error, {:interface_loading_failed, interface_name, major_version}} ==
+      assert {:ok, state, [{interface_name, major_version}]} ==
                Core.Device.resend_all_properties(state)
     end
 

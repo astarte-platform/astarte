@@ -89,6 +89,20 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
     end
   end
 
+  test "interface_installed/3 broadcasts on Phoenix.PubSub" do
+    realm_name = "test_realm"
+    interface_name = "org.astarte.Test"
+    interface_major = 1
+
+    topic = "interface_installed:#{realm_name}:#{interface_name}:#{interface_major}"
+
+    Phoenix.PubSub.subscribe(Astarte.DataUpdaterPlant.PubSub, topic)
+
+    assert :ok = Core.interface_installed(realm_name, interface_name, interface_major)
+
+    assert_receive :interface_installed
+  end
+
   defp volatile_trigger(realm_name, device_id) do
     gen all object_id <- uuid(),
             object_type <- integer(),

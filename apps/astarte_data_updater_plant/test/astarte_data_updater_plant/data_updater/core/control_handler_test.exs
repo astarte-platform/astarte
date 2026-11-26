@@ -115,7 +115,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       )
     end
 
-    test "discards the message if interface loading fails", context do
+    test "emits error triggers and continues if interface loading fails", context do
       %{state: state, message_tracker: message_tracker, message_id: message_id} = context
 
       Mox.expect(ClientMock, :publish, fn _data ->
@@ -126,16 +126,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       major_version = 1
 
       expect(Core.Device, :resend_all_properties, fn _state ->
-        {:error, {:interface_loading_failed, interface_name, major_version}}
+        {:ok, state, [{interface_name, major_version}]}
       end)
 
-      expect(MessageTracker, :discard, fn ^message_tracker, ^message_id -> :ok end)
-      expect(Core.Device, :ask_clean_session, fn _state, _timestamp -> {:ok, state} end)
-
-      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
-                                                              "interface_loading_failed",
-                                                              metadata,
-                                                              _ts ->
+      expect(Astarte.DataUpdaterPlant.TriggersHandler, :device_error, fn _realm,
+                                                                         _device_id,
+                                                                         _groups,
+                                                                         "interface_loading_failed",
+                                                                         metadata,
+                                                                         _ts ->
         assert metadata == %{
                  "interface" => interface_name,
                  "interface_major_version" => "1"
@@ -143,6 +142,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
         :ok
       end)
+
+      expect(MessageTracker, :ack_delivery, fn ^message_tracker, ^message_id -> :ok end)
 
       ControlHandler.handle_control(
         state,

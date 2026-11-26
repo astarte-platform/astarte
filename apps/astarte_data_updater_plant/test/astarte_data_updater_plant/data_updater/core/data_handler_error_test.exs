@@ -151,8 +151,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         gen_context(state, interfaces)
         |> Enum.at(0)
 
-      expect(Core.Error, :handle_error, fn rec_context, _error ->
+      expect(Core.Error, :handle_error, fn rec_context, _error, opts ->
         assert similar_context?(context, rec_context)
+        assert opts[:ask_clean_session] == false
         state
       end)
 

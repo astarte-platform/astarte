@@ -53,6 +53,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     trigger_types = Enum.concat(dup_device_triggers, dup_data_triggers)
 
     children = [
+      {Phoenix.PubSub, name: Astarte.DataUpdaterPlant.PubSub},
       {Horde.Registry, [keys: :unique, name: Registry.MessageTracker, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},

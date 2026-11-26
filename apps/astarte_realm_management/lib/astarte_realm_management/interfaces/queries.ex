@@ -36,7 +36,6 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Interface
@@ -44,6 +43,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
 
   require Logger
 
@@ -213,13 +213,22 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    Exandra.execute_batch(
-      Repo,
-      %Exandra.Batch{
-        queries: [interface_query | endpoints_queries]
-      },
-      consistency: consistency
-    )
+    with :ok <-
+           Exandra.execute_batch(
+             Repo,
+             %Exandra.Batch{
+               queries: [interface_query | endpoints_queries]
+             },
+             consistency: consistency
+           ) do
+      Client.interface_installed_rpc(
+        realm_name,
+        interface_document.name,
+        interface_document.major_version
+      )
+
+      :ok
+    end
   end
 
   defp insert_mapping_query(

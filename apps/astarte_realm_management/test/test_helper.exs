@@ -30,4 +30,12 @@ Mimic.copy(Astarte.RealmManagement.RealmConfig.Queries)
 Mimic.copy(Astarte.RealmManagement.RPC.DataUpdaterPlant.Client)
 Mimic.copy(Astarte.RPC.Triggers)
 Mimic.copy(Task)
+
 ExUnit.start(capture_log: true)
+
+# We wait for Horde to be ready and start the test server
+Task.start(fn ->
+  # give app time to start
+  Process.sleep(200)
+  Astarte.RealmManagement.Test.DataUpdaterRPCServer.start_link([])
+end)
