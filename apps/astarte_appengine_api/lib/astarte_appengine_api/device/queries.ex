@@ -244,7 +244,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     :exchanged_bytes_by_interface,
     :groups,
     :old_introspection,
-    :inhibit_credentials_request
+    :inhibit_credentials_request,
+    :shared_secret
   ]
 
   defp truncate_datetime(nil), do: nil
@@ -855,7 +856,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
       groups: groups,
       old_introspection: old_introspection,
-      inhibit_credentials_request: credentials_inhibited
+      inhibit_credentials_request: credentials_inhibited,
+      shared_secret: shared_secret
     } = device
 
     introspection =
@@ -921,7 +923,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       previous_interfaces: previous_interfaces,
-      groups: groups
+      groups: groups,
+      shared_secret: DeviceStatus.shared_secret_status(shared_secret)
     }
   end
 

@@ -247,6 +247,10 @@ resets (for example, the device reconnects, or Astarte forces a clean session), 
 reused across the new session: a new handshake, or at least a `SecretHash` / `HashOk` check, must be
 performed before any further encrypted payload is accepted.
 
+The AppEngine device status API exposes a `shared_secret` field, either `"established"` or
+`"not_established"`, which tells whether a shared key is currently derived and stored for the
+device.
+
 ## Data path
 
 Once a shared key is established for the current session:

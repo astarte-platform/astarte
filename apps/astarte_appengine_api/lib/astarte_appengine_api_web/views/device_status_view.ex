@@ -67,7 +67,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
         render_many(device_status.previous_interfaces, DeviceStatusView, "interface_info.json",
           as: :interface_info
         ),
-      deletion_in_progress: device_status.deletion_in_progress
+      deletion_in_progress: device_status.deletion_in_progress,
+      shared_secret: device_status.shared_secret
     }
   end
 

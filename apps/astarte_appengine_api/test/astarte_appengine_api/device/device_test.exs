@@ -23,9 +23,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.AppEngine.API.Device.Queries
   alias Astarte.AppEngine.API.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias COSE.Keys.Symmetric
 
   import Mox
 
@@ -141,7 +144,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     total_received_msgs: 45_000,
     previous_interfaces: @expected_previous_interfaces,
     groups: [],
-    deletion_in_progress: false
+    deletion_in_progress: false,
+    shared_secret: :not_established
   }
 
   setup do
@@ -2100,6 +2104,22 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              id: ^deleted_device_id,
              deletion_in_progress: true
            } = deleted_device_status
+  end
+
+  test "get_device_status!/2 reports the shared secret as not established when none was derived" do
+    assert {:ok, %DeviceStatus{shared_secret: :not_established}} =
+             Device.get_device_status!("autotestrealm", @expected_device_status.id)
+  end
+
+  test "get_device_status!/2 reports the shared secret as established once it has been derived" do
+    device_id = @expected_device_status.id
+
+    {:ok, decoded_device_id} = CoreDevice.decode_device_id(device_id)
+    shared_secret = %Symmetric{k: :crypto.strong_rand_bytes(32), alg: :aes_256_gcm}
+    :ok = Queries.save_shared_secret("autotestrealm", decoded_device_id, shared_secret)
+
+    assert {:ok, %DeviceStatus{shared_secret: :established}} =
+             Device.get_device_status!("autotestrealm", device_id)
   end
 
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do
