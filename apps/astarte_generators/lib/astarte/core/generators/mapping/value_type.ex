@@ -73,7 +73,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueType do
   def value_from_type(:string), do: string(:utf8, max_length: 65_535)
   def value_from_type(:binaryblob), do: binary(max_length: 65_535)
 
-  def value_from_type(:datetime), do: date_time()
+  def value_from_type(:datetime), do: date_time(unit: :millisecond)
 
   def value_from_type(array) when is_atom(array),
     do: type_array(array) |> value_from_type() |> list_of(max_length: 1023)
