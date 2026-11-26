@@ -444,7 +444,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       {:ok, interface_descriptor, new_state} ->
         {:ok, interface_descriptor, new_state}
 
-      {:error, :interface_loading_failed} ->
+      {:error, reason}
+      when reason in [:interface_loading_failed, :interface_not_in_introspection] ->
         {:error, {:interface_loading_failed, interface, major_version}}
     end
   end

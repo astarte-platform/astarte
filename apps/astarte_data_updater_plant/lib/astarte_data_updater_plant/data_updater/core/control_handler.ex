@@ -215,7 +215,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
             Core.Interface.gather_interface_property_paths(new_state.realm, interface_descriptor)
 
-          {:error, :interface_loading_failed} ->
+          {:error, reason}
+          when reason in [:interface_loading_failed, :interface_not_in_introspection] ->
             # Track failed interface loading
             :telemetry.execute(
               [:astarte, :data_updater_plant, :control_handler, :interface_loading],
