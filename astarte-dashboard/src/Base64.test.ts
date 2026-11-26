@@ -1,4 +1,4 @@
-import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
+import { byteArrayToUrlSafeBase64, isValidDeviceId, urlSafeBase64ToByteArray } from './Base64';
 
 /*
   const uuid = "a717f8d6-5952-4064-add0-008d780879a9";
@@ -15,11 +15,19 @@ describe('Unit Test Base64 utility scripts', () => {
   it('is valid uuid', () => {
     const byteArray = urlSafeBase64ToByteArray(DEVICE_ID);
 
-    const isValidDeviceId = byteArray.length === 17 && byteArray[16] === 0;
-    expect(isValidDeviceId).toBe(true);
-
+    expect(isValidDeviceId(DEVICE_ID)).toBe(true);
     for (let i = 0; i < 16; i += 1) {
       expect(byteArray[i]).toBe(UUID_TO_BYTES[i]);
     }
+  });
+
+  it('rejects device IDs containing characters outside the URL-safe alphabet', () => {
+    expect(isValidDeviceId(`${'A'.repeat(20)} A`)).toBe(false);
+    expect(isValidDeviceId(`${'A'.repeat(21)}=`)).toBe(false);
+  });
+
+  it('rejects non-canonical padding bits and lengths', () => {
+    expect(isValidDeviceId(`${'A'.repeat(21)}B`)).toBe(false);
+    expect(isValidDeviceId(`${'A'.repeat(23)}`)).toBe(false);
   });
 });

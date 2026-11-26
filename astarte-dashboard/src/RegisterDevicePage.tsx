@@ -29,7 +29,7 @@ import IntrospectionTable from './components/IntrospectionTable';
 import ConfirmModal from './components/modals/Confirm';
 import FormModal from './components/modals/Form';
 import SingleCardPage from './ui/SingleCardPage';
-import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
+import { byteArrayToUrlSafeBase64, isValidDeviceId } from './Base64';
 import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 
@@ -141,8 +141,7 @@ export default (): React.ReactElement => {
   const astarte = useAstarte();
   const navigate = useNavigate();
 
-  const byteArray = urlSafeBase64ToByteArray(deviceId);
-  const isValidDeviceId = byteArray.length === 17 && byteArray[16] === 0;
+  const deviceIdIsValid = isValidDeviceId(deviceId);
 
   const generateRandomUUID = useCallback(() => {
     const newUUID = uuidv4().replace(/-/g, '');
@@ -211,8 +210,8 @@ export default (): React.ReactElement => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value)}
                 autoComplete="off"
                 required
-                isValid={deviceId !== '' && isValidDeviceId}
-                isInvalid={deviceId !== '' && !isValidDeviceId}
+                isValid={deviceId !== '' && deviceIdIsValid}
+                isInvalid={deviceId !== '' && !deviceIdIsValid}
               />
               <Form.Control.Feedback type="invalid">
                 Device ID must be a unique 128 bit URL-encoded base64 (without padding) string.
@@ -253,7 +252,7 @@ export default (): React.ReactElement => {
             <Button
               variant="primary"
               type="submit"
-              disabled={!isValidDeviceId || isRegisteringDevice}
+              disabled={!deviceIdIsValid || isRegisteringDevice}
               hidden={!astarte.token?.can('pairing', 'POST', '/agent/devices')}
             >
               {isRegisteringDevice && (
