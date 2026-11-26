@@ -375,17 +375,25 @@ const EventDelegate = ({ event }: EventDelegateProps) => {
 interface DeviceLiveEventsViewProps {
   astarte: AstarteClient;
   deviceId: string;
+  onDeviceError?: (event: AstarteDeviceErrorEvent) => void;
 }
 
 const DeviceLiveEventsView = ({
   astarte,
   deviceId,
+  onDeviceError,
 }: DeviceLiveEventsViewProps): React.ReactElement => {
   const [deviceEvents, setDeviceEvents] = useState<RenderableEvent[]>([]);
 
-  const registerEvent = (event: RenderableEvent) => {
-    setDeviceEvents((oldEvents: RenderableEvent[]) => [...oldEvents, event]);
-  };
+  const registerEvent = useCallback(
+    (event: RenderableEvent) => {
+      setDeviceEvents((oldEvents: RenderableEvent[]) => [...oldEvents, event]);
+      if (onDeviceError && event instanceof AstarteDeviceErrorEvent) {
+        onDeviceError(event);
+      }
+    },
+    [onDeviceError]
+  );
 
   const sendErrorMessage = useCallback(
     (errorMessage: string) =>
@@ -394,7 +402,7 @@ const DeviceLiveEventsView = ({
         level: 'error',
         timestamp: Date.now(),
       }),
-    [],
+    [registerEvent],
   );
 
   const sendInfoMessage = useCallback(
@@ -404,7 +412,7 @@ const DeviceLiveEventsView = ({
         level: 'info',
         timestamp: Date.now(),
       }),
-    [],
+    [registerEvent],
   );
 
   useEffect(() => {
@@ -429,7 +437,7 @@ const DeviceLiveEventsView = ({
         astarte.leaveRoom(room);
       });
     };
-  }, [deviceId, astarte, sendErrorMessage, sendInfoMessage]);
+  }, [deviceId, astarte, sendErrorMessage, sendInfoMessage, registerEvent]);
 
   return (
     <div className="device-event-container p-3">
@@ -445,16 +453,18 @@ const DeviceLiveEventsView = ({
 interface DeviceLiveEventsCardProps {
   astarte: AstarteClient;
   deviceId: string;
+  onDeviceError?: (event: AstarteDeviceErrorEvent) => void;
 }
 
 const DeviceLiveEventsCard = ({
   astarte,
   deviceId,
+  onDeviceError,
 }: DeviceLiveEventsCardProps): React.ReactElement => (
   <FullHeightCard xs={12} className="mb-4">
     <Card.Header as="h5">Device Live Events</Card.Header>
     <Card.Body className="d-flex flex-column">
-      <DeviceLiveEventsView astarte={astarte} deviceId={deviceId} />
+      <DeviceLiveEventsView astarte={astarte} deviceId={deviceId} onDeviceError={onDeviceError} />
     </Card.Body>
   </FullHeightCard>
 );
