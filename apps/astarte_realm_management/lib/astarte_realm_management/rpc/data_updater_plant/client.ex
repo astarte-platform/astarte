@@ -29,5 +29,15 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     |> GenServer.call({:start_device_deletion, {realm_name, encoded_device_id}})
   end
 
+  def interface_installed_rpc(realm_name, interface_name, interface_major) do
+    server_via_tuple()
+    |> GenServer.call({:interface_installed, {realm_name, interface_name, interface_major}})
+  catch
+    :exit, reason ->
+      require Logger
+      Logger.warning("Failed to notify DUP of interface installation: #{inspect(reason)}")
+      {:error, :rpc_failed}
+  end
+
   defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end
