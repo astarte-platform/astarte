@@ -19,5 +19,6 @@
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataAccess.Database)
 Mimic.copy(Astarte.DataAccess.Repo)
+Mimic.copy(Astarte.TestSuiteTest.AuthConfig)
 
 ExUnit.start()

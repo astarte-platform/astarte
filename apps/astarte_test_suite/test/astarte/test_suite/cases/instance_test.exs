@@ -23,11 +23,21 @@ defmodule Astarte.TestSuite.Cases.InstanceTest do
 
   describe "instance configuration" do
     test "normalizes the default cluster" do
-      assert InstanceCase.normalize_config!([]).instance_cluster == :xandra
+      context = InstanceCase.normalize_config!([])
+
+      assert context.instance_cluster == :xandra
+      assert context.realm_default_replication == nil
     end
 
     test "normalizes an explicit cluster" do
       assert InstanceCase.normalize_config!(instance_cluster: :other).instance_cluster == :other
+    end
+
+    test "normalizes an explicit realm default replication" do
+      replication = %{strategy: :simple, replication_factor: 1}
+
+      assert InstanceCase.normalize_config!(realm_default_replication: replication)
+             |> Map.fetch!(:realm_default_replication) == replication
     end
 
     test "rejects an invalid cluster" do
@@ -40,6 +50,14 @@ defmodule Astarte.TestSuite.Cases.InstanceTest do
       assert_raise ArgumentError, ~r/unknown configuration keys/, fn ->
         InstanceCase.normalize_config!(instances: %{})
       end
+    end
+
+    test "rejects an invalid realm default replication" do
+      assert_raise ArgumentError,
+                   ~r/:instance expects :realm_default_replication to be a map/,
+                   fn ->
+                     InstanceCase.normalize_config!(realm_default_replication: :invalid)
+                   end
     end
   end
 end

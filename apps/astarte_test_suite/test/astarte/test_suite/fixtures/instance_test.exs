@@ -47,6 +47,7 @@ defmodule Astarte.TestSuite.Fixtures.InstanceTest do
     @tag :integration
     test "passes migrated database data through the instance helper" do
       {:ok, context} = InstanceFixtures.setup(%{})
+      context = Map.put(context, :realm_default_replication, nil)
       {:ok, context} = InstanceFixtures.data(context)
 
       assert context.instance_database_ready?

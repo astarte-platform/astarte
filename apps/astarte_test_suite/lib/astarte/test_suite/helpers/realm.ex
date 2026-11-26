@@ -23,9 +23,11 @@ defmodule Astarte.TestSuite.Helpers.Realm do
 
   import Astarte.TestSuite.CaseContext, only: [ids: 2, put!: 5, put_fixture: 3, reduce: 4]
 
-  alias Astarte.DataAccess.Repo
-
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm, as: RealmData
+  alias Astarte.DataAccess.Repo
 
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
 
@@ -67,32 +69,32 @@ defmodule Astarte.TestSuite.Helpers.Realm do
   end
 
   def data(context) do
-    {realm_entries, keyspaces, statements} =
-      reduce(context, :realms, {[], [], []}, fn _realm_id,
-                                                realm,
-                                                _instance_id,
-                                                {realm_entries, keyspaces, statements} ->
-        astarte_keyspace = RealmData.astarte_keyspace_name()
-        realm_keyspace = realm_keyspace(realm)
+    instance_keyspace = Map.get(context, :instance_keyspace)
+    public_key_pem = Map.get(context, :realm_public_key_pem)
+    device_registration_limit = Map.get(context, :realm_device_registration_limit)
+    maximum_storage_retention = Map.get(context, :realm_datastream_maximum_storage_retention)
 
-        {
-          realm_entries ++ [{astarte_keyspace, realm.id}],
-          keyspaces ++ [realm_keyspace],
-          statements ++ realm_database_statements_for(realm)
-        }
+    realms =
+      reduce(context, :realms, [], fn _realm_id, %{id: realm_name}, _instance_id, realms ->
+        keyspace = RealmData.keyspace_name(realm_name)
+
+        create_keyspace!(keyspace)
+        :ok = Database.migrate_realm(realm_name)
+        insert_realm!(realm_name, instance_keyspace, device_registration_limit)
+        :ok = insert_public_key(keyspace, public_key_pem)
+        :ok = insert_maximum_storage_retention(keyspace, maximum_storage_retention)
+
+        [{realm_name, keyspace, instance_keyspace} | realms]
       end)
 
-    Enum.each(statements, &Repo.query!/1)
-
     on_exit(fn ->
-      Enum.each(realm_entries, &delete_realm/1)
-      Enum.each(keyspaces, &cleanup_keyspace/1)
+      Enum.each(realms, &delete_realm!/1)
     end)
 
     context
     |> put_fixture(:realm_data, %{
-      realm_keyspaces: keyspaces,
-      realm_database_statements: statements,
+      realm_keyspaces:
+        Enum.map(realms, fn {_realm_name, keyspace, _instance_keyspace} -> keyspace end),
       realms_ready?: true
     })
   end
@@ -104,38 +106,16 @@ defmodule Astarte.TestSuite.Helpers.Realm do
   defp unique_realm_names(realm_names), do: Enum.map(realm_names, &unique_realm_name/1)
 
   defp unique_realm_name(realm_name) do
-    realm_name <> Integer.to_string(System.unique_integer([:positive]))
+    suffix = Integer.to_string(System.unique_integer([:positive]))
+    prefix_length = min(byte_size(realm_name), 48 - byte_size(suffix))
+
+    binary_part(realm_name, 0, prefix_length) <> suffix
   end
 
   defp realm_entry(instance_id, realm_name),
     do: %{id: realm_name, name: realm_name, instance_id: instance_id}
 
-  defp realm_database_statements_for(%{id: realm_id}) do
-    astarte_keyspace = RealmData.astarte_keyspace_name()
-    realm_keyspace = RealmData.keyspace_name(realm_id)
-
-    [
-      create_keyspace_statement(realm_keyspace),
-      insert_realm_statement(astarte_keyspace, realm_id)
-    ] ++ realm_table_statements(realm_keyspace)
-  end
-
-  defp realm_keyspace(%{id: realm_id}), do: RealmData.keyspace_name(realm_id)
-
-  defp realm_table_statements(keyspace) do
-    [
-      create_devices_table_statement(keyspace),
-      create_names_table_statement(keyspace),
-      create_kv_store_statement(keyspace),
-      create_endpoints_table_statement(keyspace),
-      create_individual_properties_table_statement(keyspace),
-      create_individual_datastreams_table_statement(keyspace),
-      create_test_object_table_statement(keyspace),
-      create_interfaces_table_statement(keyspace)
-    ]
-  end
-
-  defp create_keyspace_statement(keyspace) do
+  defp create_keyspace!(keyspace) do
     """
     CREATE KEYSPACE IF NOT EXISTS #{keyspace}
       WITH
@@ -143,205 +123,58 @@ defmodule Astarte.TestSuite.Helpers.Realm do
         durable_writes = true;
     """
     |> String.trim()
+    |> Repo.query!()
   end
 
-  defp insert_realm_statement(instance_keyspace, realm_name) do
-    """
-    INSERT INTO #{instance_keyspace}.realms (realm_name, device_registration_limit)
-    VALUES ('#{realm_name}', 0);
-    """
-    |> String.trim()
+  defp insert_realm!(realm_name, instance_keyspace, device_registration_limit) do
+    %RealmData{
+      realm_name: realm_name,
+      device_registration_limit: device_registration_limit
+    }
+    |> Repo.insert!(
+      prefix: instance_keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
   end
 
-  defp create_devices_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.devices (
-      device_id uuid,
-      aliases map<ascii, varchar>,
-      introspection map<ascii, int>,
-      introspection_minor map<ascii, int>,
-      old_introspection map<frozen<tuple<ascii, int>>, int>,
-      protocol_revision int,
-      first_registration timestamp,
-      credentials_secret ascii,
-      inhibit_credentials_request boolean,
-      cert_serial ascii,
-      cert_aki ascii,
-      first_credentials_request timestamp,
-      last_connection timestamp,
-      last_disconnection timestamp,
-      connected boolean,
-      pending_empty_cache boolean,
-      total_received_msgs bigint,
-      total_received_bytes bigint,
-      exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-      exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-      last_credentials_request_ip inet,
-      last_seen_ip inet,
-      attributes map<varchar, varchar>,
-      groups map<text, timeuuid>,
-      fdo_guid blob,
-      PRIMARY KEY (device_id)
-    );
-    """
-    |> String.trim()
+  defp insert_public_key(_keyspace, nil), do: :ok
+
+  defp insert_public_key(keyspace, public_key_pem) do
+    KvStore.insert(
+      %{
+        group: "auth",
+        key: "jwt_public_key_pem",
+        value: public_key_pem,
+        value_type: :string
+      },
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
   end
 
-  defp create_names_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.names (
-      object_name varchar,
-      object_type int,
-      object_uuid uuid,
-      PRIMARY KEY ((object_name), object_type)
-    );
-    """
-    |> String.trim()
+  defp insert_maximum_storage_retention(_keyspace, nil), do: :ok
+
+  defp insert_maximum_storage_retention(keyspace, maximum_storage_retention) do
+    KvStore.insert(
+      %{
+        group: "realm_config",
+        key: "datastream_maximum_storage_retention",
+        value: maximum_storage_retention,
+        value_type: :integer
+      },
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
   end
 
-  defp create_kv_store_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.kv_store (
-      group varchar,
-      key varchar,
-      value blob,
-      PRIMARY KEY ((group), key)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp create_endpoints_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.endpoints (
-      interface_id uuid,
-      endpoint_id uuid,
-      interface_name ascii,
-      interface_major_version int,
-      interface_minor_version int,
-      interface_type int,
-      endpoint ascii,
-      value_type int,
-      reliability int,
-      retention int,
-      database_retention_policy int,
-      database_retention_ttl int,
-      expiry int,
-      allow_unset boolean,
-      explicit_timestamp boolean,
-      required boolean,
-      encrypted boolean,
-      description varchar,
-      doc varchar,
-      PRIMARY KEY ((interface_id), endpoint_id)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp create_individual_properties_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.individual_properties (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp create_individual_datastreams_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.individual_datastreams (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      value_timestamp timestamp,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-      PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp create_test_object_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.com_example_testobject_v1 (
-      device_id uuid,
-      path varchar,
-      reception_timestamp timestamp,
-      v_string varchar,
-      v_value double,
-      PRIMARY KEY ((device_id, path), reception_timestamp)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp create_interfaces_table_statement(keyspace) do
-    """
-    CREATE TABLE IF NOT EXISTS #{keyspace}.interfaces (
-      name ascii,
-      major_version int,
-      minor_version int,
-      interface_id uuid,
-      storage_type int,
-      storage ascii,
-      type int,
-      ownership int,
-      aggregation int,
-      automaton_transitions blob,
-      automaton_accepting_states blob,
-      description varchar,
-      doc varchar,
-      PRIMARY KEY (name, major_version)
-    );
-    """
-    |> String.trim()
-  end
-
-  defp delete_realm({keyspace, realm_name}) do
+  defp delete_realm!({realm_name, keyspace, instance_keyspace}) do
     RealmData
     |> where([realm], realm.realm_name == ^realm_name)
-    |> Repo.safe_delete_all(prefix: keyspace)
-  end
+    |> Repo.safe_delete_all(
+      prefix: instance_keyspace,
+      consistency: Consistency.domain_model(:write)
+    )
 
-  defp cleanup_keyspace(keyspace) do
-    "DROP KEYSPACE IF EXISTS #{keyspace};"
-    |> Repo.query!()
+    Repo.query!("DROP KEYSPACE IF EXISTS #{keyspace};")
   end
 end

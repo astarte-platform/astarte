@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2026 Clea Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,10 @@ defmodule Astarte.TestSuite.CaseContext do
     realms: [parent: :instances],
     interfaces: [parent: :realms],
     devices: [parent: :interfaces],
-    groups: [parent: :devices]
+    groups: [parent: :devices],
+    policies: [parent: :realms],
+    triggers: [parent: :realms],
+    simple_triggers: [parent: :triggers]
   ]
 
   def put_case(context, case_name, values) when is_map(values) do
