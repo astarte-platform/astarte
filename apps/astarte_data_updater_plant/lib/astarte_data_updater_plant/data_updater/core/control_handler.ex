@@ -25,13 +25,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
@@ -333,7 +334,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     resend_start = System.monotonic_time()
 
     case Core.Device.resend_all_properties(state) do
-      {:ok, new_state} ->
+      {:ok, new_state, missing_interfaces} ->
         # Track successful properties resend
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :properties_resend],
@@ -341,23 +342,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           %{realm: state.realm, result: "success"}
         )
 
+        handle_missing_interfaces(missing_interfaces, state, timestamp)
+
         {:ok, new_state}
-
-      {:error, {:interface_loading_failed, interface_name, major_version}} ->
-        # Track interface loading failure
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
-          %{duration: System.monotonic_time() - resend_start},
-          %{realm: state.realm, result: "interface_loading_failed"}
-        )
-
-        interface_loading_error(
-          state,
-          message_id,
-          timestamp,
-          interface_name,
-          major_version
-        )
 
       {:error, :sending_properties_to_interface_failed} ->
         # Track interface send failure
@@ -402,35 +389,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     new_state
   end
 
-  defp interface_loading_error(state, message_id, timestamp, interface_name, major_version) do
-    Logger.warning("Cannot load interface while resending properties",
-      tag: "interface_loading_failed"
-    )
-
-    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
-    MessageTracker.discard(new_state.message_tracker, message_id)
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-      %{},
-      %{realm: new_state.realm}
-    )
-
-    extra_error_metadata = %{
-      "interface" => interface_name,
-      "interface_major_version" => to_string(major_version)
-    }
-
-    Core.Trigger.execute_device_error_triggers(
-      new_state,
-      "interface_loading_failed",
-      extra_error_metadata,
-      timestamp
-    )
-
-    new_state
-  end
-
   defp sending_properties_error(state, message_id, timestamp) do
     Logger.warning("Cannot send properties to device.",
       tag: "resend_interface_properties_failed"
@@ -452,6 +410,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     )
 
     new_state
+  end
+
+  defp handle_missing_interfaces(missing_interfaces, state, timestamp) do
+    for {interface_name, major_version} <- missing_interfaces do
+      TriggersHandler.device_error(
+        state.realm,
+        state.device_id,
+        state.groups,
+        "interface_loading_failed",
+        %{
+          "interface" => interface_name,
+          "interface_major_version" => to_string(major_version)
+        },
+        timestamp
+      )
+
+      topic = "interface_installed:#{state.realm}:#{interface_name}:#{major_version}"
+      pid = self()
+
+      Task.start(fn ->
+        Phoenix.PubSub.subscribe(Astarte.DataUpdaterPlant.PubSub, topic)
+        ref = Process.monitor(pid)
+
+        receive do
+          :interface_installed ->
+            DataUpdater.handle_signal(pid, :disconnect_device)
+
+          {:DOWN, ^ref, :process, ^pid, _reason} ->
+            :ok
+        end
+      end)
+    end
   end
 
   defp generic_error(state, message_id, timestamp, reason) do

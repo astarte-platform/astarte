@@ -97,9 +97,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     Vhost.create_vhost(@realm)
     {:ok, conn} = Connection.open(EventsConfig.amqp_options!())
     {:ok, chan} = Channel.open(conn)
-    {:ok, _queue} = Queue.declare(chan, @queue_name)
-    {:ok, _queue} = Queue.declare(chan, @default_policy_queue)
-    {:ok, _queue} = Queue.declare(chan, @custom_policy_queue)
+    {:ok, _queue} = Queue.declare(chan, @queue_name, exclusive: true)
+    {:ok, _queue} = Queue.declare(chan, @default_policy_queue, exclusive: true)
+    {:ok, _queue} = Queue.declare(chan, @custom_policy_queue, exclusive: true)
 
     :ok =
       Queue.bind(chan, @queue_name, EventsConfig.amqp_events_exchange_name!(),

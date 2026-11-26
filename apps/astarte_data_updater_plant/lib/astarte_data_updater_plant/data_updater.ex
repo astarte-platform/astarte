@@ -185,6 +185,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end)
   end
 
+  def handle_signal(pid, signal) do
+    GenServer.cast(pid, {:handle_signal, signal})
+  end
+
   def dump_state(realm, encoded_device_id) do
     with {:ok, message_tracker} <- fetch_message_tracker(realm, encoded_device_id),
          {:ok, data_updater} <-
