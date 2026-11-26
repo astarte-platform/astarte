@@ -74,6 +74,16 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
+  def handle_call(
+        {:interface_installed, {realm_name, interface_name, interface_major}},
+        _from,
+        state
+      ) do
+    :ok = Core.interface_installed(realm_name, interface_name, interface_major)
+    {:reply, :ok, state}
+  end
+
+  @impl GenServer
   def handle_info(
         {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
         state
