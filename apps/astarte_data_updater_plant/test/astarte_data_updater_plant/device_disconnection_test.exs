@@ -26,7 +26,11 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.Helpers.DataUpdater
+
+  alias Astarte.Secrets
+  alias COSE.Keys.Symmetric
 
   import Ecto.Query
 
@@ -52,6 +56,8 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
         realm: realm_string,
         helper_name: helper_name
       )
+
+    {:ok, _} = Secrets.create_realm_kek(realm_string)
 
     {:ok, %{realm: realm_string, helper_name: helper_name}}
   end
@@ -107,6 +113,74 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
            }
 
     assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
+  end
+
+  describe "device clean session disconnection" do
+    setup %{realm: realm} do
+      device_id = Device.random_device_id()
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      DatabaseTestHelper.insert_device(realm, device_id, introspection: %{})
+
+      key = :crypto.strong_rand_bytes(32)
+      shared_secret_in_state = %Symmetric{k: key, alg: :aes_256_gcm}
+
+      {:ok, encrypted_key} = Secrets.encrypt_with_kek(realm, key)
+      shared_secret_in_db = %Symmetric{k: encrypted_key, alg: :aes_256_gcm}
+
+      :ok = Queries.save_shared_secret(realm, device_id, shared_secret_in_db)
+
+      %{
+        device_id: device_id,
+        encoded_device_id: encoded_device_id,
+        key: key,
+        shared_secret_in_state: shared_secret_in_state
+      }
+    end
+
+    test "with header x_astarte_clean_mqtt_session = true clears the shared secret",
+         %{
+           realm: realm,
+           device_id: device_id,
+           encoded_device_id: encoded_device_id
+         } do
+      timestamp = make_timestamp("2026-11-27T14:30:45+00:00")
+
+      DataUpdater.handle_disconnection(realm, encoded_device_id, timestamp, true)
+
+      state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      assert state.connected == false
+      assert state.shared_secret == nil
+      assert state.encrypted_endpoints_key == :uninitialized
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm, device_id)
+    end
+
+    test "with header x_astarte_clean_mqtt_session = false preserves the shared secret",
+         %{
+           realm: realm,
+           device_id: device_id,
+           encoded_device_id: encoded_device_id,
+           key: key,
+           shared_secret_in_state: shared_secret
+         } do
+      timestamp = make_timestamp("2026-11-27T14:30:45+00:00")
+
+      DataUpdater.handle_disconnection(realm, encoded_device_id, timestamp, false)
+
+      state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      assert state.connected == false
+      assert state.shared_secret == shared_secret
+      assert state.encrypted_endpoints_key == {:established, %{shared_secret: key}}
+
+      assert %{
+               shared_secret: ^shared_secret,
+               encrypted_endpoints_key: {:established, %{shared_secret: ^key}}
+             } = Queries.get_device_status(realm, device_id)
+    end
   end
 
   defp make_timestamp(timestamp_string) do

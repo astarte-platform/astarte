@@ -155,6 +155,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   def handle_control(state, "/emptyCache", _payload, timestamp) do
     state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
+    {:ok, new_shared_secret_state} =
+      HandshakeState.transition(state.encrypted_endpoints_key, :reset)
+
+    state = reset_shared_secret(state, new_shared_secret_state)
+
     with :ok <- send_control_consumer_properties(state, timestamp),
          {:ok, state} <- resend_all_properties(state, timestamp),
          :ok <- set_pending_empty_cache(state, timestamp) do
@@ -486,7 +491,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
             "hash comparison failed"
           )
 
-        {:ack, :ok, state}
+        {:ok, new_shared_secret_state} =
+          HandshakeState.transition(state.encrypted_endpoints_key, :reset)
+
+        final_state = reset_shared_secret(state, new_shared_secret_state)
+
+        {:ack, :ok, final_state}
 
       {:error, reason} ->
         Logger.error("[keyAgreement/2] Failed to process SecretHash: #{inspect(reason)}")
@@ -565,13 +575,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         _ = send_exchange_failed(state.realm, state.device_id, 0, reason, message)
 
-        final_state = %{
-          state
-          | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
-            total_received_msgs: state.total_received_msgs + 1,
-            total_received_bytes:
-              state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
-        }
+        final_state =
+          %{
+            state
+            | total_received_msgs: state.total_received_msgs + 1,
+              total_received_bytes:
+                state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/1")
+          }
+          |> reset_shared_secret(HandshakeState.fail(reason))
 
         {:ack, :ok, final_state}
     end
@@ -599,6 +610,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       {:ok, encrypted_key} -> {:ok, %Symmetric{symmetric_key | k: encrypted_key}}
       :error -> {:error, :internal_server_error, "failed to encrypt shared secret"}
     end
+  end
+
+  # clean secret both from DUP state and device db entry when receiving explicit request
+  # or key agreement failure happens
+  # (we do not treat DB key reset failure as a fatal error for the device)
+  @spec reset_shared_secret(State.t(), :uninitialized | {:failed, term()}) :: State.t()
+  defp reset_shared_secret(%State{realm: realm, device_id: device_id} = state, key_status) do
+    Queries.reset_shared_secret(realm, device_id)
+    %State{state | encrypted_endpoints_key: key_status, shared_secret: nil}
   end
 
   defp process_exchange_failed(state, payload, timestamp) do
@@ -633,13 +653,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
       %{realm: state.realm, reason: reason}
     )
 
-    final_state = %{
-      state
-      | encrypted_endpoints_key: HandshakeState.fail(state.encrypted_endpoints_key, reason),
-        total_received_msgs: state.total_received_msgs + 1,
-        total_received_bytes:
-          state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
-    }
+    final_state =
+      %{
+        state
+        | total_received_msgs: state.total_received_msgs + 1,
+          total_received_bytes:
+            state.total_received_bytes + byte_size(payload) + byte_size("/keyAgreement/4")
+      }
+      |> reset_shared_secret(HandshakeState.fail(reason))
 
     {:ack, :ok, final_state}
   end

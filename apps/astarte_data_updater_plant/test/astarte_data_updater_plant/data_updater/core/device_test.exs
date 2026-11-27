@@ -42,9 +42,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.Helpers.Database
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
 
-  alias Astarte.DataUpdaterPlant.Helpers.Database
+  alias Astarte.Secrets
+
+  alias COSE.Keys.Symmetric
 
   @moduletag timeout: 180_000
 
@@ -60,10 +63,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
       # Successfully disconnected
       Mimic.expect(VMQPlugin, :disconnect, fn _client_id, _discard_state -> :ok end)
 
-      {:ok, new_state} = Core.Device.ask_clean_session(state, @timestamp_us_x_10)
+      # add a shared secret into the state to check for deletion upon clean session
+      # TODO put this setup in Cases.Device
+      key = :crypto.strong_rand_bytes(32)
+
+      state_with_shared_secret = %{
+        state
+        | encrypted_endpoints_key: {:established, %{shared_secret: key}},
+          shared_secret: %Symmetric{k: key, alg: :aes_256_gcm}
+      }
+
+      {:ok, new_state} =
+        Core.Device.ask_clean_session(state_with_shared_secret, @timestamp_us_x_10)
 
       assert read_device_empty_cache(realm_name, state.device_id) == true
       assert new_state.connected == false
+      assert new_state.encrypted_endpoints_key == :uninitialized
+      assert new_state.shared_secret == nil
     end
 
     test "clears cache and marks device disconnected if already disconnected", %{
@@ -285,7 +301,41 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
     end
   end
 
-  describe "set_device_disconnected/2" do
+  describe "set_device_disconnected/3" do
+    setup context do
+      %{realm_name: realm_name, astarte_instance_id: astarte_instance_id, state: state} = context
+      device_id = Device.random_device_id()
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        remove_device(device_id, realm_name)
+      end)
+
+      insert_device(device_id, realm_name)
+
+      key = :crypto.strong_rand_bytes(32)
+      shared_secret_in_state = %Symmetric{k: key, alg: :aes_256_gcm}
+      {:ok, encrypted_key} = Secrets.encrypt_with_kek(realm_name, key)
+      shared_secret_in_db = %Symmetric{k: encrypted_key, alg: :aes_256_gcm}
+
+      :ok = Queries.save_shared_secret(realm_name, device_id, shared_secret_in_db)
+
+      # a fake device state (just needed for shared secret deletion checks for now)
+      state = %{
+        state
+        | device_id: device_id,
+          connected: true,
+          total_received_msgs: 0,
+          total_received_bytes: 0,
+          interface_exchanged_msgs: %{},
+          interface_exchanged_bytes: %{},
+          encrypted_endpoints_key: {:established, %{shared_secret: key}},
+          shared_secret: shared_secret_in_state
+      }
+
+      %{state: state, original_key: key, shared_secret: shared_secret_in_state}
+    end
+
     @tag :regression
     test "does not re-insert a deleted device", %{state: state} do
       device_id = device_id() |> Enum.at(0)
@@ -294,9 +344,45 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
       state = %{state | device_id: device_id, connected: false}
       timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> then(&(&1 * 10))
 
-      assert Core.Device.set_device_disconnected(state, timestamp)
+      assert Core.Device.set_device_disconnected(state, true, timestamp)
 
       assert {:ok, false} = Queries.check_device_exists(state.realm, device_id)
+    end
+
+    test "disconnects the device clearing the shared secret when a clean session is requested",
+         context do
+      %{state: state, realm_name: realm_name} = context
+
+      clean_session = true
+      timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> then(&(&1 * 10))
+
+      new_state = Core.Device.set_device_disconnected(state, clean_session, timestamp)
+      assert new_state.encrypted_endpoints_key == :uninitialized
+      assert new_state.shared_secret == nil
+      assert new_state.connected == false
+
+      assert %{shared_secret: nil, encrypted_endpoints_key: :uninitialized} =
+               Queries.get_device_status(realm_name, state.device_id)
+    end
+
+    test "disconnects the device preserving the shared secret when a clean session is not requested",
+         context do
+      %{state: state, realm_name: realm_name, original_key: key, shared_secret: shared_secret} =
+        context
+
+      clean_session = false
+      timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> then(&(&1 * 10))
+
+      new_state = Core.Device.set_device_disconnected(state, clean_session, timestamp)
+      assert new_state.encrypted_endpoints_key == {:established, %{shared_secret: key}}
+      assert new_state.shared_secret == shared_secret
+      assert new_state.connected == false
+
+      assert %{
+               shared_secret: ^shared_secret,
+               encrypted_endpoints_key: {:established, %{shared_secret: ^key}}
+             } =
+               Queries.get_device_status(realm_name, state.device_id)
     end
   end
 

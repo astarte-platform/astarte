@@ -95,9 +95,10 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
 
     if should_start_device_deletion?(realm, device_id) do
       encoded_device_id = Device.encode_device_id(device_id)
+      clean_session = true
 
       :ok = force_device_deletion_from_broker(realm, encoded_device_id)
-      %State{} = new_state = Core.Device.set_device_disconnected(state, timestamp)
+      %State{} = new_state = Core.Device.set_device_disconnected(state, clean_session, timestamp)
 
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
